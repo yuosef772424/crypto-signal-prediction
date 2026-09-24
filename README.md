@@ -47,6 +47,7 @@
 - [مرحلة ٣ لمختبر الاكتشاف](docs/research/discovery_lab_phase3.md) — ❌ مرفوضة (Matrix Profile، SHAP، WIDEHIST، عنقدة).
 - [المعمارية المشتركة بين الأصول](docs/research/cross_asset_architecture.md) — ⏸️ مؤجَّل.
 - [H003 — انعكاس التقلّب (`NATR_14`)](docs/research/h003_volatility_reversal.md) — ✅ مقبولة، أول قبول رسمي في تاريخ المشروع (عيّنة موسّعة 50 أصلاً).
+- [مرشّحو pandas_ta المؤجَّلون سابقاً](docs/research/pandas_ta_deferred_candidates.md) — ❌ مرفوضة (27 توليفة)، أوّل عيّنة فعلية من `SURVEY_CANDIDATES_ROBUST` عبر المحور الصارم على بيانات حقيقية.
 
 **الخطوة التالية** (بانتظار قرار صريح من صاحب المشروع، لا تنفيذ تلقائي): الأسئلة المفتوحة الثلاثة في صفحة H003 (تصحيح الاختبارات المتعددة، تفكيك أثر `NATR_14` عن تطبيع RSI، وهل يتحوّل لتحسين حقيقي في تدريب `NIG-TimeNet v2` الفعلي).
 

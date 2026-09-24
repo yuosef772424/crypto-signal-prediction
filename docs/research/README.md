@@ -25,6 +25,7 @@
 | [مرحلة ٣ — Matrix Profile/SHAP/عنقدة](discovery_lab_phase3.md) | ❌ مرفوضة (117 تجربة) | يشمل اختبار WIDEHIST (كامل التاريخ المتاح، لا عيّنة صغيرة). |
 | [معمارية مشتركة بين الأصول](cross_asset_architecture.md) | ⏸️ مؤجَّل | اختبار IC رخيص خطي لا يدعم الفكرة بصيغتها البسيطة. |
 | [H003 — انعكاس التقلّب (`NATR_14`)](h003_volatility_reversal.md) | ✅ مقبولة | أول فرضية مقبولة رسمياً في تاريخ المشروع؛ عيّنة موسّعة 50 أصلاً. |
+| [مرشّحو pandas_ta المؤجَّلون سابقاً](pandas_ta_deferred_candidates.md) | ❌ مرفوضة (27 تجربة) | CCI/WILLR/Vortex/DX/UO/CTI/SKEW/FISHER/RVI — high/low متاحة الآن، ولا إشارة جديدة. |
 
 ## الحالة الحالية والخطوة التالية
 
