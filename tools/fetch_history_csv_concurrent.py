@@ -68,8 +68,27 @@ from urllib.parse import urlparse
 START_DATE = "2017-01-01"       # تاريخ البداية (UTC) — يمكن تغييره أو تمريره عبر --start
 END_DATE = ""                   # تاريخ النهاية (UTC)، فارغ = الآن
 INTERVAL = "15m"                # لإعداد الساعة في خط الأنابيب مرّر --interval 1h
+
+
+def _in_notebook() -> bool:
+    """داخل Jupyter/Colab (خلية ملصوقة أو %run)؟"""
+    return "ipykernel" in sys.modules
+
+
+def _script_dir() -> Path:
+    """مجلد السكربت — أو مجلد العمل الحالي حين يُلصق الكود في خلية (لا __file__ هناك)."""
+    try:
+        return Path(__file__).resolve().parent
+    except NameError:
+        return Path.cwd()
+
+
 # المخرجات: data/history_<interval>_from_<start>/<SYMBOL>.csv
-OUT_ROOT = str(Path(__file__).resolve().parent.parent / "data")
+OUT_ROOT = str(_script_dir().parent / "data")
+# ── لتشغيله بلصقه في خلية Colab: عدّل هذه القيم (سطر الأوامر يتجاوزها) ──
+DRIVE_ROOT = ""                 # فارغ في Colab مع Drive مُركَّب → /content/drive/MyDrive تلقائياً
+SYMBOLS = ""                    # "BTCUSDT,ETHUSDT" للتجربة؛ فارغ = كل العملات
+FUNDING = False                 # True: حمّل تاريخ معدّل التمويل أيضاً
 MAX_PER_REQUEST = 1500          # أقصى شموع في طلب klines واحد
 MAX_CONCURRENT = 20             # طلبات متوازية لكل العملات معاً
 SYMBOLS_IN_PARALLEL = 4         # عملات تُعالَج في نفس الوقت (للتحكم بالذاكرة)
@@ -158,7 +177,7 @@ def resolve_base_url(testnet: bool) -> str:
     """كالنسخة السابقة: العنوان من كائن exchange (adapters.binance_live) إن وُجد في مجلد المشروع،
     وإلا mainnet/testnet حسب BINANCE_TESTNET. لا يُطبع أي مفتاح (كانت النسخة السابقة تطبع المفتاح والسر)."""
     try:
-        sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+        sys.path.insert(0, str(_script_dir().parent))
         from adapters.binance_live import BinanceFutures          # noqa: E402
         from core.exchange_api import ExchangeConfig             # noqa: E402
         ex = BinanceFutures(ExchangeConfig(api_key=os.environ.get("BINANCE_API_KEY", ""),
@@ -489,12 +508,12 @@ def parse_args():
     p.add_argument("--start", default=START_DATE, help="تاريخ البداية UTC، مثال: 2025-01-01")
     p.add_argument("--end", default=END_DATE, help="تاريخ النهاية UTC (افتراضي: الآن)")
     p.add_argument("--interval", default=INTERVAL, help="الفريم الزمني، مثال: 1m 5m 1h")
-    p.add_argument("--symbols", default="", help="عملات محددة مفصولة بفاصلة (افتراضي: كل العملات)")
+    p.add_argument("--symbols", default=SYMBOLS, help="عملات محددة مفصولة بفاصلة (افتراضي: كل العملات)")
     p.add_argument("--symbols-file", default="", help="ملف نصي: عملة في كل سطر")
     p.add_argument("--out-dir", default="", help="مجلد المخرجات (افتراضي: تلقائي داخل data/)")
-    p.add_argument("--drive-root", default="", help="اختياري: جذر Drive (مثل 'G:/My Drive') لبنية خط الأنابيب")
+    p.add_argument("--drive-root", default=DRIVE_ROOT, help="اختياري: جذر Drive (مثل 'G:/My Drive') لبنية خط الأنابيب")
     p.add_argument("--registry", default="", help="مسار asset_registry.csv (افتراضي: <root>/crypto_data/)")
-    p.add_argument("--funding", action="store_true", help="حمّل أيضاً تاريخ معدّل التمويل الكامل")
+    p.add_argument("--funding", action="store_true", default=FUNDING, help="حمّل أيضاً تاريخ معدّل التمويل الكامل")
     p.add_argument("--open-interest", action="store_true", help="أضف آخر 30 يوماً من الفائدة المفتوحة للأرشيف")
     p.add_argument("--oi-period", default="1h", help="دقة الفائدة المفتوحة (5m..1d)")
     p.add_argument("--include-delisted", action="store_true",
@@ -502,11 +521,21 @@ def parse_args():
     p.add_argument("--registry-only", action="store_true", help="أعد بناء السجلّ من الملفات الموجودة فقط")
     p.add_argument("--testnet", action="store_true", default=os.environ.get("BINANCE_TESTNET", "").lower() == "true")
     p.add_argument("--base-url", default="", help="تجاوز عنوان الـ API (للاختبار)")
+    if _in_notebook():
+        # خلية ملصوقة: sys.argv هنا وسائط نواة Jupyter (-f kernel.json) لا وسائطنا — تُتجاهل.
+        # مع %run تصل وسائطك الحقيقية وتُقرأ عادياً.
+        args, _unknown = p.parse_known_args()
+        return args
     return p.parse_args()
 
 
 async def main():
     args = parse_args()
+    colab_drive = Path("/content/drive/MyDrive")
+    if _in_notebook() and not args.drive_root and not args.out_dir and colab_drive.exists():
+        # في Colab: القرص المحلي يُمسح عند انقطاع الجلسة — اكتب في Drive مباشرة بنفس بنية خط الأنابيب.
+        args.drive_root = str(colab_drive)
+        print(f"Colab: الكتابة في {colab_drive} مباشرة (history_<interval>/ و crypto_data/).")
     base_url = args.base_url or resolve_base_url(args.testnet)
     interval, interval_ms = args.interval, interval_to_ms(args.interval)
     start_ms = parse_date_ms(args.start)
