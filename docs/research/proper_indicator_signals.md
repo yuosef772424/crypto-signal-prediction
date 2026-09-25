@@ -1,6 +1,6 @@
-# الاستخدام "الصحيح" للمؤشرات المعروفة (لا القيمة الخام) — مرفوضة (36 من 36)
+# الاستخدام "الصحيح" للمؤشرات المعروفة (لا القيمة الخام) — مرفوضة (45 من 45)
 
-**الحالة: مرفوضة (36 من 36)،** لكن بنتائج فرعية لافتة تستحق التوثيق. رابعة فئات الأبحاث بعد استنفاد `pandas_ta` (بعد [مقدّرات التقلّب](new_volatility_liquidity_estimators.md)، [هيرست/Variance Ratio](hurst_variance_ratio_features.md)، [نسبة القفزات](jump_ratio_feature.md)) — لكن بمنهجية مختلفة جوهرياً: بدل ميزات **جديدة كلياً**، هذا بحث في **كيفية الاستخدام الصحيح لمؤشرات معروفة موجودة أصلاً** (`RSI`, `MACD`, `ADX`/`DMI`, `Bollinger Bands`, `SuperTrend`) — بناءً على طلب صريح لفهم كيف تُستخرَج الفائدة من كل مؤشر ولماذا يُستخدم، لا مجرّد اختبار قيمته الخام إحصائياً.
+**الحالة: مرفوضة (45 من 45)،** لكن بنتائج فرعية لافتة تستحق التوثيق. رابعة فئات الأبحاث بعد استنفاد `pandas_ta` (بعد [مقدّرات التقلّب](new_volatility_liquidity_estimators.md)، [هيرست/Variance Ratio](hurst_variance_ratio_features.md)، [نسبة القفزات](jump_ratio_feature.md)) — لكن بمنهجية مختلفة جوهرياً: بدل ميزات **جديدة كلياً**، هذا بحث في **كيفية الاستخدام الصحيح لمؤشرات معروفة موجودة أصلاً** (`RSI`, `MACD`, `ADX`/`DMI`, `Bollinger Bands`, `Stochastic`, `SuperTrend`, `Parabolic SAR`) — بناءً على طلب صريح لفهم كيف تُستخرَج الفائدة من كل مؤشر ولماذا يُستخدم، لا مجرّد اختبار قيمته الخام إحصائياً.
 
 ## الخلفية والدافع
 
@@ -9,6 +9,8 @@
 ## المنهجية: بحث ويب لكل مؤشر، ثمّ صيغتان (خام مقابل صحيحة)
 
 لكل مؤشر: بحث في مصادره الأصلية/الموثوقة عن **كيف يُستخدم فعلياً في التداول ولماذا** — ثمّ اختبار الصيغة الخام (كما لو أُخذت القيمة الرقمية مباشرة) **مقابل** الصيغة الموصى بها، على نفس مقياس H003 الكامل (50 أصلاً، 30 نافذة)، كل مؤشر بصفّه الخاص في الجدول (لا دفعة عمياء واحدة).
+
+**ملاحظة**: `CCI` (Donald Lambert 1980) بُحِث أيضاً لكن **استُبعِد من الاختبار الفعلي**: تعليق موجود أصلاً في `crypto_data_pipeline_v6.ipynb` (`CONFIG['indicator_settings']`) يوثّق ترابطاً 0.963 مع `BBP` مُكتشَفاً سابقاً — أي أنه شبه مطابق رقمياً لمؤشّر `Bollinger %B` المُختبَر أدناه (رقم ٤)، فاختباره سيكرّر نفس النتيجة تقريباً بلا معلومة جديدة.
 
 ### ١) RSI — التباعد (Divergence) لا عتبتَي 70/30
 
@@ -42,6 +44,18 @@
 
 بما أن SuperTrend استمراري (trend-following) بطبيعته، فرضيته **معاكسة تماماً** لفرضية H003 الانعكاسية: اتجاه صاعد ← يُتوقَّع استمرار موجب، لا ارتداد.
 
+### ٦) Stochastic Oscillator — تقاطع %K/%D "من اليمين"، لا %K الخام
+
+جورج لين (مبتكر المؤشّر) افترض أن **الزخم ينعكس قبل السعر**: في الاتجاه الصاعد تتجمّع الإغلاقات قرب أعلى المدى اليومي، وتبدأ بالانزلاق نحو المنتصف قبل توقّف القمم الجديدة فعلياً. الاستخدام الصحيح: شراء عند عبور %K لـ%D من الأسفل، بيع عند العكس — [StoneX](https://futures.stonex.com/technical-analysis-learning-center/stochastic)، [Traders.com](https://traders.com/documentation/feedbk_docs/2004/04/Charting/charting.html). **ملاحظة مهمّة**: لين نفسه اعتبر **التباعد بين %D والسعر** الإشارة الأهمّ فعلياً — أولوية للتقاطع هنا فقط لأن التباعد نفسه اختُبِر بالفعل لـRSI أعلاه بنتيجة مخيّبة.
+
+**التنفيذ**: `STOCH_KD_SIGN` = `sign(STOCHk_14_3_3 − STOCHd_14_3_3)` — محسوبة من الأعمدة الموجودة أصلاً (`stoch: [(14, 3)]` في `indicator_settings` الافتراضية).
+
+### ٧) Parabolic SAR — اتجاه النقاط، لا قيمتها السعرية
+
+مؤشّر وايلدر نفسه (1978، أقدم من SuperTrend وأبسط حسابياً): نقطة تحت السعر = اتجاه صاعد، فوقه = هابط؛ الانعكاس يحدث حين يعبر السعر النقاط. [StockCharts](https://chartschool.stockcharts.com/table-of-contents/technical-indicators-and-overlays/technical-overlays/parabolic-sar)، [TradeZero](https://tradezero.com/blog/parabolic-sar-indicator-how-traders-use-it-to-spot-turns-and-control-risk). **ملاحظة من وايلدر نفسه**: يعمل بشكل أفضل في الأسواق المُتّجهة فقط (~30% من الوقت تقديرياً)، وأوصى صراحةً باستخدامه مع ADX لتأكيد قوّة الاتجاه أوّلاً — بالضبط نفس القيد الذي ظهر في اختبار ADX أعلاه.
+
+**التنفيذ**: `PSAR_DIR` (إعدادات وايلدر القياسية `af0=af=0.02`, `max_af=0.2`) — يدمج عمودَي `PSARl`/`PSARs` الخام من `pandas_ta` (أحدهما `NaN` دائماً حسب الاتجاه الحالي) في إشارة اتجاه واحدة (±1)، غائب كلياً عن مجموعة الميزات الافتراضية لهذا المشروع.
+
 ## النتيجة الفعلية عبر المحور الصارم (50 أصلاً، 30 نافذة — نفس مقياس H003)
 
 | المؤشّر | الصيغة | الهدف | mean_ic | frac_significant | consistent_sign |
@@ -74,12 +88,16 @@
 | SuperTrend | اتجاه (20) | close/high/low | +0.005/+0.021/-0.008 | 17%/30%/23% | ❌ False |
 | SuperTrend | امتداد (10) | close/high/low | -0.029/+0.057/-0.080 | 20%/37%/**67%** | ❌ False |
 | SuperTrend | امتداد (20) | close/high/low | -0.028/+0.046/-0.072 | 17%/30%/**63%** | ❌ False |
+| Stochastic | خام (`STOCHk_14_3_3`) | close/high/low | -0.057/-0.009/-0.020 | 40%/33%/43% | ❌ False |
+| Stochastic | تقاطع K/D | close/high/low | +0.005/+0.022/+0.037 | 20%/30%/40% | ❌ False |
+| Parabolic SAR | اتجاه النقاط | close/high/low | +0.001/+0.041/-0.021 | 13%/40%/33% | ❌ False |
 
-**36 من 36 مرفوضة.** لكن ثلاث ملاحظات فرعية لافتة تستحق تسجيلاً صريحاً:
+**45 من 45 مرفوضة.** لكن ثلاث ملاحظات فرعية لافتة تستحق تسجيلاً صريحاً:
 
 1. **`RSI_14` الخام أقوى بكثير من أي مرشّح آخر في هذه الدفعة** (`frac_significant=77%` على close، ثاني أعلى رقم شُوهد في هذا المشروع بعد `NATR_14` نفسه 93-97%) — لكن `consistent_sign=False` يمنع القبول رغم القوّة الظاهرية: الإشارة قوية إحصائياً في أغلب النوافذ لكن تتقلّب اتجاهها بين نافذة وأخرى، خلافاً لـ`NATR_14` الذي يحافظ على نفس الاتجاه في كل نافذة تقريباً.
 2. **مفاجأة منهجية**: صيغة "التباعد الصحيحة" (`RSI_DIVERGENCE`) كانت **أضعف** من `RSI` الخام (`frac_significant` 53% مقابل 77% على close) — عكس ما تتوقّعه توصية وايلدر بأن التباعد "أقوى ميزة". تفسيران محتملان غير متنافيين: (أ) التقريب المبسَّط المُستخدَم هنا (فرق درجة معيارية) لا يلتقط جوهر التباعد الحقيقي الذي يحتاج مطابقة قمم/قيعان مؤكَّدة حرفياً؛ (ب) ذروة الشراء/البيع الخام تحدث باستمرار فتُعطي عيّنة أكبر وأثبت إحصائياً عبر 30 نافذة، بينما التباعد نادر الحدوث فيصعب قياسه بثبات على هذا المقياس الزمني.
 3. **`SUPERT_STRETCH` على `low`** (كلا النافذتين) و**`BB_PCTB_20` على `close`** يقتربان من نفس نمط `RSI_14`: `frac_significant` مرتفع نسبياً (63-67%) لكن بلا اتساق اتجاه.
+4. **Stochastic وParabolic SAR كانا الأضعف في كامل هذه الدفعة** (`frac_significant` ≤43% للجميع، أدنى من كل مؤشّر آخر هنا) — يتّسق مع تحذير كلا المصدرين صراحةً بأن هذين المؤشّرين يحتاجان تأكيداً من مؤشّر آخر (Stochastic: تباعد %D؛ PSAR: ADX) ولا يُستخدَمان بمفردهما أصلاً — إخفاقهما هنا منفردَين متوقَّع من الأدبيات نفسها، لا مفاجأة.
 
 ## تشخيص إضافي: لماذا يتذبذب اتجاه RSI الخام تحديداً؟
 
@@ -116,3 +134,7 @@
 - [Relative strength index (Wikipedia)](https://en.wikipedia.org/wiki/Relative_strength_index)
 - [RSI Divergence: 4 Types, Crypto Examples (Plisio)](https://plisio.net/education/rsi-divergence-bullish-bearish)
 - [How to Read RSI Divergence (Whale Story)](https://goraestory.com/en/academy/rsi-divergence/)
+- [Stochastic — Futures Chart Technical Analysis (StoneX)](https://futures.stonex.com/technical-analysis-learning-center/stochastic)
+- [Charting the Market (Traders.com)](https://traders.com/documentation/feedbk_docs/2004/04/Charting/charting.html)
+- [Parabolic SAR (StockCharts ChartSchool)](https://chartschool.stockcharts.com/table-of-contents/technical-indicators-and-overlays/technical-overlays/parabolic-sar)
+- [Parabolic SAR Indicator: Spot Reversals and Manage Risk Fast (TradeZero)](https://tradezero.com/blog/parabolic-sar-indicator-how-traders-use-it-to-spot-turns-and-control-risk)
