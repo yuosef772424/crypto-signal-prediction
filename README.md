@@ -56,6 +56,7 @@
 - [مراجعة أدبيات خارجية](docs/research/external_literature_review.md) — 📚 بحث/توصيات بعد استنفاد pandas_ta؛ **الأولوية الأولى الموصى بها: تفعيل `funding_rate`/`open_interest` الحقيقيين** (بنية تحتية جاهزة، دعم أدبي قوي، امتداد طبيعي لموضوع الانعكاس المدفوع بالتقلّب في H003).
 - [إضافة `RVI_14`/`FISHER_14` كميزتين فعليتين](docs/research/rvi_fisher_features_added.md) — ✅ مُنفَّذة ومُتحقَّق منها (بيانات BTC حقيقية، 88/88 اختباراً ذاتياً)؛ بانتظار تدريب `NIG-TimeNet v2` فعلي لقياس الأثر.
 - [مقدّرات تقلّب/سيولة كلاسيكية من خارج pandas_ta](docs/research/new_volatility_liquidity_estimators.md) — ❌ مرفوضة (18 من 18)؛ أوّل بحث ميزات جديدة كلياً خارج pandas_ta (Parkinson/Garman-Klass/Rogers-Satchell/Yang-Zhang/Amihud/Roll)، مُختبَرة مباشرة على مقياس H003 الكامل — `consistent_sign=False` بلا استثناء.
+- [أسّ هيرست وVariance Ratio من خارج pandas_ta](docs/research/hurst_variance_ratio_features.md) — ❌ مرفوضة (12 من 12)؛ اختبارا انعكاس/استمرار مباشران (لو-ماكينلي 1988 + هيرست 1951)، لكن `mean_ic` شبه صفري على مقياس H003 الكامل — دليل إضافي على أن أثر H003 خاصّ بالتقلّب المُطبَّع لا انعكاساً هندسياً عاماً.
 
 **الخطوة التالية** (بانتظار قرار صريح من صاحب المشروع، لا تنفيذ تلقائي): الأسئلة المفتوحة الثلاثة في صفحة H003 (تصحيح الاختبارات المتعددة، تفكيك أثر `NATR_14` عن تطبيع RSI، وهل يتحوّل لتحسين حقيقي في تدريب `NIG-TimeNet v2` الفعلي)، بالإضافة إلى تفعيل funding rate/open interest الحقيقيين.
 
