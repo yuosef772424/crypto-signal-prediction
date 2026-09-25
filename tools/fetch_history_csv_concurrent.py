@@ -39,6 +39,11 @@ fetch_history_csv_concurrent.py
     --drive-root "G:/My Drive"            # اكتب البنية مباشرة في Drive: history_<interval>/ ...
     --registry-only                       # أعد بناء سجلّ الأصول من الملفات الموجودة فقط
 
+في Google Colab (Drive مُركَّب) — يكتب في Drive مباشرة ويُكمل من حيث توقّف عند انقطاع الجلسة:
+    !python fetch_history_csv_concurrent.py --drive-root /content/drive/MyDrive --interval 1h --funding
+    (أو %run بنفس الوسائط). ⚠️ Binance يحجب عناوين IP الأمريكية (HTTP 451) وخوادم Colab غالباً
+    أمريكية — إن ظهر 451 فشغّله من جهازك (PyCharm) واكتب في مجلد Drive المتزامن بـ --drive-root.
+
 كل التواريخ بتوقيت UTC. إعادة تشغيل نفس الأمر تُكمل من آخر شمعة محفوظة لكل عملة.
 """
 
@@ -523,10 +528,18 @@ async def main():
 
     print(f"الاتصال: {base_url}")
     print("[1] جلب قائمة العملات...")
+
     has_wanted = bool(args.symbols.strip() or args.symbols_file)
     try:
         all_symbols = await asyncio.to_thread(list_symbols, base_url, args.include_delisted or has_wanted,
                                               ONLY_USDT_PERPETUAL and not has_wanted)
+    except BinanceHTTPError as e:
+        if e.code == 451:
+            print("[خطأ] HTTP 451: Binance يحجب الوصول من موقع هذا الجهاز (عناوين IP الأمريكية — ومنها أغلب "
+                  "خوادم Google Colab). شغّل السكربت من جهازك واكتب في مجلد Drive المتزامن عبر --drive-root.")
+        else:
+            print(f"[خطأ] تعذّر جلب exchangeInfo: {e}")
+        return
     except Exception as e:
         print(f"[خطأ] تعذّر جلب exchangeInfo: {e}")
         return
@@ -606,5 +619,29 @@ async def main():
         print(f"      apply_hourly_preset({{'drive_raw_dir': '{rel(out_dir)}'}})   # لإعداد الساعة (20-ب)")
 
 
+def run():
+    """سطر الأوامر/PyCharm: asyncio.run مباشرة. داخل Jupyter/Colab (%run) توجد حلقة أحداث تعمل مسبقاً
+    فيفشل asyncio.run — عندها يُشغَّل main في خيط مستقل بحلقته الخاصة."""
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        asyncio.run(main())
+        return
+    import threading
+    err: List[BaseException] = []
+
+    def _target():
+        try:
+            asyncio.run(main())
+        except BaseException as e:                     # noqa: BLE001
+            err.append(e)
+
+    t = threading.Thread(target=_target)
+    t.start()
+    t.join()
+    if err:
+        raise err[0]
+
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    run()
