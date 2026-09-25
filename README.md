@@ -47,6 +47,7 @@
 - [مرحلة ٣ لمختبر الاكتشاف](docs/research/discovery_lab_phase3.md) — ❌ مرفوضة (Matrix Profile، SHAP، WIDEHIST، عنقدة).
 - [المعمارية المشتركة بين الأصول](docs/research/cross_asset_architecture.md) — ⏸️ مؤجَّل.
 - [H003 — انعكاس التقلّب (`NATR_14`)](docs/research/h003_volatility_reversal.md) — ✅ مقبولة، أول قبول رسمي في تاريخ المشروع (عيّنة موسّعة 50 أصلاً). سؤال مفتوح (٢) اختُبِر فعلياً (`Fractal_reversal_w5` مستقلّ عن `NATR_14`/`RSI`) — مرفوض، يدعم تفسير H003 الأصلي.
+- [مراجعة الاختبارات المتعددة لـH003](docs/research/h003_multiple_testing_review.md) — 📚 تقدّم جزئي على سؤال H003 المفتوح (١)؛ تصحيح فيشر الرسمي غير صالح منهجياً هنا (اكتشاف)، دليل وصفي مطمئن لكن غير قاطع بعد.
 - [مرشّحو pandas_ta المؤجَّلون سابقاً](docs/research/pandas_ta_deferred_candidates.md) — ❌ مرفوضة (27 توليفة)، أوّل عيّنة فعلية من `SURVEY_CANDIDATES_ROBUST` عبر المحور الصارم على بيانات حقيقية.
 - [الدفعة الثانية من مرشّحي pandas_ta](docs/research/pandas_ta_batch2_candidates.md) — ❌ مرفوضة (39) نهائياً؛ `CVI_14`/high و`ENTROPY_14`/low عبرا معيار المحور على عيّنة صغيرة، لكن فشلا لاحقاً في ترقية H003.
 - [الدفعة الثالثة من مرشّحي pandas_ta](docs/research/pandas_ta_batch3_candidates.md) — ❌ مرفوضة (67) + ⚠️ غير قابل للاختبار (10) نهائياً؛ تصحيح منهجي (الميزات الخام مُطبَّعة محلياً أصلاً لا مطلقة القيمة)، و`AOBV`/high عبر المعيار أيضاً — فشل لاحقاً في ترقية H003.
