@@ -1,6 +1,8 @@
 # الدفعة الثالثة من مرشّحي pandas_ta — تصحيح منهجي واستكمال شبه كامل
 
-**الحالة: قيد الاختبار (1) + مرفوضة (66) + غير قابل للاختبار (10).** مسجَّلة في [`signal_discovery_lab.ipynb`](../../signal_discovery_lab.ipynb) (القسم ١٥)، امتداد لـ[الدفعة الأولى](pandas_ta_deferred_candidates.md) و[الثانية](pandas_ta_batch2_candidates.md).
+**الحالة: مرفوضة (67 من 77) + غير قابل للاختبار (10) نهائياً.** مسجَّلة في [`signal_discovery_lab.ipynb`](../../signal_discovery_lab.ipynb) (القسم ١٥)، امتداد لـ[الدفعة الأولى](pandas_ta_deferred_candidates.md) و[الثانية](pandas_ta_batch2_candidates.md).
+
+> **⚠️ تحديث لاحق**: `AOBV`/high، الذي عبر معيار المحور هنا، **فشل في اجتياز ترقية H003** (50 أصلاً/30 نافذة) — `consistent_sign` انهار (4 نوافذ من 30 بإشارة معاكسة). رُقِّي رسمياً إلى "مرفوضة" نهائياً. التفاصيل الكاملة في [ترقية H003 النهائية](pandas_ta_h003_upgrade_final.md).
 
 ## الخلفية — تصحيح منهجي
 
