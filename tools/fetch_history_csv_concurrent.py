@@ -19,13 +19,25 @@ fetch_history_csv_concurrent.py
 ثم حالة العقد، تاريخ الإدراج، أول/آخر شمعة، عدد الشموع، الفجوات، أطول فجوة، الشموع بلا حجم،
 الشموع غير المنطقية (low > high...). يُعاد حسابه من الملفات الفعلية في كل تشغيل.
 
-كل الطلبات عامة (بلا مفتاح API): klines وexchangeInfo وfundingRate وopenInterestHist.
+كل الطلبات عامة (klines وexchangeInfo وfundingRate وopenInterestHist) فلا يُحتاج مفتاح API.
+إن وُجد adapters.binance_live في مجلد المشروع (كالنسخة السابقة) يُؤخذ منه عنوان الـ API فقط.
 
-الاستخدام:
-    python tools/fetch_history_csv_concurrent.py --drive-root "G:/My Drive" --interval 1h --funding
-    python tools/fetch_history_csv_concurrent.py --drive-root "G:/My Drive" --symbols BTCUSDT,ETHUSDT
-    python tools/fetch_history_csv_concurrent.py --drive-root "G:/My Drive" --registry-only
-    python tools/fetch_history_csv_concurrent.py --out-dir data/history_1h --start 2023-01-01
+الاستخدام (كالسابق):
+    export BINANCE_TESTNET=false          # اختياري؛ المفاتيح لم تعد مطلوبة
+
+    python fetch_history_csv_concurrent.py --start 2025-01-01
+    python fetch_history_csv_concurrent.py --start "2025-06-01 12:00" --interval 5m
+    python fetch_history_csv_concurrent.py --start 2025-01-01 --end 2025-03-01
+    python fetch_history_csv_concurrent.py --start 2025-01-01 --symbols BTCUSDT,ETHUSDT
+
+    → data/history_<interval>_from_<start>/<SYMBOL>.csv  +  data/crypto_data/asset_registry.csv
+
+إضافات اختيارية:
+    --interval 1h --funding               # فريم إعداد الساعة في خط الأنابيب + أرشيف معدّل التمويل
+    --open-interest                       # آخر 30 يوماً من الفائدة المفتوحة (تراكمي عبر التشغيلات)
+    --include-delisted                    # ضمّ العقود المشطوبة التي ما زالت في exchangeInfo
+    --drive-root "G:/My Drive"            # اكتب البنية مباشرة في Drive: history_<interval>/ ...
+    --registry-only                       # أعد بناء سجلّ الأصول من الملفات الموجودة فقط
 
 كل التواريخ بتوقيت UTC. إعادة تشغيل نفس الأمر تُكمل من آخر شمعة محفوظة لكل عملة.
 """
@@ -36,6 +48,7 @@ import csv
 import json
 import math
 import os
+import sys
 import time
 import urllib.error
 import urllib.parse
@@ -44,11 +57,14 @@ from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
+from urllib.parse import urlparse
 
 # ═══════════════ الإعدادات ═══════════════
-START_DATE = "2017-01-01"       # قبل أول عقد آجل — فيبدأ كل عملة من تاريخ إدراجها
-END_DATE = ""                   # فارغ = الآن
-INTERVAL = "1h"                 # فريم خط الأنابيب لإعداد الساعة (20-ب)؛ يُجمَّع صعوداً لأي فريم أكبر
+START_DATE = "2017-01-01"       # تاريخ البداية (UTC) — يمكن تغييره أو تمريره عبر --start
+END_DATE = ""                   # تاريخ النهاية (UTC)، فارغ = الآن
+INTERVAL = "15m"                # لإعداد الساعة في خط الأنابيب مرّر --interval 1h
+# المخرجات: data/history_<interval>_from_<start>/<SYMBOL>.csv
+OUT_ROOT = str(Path(__file__).resolve().parent.parent / "data")
 MAX_PER_REQUEST = 1500          # أقصى شموع في طلب klines واحد
 MAX_CONCURRENT = 20             # طلبات متوازية لكل العملات معاً
 SYMBOLS_IN_PARALLEL = 4         # عملات تُعالَج في نفس الوقت (للتحكم بالذاكرة)
@@ -56,6 +72,8 @@ WEIGHT_BUDGET_PER_MIN = 2000    # حد Binance 2400/دقيقة لكل IP — ن�
 FUNDING_REQ_PER_MIN = 90        # fundingRate: حد مستقل 500 طلب/5 دقائق لكل IP
 MAX_RETRIES = 5
 REQUEST_TIMEOUT = 20
+RESUME = True                   # إذا كان ملف العملة موجوداً: أكمل من آخر شمعة فيه
+ONLY_USDT_PERPETUAL = True      # فقط عقود USDT الدائمة (يُتجاهل عند تحديد --symbols، كالسابق)
 
 CSV_HEADER = ["timestamp", "datetime_utc", "open", "high", "low", "close", "volume",
               "quote_volume", "trades", "taker_buy_volume", "taker_buy_quote_volume"]
@@ -87,6 +105,13 @@ def parse_date_ms(text: str) -> int:
 
 def fmt_dt(ms: int) -> str:
     return datetime.fromtimestamp(ms / 1000, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def date_label(ms: int) -> str:
+    dt = datetime.fromtimestamp(ms / 1000, tz=timezone.utc)
+    if (dt.hour, dt.minute, dt.second) == (0, 0, 0):
+        return dt.strftime("%Y-%m-%d")
+    return dt.strftime("%Y-%m-%d_%H%M")
 
 
 def fmt_pandas_utc(ms: int) -> str:
@@ -123,8 +148,27 @@ def http_get_json(base_url: str, path: str, params: Optional[dict] = None):
         raise BinanceHTTPError(e.code, e.read().decode("utf-8", "ignore"), float(ra) if ra else None)
 
 
+# ═══════════════ عنوان الـ API ═══════════════
+def resolve_base_url(testnet: bool) -> str:
+    """كالنسخة السابقة: العنوان من كائن exchange (adapters.binance_live) إن وُجد في مجلد المشروع،
+    وإلا mainnet/testnet حسب BINANCE_TESTNET. لا يُطبع أي مفتاح (كانت النسخة السابقة تطبع المفتاح والسر)."""
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+        from adapters.binance_live import BinanceFutures          # noqa: E402
+        from core.exchange_api import ExchangeConfig             # noqa: E402
+        ex = BinanceFutures(ExchangeConfig(api_key=os.environ.get("BINANCE_API_KEY", ""),
+                                           api_secret=os.environ.get("BINANCE_API_SECRET", ""),
+                                           testnet=testnet, request_timeout=REQUEST_TIMEOUT))
+        p = urlparse(str(getattr(ex, "_base", "") or ""))
+        if p.scheme and p.netloc:
+            return f"{p.scheme}://{p.netloc}"
+    except Exception:
+        pass
+    return TESTNET if testnet else MAINNET
+
+
 # ═══════════════ قائمة العملات ═══════════════
-def list_symbols(base_url: str, include_delisted: bool = False) -> Dict[str, dict]:
+def list_symbols(base_url: str, include_delisted: bool = False, only_usdt_perp: bool = True) -> Dict[str, dict]:
     """{symbol: {"onboard_ms", "status"}} لعقود USDT الدائمة.
 
     ⚠️ بلا include_delisted تُؤخذ العقود الجارية (TRADING) فقط — أي أن كل عملة شُطبت تغيب عن
@@ -133,7 +177,7 @@ def list_symbols(base_url: str, include_delisted: bool = False) -> Dict[str, dic
     data = http_get_json(base_url, "/fapi/v1/exchangeInfo")
     out: Dict[str, dict] = {}
     for s in data.get("symbols", []):
-        if s.get("contractType") != "PERPETUAL" or s.get("quoteAsset") != "USDT":
+        if only_usdt_perp and (s.get("contractType") != "PERPETUAL" or s.get("quoteAsset") != "USDT"):
             continue
         if s.get("status") != "TRADING" and not include_delisted:
             continue
@@ -240,7 +284,7 @@ async def download_symbol(base_url, symbol, onboard_ms, start_ms, end_ms, interv
     first_ts = max(start_ms, onboard_ms)
     resumed, note = False, ""
 
-    if path.exists():
+    if RESUME and path.exists():
         header = read_header(path)
         if header == CSV_HEADER:
             last_ts = read_last_timestamp(path)
@@ -436,14 +480,14 @@ def update_registry(registry_path: Path, out_dir: Path, interval: str, interval_
 
 # ═══════════════ نقطة البداية ═══════════════
 def parse_args():
-    p = argparse.ArgumentParser(description="تحميل شموع Binance Futures بصيغة خط الأنابيب")
-    p.add_argument("--start", default=START_DATE, help="تاريخ البداية UTC (افتراضي: قبل أول عقد)")
+    p = argparse.ArgumentParser(description="تحميل شموع كل عملات Binance Futures من تاريخ محدد حتى الآن")
+    p.add_argument("--start", default=START_DATE, help="تاريخ البداية UTC، مثال: 2025-01-01")
     p.add_argument("--end", default=END_DATE, help="تاريخ النهاية UTC (افتراضي: الآن)")
-    p.add_argument("--interval", default=INTERVAL, help="الفريم: 1m 5m 15m 1h 4h 1d ...")
-    p.add_argument("--symbols", default="", help="عملات مفصولة بفاصلة (افتراضي: كل عقود USDT الدائمة)")
+    p.add_argument("--interval", default=INTERVAL, help="الفريم الزمني، مثال: 1m 5m 1h")
+    p.add_argument("--symbols", default="", help="عملات محددة مفصولة بفاصلة (افتراضي: كل العملات)")
     p.add_argument("--symbols-file", default="", help="ملف نصي: عملة في كل سطر")
-    p.add_argument("--drive-root", default="", help="جذر Drive (مثل 'G:/My Drive') — يُنشئ البنية كاملة")
-    p.add_argument("--out-dir", default="", help="مجلد الشموع (يتجاوز --drive-root للشموع فقط)")
+    p.add_argument("--out-dir", default="", help="مجلد المخرجات (افتراضي: تلقائي داخل data/)")
+    p.add_argument("--drive-root", default="", help="اختياري: جذر Drive (مثل 'G:/My Drive') لبنية خط الأنابيب")
     p.add_argument("--registry", default="", help="مسار asset_registry.csv (افتراضي: <root>/crypto_data/)")
     p.add_argument("--funding", action="store_true", help="حمّل أيضاً تاريخ معدّل التمويل الكامل")
     p.add_argument("--open-interest", action="store_true", help="أضف آخر 30 يوماً من الفائدة المفتوحة للأرشيف")
@@ -458,7 +502,7 @@ def parse_args():
 
 async def main():
     args = parse_args()
-    base_url = args.base_url or (TESTNET if args.testnet else MAINNET)
+    base_url = args.base_url or resolve_base_url(args.testnet)
     interval, interval_ms = args.interval, interval_to_ms(args.interval)
     start_ms = parse_date_ms(args.start)
     end_ms = parse_date_ms(args.end) if args.end else int(time.time() * 1000)
@@ -466,16 +510,23 @@ async def main():
         print("[خطأ] تاريخ البداية يجب أن يكون قبل تاريخ النهاية.")
         return
 
-    root = Path(args.drive_root) if args.drive_root else Path(__file__).resolve().parent.parent / "data"
-    out_dir = Path(args.out_dir) if args.out_dir else root / f"history_{interval}"
+    if args.drive_root:                 # بنية خط الأنابيب مباشرة في Drive
+        root = Path(args.drive_root)
+        default_out = root / f"history_{interval}"
+    else:                               # كالسابق: data/history_<interval>_from_<start>
+        root = Path(OUT_ROOT)
+        default_out = root / f"history_{interval}_from_{date_label(start_ms)}"
+    out_dir = Path(args.out_dir) if args.out_dir else default_out
     registry_path = Path(args.registry) if args.registry else root / "crypto_data" / "asset_registry.csv"
     funding_dir, oi_dir = root / "funding_rate", root / "open_interest"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"الاتصال: {base_url}")
     print("[1] جلب قائمة العملات...")
+    has_wanted = bool(args.symbols.strip() or args.symbols_file)
     try:
-        all_symbols = await asyncio.to_thread(list_symbols, base_url, args.include_delisted)
+        all_symbols = await asyncio.to_thread(list_symbols, base_url, args.include_delisted or has_wanted,
+                                              ONLY_USDT_PERPETUAL and not has_wanted)
     except Exception as e:
         print(f"[خطأ] تعذّر جلب exchangeInfo: {e}")
         return
@@ -492,7 +543,7 @@ async def main():
     if wanted:
         unknown = [s for s in wanted if s not in all_symbols]
         if unknown:
-            print(f"[تنبيه] غير موجودة كعقود USDT دائمة وستُتجاهل: {', '.join(unknown)}")
+            print(f"[تنبيه] عملات غير موجودة وسيتم تجاهلها: {', '.join(unknown)}")
         symbols = {s: all_symbols[s] for s in dict.fromkeys(wanted) if s in all_symbols}
     else:
         symbols = dict(sorted(all_symbols.items()))
@@ -545,6 +596,9 @@ async def main():
     if failed:
         print(f"    فشلت ({len(failed)}): {', '.join(failed)} — أعد تشغيل نفس الأمر ليُكمل.")
     rel = lambda p: p.relative_to(root).as_posix() if root in p.parents else str(p)
+    if not args.drive_root:
+        print(f"\n    ارفع محتوى {root} إلى جذر MyDrive (المجلد {out_dir.name} والمجلد crypto_data)،"
+              " أو شغّل بـ --drive-root لتُكتب في Drive مباشرة.")
     print("\n    في خط الأنابيب (crypto_data_pipeline_v6):")
     print(f"      update_config({{'drive_raw_dir': '{rel(out_dir)}', "
           f"'asset_registry_path': '{rel(registry_path)}'}})")
