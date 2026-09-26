@@ -256,14 +256,23 @@ def evaluate(model, part, max_n=None, seed=0):
 
 
 # ───────────────────────────── configs ─────────────────────────────
+# الإعداد «robust» كما قيس في PR #7 قبل اختيار المُرمِّز — مُثبَّت هنا (لا يُقرأ من الدفتر) كي تبقى كل الأسماء
+# التاريخية (robust*, RL*) تعني نفس النموذج بعد تغيّر الافتراضي في model_v2.
+AM_V1 = dict(d_model=64, num_layers=2, head_hidden=64, class_head_hidden=32, dropout=0.25, input_clip=4.0,
+             stats_mode="symlog", input_noise_std=0.1, feature_dropout=0.1, linear_path_l2=1e-3)
+
+
 def configs():
     ns = project()
     robust_trainer = {"optimizer": {"weight_decay": 0.05},
                       "callbacks": {"early_stopping": {"weights_snapshot": "ema_weights"}},
                       "_class": {"label_smoothing": 0.1}}
-    am = dict(ns["ANTI_MEMORIZATION_CONFIG"])
+    am = dict(AM_V1)
     cfgs = {"baseline": ({}, {}), "robust": (am, robust_trainer)}
     cfgs.update(EXTRA_CONFIGS(am, robust_trainer))
+    # ما يستخدمه main.ipynb فعلاً مع ANTI_MEMORIZATION=True (يُقرأ من الدفتر: يتبع أي تغيير مستقبلي فيه)
+    cfgs["am_default"] = (dict(ns["ANTI_MEMORIZATION_CONFIG"]),
+                          {**robust_trainer, "optimizer": {"lr_initial": 3e-4, "weight_decay": 0.05}})
     return cfgs
 
 
