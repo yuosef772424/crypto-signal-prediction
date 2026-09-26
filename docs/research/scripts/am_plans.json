@@ -31,5 +31,24 @@
       "full:RL_tcn_tiny:30",
       "full:RL_tiny_film:30"
     ]
+  },
+  "drive_v2": {
+    "why": "أسئلة ما بعد drive_v1، الأهمّ أولاً: (1) هل الرتبة المقطعية بين العملات (xrank) ترفع النموذج والمرجع الخطي؟ (2) هل اختيار أفضل حقبة على خسارة التصنيف وحدها (val_class_loss) يُصلح اختيار البيانات القليلة؟ (3) هل تفوّق RL_gru ثابت عبر البذور؟ (4) هل تنعيم التسميات وعمق الطبقتين ضروريان؟",
+    "runs": [
+      "full_xrank:RL_gru:30",
+      "full_xrank:RL_gru:30:shuf",
+      "full:RL_gru_selcls:30",
+      "full:RL_gru:30:seed=1",
+      "full:RL_gru:30:seed=2",
+      "little:RL_tiny_selcls:60",
+      "little:RL_gru_selcls:60",
+      "little_xrank:RL_gru:60",
+      "little_xrank:RL_tiny_selcls:60",
+      "full:RL_gru_nols:30",
+      "full:RL_gru_1l:30",
+      "full_xrank:RL_gru_selcls:30",
+      "full:RL_gru_1l_selcls:30",
+      "little:RL_gru_selcls:60:shuf"
+    ]
   }
 }

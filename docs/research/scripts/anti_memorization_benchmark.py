@@ -14,6 +14,7 @@ Scenarios (--kind):
   little    : 8 coins only in train (val/test keep all coins)
   badnorm   : + raw price level, raw USD volume, coin age, a near-constant flag (bad normalization)
   badnorm_little
+  <kind>_xrank : + per-date cross-sectional rank of every feature across coins (e.g. full_xrank, little_xrank)
 Add :shuf to shuffle train labels (pure memorization capacity; test must stay at 0.5).
 
 Configs (--cfg): baseline (MODEL_CONFIG + trainer defaults as main.ipynb before PR #7), robust
@@ -117,7 +118,7 @@ def _rsi(r, n=14):
     return up / (up + dn + 1e-12)
 
 
-def build_features(px, vol, bad_norm=False):
+def build_features(px, vol, bad_norm=False, xrank=False):
     """Close+volume features only (both data sources have them). Causal: row t uses data up to t."""
     lr = np.log(px).diff()
     lr = lr.where(lr.abs() < 1.5)
@@ -145,6 +146,15 @@ def build_features(px, vol, bad_norm=False):
             f["AGE_DAYS"] = np.arange(len(f), dtype="float64") - np.argmax(px[a].notna().values)
             f["LISTED_1Y"] = (f["AGE_DAYS"] > 365).astype("float64")
         feats[a] = f
+    if xrank:
+        # رتبة مقطعية لكل ميزة بين العملات في نفس التاريخ (سببية: قيم نفس اليوم متاحة وقت t)، في [-0.5, 0.5] —
+        # البديل الرخيص عن الانتباه بين الأصول (nyanp: ranks within the same time-id؛ sugghi: الفرق عن متوسط العملات)
+        names = [c for c in next(iter(feats.values())).columns if c not in ("MKT_RET_1", "BTC_RET_1")]
+        for c in names:
+            panel = pd.DataFrame({a: feats[a][c] for a in feats})
+            ranked = panel.rank(axis=1, pct=True) - 0.5
+            for a in feats:
+                feats[a][f"{c}_XR"] = ranked[a]
     fut = lr.shift(-1)
     mag = fut.abs()
     return feats, {"mag": mag.sub(mag.median(axis=1), axis=0), "dir": fut.sub(fut.median(axis=1), axis=0)}
@@ -185,10 +195,11 @@ def subset(p, m):
 
 
 def scenario(px, vol, kind):
-    feats, tg = build_features(px, vol, bad_norm=kind.startswith("badnorm"))
+    parts = kind.split("_")
+    feats, tg = build_features(px, vol, bad_norm="badnorm" in parts, xrank="xrank" in parts)
     X, y, days, aid, names = make_windows(feats, tg)
     S = split(X, y, days, aid)
-    if kind.endswith("little"):
+    if "little" in parts:
         coins = np.random.default_rng(7).choice(np.unique(S["train"]["aid"]), 8, replace=False)
         S["train"] = subset(S["train"], np.isin(S["train"]["aid"], coins))
     S["feature_names"] = names
@@ -319,7 +330,20 @@ def arch_variants(am, rt):
         "RL_tcn_tiny": {**tiny, "encoder": "tcn"},
         "RL_tcn_tiny_film": {**tiny, "encoder": "tcn", "level_film": True},
     }
-    return {k: ({**RL, **x}, rt_lr) for k, x in v.items()}
+    out = {k: ({**RL, **x}, rt_lr) for k, x in v.items()}
+    # drive_v2: اختيار الحقبة الأفضل على خسارة التصنيف وحدها، عزل تنعيم التسميات، GRU بطبقة واحدة
+    gru = {**RL, "encoder": "gru"}
+    sel = {**rt_lr, "callbacks": {**rt_lr.get("callbacks", {}),
+                                  "early_stopping": {**rt_lr.get("callbacks", {}).get("early_stopping", {}),
+                                                     "monitor": "val_class_loss", "mode": "min"}}}
+    out.update({
+        "RL_gru_selcls": (gru, sel),
+        "RL_gru_nols": (gru, {**rt_lr, "_class": {}}),
+        "RL_gru_1l": ({**gru, "num_layers": 1}, rt_lr),
+        "RL_gru_1l_selcls": ({**gru, "num_layers": 1}, sel),
+        "RL_tiny_selcls": ({**RL, **tiny}, sel),
+    })
+    return out
 
 
 def target_configs(extra_class):
@@ -394,7 +418,8 @@ def train_eval(name, S, model_cfg, trainer_cfg, epochs, seed=0, shuffle=False, b
                            callbacks=[Probe()] + cbs, verbose=0)
     best = next(c for c in cbs if type(c).__name__ == "BestModelTracker")
     res = {"name": name, "seconds": time.time() - t0, "epochs_run": len(hist.history.get("loss", [])),
-           "best_epoch": best.best_epoch, "n_params": int(trainer.model.count_params()), "n_train": len(tr["X"])}
+           "best_epoch": best.best_epoch, "monitor": cfg["callbacks"]["early_stopping"]["monitor"],
+           "monitor_logged": cfg["callbacks"]["early_stopping"]["monitor"] in hist.history, "n_params": int(trainer.model.count_params()), "n_train": len(tr["X"])}
     for tag in ("best", "last"):
         if tag == "last":
             trainer.model.set_weights(last["w"])
