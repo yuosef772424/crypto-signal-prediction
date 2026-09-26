@@ -307,6 +307,8 @@ def arch_variants(am, rt):
         "RL_tiny_film": {**tiny, "level_film": True}, "RL_tcn_film": {"encoder": "tcn", "level_film": True},
         "RL_gru_film": {"encoder": "gru", "level_film": True},
         "RL_2tower_tiny": {**tiny, "architecture": "two_tower"},
+        "RL_tcn_tiny": {**tiny, "encoder": "tcn"},
+        "RL_tcn_tiny_film": {**tiny, "encoder": "tcn", "level_film": True},
     }
     return {k: ({**RL, **x}, rt_lr) for k, x in v.items()}
 
