@@ -192,7 +192,26 @@ def scenario(px, vol, kind):
         coins = np.random.default_rng(7).choice(np.unique(S["train"]["aid"]), 8, replace=False)
         S["train"] = subset(S["train"], np.isin(S["train"]["aid"], coins))
     S["feature_names"] = names
+    S["n_coins"] = int(aid.max()) + 1
     return S
+
+
+def linear_reference(S, shuffle=False, seed=0, C=0.1):
+    """Logistic regression on [last step, window mean] — the same reference main.ipynb reports (§7-ز)."""
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.preprocessing import StandardScaler
+    f = lambda X: np.concatenate([X[:, -1, :], X.mean(axis=1)], axis=1).astype("float64")
+    tr, te = S["train"], S["test"]
+    sc = StandardScaler().fit(np.nan_to_num(f(tr["X"])))
+    Ftr, Fte = sc.transform(np.nan_to_num(f(tr["X"]))), sc.transform(np.nan_to_num(f(te["X"])))
+    perm = np.random.default_rng(seed + 123).permutation(len(Ftr)) if shuffle else np.arange(len(Ftr))
+    out = {}
+    for t in TARGETS:
+        ytr = tr["y"][t][perm] > 0
+        m = LogisticRegression(C=C, max_iter=3000).fit(Ftr, ytr)
+        out[f"{t}_train_auc"] = auc(ytr, m.predict_proba(Ftr)[:, 1])
+        out[f"{t}_test_auc"] = auc(te["y"][t], m.predict_proba(Fte)[:, 1])
+    return out
 
 
 # ───────────────────────────── metrics ─────────────────────────────
@@ -212,11 +231,19 @@ def daily_ic(y, s, days):
     return float(ic.mean()), float(ic.mean() / (ic.std() + 1e-12) * np.sqrt(len(ic)))
 
 
+def model_x(part, idx=None, coins=False):
+    X = part["X"] if idx is None else part["X"][idx]
+    if not coins:
+        return X
+    return {"input_sequence": X, "coin_id": (part["aid"] if idx is None else part["aid"][idx]).astype("int32")}
+
+
 def evaluate(model, part, max_n=None, seed=0):
     idx = np.arange(len(part["X"]))
     if max_n and len(idx) > max_n:
         idx = np.sort(np.random.default_rng(seed).choice(len(idx), max_n, replace=False))
-    out = model.predict(part["X"][idx], batch_size=2048, verbose=0)
+    coins = isinstance(model.input, (list, tuple)) or (isinstance(model.inputs, list) and len(model.inputs) > 1)
+    out = model.predict(model_x(part, idx, coins), batch_size=2048, verbose=0)
     res = {}
     for t in TARGETS:
         yt = part["y"][t][idx]
@@ -261,9 +288,27 @@ def EXTRA_CONFIGS(am, rt):
         "robust_no_wd": nt(lambda r: {**r, "optimizer": {"weight_decay": 1e-4}}),
         "robust_no_ema": nt(lambda r: {**r, "callbacks": {}}),
         "robust_flood": nt(lambda r: {**r, "_class": {**r["_class"], "flood_level": 0.69}}),
+        **arch_variants(am, rt),
         "base_small": ({"d_model": 64, "num_layers": 2, "head_hidden": 64, "class_head_hidden": 32}, {}),
         "base_level": ({"level_passthrough": True}, {}),
     }
+
+
+def arch_variants(am, rt):
+    """§7 of the doc: architecture directions, all on top of the level fix (robust_level_bn_lr = "RL")."""
+    RL = {**am, "level_passthrough": True, "level_norm": "batch"}
+    rt_lr = {**rt, "optimizer": {**rt["optimizer"], "lr_initial": 3e-4}}
+    tiny = {"d_model": 32, "num_layers": 1, "num_heads": 2, "num_kv_heads": 1, "head_hidden": 32, "class_head_hidden": 16}
+    v = {
+        "RL": {}, "RL_film": {"level_film": True}, "RL_coin": {"n_coins": -1},
+        "RL_film_coin": {"level_film": True, "n_coins": -1},
+        "RL_2tower": {"architecture": "two_tower"}, "RL_2tower_gate": {"architecture": "two_tower", "fusion": "gate"},
+        "RL_tiny": tiny, "RL_tcn": {"encoder": "tcn"}, "RL_gru": {"encoder": "gru"},
+        "RL_tiny_film": {**tiny, "level_film": True}, "RL_tcn_film": {"encoder": "tcn", "level_film": True},
+        "RL_gru_film": {"encoder": "gru", "level_film": True},
+        "RL_2tower_tiny": {**tiny, "architecture": "two_tower"},
+    }
+    return {k: ({**RL, **x}, rt_lr) for k, x in v.items()}
 
 
 def target_configs(extra_class):
@@ -310,9 +355,12 @@ def train_eval(name, S, model_cfg, trainer_cfg, epochs, seed=0, shuffle=False, b
     }, trainer_cfg))
     ns["TRAINER_REGISTRY"].pop(run_dir, None)
     tf.keras.utils.set_random_seed(seed)
-    ds = lambda X, y, sh: (tf.data.Dataset.from_tensor_slices((X, y)).shuffle(len(X), seed=seed) if sh
+    coins = bool(mcfg.get("n_coins"))
+    if coins:
+        mcfg["n_coins"] = int(S["n_coins"])
+    ds = lambda X, y, sh: (tf.data.Dataset.from_tensor_slices((X, y)).shuffle(len(y[next(iter(y))]), seed=seed) if sh
                            else tf.data.Dataset.from_tensor_slices((X, y))).batch(batch_size, drop_remainder=sh).prefetch(2)
-    train_ds, val_ds = ds(tr["X"], ytr, True), ds(va["X"], to_y(va), False)
+    train_ds, val_ds = ds(model_x(tr, coins=coins), ytr, True), ds(model_x(va, coins=coins), to_y(va), False)
     builder = lambda: ns["build_model_fn"](tr["X"].shape[1], tr["X"].shape[2], config=mcfg)
     with contextlib.redirect_stdout(io.StringIO()):
         trainer, callbacks, ie = ns["build_training_system"](builder, cfg, next(iter(train_ds)))
@@ -364,6 +412,13 @@ def main():
         shuf = "shuf" in opts
         if kind not in cache:
             cache[kind] = scenario(px, vol, kind)
+            for sh in (False, True):
+                lr_ref = linear_reference(cache[kind], shuffle=sh)
+                print(f"linear_ref {kind}{'_shuf' if sh else ''}: " + " ".join(f"{k}={v:.3f}" for k, v in lr_ref.items()),
+                      flush=True)
+                with open(a.out, "a") as f:
+                    f.write(json.dumps({"name": f"{kind}{'_shuf' if sh else ''}_linear_ref", "kind": kind,
+                                        "shuffle": sh, "linear_ref": lr_ref}) + "\n")
         name = f"{kind}{'_shuf' if shuf else ''}_{cfg}_s{seed}"
         r = train_eval(name, cache[kind], *cfgs[cfg], epochs=int(ep), seed=seed, shuffle=shuf)
         r.update({"kind": kind, "cfg": cfg, "shuffle": shuf, "seed": seed, "epochs": int(ep)})
