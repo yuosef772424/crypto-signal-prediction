@@ -1,0 +1,21 @@
+{
+  "_doc": "خطط تجارب anti_memorization_benchmark.py — كل عنصر kind:cfg:epochs[:shuf][:seed=N]. Claude يضيف خططاً جديدة هنا ويرفعها، وخلية Colab تشغّلها بالاسم.",
+  "smoke": {
+    "why": "فحص سريع أن كل شيء يعمل على بياناتك (دقيقة أو اثنتان)",
+    "runs": ["little:RL_tiny:2", "little:RL_tiny:2:shuf"]
+  },
+  "drive_v1": {
+    "why": "إعادة إنتاج النتائج الأساسية على بيانات Drive الحقيقية: القديم مقابل RL وRL_tiny وFiLM، حقيقي ومخلوط، قليل وكامل",
+    "runs": [
+      "little:baseline:60", "little:baseline:60:shuf",
+      "little:robust_level_bn_lr:60", "little:robust_level_bn_lr:60:shuf",
+      "little:RL_tiny:60", "little:RL_tiny:60:shuf",
+      "little:RL_film:60", "little:RL_film:60:shuf",
+      "little:RL_tiny_film:60", "little:RL_tiny_film:60:shuf",
+      "full:baseline:30", "full:baseline:30:shuf",
+      "full:robust_level_bn_lr:30", "full:robust_level_bn_lr:30:shuf",
+      "full:RL_tiny:30", "full:RL_tiny:30:shuf",
+      "full:RL_film:30", "full:RL_tiny_film:30"
+    ]
+  }
+}

@@ -395,25 +395,68 @@ def train_eval(name, S, model_cfg, trainer_cfg, epochs, seed=0, shuffle=False, b
     return res
 
 
+PLANS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "am_plans.json")
+
+
+def summarize(results, refs, header=""):
+    """ملخّص مضغوط للنسخ واللصق: سطر لكل تشغيل + المرجع الخطّي لكل سيناريو."""
+    lines = [f"### AM-SUMMARY {header}".rstrip(),
+             "| run | best@ | test mag best/last | test dir best/last | train mag best/last | train dir best/last | sec |",
+             "|---|---|---|---|---|---|---|"]
+    f = lambda r, a, b: f"{r[a]:.3f}/{r[b]:.3f}"
+    for r in results:
+        lines.append(f"| {r['name']} | {r['best_epoch']} | {f(r, 'best_test_mag_auc', 'last_test_mag_auc')} | "
+                     f"{f(r, 'best_test_dir_auc', 'last_test_dir_auc')} | {f(r, 'best_train_mag_auc', 'last_train_mag_auc')} | "
+                     f"{f(r, 'best_train_dir_auc', 'last_train_dir_auc')} | {r['seconds']:.0f} |")
+    for name, ref in refs.items():
+        lines.append(f"| {name} (linear) | - | {ref['mag_test_auc']:.3f} | {ref['dir_test_auc']:.3f} | "
+                     f"{ref['mag_train_auc']:.3f} | {ref['dir_train_auc']:.3f} | - |")
+    return "\n".join(lines)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     g = ap.add_mutually_exclusive_group(required=True)
     g.add_argument("--history-dir")
     g.add_argument("--coinmetrics-dir")
-    ap.add_argument("--run", nargs="+", required=True, help="kind:cfg:epochs[:shuf][:seed=N]")
+    runs = ap.add_mutually_exclusive_group(required=True)
+    runs.add_argument("--run", nargs="+", help="kind:cfg:epochs[:shuf][:seed=N]")
+    runs.add_argument("--plan", help=f"اسم خطة من {os.path.basename(PLANS_FILE)}")
     ap.add_argument("--out", default="anti_memorization_results.jsonl")
+    ap.add_argument("--max-assets", type=int, default=None,
+                    help="أطول N عملات تاريخاً فقط (للسرعة مع مئات العملات)")
+    ap.add_argument("--summary", action="store_true", help="اطبع في النهاية ملخّصاً مضغوطاً للنسخ")
     a = ap.parse_args()
+    items = a.run
+    if a.plan:
+        plans = json.load(open(PLANS_FILE, encoding="utf-8"))
+        if a.plan not in plans:
+            raise SystemExit(f"خطة غير موجودة: {a.plan!r} — المتاح: {sorted(k for k in plans if not k.startswith('_'))}")
+        items = plans[a.plan]["runs"] if isinstance(plans[a.plan], dict) else plans[a.plan]
     px, vol = load_history_csv(a.history_dir) if a.history_dir else load_coinmetrics(a.coinmetrics_dir)
-    print(f"panel: {px.shape[1]} assets, {px.index.min().date()} → {px.index.max().date()}", flush=True)
-    cache, cfgs = {}, configs()
-    for item in a.run:
+    if a.max_assets and px.shape[1] > a.max_assets:
+        keep = px.notna().sum().sort_values(ascending=False).index[:a.max_assets]
+        px, vol = px[keep], vol[keep]
+    env = f"{px.shape[1]} assets, {px.index.min().date()} → {px.index.max().date()}"
+    try:
+        import tensorflow as tf
+        env += f", GPU={len(tf.config.list_physical_devices('GPU'))}"
+    except Exception:  # noqa: BLE001
+        pass
+    print(f"panel: {env} | runs: {len(items)}", flush=True)
+    cache, cfgs, done, refs = {}, configs(), [], {}
+    t_all = time.time()
+    for item in items:
         kind, cfg, ep, *opts = item.split(":")
         seed = next((int(o[5:]) for o in opts if o.startswith("seed=")), 0)
         shuf = "shuf" in opts
         if kind not in cache:
             cache[kind] = scenario(px, vol, kind)
+            print(f"scenario {kind}: train={len(cache[kind]['train']['X'])} val={len(cache[kind]['val']['X'])} "
+                  f"test={len(cache[kind]['test']['X'])}", flush=True)
             for sh in (False, True):
                 lr_ref = linear_reference(cache[kind], shuffle=sh)
+                refs[f"{kind}{'_shuf' if sh else ''}"] = lr_ref
                 print(f"linear_ref {kind}{'_shuf' if sh else ''}: " + " ".join(f"{k}={v:.3f}" for k, v in lr_ref.items()),
                       flush=True)
                 with open(a.out, "a") as f:
@@ -422,11 +465,14 @@ def main():
         name = f"{kind}{'_shuf' if shuf else ''}_{cfg}_s{seed}"
         r = train_eval(name, cache[kind], *cfgs[cfg], epochs=int(ep), seed=seed, shuffle=shuf)
         r.update({"kind": kind, "cfg": cfg, "shuffle": shuf, "seed": seed, "epochs": int(ep)})
+        done.append(r)
         with open(a.out, "a") as f:
             f.write(json.dumps(r, default=str) + "\n")
         print(f"[{r['seconds']:5.0f}s] {name}: best@{r['best_epoch']} | "
               + " ".join(f"{p}_{s}_{t}_auc={r[f'{p}_{s}_{t}_auc']:.3f}" for p in ("best", "last")
                          for s in ("train", "test") for t in TARGETS), flush=True)
+    if a.summary:
+        print("\n" + summarize(done, refs, header=f"plan={a.plan or 'custom'} | {env} | {time.time() - t_all:.0f}s"))
 
 
 if __name__ == "__main__":
