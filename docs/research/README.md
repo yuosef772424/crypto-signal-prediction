@@ -44,6 +44,7 @@
 | [الزخم المُعدَّل بالمخاطرة (`RISK_ADJ_MOM`)](risk_adjusted_momentum.md) | ❌ مرفوضة (9 من 9) | نسبة شبيهة بشارب (Barroso & Santa-Clara 2015) — جودة الاتجاه (متوسط/انحراف معياري) لا اتجاهه الخام. أفضل توليفة (53%) دون `consistent_sign=True`. |
 | [المسافة عن القمّة التاريخية (`PCT_FROM_ATH`)](ath_distance.md) | ❌ مرفوضة (6 من 6) | نافذة متوسّعة (لا فركتالية قصيرة المدى)؛ مقياس سلوكي شهير في الكريبتو لم يُختبَر من قبل. `PCT_FROM_ATH`/close: أعلى `frac_significant` على close شُهِد هذه الجلسة (63%)، لكن `consistent_sign=False`. |
 | [بنية الشمعة (`WICK_upper`/`WICK_lower`/`BODY_ratio`)](candle_wick_body.md) | ❌ مرفوضة (9 من 9) | أعمدة أساسية مُستخدَمة دائماً كمدخلات لكن لم تُختبَر قط كفرضية IC قائمة بذاتها — نسخة مستمرّة من أنماط الشموع الكلاسيكية (hammer/shooting star). `WICK_lower`/low أقوى توليفة (60%) لكن `consistent_sign=False`. |
+| [اتساق السوق (`MKT_BREADTH`)](market_breadth.md) | ❌ مرفوضة (9 من 9) | أول ميزة مقطعية جماعية حقيقية (نسبة الأصول الصاعدة عبر كل الـ50 معاً، لا مرجع واحد أو رتبة فردية). `MKT_BREADTH_24`/close تعادل أعلى `frac_significant` على close هذه الجلسة (63%)، لكن `consistent_sign=False`. |
 
 ## الحالة الحالية والخطوة التالية
 
