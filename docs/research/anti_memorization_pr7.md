@@ -185,30 +185,39 @@ val**، والحفظ انخفض (0.61/0.60 لـ`RL_gru` مقابل 0.67/0.76 ل�
 
 ## ٦) ما يقوله المطوّرون الذين جرّبوا فعلاً
 
-طُلب التركيز على تجارب مطوّرين نشروها بأنفسهم، لا الأوراق. أغلب المنصّات محجوبة عن بيئة العمل (Kaggle،
-Reddit، Hacker News، منتدى Numerai، Hugging Face، Zhihu)، فصُنِّف كل ادّعاء:
-✅ **مؤكَّد** = قُرئ المصدر الأصلي (README/كود على GitHub)؛ 🔁 **مثلَّث** = نفس التفاصيل الرقمية في منصّتين
-مستقلّتين أو أكثر؛ ⚠️ **غير مؤكَّد** = مصدر واحد في ملخّص بحث.
+طُلب التركيز على تجارب مطوّرين نشروها بأنفسهم، لا الأوراق. المصادر قُرئت على مرحلتين: من بيئة العمل (أغلب
+المنصّات محجوبة عنها، فقُرئ GitHub مباشرة وثُلِّث الباقي عبر البحث)، ثم **جلسة محلية فتحت الصفحات الأصلية ونقلت
+الاقتباسات حرفياً** — الملف الكامل: [`pr7_external_sources.md`](pr7_external_sources.md) (15 مصدراً، 2106 أسطر،
+بما لم يُفتح مُصرَّحاً به). الدرجات: ✅ **مُتحقَّق من المصدر الأصلي**؛ ⚠️ **غير مؤكَّد**.
 
-| المصدر | ما قاله/فعله | المقابل هنا |
+| المصدر | ما قاله/فعله (من الأصل) | المقابل هنا |
 |---|---|---|
-| ✅ **Patrick Yam — المركز الثاني، Jane Street 2025** ([إعادة بناء مستقلّة](https://github.com/cweill/jane-street-causal-forecasting)، ملف التنفيذ) | **انتباه عبر الأصول** في نفس اللحظة + **GRU زمني** لكل أصل؛ تضمينات فئات بحجم 16 مع **تضمين صفري للمجهول**؛ dropout صفر، AdamW (lr 5e-4, wd 1e-4)، 9 حقب، تجميع 17 بذرة، تعلّم مستمر يومي (+0.0064 R²) | GRU للزمن = مختارنا؛ تضمين العملة يبدأ صفراً بنفس المنطق. dropout صفر ممكن عنده بـ7.4 مليون صف؛ عندنا 13–90 ألفاً |
-| 🔁 **hyd — المركز الأول، Optiver 2023** (Zhihu ×2 + Docswell) | CatBoost 0.5 + GRU 0.3 + Transformer 0.2؛ **GRU على الزمن** (55 خطوة)، **Transformer على الأسهم** (200 سهم في نفس اللحظة)؛ طرح متوسط اللحظة؛ إعادة تدريب كل 12 يوماً | نفس الانقسام: الزمن متكرّر، المقارنة بين الأصول صريحة (§٩) |
-| ✅ **vivek-varma — Optiver** ([README](https://github.com/vivek-varma/Optiver-Trading-at-the-close-Sub)) | «**أرضية ضجيج** ±0.09% — أي تحسين أصغر ليس نتيجة»؛ «تنظيم أثقل: لا تغيير (ليست مشكلة حفظ)»؛ LSTM وزنه الأمثل **صفر** (ارتباط 0.957 بالـGRU)؛ ميزات مقطعية (رتبة/z بين الأسهم في نفس اللحظة) | أرضية الضجيج ±0.005 هنا؛ تفوّق TCN «الأول» سقط عند البذرة الثانية |
-| ✅ **Wy66wy — Jane Street** ([README](https://github.com/Wy66wy/Jane-Street-Real-Time-Market-Data-Forecasting)) | Ridge (0.1182) فوق GRU (0.1152) وMLP وLightGBM؛ «**إن لم تتفوّق شبكتك على Ridge فاشكّ في خطأ أولاً**»؛ تقليص التوقّعات 0.757 أعطى +11% مع إشارة ضعيفة؛ يعترف أن بياناته التركيبية منحازة للبسيط | **هذه النصيحة قادت أهمّ اكتشاف هنا**: القديم تحت الانحدار اللوجستي ← البحث عن السبب ← محو المستوى |
-| ✅ **ZuccaX — Optiver** ([README](https://github.com/ZuccaX/Optiver-Trading-at-the-Close)) | GRU (R² 0.0246) وTransformer (0.0234) فوق XGBoost (0.0170)؛ الأفضل دمج متأخّر للثلاثة | GRU ≥ Transformer هنا أيضاً |
-| 🔁 **Ubiquant — المركز الأول** (ملخّصات متعدّدة لنفس الـwriteup) | استبعدوا MLP رفعت المتصدّرين لأنها **غير مستقرّة في CV** | بذور متعدّدة قبل أي اعتماد |
-| ✅ **Nixtla** ([تجربة M3](https://github.com/Nixtla/statsforecast/tree/main/experiments/m3)) | مجموعة إحصائية بسيطة فوق أغلب نماذج DL منفردة؛ تجميع DL أفضل بـ0.36 SMAPE فقط بتكلفة 11,000$ و14 يوماً مقابل 6 دقائق | المرجع البسيط أولاً |
-| ✅ **Rossmann — المركز الثالث** ([README](https://github.com/entron/entity-embedding-rossmann)) | تضمين الكيانات تعلّم جغرافيا ألمانيا وحده | لكل كيان هناك آلاف العيّنات؛ 47–222 عملة هنا ← خطر حفظ أعلى (§٥) |
-| 🔁 **مطوّر تنبؤ سلاسل على [Hacker News](https://news.ycombinator.com/item?id=37877443)** | N-BEATS وN-HiTS وRNN «لا تتفوّق على MLP بقيم متأخّرة»، وآخرون وجدوا نفس الشيء | المرجع البسيط يجب أن يُهزم لا أن يُفترض |
-| 🔁 **Andrej Karpathy** ([تغريدة](https://twitter.com/karpathy/status/1013244313327681536) + [مدوّنة](http://karpathy.github.io/2019/04/25/recipe/)) | من أشهر الأخطاء نسيان التبديل train/eval؛ الترتيب: نموذج يستطيع overfit، ثم تنظيم (أصغر ← dropout ← weight decay ← إيقاف مبكر) | `generalization_gap_report` يقيس بوضع eval تحديداً |
-| 🔁 **جدل DLinear** ([الورقة](https://github.com/cure-lab/LTSF-Linear) / [ردّ Hugging Face](https://huggingface.co/blog/autoformer)) | خطّي يهزم Transformers ↔ Transformer يفوز بنفس الحجم | المقارنة العادلة أهمّ من المعمارية |
-| ✅ **قضايا Keras على GitHub** ([#16517](https://github.com/keras-team/keras/issues/16517)) | `weight_decay` في AdamW ثابت ويُضرب في lr | ✅ مُتحقَّق منه في مصدر Keras المثبَّت |
-| ⚠️ ~~منتدى Numerai: «35% dropout على المدخل»~~ | لم يُعثر عليه عند البحث المباشر، والمنتدى محجوب | **سُحب** — لم يُعتمد عليه |
+| ✅ **hyd — المركز الأول، Optiver 2023** (الـwriteup + 70 تعليقاً) | CatBoost 0.5 + GRU 0.3 + Transformer 0.2؛ «GRU input … (batch_size, **55 time steps**, …)» و«Transformer input … (batch_size, **200 stocks**, …)» — وأكّد: «I want transformer to learn info across different stocks, GRU to learn sequence info»؛ GRU+Transformer (5.8233) أفضل من كلٍّ منفرداً (5.8519/5.8614)؛ `out = out - out.mean(1)`؛ **«larger transformer, e.g. deberta» و«1dCNN or MLP» تحت "What not worked"**؛ التعلّم المستمر كل 12 يوماً أعطى أكبر مكسب (5.4438 → 5.4030) | GRU للزمن = مختارنا؛ الأكبر لم يكن أفضل |
+| ✅ **Evgeniia Grigoreva — المركز 8، Jane Street 2025** (أعلى حلّ منشور؛ المراكز 1–5 لم تنشر) | GRU عمود فقري، **طبقة GRU واحدة أفضل من ثلاث**؛ «**MLP, time-series transformers, cross-symbol attention and embeddings didn't work for me**»؛ بلا تعلّم مستمر ينهار الأداء مع فجوة 200 يوم (0.0161 → **0.0011**)؛ التعلّم المستمر +0.008 = أكبر مكسب؛ 3 بذور (0.0105 → 0.0112) | GRU صغير؛ **دليل مضادّ** للانتباه المقطعي وتضمين العملة (اتّسق مع قياسنا للتضمين) |
+| ✅ **Patrick Yam — المركز الثاني، Jane Street 2025** (لوحة المتصدّرين: 0.013273) — التفاصيل من [إعادة بناء مستقلّة](https://github.com/cweill/jane-street-causal-forecasting) لا من كوده | انتباه عبر الأصول + GRU زمني؛ تضمينات 16 مع تضمين صفري للمجهول؛ 17 بذرة؛ تعلّم مستمر يومي | ⚠️ «مستقلّة» = ليست كوده؛ و**المركز 6 (Transformers) والمركز 8 (GRU بلا انتباه) نجحا بعكس بعضهما** |
+| ✅ **Yirun Zhang — المركز الأول، Jane Street 2021** (الـwriteup + الدفتر) | `GaussianNoise(0.0353)` على مدخلات مُطبَّعة بـBatchNorm (**انحراف 3.5%، لا dropout**)، dropout حتى 0.49؛ «**5-fold 31-gap purged group time-series split**»؛ 3 بذور؛ «**Only monitor the BCE loss of MLP instead of the overall loss for early stopping**»؛ `label_smoothing`: الافتراضي 0.01 لكن **الممرَّر فعلياً `'ls': 0`** | ضجيج 0.1 عندنا (أعلى)؛ **الإيقاف على خسارة رأس التصنيف وحده** = سؤالنا المفتوح §٩-6؛ **تنعيم التسميات 0.1 عندنا غير مدعوم بهذا الحلّ ولم يُعزَل بتجربة** |
+| ✅ **Ubiquant — المركز الأول** | «Custom MLP models … were excluded because they were not stable in CV»؛ ميزات مقطعية يدوية (متوسط كل `time_id` لأعلى 100 ميزة) | الاستقرار عبر البذور قبل الرقم الأعلى |
+| ✅ **nyanp — المركز الأول، Optiver RV 2021** | ميزات «أقرب الجيران» المقطعية (0.21 → 0.19)؛ ميزات منجرفة زمنياً → **رتب داخل نفس time-id**؛ 10 بذور وانتقاء أفضل 5 على val (انتقاء على التحقّق نفسه) | فكرة مستقبلية: تقييس المستوى **برتبة داخل اليوم** بدل BatchNorm عبر الدفعة |
+| ✅ **G-Research Crypto** — المركز 2 (Maddux)، 3 (sugghi)، 7 (Patrick Yam) | (2) LightGBM «**no regularization, augmentation, or feature neutralization**… checked with CV» + تحذير مفصّل من **تباين CV**؛ (3) «**Only 'Close' is used**» + فرق كل عملة عن متوسط كل العملات؛ (7) تطبيع **داخل نافذة المدخل لكل أصل** «to make the model more stable and robust» | (3) = ميزاتنا (إغلاق + نسبي). (7) **يعاكس** استنتاجنا عن InstanceNorm — لكن هدفه عائد 15 دقيقة منزوع السوق، وهدفنا مقطعي بالمستوى؛ نموذجنا يُبقي الاثنين (`z` + المستوى) |
+| ✅ **Andrej Karpathy** — *A Recipe* | «Neural net training fails silently»؛ overfit أولاً ثم نظّم؛ **«adam is safe… learning rate of 3e-4»**؛ التجميع «tops out after ~5 models»؛ «dropout does not seem to play nice with batch normalization» | lr=3e-4 المُختار تجريبياً = قيمته. تحذير BN/dropout: في نموذجنا BatchNorm يسبق الإسقاط دائماً (المستوى: SymLog → BN → SpatialDropout؛ stats: BN → Dense) فلا «انزياح التباين» الموثَّق (dropout **قبل** BN) |
+| ✅ **Wy66wy — Jane Street** ([README](https://github.com/Wy66wy/Jane-Street-Real-Time-Market-Data-Forecasting)) | Ridge (0.1182) فوق GRU (0.1152)؛ «**If your neural network cannot beat Ridge, suspect a bug**»؛ تقليص التوقّعات +11% مع إشارة ضعيفة | هذه النصيحة قادت أهمّ اكتشاف هنا (محو المستوى) |
+| ✅ **vivek-varma / ZuccaX — Optiver** (README) | أرضية ضجيج ±0.09%؛ LSTM وزنه صفر (ارتباط 0.957 بالـGRU)؛ GRU وTransformer فوق XGBoost | أرضية ضجيج ±0.005 هنا |
+| ✅ **dongobread — [Hacker News](https://news.ycombinator.com/item?id=37877443)** | «N-BEATS, N-HiTS, every RNN variant … **they don't beat an MLP that just uses lagged values**»؛ LightGBM الأفضل على البيانات متوسّطة الأبعاد (+ تأكيدان من ممارسَين آخرَين) | المرجع البسيط يجب أن يُهزم لا أن يُفترض — GRU هزمه هنا بالقياس |
+| ✅ **Hugging Face — Autoformer** | «**multivariate models are typically worse than the univariate ones** … the model learns spurious correlations»؛ على Exchange-Rate كلا النموذجين MASE > 1 (أسوأ من الساذج) | **دليل مضادّ** للانتباه المقطعي على بيانات صغيرة |
+| ✅ **Cross Validated** (أعلى 3 إجابات) | Zhang et al.: الشبكات تحفظ تسميات عشوائية «no matter how meaningless the task»؛ «**You can also overfit on the validation set**» | ينطبق علينا — انظر التحفّظ أدناه |
+| ✅ **Numerai forum** (3 مواضيع) | صاحب AE-MLP على Numerai: «**It's definitely easy to overfit and that's likely what I did**» (نتائج حيّة)؛ `mdo`: قلب إشارة 25% من الميزات كضجيج مدخلات | — |
+| ⚠️ ~~«35% dropout على المدخل» (Numerai)~~ | **بُحث عنه ولم يوجد**. الأرجح خلط مع `0.035` (انحراف الضجيج الغاوسي عند Yirun) | **سُحب** |
+| ⚠️ Reddit r/MachineLearning | محجوب على كل المستويات — **لا شيء يُنسب إليه** | — |
 
-**ما لم يُؤخذ من الممارسين ولماذا**: *mixup* (مزج نافذتين لعملتين يُنتج مستوى تقلّب «متوسطاً» غير موجود —
-يطمس الإشارة المقطعية نفسها)؛ *autoencoder مُشرَف* (مشكلتنا عكسها: النموذج لا يرى البسيط)؛ *feature
-neutralization* (للمحفظة لا للحفظ).
+**تعارضات تُنقل كما هي (لا تُحسم هنا)**: (١) الانتباه بين الأصول — نجح عند hyd (Optiver) وPatrick Yam، وفشل عند
+المركز 8 (Jane Street 2025)، والنماذج متعدّدة المتغيّرات أسوأ على البيانات الصغيرة (Hugging Face). (٢) التطبيع
+داخل النافذة (Patrick Yam، G-Research) مقابل العالمي (المركز 8) — وقياسنا يقول: الاثنان معاً. (٣) التنظيم —
+المركز 2 في G-Research لم يحتج أيّاً منه (بأشجار، وبشهادته محدوداً بتباين CV).
+
+**تحفّظ على منهجيّتنا نفسها** («overfit on the validation set»): اختيار `RL_gru` من بين المتغيّرات المُصلَحة تمّ
+بمقارنة نتائج test. الفرق بينها (≈0.005) صغير، فالاختيار **بينها** قد يكون جزئياً انتقاءً؛ أما الاستنتاجات الأساسية
+— المُصلَح فوق القديم وفوق المرجع الخطّي بـ0.03–0.04، والقديم يحفظ والمُصلَح لا — فمتّسقة عبر 47 و222 عملة
+وعبر البذور، وليست نتاج انتقاء.
 
 ## ٧) ما رُفض أو لم يُثبت
 
@@ -242,12 +251,15 @@ neutralization* (للمحفظة لا للحفظ).
 
 ## ٩) أسئلة مفتوحة (بترتيب الأولوية)
 
-1. **انتباه مقطعي بين العملات** (Optiver الأول، Jane Street الثاني): النموذج الحالي يعالج كل عملة وحدها،
-   والمقارنة بين العملات ضمنية (BatchNorm للمستوى). يتطلّب دفعات = يوم كامل بكل عملاته.
+1. **انتباه مقطعي بين العملات** — **الأدلّة متعارضة** (§٦): نجح عند Optiver الأول وJane Street الثاني، وفشل عند
+   المركز 8، والنماذج متعدّدة المتغيّرات أسوأ على البيانات الصغيرة. يتطلّب دفعات = يوم كامل بكل عملاته. بديل أرخص
+   يُجرَّب أولاً: **تقييس المستوى برتبة/z داخل اليوم** (nyanp، sugghi) بدل BatchNorm عبر الدفعة.
 2. **تجميع بذور** (17 عند Patrick، 3 عند vivek): رخيص ومُثبت.
 3. **تضمين العملة على البيانات الكاملة** (كل عملة في train).
 4. **Flooding** و**تقليص التوقّعات** (Wy66wy: +11% مع إشارة ضعيفة).
 5. **إعادة التدريب الدوري/المستمر** (`rolling_splits` موجودة في خط الأنابيب).
 6. **معيار اختيار الحقبة الأفضل**: `val_raw_loss` (تهيمن عليه NLL لرؤوس NIG) لا يتّفق مع AUC التصنيف حين تكون
-   البيانات قليلة جداً — تجربة: اختيار على AUC/IC في val، أو على مجموع مُطبَّع للهدفين.
+   البيانات قليلة جداً — تجربة: اختيار على AUC/IC في val، أو على مجموع مُطبَّع للهدفين. الفائز الأول في Jane Street 2021 راقب
+   «the BCE loss of MLP instead of the overall loss» — نفس الفكرة.
+8. **عزل أثر `label_smoothing=0.1`**: غير مدعوم بحلّ Yirun (قيمته الفعلية 0) ولم يُقَس منفرداً هنا (`robust_no_ls`).
 7. **سعة تتكيّف مع حجم البيانات**: الأدلّة الحالية (13 ألف: GRU أفضل؛ 4 آلاف: الأصغر أفضل) لا تكفي لتحديد عتبة آلية.
