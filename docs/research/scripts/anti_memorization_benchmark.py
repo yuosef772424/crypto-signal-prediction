@@ -247,6 +247,11 @@ def EXTRA_CONFIGS(am, rt):
     nt = lambda f: (am, f(copy.deepcopy(rt)))
     return {
         "robust_level": ({**am, "level_passthrough": True}, rt),
+        "robust_level_bn": ({**am, "level_passthrough": True, "level_norm": "batch"}, rt),
+        "robust_level_bn_lr": ({**am, "level_passthrough": True, "level_norm": "batch"},
+                               {**rt, "optimizer": {**rt["optimizer"], "lr_initial": 3e-4}}),
+        "robust_bn": ({**am, "level_norm": "batch"}, rt),
+        "base_bn": ({"level_norm": "batch"}, {}),
         "robust_lr": nt(lambda r: {**r, "optimizer": {**r["optimizer"], "lr_initial": 3e-4}}),
         "robust_level_lr": ({**am, "level_passthrough": True}, {**rt, "optimizer": {**rt["optimizer"], "lr_initial": 3e-4}}),
         "robust_no_small": minus(d_model=128, num_layers=4, head_hidden=128, class_head_hidden=64),
