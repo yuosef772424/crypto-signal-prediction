@@ -1,0 +1,2 @@
+name,status,onboard_date_utc,first_candle_utc,last_candle_utc,interval,n_candles,n_gaps,missing_candles,max_gap_hours,zero_volume_candles,bad_ohlc_rows,extended_columns,file
+BTCUSDT,TRADING,2026-08-19 02:00:00,2026-09-20 00:00:00,2026-09-25 13:00:00,1h,134,0,0,0.0,19,0,True,BTCUSDT.csv

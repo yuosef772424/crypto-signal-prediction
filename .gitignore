@@ -5,3 +5,6 @@ __pycache__/
 Thumbs.db
 *.tmp
 experiment_registry/
+pandas_ta_survey_results.json
+pandas_ta_survey_candidates.json
+pandas_ta_survey_candidates_robust.json
