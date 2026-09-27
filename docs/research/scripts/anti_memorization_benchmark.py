@@ -464,6 +464,91 @@ def summarize(results, refs, header=""):
     return "\n".join(lines)
 
 
+def _run_cost(item):
+    """تقدير نسبي لزمن تشغيل (للتوزيع على العمّال): الحقب × حجم السيناريو."""
+    kind, _cfg, ep, *_ = item.split(":")
+    return int(ep) * (4 if kind.split("_")[0] == "full" else 1)
+
+
+def split_items(items, n):
+    """توزيع LPT: الأطول أولاً على العامل الأقلّ حِملاً، ثم يُعاد ترتيب كل عامل بحسب السيناريو (يُحرَّر كاش
+    السيناريو بعد آخر استخدام له فتبقى ذاكرة كل عامل على سيناريو واحد في الغالب)."""
+    load, parts = [0] * n, [[] for _ in range(n)]
+    for i, it in sorted(enumerate(items), key=lambda x: -_run_cost(x[1])):
+        k = load.index(min(load))
+        parts[k].append((i, it))
+        load[k] += _run_cost(it)
+    first = {}
+    for i, it in enumerate(items):
+        first.setdefault(it.split(":")[0], i)
+    # داخل كل عامل: السيناريوهات بترتيب أول ظهور لها في الخطة (الأولوية محفوظة)، وتشغيلات كل سيناريو متتالية
+    return [[it for _i, it in sorted(p, key=lambda x: (first[x[1].split(":")[0]], x[0]))] for p in parts if p]
+
+
+def run_parallel(a, items, n):
+    """يشغّل n عمليات مستقلّة على نفس GPU (كلٌّ يحجز ما يحتاجه فقط: TF_FORCE_GPU_ALLOW_GROWTH)، يبثّ مخرجاتها
+    ببادئة [wK]، ثم يدمج نتائجها في --out ويطبع ملخّصاً واحداً بترتيب الخطة."""
+    import subprocess
+    import threading
+    parts = split_items(items, n)
+    t0, procs, outs, env_line, peaks = time.time(), [], [], {}, []
+    env = {**os.environ, "TF_FORCE_GPU_ALLOW_GROWTH": "true", "PYTHONUNBUFFERED": "1"}
+    data = ["--history-dir", a.history_dir] if a.history_dir else ["--coinmetrics-dir", a.coinmetrics_dir]
+    if a.max_assets:
+        data += ["--max-assets", str(a.max_assets)]
+    print(f"⚡ تشغيل متوازٍ: {len(parts)} عمّال لـ{len(items)} تشغيلاً على نفس GPU", flush=True)
+    for k, part in enumerate(parts, 1):
+        out = f"{a.out}.w{k}"
+        if os.path.exists(out):
+            os.remove(out)
+        outs.append(out)
+        print(f"   [w{k}] {' '.join(part)}", flush=True)
+        procs.append(subprocess.Popen([sys.executable, os.path.abspath(__file__), *data, "--out", out, "--run", *part],
+                                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env))
+
+    def pump(k, pr):
+        for line in pr.stdout:
+            if line.startswith("panel:"):
+                env_line.setdefault("panel", line.split("|")[0][6:].strip())
+            if line.startswith("peak_ram_mb="):
+                peaks.append(float(line.split("=")[1]))
+            if line.startswith(("panel:", "scenario", "linear_ref", "[", "Traceback", "peak_ram")) or "Error" in line:
+                print(f"[w{k}] {line}", end="", flush=True)
+
+    threads = [threading.Thread(target=pump, args=(k, pr), daemon=True) for k, pr in enumerate(procs, 1)]
+    for th in threads:
+        th.start()
+    codes = [pr.wait() for pr in procs]
+    for th in threads:
+        th.join()
+    done, refs = {}, {}
+    with open(a.out, "a") as fo:
+        for out in outs:
+            if not os.path.exists(out):
+                continue
+            for line in open(out):
+                fo.write(line)
+                r = json.loads(line)
+                if "linear_ref" in r:
+                    refs[r["name"][:-len("_linear_ref")]] = r["linear_ref"]
+                else:
+                    done[r["name"]] = r
+            os.remove(out)
+    order = {f"{it.split(':')[0]}{'_shuf' if 'shuf' in it.split(':')[3:] else ''}_{it.split(':')[1]}_s"
+             f"{next((int(o[5:]) for o in it.split(':')[3:] if o.startswith('seed=')), 0)}": i for i, it in enumerate(items)}
+    results = sorted(done.values(), key=lambda r: order.get(r["name"], 1e9))
+    bad = [f"w{k}={c}" for k, c in enumerate(codes, 1) if c != 0]
+    if bad:
+        print(f"⚠️ عمّال انتهوا بخطأ: {', '.join(bad)} — النتائج المكتملة محفوظة في {a.out}", flush=True)
+    missing = [n for n in order if n not in done]
+    if missing:
+        print(f"⚠️ لم تكتمل: {missing}", flush=True)
+    if a.summary:
+        ram = f" | RAM peak {sum(peaks) / 1024:.1f}GB total, {max(peaks) / 1024:.1f}GB/worker" if peaks else ""
+        hdr = f"plan={a.plan or 'custom'} | {env_line.get('panel', '')} | parallel={len(parts)}{ram} | {time.time() - t0:.0f}s"
+        print("\n" + summarize(results, dict(sorted(refs.items())), header=hdr))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     g = ap.add_mutually_exclusive_group(required=True)
@@ -476,13 +561,21 @@ def main():
     ap.add_argument("--max-assets", type=int, default=None,
                     help="أطول N عملات تاريخاً فقط (للسرعة مع مئات العملات)")
     ap.add_argument("--summary", action="store_true", help="اطبع في النهاية ملخّصاً مضغوطاً للنسخ")
+    ap.add_argument("--parallel", type=int, default=None,
+                    help="عدد التشغيلات المتزامنة على نفس GPU (افتراضياً: حقل parallel في الخطة، وإلا 1)")
     a = ap.parse_args()
-    items = a.run
+    os.environ.setdefault("TF_FORCE_GPU_ALLOW_GROWTH", "true")   # قبل أي استيراد لـ TF: لا يحجز كل ذاكرة GPU
+    items, parallel = a.run, a.parallel
     if a.plan:
         plans = json.load(open(PLANS_FILE, encoding="utf-8"))
         if a.plan not in plans:
             raise SystemExit(f"خطة غير موجودة: {a.plan!r} — المتاح: {sorted(k for k in plans if not k.startswith('_'))}")
         items = plans[a.plan]["runs"] if isinstance(plans[a.plan], dict) else plans[a.plan]
+        if parallel is None and isinstance(plans[a.plan], dict):
+            parallel = plans[a.plan].get("parallel")
+    parallel = max(1, min(int(parallel or 1), len(items)))
+    if parallel > 1:
+        return run_parallel(a, items, parallel)
     px, vol = load_history_csv(a.history_dir) if a.history_dir else load_coinmetrics(a.coinmetrics_dir)
     if a.max_assets and px.shape[1] > a.max_assets:
         keep = px.notna().sum().sort_values(ascending=False).index[:a.max_assets]
@@ -496,7 +589,8 @@ def main():
     print(f"panel: {env} | runs: {len(items)}", flush=True)
     cache, cfgs, done, refs = {}, configs(), [], {}
     t_all = time.time()
-    for item in items:
+    last_use = {it.split(":")[0]: i for i, it in enumerate(items)}
+    for i_item, item in enumerate(items):
         kind, cfg, ep, *opts = item.split(":")
         seed = next((int(o[5:]) for o in opts if o.startswith("seed=")), 0)
         shuf = "shuf" in opts
@@ -514,6 +608,8 @@ def main():
                                         "shuffle": sh, "linear_ref": lr_ref}) + "\n")
         name = f"{kind}{'_shuf' if shuf else ''}_{cfg}_s{seed}"
         r = train_eval(name, cache[kind], *cfgs[cfg], epochs=int(ep), seed=seed, shuffle=shuf)
+        if last_use[kind] == i_item:
+            del cache[kind]   # ذاكرة: لا يُحتاج هذا السيناريو بعد الآن
         r.update({"kind": kind, "cfg": cfg, "shuffle": shuf, "seed": seed, "epochs": int(ep)})
         done.append(r)
         with open(a.out, "a") as f:
@@ -521,6 +617,8 @@ def main():
         print(f"[{r['seconds']:5.0f}s] {name}: best@{r['best_epoch']} | "
               + " ".join(f"{p}_{s}_{t}_auc={r[f'{p}_{s}_{t}_auc']:.3f}" for p in ("best", "last")
                          for s in ("train", "test") for t in TARGETS), flush=True)
+    import resource
+    print(f"peak_ram_mb={resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024:.0f}", flush=True)
     if a.summary:
         print("\n" + summarize(done, refs, header=f"plan={a.plan or 'custom'} | {env} | {time.time() - t_all:.0f}s"))
 

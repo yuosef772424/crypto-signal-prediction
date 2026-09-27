@@ -246,7 +246,8 @@ val**، والحفظ انخفض (0.61/0.60 لـ`RL_gru` مقابل 0.67/0.76 ل�
 - **قبل التدريب**: `normalization_audit(train, val, test, feature_names=dataset["feature_order"])`.
 - **بعد التدريب**: `generalization_gap_report(model, train, val, test)` — مع المرجع الخطّي وحكم لكل رأس.
 - **تجارب على بيانات Drive من Colab**: الخلية ١ مرّة لكل جلسة (`tools/colab_bridge.prepare_data()` تنسخ
-  `history_1d` محلياً)، والخلية ٢ لكل تجربة (`git pull` ثم `--plan <اسم> --summary`). الخطط في
+  `history_1d` محلياً)، والخلية ٢ لكل تجربة (`git pull` ثم `--plan <اسم> --summary`، و`--parallel N` لتشغيل N تجارب متزامنة
+  على نفس GPU — أو حقل `parallel` في الخطة؛ كل عامل عملية مستقلّة تحجز ذاكرة GPU بقدر حاجتها). الخطط في
   [`scripts/am_plans.json`](scripts/am_plans.json).
 
 ## ٩) أسئلة مفتوحة (بترتيب الأولوية)

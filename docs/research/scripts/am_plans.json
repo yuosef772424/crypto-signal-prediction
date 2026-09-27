@@ -1,5 +1,5 @@
 {
-  "_doc": "خطط تجارب anti_memorization_benchmark.py — كل عنصر kind:cfg:epochs[:shuf][:seed=N]. Claude يضيف خططاً جديدة هنا ويرفعها، وخلية Colab تشغّلها بالاسم.",
+  "_doc": "خطط تجارب anti_memorization_benchmark.py — كل عنصر kind:cfg:epochs[:shuf][:seed=N]. Claude يضيف خططاً جديدة هنا ويرفعها، وخلية Colab تشغّلها بالاسم. حقل parallel اختياري: عدد التشغيلات المتزامنة على نفس GPU (يتجاوزه --parallel N).",
   "smoke": {
     "why": "فحص سريع أن كل شيء يعمل على بياناتك (دقيقة أو اثنتان)",
     "runs": [
@@ -46,6 +46,7 @@
       "little:RL_tiny_raw:60",
       "full_xrank:RL_gru:30:shuf",
       "full:RL_gru_emaw1:30:shuf"
-    ]
+    ],
+    "parallel": 2
   }
 }
