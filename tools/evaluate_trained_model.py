@@ -60,13 +60,23 @@ def run_cell(src, ns, name, quiet=False):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--data", required=True, help="preprocessing_output_*.pkl.gz (نفس ما دُرِّب عليه النموذج)")
-    ap.add_argument("--weights", required=True, help="best.weights.h5 من مجلد التدريب")
+    ap.add_argument("--weights", default=None, help="best.weights.h5 من مجلد التدريب (أو --train لتدريب جديد)")
+    ap.add_argument("--train", action="store_true", help="درّب هنا بخلية main نفسها بدل تحميل أوزان")
+    ap.add_argument("--epochs", type=int, default=None, help="مع --train: سقف الحقب (افتراضياً قيمة main)")
+    ap.add_argument("--batch-size", type=int, default=None, help="مع --train: حجم الدفعة (افتراضياً قيمة main)")
+    ap.add_argument("--patience", type=int, default=None, help="مع --train: صبر الإيقاف المبكر")
+    ap.add_argument("--run-dir", default="run", help="مع --train: مجلد نقاط الحفظ (نسبة لـ --out)")
+    ap.add_argument("--split-dates", default=None,
+                    help="train_end,val_end (مثلاً 2025-06-24,2025-11-21): تقسيم زمني صريح بدل نِسَب العيّنات")
     ap.add_argument("--target-mode", default=None, help="TARGET_MODE في main (مثلاً relative). None = أهداف خط الأنابيب")
     ap.add_argument("--anti-memorization", default="true", choices=("true", "false"))
     ap.add_argument("--reports", default=",".join(REPORTS), help=f"من {REPORTS}")
     ap.add_argument("--out", default="eval_out")
     a = ap.parse_args()
-    data, weights = os.path.abspath(a.data), os.path.abspath(a.weights)
+    if not a.train and not a.weights:
+        ap.error("--weights أو --train")
+    data = os.path.abspath(a.data)
+    weights = os.path.abspath(a.weights) if a.weights else None
     os.makedirs(a.out, exist_ok=True)
     os.chdir(a.out)
     import matplotlib
@@ -85,7 +95,23 @@ def main():
         if "run_full_analysis(" in src and "full_results" in src:   # القسم ٦ (chicks): اختياري، يُستدعى لاحقاً
             continue
         src = src.replace("TARGET_MODE = None", f"TARGET_MODE = {a.target_mode!r}")
-        src = src.replace("RUN_MAIN_TRAINING = True", "RUN_MAIN_TRAINING = False")
+        if not a.train:
+            src = src.replace("RUN_MAIN_TRAINING = True", "RUN_MAIN_TRAINING = False")
+        else:
+            src = src.replace('"/content/drive/MyDrive/training_runs/crypto_model_v1"', repr(os.path.abspath(a.run_dir)))
+            src = src.replace("callbacks=callbacks, verbose=1,", "callbacks=callbacks, verbose=2,")
+            if a.epochs:
+                src = re.sub(r'"epochs": \d+,', f'"epochs": {a.epochs},', src, count=1)
+            if a.patience:
+                src = src.replace("RUN_MAIN_TRAINING = True",
+                                  f"main_config['callbacks']['early_stopping']['patience'] = {a.patience}\n"
+                                  "RUN_MAIN_TRAINING = True")
+            if a.batch_size:
+                src = re.sub(r'"batch_size": \d+,', f'"batch_size": {a.batch_size},', src, count=1)
+        if a.split_dates and re.match(r"\s*train, val, test = split_data\(", src):
+            tr_end, va_end = a.split_dates.split(",")
+            ns["update_config"]({"split_dates": {"train_end": tr_end, "val_end": va_end}})
+            print(f"📅 تقسيم زمني صريح: train ≤ {tr_end} | val ≤ {va_end} | test بعده (مع فجوة العزل)", flush=True)
         src = src.replace("ANTI_MEMORIZATION = True", f"ANTI_MEMORIZATION = {a.anti_memorization == 'true'}")
         src = src.replace("model.summary()", "")
         quiet = "%run" in src
@@ -93,10 +119,14 @@ def main():
         if "load_data_from_drive" in ns and not ns.get("_LOCAL_DATA_PATCHED"):
             ns["load_data_from_drive"] = lambda **kw: pickle.load(gzip.open(data, "rb"))
             ns["_LOCAL_DATA_PATCHED"] = True
-        if "RUN_MAIN_TRAINING" in src and "model" in ns:
+        if "RUN_MAIN_TRAINING" in src and weights and not a.train and "model" in ns:
             ns["model"].load_weights(weights)
             print(f"✅ أُحمّلت الأوزان {os.path.basename(weights)} في النموذج "
                   f"({ns['model'].count_params():,} معاملاً) — TARGET_MODE={a.target_mode!r}", flush=True)
+        if a.train and "RUN_MAIN_TRAINING" in src and "trainer" in ns:
+            ns["model"] = ns["trainer"].model
+            ns["model"].save_weights(os.path.abspath("trained.weights.h5"))
+            print(f"✅ تدريب مكتمل — الأوزان (أفضل حقبة) ← {os.path.abspath('trained.weights.h5')}", flush=True)
         print(f"   main cell {i} ✓ ({time.time() - t0:.0f}s)", flush=True)
 
     model, train, val, test, tf_ = ns["model"], ns["train"], ns["val"], ns["test"], ns["MODEL_TF"]
