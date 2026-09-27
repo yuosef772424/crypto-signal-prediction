@@ -71,6 +71,9 @@ def main():
     ap.add_argument("--target-mode", default=None, help="TARGET_MODE في main (مثلاً relative). None = أهداف خط الأنابيب")
     ap.add_argument("--anti-memorization", default="true", choices=("true", "false"))
     ap.add_argument("--reports", default=",".join(REPORTS), help=f"من {REPORTS}")
+    ap.add_argument("--mn-quantiles", default="0.05,0.1,0.2,0.3,0.5",
+                    help="أطراف المحفظة المحايدة (0.5 = الكون كله لأوزان الرتب)")
+    ap.add_argument("--mn-universe", default=None, help="None = كل العملات | categories | قائمة رموز مفصولة بفواصل")
     ap.add_argument("--out", default="eval_out")
     a = ap.parse_args()
     if not a.train and not a.weights:
@@ -136,7 +139,9 @@ def main():
         ("verification", "٧-د التحقق المتكامل",
          lambda: ns["run_full_verification"](model, train, val, test, model_tf=tf_, out_dir="verification")),
         ("market_neutral", "٧-و المحفظة المحايدة للسوق",
-         lambda: ns["market_neutral_report"](model, train, val, test, model_tf=tf_)),
+         lambda: ns["market_neutral_report"](
+             model, train, val, test, model_tf=tf_, quantiles=tuple(float(x) for x in a.mn_quantiles.split(",")),
+             universe=(a.mn_universe if a.mn_universe in (None, "categories") else a.mn_universe.split(",")))),
         ("candle", "٧-ج مقابل شكل الشمعة", lambda: ns["candle_baseline_report"](model, train, val, test, model_tf=tf_)),
         ("chicks", "٦ chicks (tearsheet + الدلالة الإحصائية)",
          lambda: ns["run_full_analysis"](model=model, test_dict=ns["test_dict"], timeframes=[tf_],
