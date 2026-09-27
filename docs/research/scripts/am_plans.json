@@ -175,5 +175,15 @@
       "full:RL_gru:40:lr=1e-3:pat=5:mon=cls:bs=1024:dm=256:shuf",
       "full:RL_gru:40:lr=1e-3:pat=5:mon=cls:bs=1024:dm=64:shuf"
     ]
+  },
+  "horizon": {
+    "why": "أين المعلومة؟ نفس GRU، والأفق وحده يتغيّر: 1 و3 و5 و10 أيام (مجموع العوائد التالية، فجوة تقسيم ≥ الأفق). المرجع الخطّي يُحسب لكل أفق تلقائياً. AUC أعلى في أفق أطول = إشارة أوضح، لا ربحاً أكبر بالضرورة (رهانات مستقلة أقل). فحص سريع (~15 دقيقة).",
+    "eval_max": 40000,
+    "runs": [
+      "full:RL_gru:40:lr=1e-3:pat=5:mon=cls:bs=1024",
+      "full_h3:RL_gru:40:lr=1e-3:pat=5:mon=cls:bs=1024",
+      "full_h5:RL_gru:40:lr=1e-3:pat=5:mon=cls:bs=1024",
+      "full_h10:RL_gru:40:lr=1e-3:pat=5:mon=cls:bs=1024"
+    ]
   }
 }

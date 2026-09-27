@@ -15,6 +15,7 @@ Scenarios (--kind):
   badnorm   : + raw price level, raw USD volume, coin age, a near-constant flag (bad normalization)
   badnorm_little
   <kind>_xrank : + per-date cross-sectional rank of every feature across coins (e.g. full_xrank, little_xrank)
+  <kind>_hN    : target horizon N days (sum of the next N daily log returns), split purge ≥ N+1 (e.g. full_h5)
 Add :shuf to shuffle train labels (pure memorization capacity; test must stay at 0.5).
 
 Configs (--cfg): baseline (MODEL_CONFIG + trainer defaults as main.ipynb before PR #7), robust
@@ -118,7 +119,7 @@ def _rsi(r, n=14):
     return up / (up + dn + 1e-12)
 
 
-def build_features(px, vol, bad_norm=False, xrank=False):
+def build_features(px, vol, bad_norm=False, xrank=False, horizon=1):
     """Close+volume features only (both data sources have them). Causal: row t uses data up to t."""
     lr = np.log(px).diff()
     lr = lr.where(lr.abs() < 1.5)
@@ -155,7 +156,8 @@ def build_features(px, vol, bad_norm=False, xrank=False):
             ranked = panel.rank(axis=1, pct=True) - 0.5
             for a in feats:
                 feats[a][f"{c}_XR"] = ranked[a]
-    fut = lr.shift(-1)
+    # الأفق: مجموع العوائد اللوغاريتمية للأيام h التالية (h=1 = السلوك التاريخي حرفياً)
+    fut = lr.shift(-1) if horizon == 1 else lr[::-1].rolling(horizon, min_periods=horizon).sum()[::-1].shift(-1)
     mag = fut.abs()
     return feats, {"mag": mag.sub(mag.median(axis=1), axis=0), "dir": fut.sub(fut.median(axis=1), axis=0)}
 
@@ -182,10 +184,10 @@ def make_windows(feats, targets):
             np.concatenate(days), np.concatenate(aid), list(next(iter(feats.values())).columns))
 
 
-def split(X, y, days, aid):
+def split(X, y, days, aid, purge=PURGE_DAYS):
     d64 = lambda t: t.to_datetime64()
-    masks = {"train": days <= d64(TRAIN_END - pd.Timedelta(days=PURGE_DAYS)),
-             "val": (days > d64(TRAIN_END)) & (days <= d64(VAL_END - pd.Timedelta(days=PURGE_DAYS))),
+    masks = {"train": days <= d64(TRAIN_END - pd.Timedelta(days=purge)),
+             "val": (days > d64(TRAIN_END)) & (days <= d64(VAL_END - pd.Timedelta(days=purge))),
              "test": days > d64(VAL_END)}
     return {n: subset({"X": X, "y": y, "days": days, "aid": aid}, m) for n, m in masks.items()}
 
@@ -196,9 +198,10 @@ def subset(p, m):
 
 def scenario(px, vol, kind):
     parts = kind.split("_")
-    feats, tg = build_features(px, vol, bad_norm="badnorm" in parts, xrank="xrank" in parts)
+    h = next((int(q[1:]) for q in parts if re.fullmatch(r"h\d+", q)), 1)
+    feats, tg = build_features(px, vol, bad_norm="badnorm" in parts, xrank="xrank" in parts, horizon=h)
     X, y, days, aid, names = make_windows(feats, tg)
-    S = split(X, y, days, aid)
+    S = split(X, y, days, aid, purge=max(PURGE_DAYS, h + 1))   # الهدف يمتد h يوماً: فجوة ≥ h بين الأقسام
     if "little" in parts:
         coins = np.random.default_rng(7).choice(np.unique(S["train"]["aid"]), 8, replace=False)
         S["train"] = subset(S["train"], np.isin(S["train"]["aid"], coins))
