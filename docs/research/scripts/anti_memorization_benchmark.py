@@ -653,7 +653,8 @@ def run_parallel(a, items, n):
     order = {item_name(parse_item(it)): i for i, it in enumerate(items) if parse_item(it)["cfg"] != "linear"}
     bad = [f"w{k}={c}" for k, c in enumerate(codes, 1) if c != 0]
     if bad:
-        print(f"⚠️ عمّال انتهوا بخطأ: {', '.join(bad)} — النتائج المكتملة محفوظة في {a.out}", flush=True)
+        oom = " (‎-9 = قتله النظام، غالباً نفاد الذاكرة RAM — قلّل --parallel)" if -9 in codes else ""
+        print(f"⚠️ عمّال انتهوا بخطأ: {', '.join(bad)}{oom} — النتائج المكتملة محفوظة في {a.out}", flush=True)
     missing = [nm for nm in order if nm not in done]
     if missing:
         print(f"⚠️ لم تكتمل: {missing}", flush=True)
@@ -663,14 +664,31 @@ def run_parallel(a, items, n):
     return sorted(done.values(), key=lambda r: order.get(r["name"], 1e9)), dict(sorted(refs.items())), info
 
 
+RAM_PER_WORKER_GB = 4.5
+
+
+def _mem_available_gb():
+    try:
+        for line in open("/proc/meminfo"):
+            if line.startswith("MemAvailable:"):
+                return int(line.split()[1]) / 1024 ** 2
+    except OSError:
+        pass
+    return None
+
+
 def execute(a, items, parallel):
     """parallel مُقيَّد بنصف أنوية المعالج: drive_v2 على Colab العادي (نواتان) بأربعة عمّال أعطى نفس الإنتاجية
     تقريباً كالتسلسلي (~900 ثانية للتجربة بدل ~210) — العنق هو المعالج (خطوات TF الصغيرة) لا ذاكرة GPU."""
     want = max(1, min(int(parallel or 1), len(items)))
-    cap = max(1, (os.cpu_count() or 2) // 2)
+    cap_cpu = max(1, (os.cpu_count() or 2) // 2)
+    avail = _mem_available_gb()
+    # drive_v2 على Drive: ~3.4GB ذروة للعامل (full_xrank أكثر)؛ 4 عمّال على Colab (12.7GB) ⇒ قُتل اثنان (-9)
+    cap_ram = max(1, int(avail // RAM_PER_WORKER_GB)) if avail else want
+    cap = min(cap_cpu, cap_ram)
     if want > cap:
-        print(f"ℹ️ parallel={want} خُفِّض إلى {cap}: {os.cpu_count()} أنوية معالج فقط — العمّال الإضافيون يتزاحمون عليها "
-              f"ولا يُسرّعون (استعمل --parallel {want} على جهاز بأنوية أكثر)", flush=True)
+        print(f"ℹ️ parallel={want} خُفِّض إلى {cap}: {os.cpu_count()} أنوية معالج، ~{avail or 0:.1f}GB ذاكرة متاحة "
+              f"(~{RAM_PER_WORKER_GB}GB لكل عامل) — عمّال أكثر يتزاحمون على المعالج أو تنفد الذاكرة", flush=True)
         want = cap
     return run_parallel(a, items, want) if want > 1 else run_serial(a, items)
 
