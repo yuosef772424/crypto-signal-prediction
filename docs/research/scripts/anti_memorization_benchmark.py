@@ -283,7 +283,8 @@ def configs():
     cfgs.update(EXTRA_CONFIGS(am, robust_trainer))
     # ما يستخدمه main.ipynb فعلاً مع ANTI_MEMORIZATION=True (يُقرأ من الدفتر: يتبع أي تغيير مستقبلي فيه)
     cfgs["am_default"] = (dict(ns["ANTI_MEMORIZATION_CONFIG"]),
-                          {**robust_trainer, "optimizer": {"lr_initial": 3e-4, "weight_decay": 0.05}})
+                          {**robust_trainer, "optimizer": {"lr_initial": 3e-4, "weight_decay": 0.05,
+                                                           "ema_warmup": True, "ema_window_epochs": 1.0}})
     return cfgs
 
 
