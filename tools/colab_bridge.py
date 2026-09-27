@@ -92,6 +92,8 @@ def gpu_summary():
 # جهازك) عبر رابط التحميل المباشر — بلا drive.mount وبلا حساب Google.
 
 DOWNLOAD_URL = "https://drive.usercontent.google.com/download?id={id}&export=download&confirm=t"
+# files_info.csv الحالي لمجلد history_1d (522+ عملة). السجلّ القديم 1hITH2… معرّفاته لم تعد موجودة (الملفات أُعيد إنشاؤها).
+DEFAULT_REGISTRY = "1Ozei2b9z8uyEszutke7LV_8Mpomi-W2X"
 
 
 def build_drive_registry(folder, out_csv=None, pattern="*.csv"):
@@ -151,7 +153,7 @@ def read_registry(registry, url_template=DOWNLOAD_URL):
     return df
 
 
-def download_from_registry(registry, dest="/content/am_data/history_1d", names=None, workers=8, force=False,
+def download_from_registry(registry=DEFAULT_REGISTRY, dest="/content/am_data/history_1d", names=None, workers=8, force=False,
                            url_template=DOWNLOAD_URL):
     """يحمّل كل ملفات السجلّ إلى dest/<name>.csv بالتوازي، مع كاش: الموجود لا يُعاد تحميله (force=True للتحديث).
 
