@@ -37,7 +37,7 @@ def load_notebook(path, ns, quiet=True):
         if c["cell_type"] != "code":
             continue
         src = _cell_src(c)
-        if re.search(r"^\s*(drive\.mount\(|%cd)", src, re.M):
+        if re.search(r"^(drive\.mount\(|%cd)", src, re.M):   # مستوى أعلى فقط: mount_drive() تستدعيه داخل دالة
             continue
         run_cell(src, ns, f"{os.path.basename(path)}#cell{i}", quiet)
 
@@ -80,7 +80,7 @@ def main():
         if c["cell_type"] != "code":
             continue
         src = _cell_src(c)
-        if "drive.mount(" in src or "def run_wiring_selftest" in src:
+        if re.search(r"^drive\.mount\(", src, re.M) or "def run_wiring_selftest" in src:
             continue
         if "run_full_analysis(" in src and "full_results" in src:   # القسم ٦ (chicks): اختياري، يُستدعى لاحقاً
             continue
