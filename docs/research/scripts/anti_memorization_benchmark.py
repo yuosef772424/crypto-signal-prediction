@@ -517,7 +517,8 @@ def summarize(results, refs, header=""):
 
 HP_OPTS = {"lr": "optimizer.lr_initial", "wd": "optimizer.weight_decay", "do": "model.dropout",
            "pat": "early_stopping.patience", "mon": "early_stopping.monitor (cls = val_class_loss)",
-           "bs": "training batch size (default 256; لا يُضبط معه lr تلقائياً — الشبكة lr تغطّيه)"}
+           "bs": "training batch size (default 256; لا يُضبط معه lr تلقائياً — الشبكة lr تغطّيه)",
+           "dm": "model.d_model (عرض النموذج — head_hidden يتبعه، class_head_hidden نصفه)", "nl": "model.num_layers"}
 
 
 def parse_item(item):
@@ -552,6 +553,10 @@ def apply_hp(model_cfg, trainer_cfg, hp):
         t.setdefault("optimizer", {})["weight_decay"] = float(hp["wd"])
     if "do" in hp:
         m["dropout"] = float(hp["do"])
+    if "dm" in hp:
+        m.update(d_model=int(hp["dm"]), head_hidden=int(hp["dm"]), class_head_hidden=max(int(hp["dm"]) // 2, 8))
+    if "nl" in hp:
+        m["num_layers"] = int(hp["nl"])
     if "pat" in hp:
         es()["patience"] = int(hp["pat"])
     if hp.get("mon") == "cls":

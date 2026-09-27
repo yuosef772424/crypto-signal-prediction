@@ -162,5 +162,18 @@
       "full:RL_tiny:40:lr=3e-3:pat=5:mon=cls:bs=1024",
       "full:baseline:40:lr=1e-3:pat=5:mon=cls:bs=1024"
     ]
+  },
+  "capacity": {
+    "why": "هل السعة هي العائق؟ نفس نموذج GRU (بإصلاح المستوى) بأحجام مختلفة، وكل ما سواه ثابت. إن كانت السعة قليلة: test يرتفع مع الحجم. إن كانت المعلومة في الميزات هي الحدّ: test ثابت وtrain (والحفظ على المخلوط) يرتفع وحده. فحص سريع (~40 دقيقة).",
+    "eval_max": 40000,
+    "runs": [
+      "full:RL_gru:40:lr=1e-3:pat=5:mon=cls:bs=1024:dm=32",
+      "full:RL_gru:40:lr=1e-3:pat=5:mon=cls:bs=1024:dm=64",
+      "full:RL_gru:40:lr=1e-3:pat=5:mon=cls:bs=1024:dm=128",
+      "full:RL_gru:40:lr=1e-3:pat=5:mon=cls:bs=1024:dm=256",
+      "full:RL_gru:40:lr=1e-3:pat=5:mon=cls:bs=1024:dm=128:nl=4",
+      "full:RL_gru:40:lr=1e-3:pat=5:mon=cls:bs=1024:dm=256:shuf",
+      "full:RL_gru:40:lr=1e-3:pat=5:mon=cls:bs=1024:dm=64:shuf"
+    ]
   }
 }
