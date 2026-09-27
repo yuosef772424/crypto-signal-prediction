@@ -48,5 +48,107 @@
       "full:RL_gru_emaw1:30:shuf"
     ],
     "parallel": 2
+  },
+  "smoke_tune": {
+    "why": "فحص سريع لمسار الضبط العادل (دقائق): جولة ضبط صغيرة ثم بذرة إضافية + مخلوط للفائز",
+    "tune": {
+      "extra_seeds": [
+        1
+      ],
+      "shuffle_winner": true
+    },
+    "runs": [
+      "little:RL_tiny:2:lr=1e-4:mon=cls",
+      "little:RL_tiny:2:lr=1e-3:mon=cls",
+      "little:RL_gru:2:lr=3e-4:mon=cls"
+    ]
+  },
+  "drive_v3_little": {
+    "why": "مقارنة عادلة على البيانات القليلة جداً (4 آلاف عيّنة): كل نوع (القديم، transformer+المستوى، GRU، TCN، الصغير) يحصل على نفس ميزانية الضبط — 3 معدّلات تعلّم × 2 تنظيم — ويُختار أفضلها على val وحده؛ التدريب حتى يتوقّف التحسّن على val (سقف 200 حقبة، patience 15 على val_class_loss)؛ ثم بذرتان إضافيتان + تسميات مخلوطة للفائز تلقائياً. المرجع الخطّي يُضبط C على val أيضاً، ومعه مرجع xrank.",
+    "parallel": 2,
+    "tune": {
+      "extra_seeds": [
+        1,
+        2
+      ],
+      "shuffle_winner": true
+    },
+    "runs": [
+      "little_xrank:linear:0",
+      "little:baseline:200:lr=1e-4:wd=0.01:mon=cls",
+      "little:baseline:200:lr=1e-4:wd=0.1:mon=cls",
+      "little:baseline:200:lr=3e-4:wd=0.01:mon=cls",
+      "little:baseline:200:lr=3e-4:wd=0.1:mon=cls",
+      "little:baseline:200:lr=1e-3:wd=0.01:mon=cls",
+      "little:baseline:200:lr=1e-3:wd=0.1:mon=cls",
+      "little:robust_level_bn_lr:200:lr=1e-4:wd=0.01:mon=cls",
+      "little:robust_level_bn_lr:200:lr=1e-4:wd=0.1:mon=cls",
+      "little:robust_level_bn_lr:200:lr=3e-4:wd=0.01:mon=cls",
+      "little:robust_level_bn_lr:200:lr=3e-4:wd=0.1:mon=cls",
+      "little:robust_level_bn_lr:200:lr=1e-3:wd=0.01:mon=cls",
+      "little:robust_level_bn_lr:200:lr=1e-3:wd=0.1:mon=cls",
+      "little:RL_gru:200:lr=1e-4:wd=0.01:mon=cls",
+      "little:RL_gru:200:lr=1e-4:wd=0.1:mon=cls",
+      "little:RL_gru:200:lr=3e-4:wd=0.01:mon=cls",
+      "little:RL_gru:200:lr=3e-4:wd=0.1:mon=cls",
+      "little:RL_gru:200:lr=1e-3:wd=0.01:mon=cls",
+      "little:RL_gru:200:lr=1e-3:wd=0.1:mon=cls",
+      "little:RL_tcn:200:lr=1e-4:wd=0.01:mon=cls",
+      "little:RL_tcn:200:lr=1e-4:wd=0.1:mon=cls",
+      "little:RL_tcn:200:lr=3e-4:wd=0.01:mon=cls",
+      "little:RL_tcn:200:lr=3e-4:wd=0.1:mon=cls",
+      "little:RL_tcn:200:lr=1e-3:wd=0.01:mon=cls",
+      "little:RL_tcn:200:lr=1e-3:wd=0.1:mon=cls",
+      "little:RL_tiny:200:lr=1e-4:wd=0.01:mon=cls",
+      "little:RL_tiny:200:lr=1e-4:wd=0.1:mon=cls",
+      "little:RL_tiny:200:lr=3e-4:wd=0.01:mon=cls",
+      "little:RL_tiny:200:lr=3e-4:wd=0.1:mon=cls",
+      "little:RL_tiny:200:lr=1e-3:wd=0.01:mon=cls",
+      "little:RL_tiny:200:lr=1e-3:wd=0.1:mon=cls"
+    ]
+  },
+  "drive_v3_full": {
+    "why": "نفس بروتوكول drive_v3_little على البيانات الكاملة (89 ألف عيّنة) بدفعة تدريب 1024 للسرعة — لذلك شبكة معدّل التعلّم أعلى (3e-4، 1e-3، 3e-3) — سقف 100 حقبة.",
+    "parallel": 2,
+    "tune": {
+      "extra_seeds": [
+        1,
+        2
+      ],
+      "shuffle_winner": true
+    },
+    "runs": [
+      "full_xrank:linear:0",
+      "full:baseline:100:lr=3e-4:wd=0.01:mon=cls:bs=1024",
+      "full:baseline:100:lr=3e-4:wd=0.1:mon=cls:bs=1024",
+      "full:baseline:100:lr=1e-3:wd=0.01:mon=cls:bs=1024",
+      "full:baseline:100:lr=1e-3:wd=0.1:mon=cls:bs=1024",
+      "full:baseline:100:lr=3e-3:wd=0.01:mon=cls:bs=1024",
+      "full:baseline:100:lr=3e-3:wd=0.1:mon=cls:bs=1024",
+      "full:robust_level_bn_lr:100:lr=3e-4:wd=0.01:mon=cls:bs=1024",
+      "full:robust_level_bn_lr:100:lr=3e-4:wd=0.1:mon=cls:bs=1024",
+      "full:robust_level_bn_lr:100:lr=1e-3:wd=0.01:mon=cls:bs=1024",
+      "full:robust_level_bn_lr:100:lr=1e-3:wd=0.1:mon=cls:bs=1024",
+      "full:robust_level_bn_lr:100:lr=3e-3:wd=0.01:mon=cls:bs=1024",
+      "full:robust_level_bn_lr:100:lr=3e-3:wd=0.1:mon=cls:bs=1024",
+      "full:RL_gru:100:lr=3e-4:wd=0.01:mon=cls:bs=1024",
+      "full:RL_gru:100:lr=3e-4:wd=0.1:mon=cls:bs=1024",
+      "full:RL_gru:100:lr=1e-3:wd=0.01:mon=cls:bs=1024",
+      "full:RL_gru:100:lr=1e-3:wd=0.1:mon=cls:bs=1024",
+      "full:RL_gru:100:lr=3e-3:wd=0.01:mon=cls:bs=1024",
+      "full:RL_gru:100:lr=3e-3:wd=0.1:mon=cls:bs=1024",
+      "full:RL_tcn:100:lr=3e-4:wd=0.01:mon=cls:bs=1024",
+      "full:RL_tcn:100:lr=3e-4:wd=0.1:mon=cls:bs=1024",
+      "full:RL_tcn:100:lr=1e-3:wd=0.01:mon=cls:bs=1024",
+      "full:RL_tcn:100:lr=1e-3:wd=0.1:mon=cls:bs=1024",
+      "full:RL_tcn:100:lr=3e-3:wd=0.01:mon=cls:bs=1024",
+      "full:RL_tcn:100:lr=3e-3:wd=0.1:mon=cls:bs=1024",
+      "full:RL_tiny:100:lr=3e-4:wd=0.01:mon=cls:bs=1024",
+      "full:RL_tiny:100:lr=3e-4:wd=0.1:mon=cls:bs=1024",
+      "full:RL_tiny:100:lr=1e-3:wd=0.01:mon=cls:bs=1024",
+      "full:RL_tiny:100:lr=1e-3:wd=0.1:mon=cls:bs=1024",
+      "full:RL_tiny:100:lr=3e-3:wd=0.01:mon=cls:bs=1024",
+      "full:RL_tiny:100:lr=3e-3:wd=0.1:mon=cls:bs=1024"
+    ]
   }
 }

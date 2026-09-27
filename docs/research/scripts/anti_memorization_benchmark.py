@@ -207,20 +207,30 @@ def scenario(px, vol, kind):
     return S
 
 
-def linear_reference(S, shuffle=False, seed=0, C=0.1):
-    """Logistic regression on [last step, window mean] — the same reference main.ipynb reports (§7-ز)."""
+def linear_reference(S, shuffle=False, seed=0, C=0.1, tune=False, grid=(0.001, 0.01, 0.1, 1.0, 10.0)):
+    """Logistic regression on [last step, window mean] — the same reference main.ipynb reports (§7-ز).
+
+    tune=True: C يُختار لكل هدف على val (AUC) من grid — نفس امتياز النماذج العميقة التي تختار حقبتها على val؛
+    test لا يُلمس في الاختيار. يُضاف {t}_C للنتيجة."""
     from sklearn.linear_model import LogisticRegression
     from sklearn.preprocessing import StandardScaler
     f = lambda X: np.concatenate([X[:, -1, :], X.mean(axis=1)], axis=1).astype("float64")
-    tr, te = S["train"], S["test"]
+    tr, va, te = S["train"], S["val"], S["test"]
     sc = StandardScaler().fit(np.nan_to_num(f(tr["X"])))
-    Ftr, Fte = sc.transform(np.nan_to_num(f(tr["X"]))), sc.transform(np.nan_to_num(f(te["X"])))
+    Ftr, Fva, Fte = (sc.transform(np.nan_to_num(f(p["X"]))) for p in (tr, va, te))
     perm = np.random.default_rng(seed + 123).permutation(len(Ftr)) if shuffle else np.arange(len(Ftr))
     out = {}
     for t in TARGETS:
         ytr = tr["y"][t][perm] > 0
-        m = LogisticRegression(C=C, max_iter=3000).fit(Ftr, ytr)
+        if tune:
+            fits = [(auc(va["y"][t], m.predict_proba(Fva)[:, 1]), c, m) for c in grid
+                    for m in [LogisticRegression(C=c, max_iter=3000).fit(Ftr, ytr)]]
+            _v, c_best, m = max(fits, key=lambda x: x[0])
+            out[f"{t}_C"] = c_best
+        else:
+            m = LogisticRegression(C=C, max_iter=3000).fit(Ftr, ytr)
         out[f"{t}_train_auc"] = auc(ytr, m.predict_proba(Ftr)[:, 1])
+        out[f"{t}_val_auc"] = auc(va["y"][t], m.predict_proba(Fva)[:, 1])
         out[f"{t}_test_auc"] = auc(te["y"][t], m.predict_proba(Fte)[:, 1])
     return out
 
@@ -410,7 +420,10 @@ def train_eval(name, S, model_cfg, trainer_cfg, epochs, seed=0, shuffle=False, b
         mcfg["n_coins"] = int(S["n_coins"])
     ds = lambda X, y, sh: (tf.data.Dataset.from_tensor_slices((X, y)).shuffle(len(y[next(iter(y))]), seed=seed) if sh
                            else tf.data.Dataset.from_tensor_slices((X, y))).batch(batch_size, drop_remainder=sh).prefetch(2)
-    train_ds, val_ds = ds(model_x(tr, coins=coins), ytr, True), ds(model_x(va, coins=coins), to_y(va), False)
+    train_ds = ds(model_x(tr, coins=coins), ytr, True)
+    # التحقّق بدفعات 2048: نفس الأوزان ونفس العيّنات، أقلّ بـ8 مرّات من الخطوات (57 ألف عيّنة val مقابل 4 آلاف
+    # train على little كانت تجعل التحقّق ~14 ضعف التدريب ومقيّداً بالمعالج). يغيّر val_* تغيّراً ضئيلاً فقط.
+    val_ds = tf.data.Dataset.from_tensor_slices((model_x(va, coins=coins), to_y(va))).batch(max(batch_size, 2048)).prefetch(2)
     builder = lambda: ns["build_model_fn"](tr["X"].shape[1], tr["X"].shape[2], config=mcfg)
     with contextlib.redirect_stdout(io.StringIO()):
         trainer, callbacks, ie = ns["build_training_system"](builder, cfg, next(iter(train_ds)))
@@ -465,35 +478,137 @@ def summarize(results, refs, header=""):
     return "\n".join(lines)
 
 
+HP_OPTS = {"lr": "optimizer.lr_initial", "wd": "optimizer.weight_decay", "do": "model.dropout",
+           "pat": "early_stopping.patience", "mon": "early_stopping.monitor (cls = val_class_loss)",
+           "bs": "training batch size (default 256; لا يُضبط معه lr تلقائياً — الشبكة lr تغطّيه)"}
+
+
+def parse_item(item):
+    """kind:cfg:epochs[:shuf][:seed=N][:lr=..][:wd=..][:do=..][:pat=..][:mon=cls]"""
+    kind, cfg, ep, *opts = item.split(":")
+    p = {"item": item, "kind": kind, "cfg": cfg, "epochs": int(ep), "shuf": "shuf" in opts, "seed": 0, "hp": {}}
+    for o in opts:
+        if o.startswith("seed="):
+            p["seed"] = int(o[5:])
+        elif "=" in o:
+            key, val = o.split("=", 1)
+            if key not in HP_OPTS:
+                raise SystemExit(f"خيار غير معروف {o!r} في {item!r} — المتاح: {sorted(HP_OPTS)}")
+            p["hp"][key] = val
+        elif o != "shuf":
+            raise SystemExit(f"خيار غير معروف {o!r} في {item!r}")
+    return p
+
+
+def item_name(p):
+    hp = "".join(f"_{k}{v}" for k, v in sorted(p["hp"].items()))   # بلا خيارات = نفس الأسماء التاريخية
+    return f"{p['kind']}{'_shuf' if p['shuf'] else ''}_{p['cfg']}{hp}_s{p['seed']}"
+
+
+def apply_hp(model_cfg, trainer_cfg, hp):
+    import copy
+    m, t = copy.deepcopy(model_cfg or {}), copy.deepcopy(trainer_cfg or {})
+    es = lambda: t.setdefault("callbacks", {}).setdefault("early_stopping", {})
+    if "lr" in hp:
+        t.setdefault("optimizer", {})["lr_initial"] = float(hp["lr"])
+    if "wd" in hp:
+        t.setdefault("optimizer", {})["weight_decay"] = float(hp["wd"])
+    if "do" in hp:
+        m["dropout"] = float(hp["do"])
+    if "pat" in hp:
+        es()["patience"] = int(hp["pat"])
+    if hp.get("mon") == "cls":
+        es().update({"monitor": "val_class_loss", "mode": "min"})
+    return m, t
+
+
+def with_opts(item, seed=None, shuf=False):
+    parts = [o for o in item.split(":") if not (seed is not None and o.startswith("seed="))]
+    return ":".join(parts + ([f"seed={seed}"] if seed is not None else []) + (["shuf"] if shuf else []))
+
+
 def _run_cost(item):
     """تقدير نسبي لزمن تشغيل (للتوزيع على العمّال): الحقب × حجم السيناريو."""
-    kind, _cfg, ep, *_ = item.split(":")
-    return int(ep) * (4 if kind.split("_")[0] == "full" else 1)
+    p = parse_item(item)
+    return 0 if p["cfg"] == "linear" else p["epochs"] * (4 if p["kind"].split("_")[0] == "full" else 1)
 
 
 def split_items(items, n):
-    """توزيع LPT: الأطول أولاً على العامل الأقلّ حِملاً، ثم يُعاد ترتيب كل عامل بحسب السيناريو (يُحرَّر كاش
-    السيناريو بعد آخر استخدام له فتبقى ذاكرة كل عامل على سيناريو واحد في الغالب)."""
+    """توزيع LPT: الأطول أولاً على العامل الأقلّ حِملاً. داخل كل عامل: السيناريوهات بترتيب أول ظهور لها في الخطة
+    (الأولوية محفوظة) وتشغيلات كل سيناريو متتالية (يُحرَّر كاش السيناريو بعد آخر استخدام)."""
     load, parts = [0] * n, [[] for _ in range(n)]
     for i, it in sorted(enumerate(items), key=lambda x: -_run_cost(x[1])):
         k = load.index(min(load))
         parts[k].append((i, it))
-        load[k] += _run_cost(it)
+        load[k] += _run_cost(it) or 1
     first = {}
     for i, it in enumerate(items):
         first.setdefault(it.split(":")[0], i)
-    # داخل كل عامل: السيناريوهات بترتيب أول ظهور لها في الخطة (الأولوية محفوظة)، وتشغيلات كل سيناريو متتالية
     return [[it for _i, it in sorted(p, key=lambda x: (first[x[1].split(":")[0]], x[0]))] for p in parts if p]
+
+
+def load_panel(a):
+    px, vol = load_history_csv(a.history_dir) if a.history_dir else load_coinmetrics(a.coinmetrics_dir)
+    if a.max_assets and px.shape[1] > a.max_assets:
+        keep = px.notna().sum().sort_values(ascending=False).index[:a.max_assets]
+        px, vol = px[keep], vol[keep]
+    env = f"{px.shape[1]} assets, {px.index.min().date()} → {px.index.max().date()}"
+    try:
+        import tensorflow as tf
+        env += f", GPU={len(tf.config.list_physical_devices('GPU'))}"
+    except Exception:  # noqa: BLE001
+        pass
+    return px, vol, env
+
+
+def run_serial(a, items):
+    px, vol, env = load_panel(a)
+    print(f"panel: {env} | runs: {len(items)}", flush=True)
+    cache, cfgs, done, refs = {}, configs(), [], {}
+    last_use = {it.split(":")[0]: i for i, it in enumerate(items)}
+    for i_item, item in enumerate(items):
+        p = parse_item(item)
+        kind = p["kind"]
+        if kind not in cache:
+            cache[kind] = scenario(px, vol, kind)
+            print(f"scenario {kind}: train={len(cache[kind]['train']['X'])} val={len(cache[kind]['val']['X'])} "
+                  f"test={len(cache[kind]['test']['X'])}", flush=True)
+            for tag, kw in (("", {}), ("_shuf", {"shuffle": True}), ("_tunedC", {"tune": True})):
+                lr_ref = linear_reference(cache[kind], **kw)
+                refs[f"{kind}{tag}"] = lr_ref
+                print(f"linear_ref {kind}{tag}: " + " ".join(f"{k}={v:.3f}" for k, v in lr_ref.items()), flush=True)
+                with open(a.out, "a") as f:
+                    f.write(json.dumps({"name": f"{kind}{tag}_linear_ref", "kind": kind, "shuffle": tag == "_shuf",
+                                        "linear_ref": lr_ref}) + "\n")
+        if p["cfg"] != "linear":   # cfg=linear: المرجع الخطّي وحده لهذا السيناريو
+            name = item_name(p)
+            r = train_eval(name, cache[kind], *apply_hp(*cfgs[p["cfg"]], p["hp"]), epochs=p["epochs"], seed=p["seed"],
+                           shuffle=p["shuf"], batch_size=int(p["hp"].get("bs", 256)))
+            r.update({"item": item, "kind": kind, "cfg": p["cfg"], "hp": p["hp"], "shuffle": p["shuf"],
+                      "seed": p["seed"], "epochs": p["epochs"]})
+            done.append(r)
+            with open(a.out, "a") as f:
+                f.write(json.dumps(r, default=str) + "\n")
+            print(f"[{r['seconds']:5.0f}s] {name}: best@{r['best_epoch']}/{r['epochs_run']} | "
+                  + " ".join(f"{q}_{s_}_{t}_auc={r[f'{q}_{s_}_{t}_auc']:.3f}" for q in ("best", "last")
+                             for s_ in ("train", "test") for t in TARGETS), flush=True)
+        if last_use[kind] == i_item:
+            cache.pop(kind, None)   # ذاكرة: لا يُحتاج هذا السيناريو بعد الآن
+    import resource
+    print(f"peak_ram_mb={resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024:.0f}", flush=True)
+    return done, refs, {"panel": env}
 
 
 def run_parallel(a, items, n):
     """يشغّل n عمليات مستقلّة على نفس GPU (كلٌّ يحجز ما يحتاجه فقط: TF_FORCE_GPU_ALLOW_GROWTH)، يبثّ مخرجاتها
-    ببادئة [wK]، ثم يدمج نتائجها في --out ويطبع ملخّصاً واحداً بترتيب الخطة."""
+    ببادئة [wK]، ثم يدمج نتائجها في --out."""
     import subprocess
     import threading
     parts = split_items(items, n)
-    t0, procs, outs, env_line, peaks = time.time(), [], [], {}, []
-    env = {**os.environ, "TF_FORCE_GPU_ALLOW_GROWTH": "true", "PYTHONUNBUFFERED": "1"}
+    procs, outs, info, peaks = [], [], {}, []
+    threads_each = str(max(1, (os.cpu_count() or 2) // len(parts)))   # حصّة عادلة من الأنوية لكل عامل
+    env = {**os.environ, "TF_FORCE_GPU_ALLOW_GROWTH": "true", "PYTHONUNBUFFERED": "1",
+           "TF_NUM_INTRAOP_THREADS": threads_each, "TF_NUM_INTEROP_THREADS": "1", "OMP_NUM_THREADS": threads_each}
     data = ["--history-dir", a.history_dir] if a.history_dir else ["--coinmetrics-dir", a.coinmetrics_dir]
     if a.max_assets:
         data += ["--max-assets", str(a.max_assets)]
@@ -510,7 +625,7 @@ def run_parallel(a, items, n):
     def pump(k, pr):
         for line in pr.stdout:
             if line.startswith("panel:"):
-                env_line.setdefault("panel", line.split("|")[0][6:].strip())
+                info.setdefault("panel", line.split("|")[0][6:].strip())
             if line.startswith("peak_ram_mb="):
                 peaks.append(float(line.split("=")[1]))
             if line.startswith(("panel:", "scenario", "linear_ref", "[", "Traceback", "peak_ram")) or "Error" in line:
@@ -535,19 +650,74 @@ def run_parallel(a, items, n):
                 else:
                     done[r["name"]] = r
             os.remove(out)
-    order = {f"{it.split(':')[0]}{'_shuf' if 'shuf' in it.split(':')[3:] else ''}_{it.split(':')[1]}_s"
-             f"{next((int(o[5:]) for o in it.split(':')[3:] if o.startswith('seed=')), 0)}": i for i, it in enumerate(items)}
-    results = sorted(done.values(), key=lambda r: order.get(r["name"], 1e9))
+    order = {item_name(parse_item(it)): i for i, it in enumerate(items) if parse_item(it)["cfg"] != "linear"}
     bad = [f"w{k}={c}" for k, c in enumerate(codes, 1) if c != 0]
     if bad:
         print(f"⚠️ عمّال انتهوا بخطأ: {', '.join(bad)} — النتائج المكتملة محفوظة في {a.out}", flush=True)
-    missing = [n for n in order if n not in done]
+    missing = [nm for nm in order if nm not in done]
     if missing:
         print(f"⚠️ لم تكتمل: {missing}", flush=True)
-    if a.summary:
-        ram = f" | RAM peak {sum(peaks) / 1024:.1f}GB total, {max(peaks) / 1024:.1f}GB/worker" if peaks else ""
-        hdr = f"plan={a.plan or 'custom'} | {env_line.get('panel', '')} | parallel={len(parts)}{ram} | {time.time() - t0:.0f}s"
-        print("\n" + summarize(results, dict(sorted(refs.items())), header=hdr))
+    if peaks:
+        info["ram"] = f"RAM peak {sum(peaks) / 1024:.1f}GB total, {max(peaks) / 1024:.1f}GB/worker"
+    info["parallel"] = len(parts)
+    return sorted(done.values(), key=lambda r: order.get(r["name"], 1e9)), dict(sorted(refs.items())), info
+
+
+def execute(a, items, parallel):
+    """parallel مُقيَّد بنصف أنوية المعالج: drive_v2 على Colab العادي (نواتان) بأربعة عمّال أعطى نفس الإنتاجية
+    تقريباً كالتسلسلي (~900 ثانية للتجربة بدل ~210) — العنق هو المعالج (خطوات TF الصغيرة) لا ذاكرة GPU."""
+    want = max(1, min(int(parallel or 1), len(items)))
+    cap = max(1, (os.cpu_count() or 2) // 2)
+    if want > cap:
+        print(f"ℹ️ parallel={want} خُفِّض إلى {cap}: {os.cpu_count()} أنوية معالج فقط — العمّال الإضافيون يتزاحمون عليها "
+              f"ولا يُسرّعون (استعمل --parallel {want} على جهاز بأنوية أكثر)", flush=True)
+        want = cap
+    return run_parallel(a, items, want) if want > 1 else run_serial(a, items)
+
+
+# ───────────────────────────── fair tuning ─────────────────────────────
+def val_score(r):
+    """معيار الاختيار: متوسط AUC على val للرأسين (أوزان «الأفضل») — test لا يدخل في أي اختيار."""
+    return float(np.mean([r[f"best_val_{t}_auc"] for t in TARGETS]))
+
+
+def select_winners(results):
+    """لكل (سيناريو، نوع): التشغيل الأعلى val_score بين إعدادات جولة الضبط (بذرة 0، تسميات حقيقية)."""
+    best = {}
+    for r in results:
+        if r["shuffle"] or r["seed"] != 0:
+            continue
+        key = (r["kind"], r["cfg"])
+        if key not in best or val_score(r) > val_score(best[key]):
+            best[key] = r
+    return best
+
+
+def fair_table(results, refs, winners, seeds):
+    """جدول المقارنة العادلة: لكل نوع أفضل إعداد له (على val)، ثم test بمتوسط ± انحراف عبر البذور."""
+    lines = ["### FAIR-SUMMARY (كل نوع بأفضل إعداداته على val؛ test = متوسط ± انحراف عبر "
+             f"{len(seeds)} بذور؛ الحفظ = AUC تدريب «الأفضل» على تسميات مخلوطة)",
+             "| kind | type | best hp (val) | val | test mag | test dir | train-test gap mag/dir | shuffled train mag/dir | epochs |",
+             "|---|---|---|---|---|---|---|---|---|"]
+    ms = lambda xs: f"{np.mean(xs):.3f}±{np.std(xs):.3f}" if len(xs) > 1 else f"{xs[0]:.3f}"
+    for (kind, cfg), w in sorted(winners.items(), key=lambda x: (x[0][0], -val_score(x[1]))):
+        same = lambda r: r["kind"] == kind and r["cfg"] == cfg and r["hp"] == w["hp"]
+        runs = [r for r in results if same(r) and not r["shuffle"] and r["seed"] in seeds]
+        sh = [r for r in results if same(r) and r["shuffle"]]
+        hp = " ".join(f"{k}={v}" for k, v in sorted(w["hp"].items())) or "-"
+        gap = lambda t: [r[f"best_train_{t}_auc"] - r[f"best_test_{t}_auc"] for r in runs]
+        shs = f"{sh[0]['best_train_mag_auc']:.3f}/{sh[0]['best_train_dir_auc']:.3f}" if sh else "-"
+        lines.append(f"| {kind} | {cfg} | {hp} | {val_score(w):.3f} | {ms([r['best_test_mag_auc'] for r in runs])} | "
+                     f"{ms([r['best_test_dir_auc'] for r in runs])} | {np.mean(gap('mag')):.3f}/{np.mean(gap('dir')):.3f} | "
+                     f"{shs} | {'/'.join(str(r['best_epoch']) for r in runs)} |")
+    for name, ref in refs.items():
+        if name.endswith("_tunedC"):
+            c = "/".join(f"{ref.get(f'{t}_C', '-')}" for t in TARGETS)
+            lines.append(f"| {name[:-7]} | linear (C={c} on val) | - | "
+                         f"{np.mean([ref[f'{t}_val_auc'] for t in TARGETS]):.3f} | {ref['mag_test_auc']:.3f} | "
+                         f"{ref['dir_test_auc']:.3f} | {ref['mag_train_auc'] - ref['mag_test_auc']:.3f}/"
+                         f"{ref['dir_train_auc'] - ref['dir_test_auc']:.3f} | - | - |")
+    return "\n".join(lines)
 
 
 def main():
@@ -556,7 +726,7 @@ def main():
     g.add_argument("--history-dir")
     g.add_argument("--coinmetrics-dir")
     runs = ap.add_mutually_exclusive_group(required=True)
-    runs.add_argument("--run", nargs="+", help="kind:cfg:epochs[:shuf][:seed=N]")
+    runs.add_argument("--run", nargs="+", help="kind:cfg:epochs[:shuf][:seed=N][:lr=..][:wd=..][:do=..][:pat=..][:mon=cls]")
     runs.add_argument("--plan", help=f"اسم خطة من {os.path.basename(PLANS_FILE)}")
     ap.add_argument("--out", default="anti_memorization_results.jsonl")
     ap.add_argument("--max-assets", type=int, default=None,
@@ -566,62 +736,41 @@ def main():
                     help="عدد التشغيلات المتزامنة على نفس GPU (افتراضياً: حقل parallel في الخطة، وإلا 1)")
     a = ap.parse_args()
     os.environ.setdefault("TF_FORCE_GPU_ALLOW_GROWTH", "true")   # قبل أي استيراد لـ TF: لا يحجز كل ذاكرة GPU
-    items, parallel = a.run, a.parallel
+    items, parallel, tune = a.run, a.parallel, None
     if a.plan:
         plans = json.load(open(PLANS_FILE, encoding="utf-8"))
         if a.plan not in plans:
             raise SystemExit(f"خطة غير موجودة: {a.plan!r} — المتاح: {sorted(k for k in plans if not k.startswith('_'))}")
-        items = plans[a.plan]["runs"] if isinstance(plans[a.plan], dict) else plans[a.plan]
-        if parallel is None and isinstance(plans[a.plan], dict):
-            parallel = plans[a.plan].get("parallel")
-    parallel = max(1, min(int(parallel or 1), len(items)))
-    if parallel > 1:
-        return run_parallel(a, items, parallel)
-    px, vol = load_history_csv(a.history_dir) if a.history_dir else load_coinmetrics(a.coinmetrics_dir)
-    if a.max_assets and px.shape[1] > a.max_assets:
-        keep = px.notna().sum().sort_values(ascending=False).index[:a.max_assets]
-        px, vol = px[keep], vol[keep]
-    env = f"{px.shape[1]} assets, {px.index.min().date()} → {px.index.max().date()}"
-    try:
-        import tensorflow as tf
-        env += f", GPU={len(tf.config.list_physical_devices('GPU'))}"
-    except Exception:  # noqa: BLE001
-        pass
-    print(f"panel: {env} | runs: {len(items)}", flush=True)
-    cache, cfgs, done, refs = {}, configs(), [], {}
-    t_all = time.time()
-    last_use = {it.split(":")[0]: i for i, it in enumerate(items)}
-    for i_item, item in enumerate(items):
-        kind, cfg, ep, *opts = item.split(":")
-        seed = next((int(o[5:]) for o in opts if o.startswith("seed=")), 0)
-        shuf = "shuf" in opts
-        if kind not in cache:
-            cache[kind] = scenario(px, vol, kind)
-            print(f"scenario {kind}: train={len(cache[kind]['train']['X'])} val={len(cache[kind]['val']['X'])} "
-                  f"test={len(cache[kind]['test']['X'])}", flush=True)
-            for sh in (False, True):
-                lr_ref = linear_reference(cache[kind], shuffle=sh)
-                refs[f"{kind}{'_shuf' if sh else ''}"] = lr_ref
-                print(f"linear_ref {kind}{'_shuf' if sh else ''}: " + " ".join(f"{k}={v:.3f}" for k, v in lr_ref.items()),
-                      flush=True)
-                with open(a.out, "a") as f:
-                    f.write(json.dumps({"name": f"{kind}{'_shuf' if sh else ''}_linear_ref", "kind": kind,
-                                        "shuffle": sh, "linear_ref": lr_ref}) + "\n")
-        name = f"{kind}{'_shuf' if shuf else ''}_{cfg}_s{seed}"
-        r = train_eval(name, cache[kind], *cfgs[cfg], epochs=int(ep), seed=seed, shuffle=shuf)
-        if last_use[kind] == i_item:
-            del cache[kind]   # ذاكرة: لا يُحتاج هذا السيناريو بعد الآن
-        r.update({"kind": kind, "cfg": cfg, "shuffle": shuf, "seed": seed, "epochs": int(ep)})
-        done.append(r)
-        with open(a.out, "a") as f:
-            f.write(json.dumps(r, default=str) + "\n")
-        print(f"[{r['seconds']:5.0f}s] {name}: best@{r['best_epoch']} | "
-              + " ".join(f"{p}_{s}_{t}_auc={r[f'{p}_{s}_{t}_auc']:.3f}" for p in ("best", "last")
-                         for s in ("train", "test") for t in TARGETS), flush=True)
-    import resource
-    print(f"peak_ram_mb={resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024:.0f}", flush=True)
+        plan = plans[a.plan]
+        items = plan["runs"] if isinstance(plan, dict) else plan
+        if isinstance(plan, dict):
+            parallel = plan.get("parallel") if parallel is None else parallel
+            tune = plan.get("tune")
+    for it in items:
+        parse_item(it)   # خطأ صريح قبل أي تدريب
+    t0 = time.time()
+    results, refs, info = execute(a, items, parallel)
+    winners, seeds = {}, [0]
+    if tune:
+        # الجولة ٢: بذور إضافية + تسميات مخلوطة لفائز كل نوع فقط — الفائز اختير على val وحده
+        winners = select_winners(results)
+        seeds = [0] + list(tune.get("extra_seeds", [1, 2]))
+        round2 = [with_opts(w["item"], seed=s) for w in winners.values() for s in seeds[1:]]
+        if tune.get("shuffle_winner", True):
+            round2 += [with_opts(w["item"], shuf=True) for w in winners.values()]
+        print(f"🏁 جولة الضبط انتهت — الفائزون على val: "
+              + ", ".join(f"{k[0]}:{k[1]}→{w['hp'] or '-'}" for k, w in winners.items())
+              + f" | الجولة ٢: {len(round2)} تشغيلاً", flush=True)
+        r2, refs2, _ = execute(a, round2, parallel)
+        results += r2
+        refs.update(refs2)
     if a.summary:
-        print("\n" + summarize(done, refs, header=f"plan={a.plan or 'custom'} | {env} | {time.time() - t_all:.0f}s"))
+        hdr = " | ".join(x for x in (f"plan={a.plan or 'custom'}", info.get("panel", ""),
+                                      f"parallel={info['parallel']}" if "parallel" in info else "", info.get("ram", ""),
+                                      f"{time.time() - t0:.0f}s") if x)
+        print("\n" + summarize(results, refs, header=hdr))
+        if tune:
+            print("\n" + fair_table(results, refs, winners, seeds))
 
 
 if __name__ == "__main__":
