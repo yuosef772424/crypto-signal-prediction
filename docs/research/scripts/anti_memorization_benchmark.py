@@ -816,9 +816,12 @@ def main():
     g = ap.add_mutually_exclusive_group(required=True)
     g.add_argument("--history-dir")
     g.add_argument("--coinmetrics-dir")
+    g.add_argument("--registry", help="سجلّ file_id,name (مسار/رابط/معرّف Drive لملف السجلّ): تُحمَّل الملفات من روابطها "
+                                      "إلى --registry-cache بلا تركيب Drive (تتطلّب مشاركة «أيّ شخص لديه الرابط»)")
     runs = ap.add_mutually_exclusive_group(required=True)
     runs.add_argument("--run", nargs="+", help="kind:cfg:epochs[:shuf][:seed=N][:lr=..][:wd=..][:do=..][:pat=..][:mon=cls]")
     runs.add_argument("--plan", help=f"اسم خطة من {os.path.basename(PLANS_FILE)}")
+    ap.add_argument("--registry-cache", default=os.path.expanduser("~/.cache/am_data/history_1d"))
     ap.add_argument("--out", default="anti_memorization_results.jsonl")
     ap.add_argument("--max-assets", type=int, default=None,
                     help="أطول N عملات تاريخاً فقط (للسرعة مع مئات العملات)")
@@ -830,6 +833,10 @@ def main():
                     help="عدد التشغيلات المتزامنة على نفس GPU (افتراضياً: حقل parallel في الخطة، وإلا 1)")
     a = ap.parse_args()
     os.environ.setdefault("TF_FORCE_GPU_ALLOW_GROWTH", "true")   # قبل أي استيراد لـ TF: لا يحجز كل ذاكرة GPU
+    if a.registry:   # مرّة واحدة هنا (قبل العمّال): بعدها كل شيء يقرأ من القرص المحلي كـ --history-dir
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "tools"))
+        from colab_bridge import download_from_registry
+        a.history_dir = download_from_registry(a.registry, a.registry_cache)
     items, parallel, tune = a.run, a.parallel, None
     if a.plan:
         plans = json.load(open(PLANS_FILE, encoding="utf-8"))
