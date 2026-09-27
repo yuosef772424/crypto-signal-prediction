@@ -22,8 +22,10 @@ import re
 import sys
 import time
 
+import numpy as np
+
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-REPORTS = ("gap", "verification", "market_neutral", "candle", "chicks")
+REPORTS = ("gap", "verification", "market_neutral", "candle", "chicks", "signals")
 
 
 def _cell_src(c):
@@ -55,6 +57,15 @@ def run_cell(src, ns, name, quiet=False):
     code = compile("\n".join(lines), name, "exec")
     with (contextlib.redirect_stdout(io.StringIO()) if quiet else contextlib.nullcontext()):
         exec(code, ns)
+
+
+def _named(ns, df, split):
+    """val مدمج بلا أسماء عملات (asset="all"): تُستعاد من dataset بنفس أقنعة split_data، كما في market_neutral_report."""
+    if (df["asset"] == "all").all():
+        names = ns["split_asset_names"](ns["dataset"], split)
+        if names is not None and len(names) == len(df):
+            df = df.assign(asset=np.asarray(names))
+    return df
 
 
 def main():
@@ -143,6 +154,9 @@ def main():
              model, train, val, test, model_tf=tf_, quantiles=tuple(float(x) for x in a.mn_quantiles.split(",")),
              universe=(a.mn_universe if a.mn_universe in (None, "categories") else a.mn_universe.split(",")))),
         ("candle", "٧-ج مقابل شكل الشمعة", lambda: ns["candle_baseline_report"](model, train, val, test, model_tf=tf_)),
+        ("signals", "تصدير الإشارات (val/test) للتحليل خارج الدفتر",
+         lambda: [_named(ns, ns["collect_signals"](model, sp, tf_), name).assign(split=name)
+                  .to_csv(f"signals_{name}.csv.gz", index=False) for name, sp in (("val", val), ("test", test))]),
         ("chicks", "٦ chicks (tearsheet + الدلالة الإحصائية)",
          lambda: ns["run_full_analysis"](model=model, test_dict=ns["test_dict"], timeframes=[tf_],
                                          target_specs=ns["EVAL_TARGET_SPECS"], out_dir="analysis_outputs",
