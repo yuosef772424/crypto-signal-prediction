@@ -150,5 +150,17 @@
       "full:RL_tiny:100:lr=3e-3:wd=0.01:mon=cls:bs=1024",
       "full:RL_tiny:100:lr=3e-3:wd=0.1:mon=cls:bs=1024"
     ]
+  },
+  "screen": {
+    "why": "فحص سريع لاختيار الأفضل لا للمقارنة الدقيقة (~30-40 دقيقة): البيانات الكاملة (ترتيب الأنواع يتغيّر مع حجم البيانات، فلا يُفحص على جزء صغير منها)، لكن كل ما سواها مُختصَر — دفعة 1024، سقف 40 حقبة وpatience 5، تقييم على 40 ألف عيّنة ثابتة من test بدل 177 ألفاً، بلا مسار وسيط، بذرة واحدة، أفضل lr معروف من drive_v3_full. TCN والصغير لم يُضبطا في drive_v3_full قبل انقطاع الجلسة؛ GRU والقديم مرساتان للمقارنة.",
+    "eval_max": 40000,
+    "runs": [
+      "full:RL_gru:40:lr=1e-3:pat=5:mon=cls:bs=1024",
+      "full:RL_tcn:40:lr=1e-3:pat=5:mon=cls:bs=1024",
+      "full:RL_tiny:40:lr=1e-3:pat=5:mon=cls:bs=1024",
+      "full:RL_tcn:40:lr=3e-4:pat=5:mon=cls:bs=1024",
+      "full:RL_tiny:40:lr=3e-3:pat=5:mon=cls:bs=1024",
+      "full:baseline:40:lr=1e-3:pat=5:mon=cls:bs=1024"
+    ]
   }
 }

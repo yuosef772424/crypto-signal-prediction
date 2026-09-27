@@ -387,7 +387,7 @@ def target_configs(extra_class):
 
 # ───────────────────────────── train ─────────────────────────────
 def train_eval(name, S, model_cfg, trainer_cfg, epochs, seed=0, shuffle=False, batch_size=256, run_root="/tmp/am_runs",
-               pred_dir=None):
+               pred_dir=None, eval_max=None):
     ns = project()
     import tensorflow as tf
     tr, va, te = S["train"], S["val"], S["test"]
@@ -436,7 +436,7 @@ def train_eval(name, S, model_cfg, trainer_cfg, epochs, seed=0, shuffle=False, b
     with contextlib.redirect_stdout(io.StringIO()):
         trainer, callbacks, ie = ns["build_training_system"](builder, cfg, next(iter(train_ds)))
     last, traj = {}, []
-    every = max(epochs // 6, 1)
+    every = max(epochs // 6, 1) if not eval_max else 10 ** 9   # الفحص السريع: بلا مسار وسيط
 
     class Probe(tf.keras.callbacks.Callback):
         def on_epoch_end(self, epoch, logs=None):
@@ -481,8 +481,9 @@ def train_eval(name, S, model_cfg, trainer_cfg, epochs, seed=0, shuffle=False, b
         if tag == "last":
             trainer.model.set_weights(last["w"])
         for pn, part in (("train", tr_eval), ("val", va), ("test", te)):
-            probs = {} if (pred_dir and tag == "best" and pn == "test") else None
-            for k, v in evaluate(trainer.model, part, 20000 if pn == "train" else None, probs_out=probs).items():
+            probs = {} if (pred_dir and not eval_max and tag == "best" and pn == "test") else None
+            n_eval = 20000 if pn == "train" else eval_max   # eval_max: عيّنة ثابتة (نفس البذرة) لكل التشغيلات
+            for k, v in evaluate(trainer.model, part, n_eval, probs_out=probs).items():
                 res[f"{tag}_{pn}_{k}"] = v
             if probs:   # توقّعات test لأوزان «الأفضل» — لقياس متوسط البذور (ensemble) بلا تدريب إضافي
                 os.makedirs(pred_dir, exist_ok=True)
@@ -638,7 +639,7 @@ def run_serial(a, items):
             name = item_name(p)
             r = train_eval(name, cache[kind], *apply_hp(*cfgs[p["cfg"]], p["hp"]), epochs=p["epochs"], seed=p["seed"],
                            shuffle=p["shuf"], batch_size=int(p["hp"].get("bs", 256)),
-                           pred_dir=None if p["shuf"] else pred_dir)
+                           pred_dir=None if p["shuf"] else pred_dir, eval_max=a.eval_max)
             r.update({"item": item, "kind": kind, "cfg": p["cfg"], "hp": p["hp"], "shuffle": p["shuf"],
                       "seed": p["seed"], "epochs": p["epochs"]})
             done.append(r)
@@ -678,7 +679,8 @@ def run_parallel(a, items, n):
         outs.append(out)
         print(f"   [w{k}] {' '.join(part)}", flush=True)
         procs.append(subprocess.Popen([sys.executable, os.path.abspath(__file__), *data, "--out", out,
-                                       "--pred-dir", pred_dir_of(a), "--run", *part],
+                                       "--pred-dir", pred_dir_of(a),
+                                       *(["--eval-max", str(a.eval_max)] if a.eval_max else []), "--run", *part],
                                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env))
 
     def pump(k, pr):
@@ -814,6 +816,8 @@ def main():
                     help="أطول N عملات تاريخاً فقط (للسرعة مع مئات العملات)")
     ap.add_argument("--summary", action="store_true", help="اطبع في النهاية ملخّصاً مضغوطاً للنسخ")
     ap.add_argument("--pred-dir", default=None, help="مجلد توقّعات test لكل تشغيل (افتراضياً: <out>.preds)")
+    ap.add_argument("--eval-max", type=int, default=None,
+                    help="فحص سريع: تقييم val/test على عيّنة ثابتة بهذا الحجم وبلا مسار وسيط (أو حقل eval_max في الخطة)")
     ap.add_argument("--parallel", type=int, default=None,
                     help="عدد التشغيلات المتزامنة على نفس GPU (افتراضياً: حقل parallel في الخطة، وإلا 1)")
     a = ap.parse_args()
@@ -828,6 +832,7 @@ def main():
         if isinstance(plan, dict):
             parallel = plan.get("parallel") if parallel is None else parallel
             tune = plan.get("tune")
+            a.eval_max = a.eval_max or plan.get("eval_max")
     for it in items:
         parse_item(it)   # خطأ صريح قبل أي تدريب
     t0 = time.time()
