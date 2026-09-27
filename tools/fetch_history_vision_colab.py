@@ -45,7 +45,7 @@ asyncio بخيط منفصل عند وجود حلقة أحداث تعمل مسب�
 الاستخدام على Google Colab (خلية واحدة — tools/fetch_history_colab_cell.py فيها النسخة الكاملة):
     from google.colab import drive
     drive.mount('/content/drive')
-    !wget -q -O fetch_history_vision_colab.py https://raw.githubusercontent.com/yuosef772424/crypto-signal-prediction/claude/charming-sagan-kswo2r/tools/fetch_history_vision_colab.py
+    # المستودع خاص: استخدم tools/fetch_history_colab_cell.py (يجلب السكربت بتوكن من أسرار Colab)، أو انسخ هذا الملف إلى Drive
     !python fetch_history_vision_colab.py --drive-root /content/drive/MyDrive --interval 15m \
         --start 2020-01-01 --funding --open-interest --oi-start 2021-01-01 --vision-only
 

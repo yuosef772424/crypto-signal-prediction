@@ -12,7 +12,7 @@ import sys
 import urllib.request
 
 # ── الإعدادات ──
-SOURCE = "github"          # "github" | "drive"
+SOURCE = "github"          # "github" (يلزم توكن: المستودع خاص) | "drive"
 GITHUB_RAW = ("https://raw.githubusercontent.com/yuosef772424/crypto-signal-prediction/"
               "claude/charming-sagan-kswo2r/tools/fetch_history_vision_colab.py")
 DRIVE_SCRIPT = "/content/drive/MyDrive/tools/fetch_history_vision_colab.py"   # مع SOURCE="drive"
@@ -35,7 +35,18 @@ drive.mount("/content/drive")
 # ── 2) السكربت ──
 SCRIPT = "/content/fetch_history_vision_colab.py"
 if SOURCE == "github":
-    urllib.request.urlretrieve(GITHUB_RAW, SCRIPT)
+    # المستودع خاص: توكن GitHub من أسرار Colab (🔑 Secrets ← GITHUB_TOKEN، مع Notebook access)
+    try:
+        from google.colab import userdata
+        _tok = userdata.get("GITHUB_TOKEN") or ""
+    except Exception:
+        _tok = ""
+    if not _tok:
+        from getpass import getpass
+        _tok = getpass("GitHub token (المستودع خاص): ")
+    _req = urllib.request.Request(GITHUB_RAW, headers={"Authorization": f"token {_tok.strip()}"})
+    with urllib.request.urlopen(_req) as _r, open(SCRIPT, "wb") as _f:
+        _f.write(_r.read())
 else:
     shutil.copy(DRIVE_SCRIPT, SCRIPT)
 print(f"✓ السكربت ({SOURCE}): {os.path.getsize(SCRIPT):,} بايت")
