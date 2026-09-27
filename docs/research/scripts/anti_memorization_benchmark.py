@@ -736,7 +736,7 @@ def _mem_available_gb():
     return None
 
 
-def execute(a, items, parallel):
+def execute(a, items, parallel, forced=False):
     """parallel مُقيَّد بنصف أنوية المعالج: drive_v2 على Colab العادي (نواتان) بأربعة عمّال أعطى نفس الإنتاجية
     تقريباً كالتسلسلي (~900 ثانية للتجربة بدل ~210) — العنق هو المعالج (خطوات TF الصغيرة) لا ذاكرة GPU."""
     want = max(1, min(int(parallel or 1), len(items)))
@@ -744,7 +744,8 @@ def execute(a, items, parallel):
     avail = _mem_available_gb()
     # drive_v2 على Drive: ~3.4GB ذروة للعامل (full_xrank أكثر)؛ 4 عمّال على Colab (12.7GB) ⇒ قُتل اثنان (-9)
     cap_ram = max(1, int(avail // RAM_PER_WORKER_GB)) if avail else want
-    cap = min(cap_cpu, cap_ram)
+    # --parallel صريح من سطر الأوامر يتجاوز حدّ المعالج (للقياس) لكن لا يتجاوز حدّ الذاكرة (نفادها يقتل العمّال)
+    cap = cap_ram if forced else min(cap_cpu, cap_ram)
     if want > cap:
         print(f"ℹ️ parallel={want} خُفِّض إلى {cap}: {os.cpu_count()} أنوية معالج، ~{avail or 0:.1f}GB ذاكرة متاحة "
               f"(~{RAM_PER_WORKER_GB}GB لكل عامل) — عمّال أكثر يتزاحمون على المعالج أو تنفد الذاكرة", flush=True)
@@ -830,7 +831,8 @@ def main():
     for it in items:
         parse_item(it)   # خطأ صريح قبل أي تدريب
     t0 = time.time()
-    results, refs, info = execute(a, items, parallel)
+    forced = a.parallel is not None
+    results, refs, info = execute(a, items, parallel, forced)
     winners, seeds = {}, [0]
     if tune:
         # الجولة ٢: بذور إضافية + تسميات مخلوطة لفائز كل نوع فقط — الفائز اختير على val وحده
@@ -842,7 +844,7 @@ def main():
         print(f"🏁 جولة الضبط انتهت — الفائزون على val: "
               + ", ".join(f"{k[0]}:{k[1]}→{w['hp'] or '-'}" for k, w in winners.items())
               + f" | الجولة ٢: {len(round2)} تشغيلاً", flush=True)
-        r2, refs2, _ = execute(a, round2, parallel)
+        r2, refs2, _ = execute(a, round2, parallel, forced)
         results += r2
         refs.update(refs2)
     if a.summary:
