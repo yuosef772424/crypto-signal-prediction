@@ -839,6 +839,43 @@ async def fix_gaps_for_symbol(symbol: str, path: Path, gaps: List[dict], interva
     return fixed
 
 
+# ═══════════════ تقرير اكتمال التمويل/الفائدة المفتوحة ═══════════════
+def write_archive_report(report_path: Path, dirs: Dict[str, Path]) -> Tuple[int, int]:
+    """لكل ملف أرشيف (funding_rate/open_interest/futures_metrics): أول/آخر طابع، عدد الصفوف، الفاصل المعتاد،
+    عدد الفجوات (فاصل > 1.5 × المعتاد) وأكبرها، وكم يتأخر آخر صف عن الآن. يُعاد بناؤه كاملاً كل تشغيل.
+    يُرجع (عدد الملفات، عدد الملفات ذات فجوات)."""
+    rows, with_gaps = [], 0
+    now = time.time()
+    for kind, d in dirs.items():
+        for p in sorted(d.glob("*.csv")) if d.exists() else []:
+            ts = []
+            with open(p, newline="", encoding="utf-8") as f:
+                for r in csv.DictReader(f):
+                    try:
+                        ts.append(datetime.fromisoformat(r["timestamp"].replace("Z", "+00:00")).timestamp())
+                    except (KeyError, ValueError):
+                        continue
+            if not ts:
+                continue
+            ts.sort()
+            diffs = [b - a for a, b in zip(ts, ts[1:])]
+            step = sorted(diffs)[len(diffs) // 2] if diffs else 0
+            gaps = [x for x in diffs if step and x > 1.5 * step]
+            with_gaps += bool(gaps)
+            rows.append({"kind": kind, "symbol": p.stem, "first_utc": fmt_dt(int(ts[0] * 1000)),
+                         "last_utc": fmt_dt(int(ts[-1] * 1000)), "rows": len(ts),
+                         "step_hours": round(step / 3600, 2), "n_gaps": len(gaps),
+                         "max_gap_hours": round(max(gaps) / 3600, 1) if gaps else 0,
+                         "stale_hours": round((now - ts[-1]) / 3600, 1)})
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(report_path, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=["kind", "symbol", "first_utc", "last_utc", "rows", "step_hours",
+                                          "n_gaps", "max_gap_hours", "stale_hours"])
+        w.writeheader()
+        w.writerows(rows)
+    return len(rows), with_gaps
+
+
 # ═══════════════ سجلّ الأصول ═══════════════
 def file_stats(path: Path, interval_ms: int) -> dict:
     n = gaps = missing = zero_vol = bad = 0
@@ -1089,8 +1126,14 @@ async def main():
           + " ...")
     await asyncio.gather(*[worker(s, m) for s, m in symbols.items()])
 
+    if args.funding or args.open_interest:
+        rep_path = registry_path.parent / "funding_oi_report.csv"
+        n_files, n_gap = write_archive_report(rep_path, {"funding_rate": funding_dir, "open_interest": oi_dir,
+                                                         "futures_metrics": metrics_dir})
+        print(f"\n[✓] تقرير اكتمال التمويل/الفائدة المفتوحة: {rep_path} — {n_files} ملف، {n_gap} بها فجوات"
+              + ("" if rest_available else " (التمويل يتأخر حتى نهاية الشهر السابق: أرشيفه شهري وAPI المباشر غير متاح)"))
     if args.skip_klines:
-        print(f"\n[✓] انتهى (تمويل/فائدة مفتوحة فقط): {funding_dir} | {oi_dir} | {metrics_dir}")
+        print(f"[✓] انتهى (تمويل/فائدة مفتوحة فقط): {funding_dir} | {oi_dir} | {metrics_dir}")
         return
     n_reg = update_registry(registry_path, out_dir, interval, interval_ms, all_symbols)
     ng, na = write_gaps_report(gaps_report_path, out_dir, interval_ms)
