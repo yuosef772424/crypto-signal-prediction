@@ -10,6 +10,11 @@
   4) اختبار التوصيل الذاتي (القسم ٨) يُتخطّى (لا علاقة له بالنموذج الحقيقي).
 ثم تُستدعى تقارير القسم ٧: فجوة التعميم، التحقق المتكامل، المحفظة المحايدة للسوق، ومقارنة شكل الشمعة.
 الإخراج: يُطبع كل شيء، ويُحفظ ما تحفظه التقارير نفسها في --out.
+
+نموذج اللوحة عبر العملات (القسم ٧-ح، docs/research/panel_phase1.md) — نفس خلية Colab بـ PANEL_MODE=True:
+    python tools/evaluate_trained_model.py --data preprocessing_output_latest.pkl.gz --target-mode relative \
+        --split-dates 2025-06-24,2025-11-21 --panel A_ic,B_ic --panel-baseline eval_timesplit_sig --out eval_panel
+    (--panel-subset 60,40 --panel-epochs 2 لاختبار سريع؛ مع --weights/--train يُقارَن بالنموذج المحمَّل نفسه)
 """
 import argparse
 import contextlib
@@ -26,6 +31,7 @@ import numpy as np
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REPORTS = ("gap", "verification", "market_neutral", "candle", "chicks", "signals")
+INVOKE_CWD = os.getcwd()
 
 
 def _cell_src(c):
@@ -86,9 +92,23 @@ def main():
                     help="أطراف المحفظة المحايدة (0.5 = الكون كله لأوزان الرتب)")
     ap.add_argument("--mn-universe", default=None, help="None = كل العملات | categories | قائمة رموز مفصولة بفواصل")
     ap.add_argument("--out", default="eval_out")
+    ap.add_argument("--panel", default=None, help="متغيّرات نموذج اللوحة مفصولة بفواصل (A,A_ic,B,B_ic) — يشغّل القسم ٧-ح")
+    ap.add_argument("--panel-seeds", default="0", help="بذور مفصولة بفواصل")
+    ap.add_argument("--panel-epochs", type=int, default=None, help="None = حقب main (أو --epochs)")
+    ap.add_argument("--panel-batch-samples", type=int, default=None)
+    ap.add_argument("--panel-subset", default=None, help="last_days,coins — اختبار سريع على مجموعة فرعية")
+    ap.add_argument("--panel-baseline", default=None,
+                    help="model | مسار best.weights.h5 | مجلد signals_{val,test}.csv.gz (الافتراضي: model مع --weights/--train)")
+    ap.add_argument("--panel-first-touch", default=None, help="bracket_first_5.pkl لحسم اللمس المزدوج في القوس")
+    ap.add_argument("--panel-overrides", default=None, help='JSON: {"train": {...}, "model": {...}}')
     a = ap.parse_args()
-    if not a.train and not a.weights:
-        ap.error("--weights أو --train")
+    if not a.train and not a.weights and not a.panel:
+        ap.error("--weights أو --train أو --panel")
+    if a.panel and not (a.train or a.weights) and a.reports == ",".join(REPORTS):
+        a.reports = ""          # لا نموذج حالي مدرَّب ⇒ تقارير القسم ٧ بلا معنى
+    sys.path.insert(0, REPO)    # حزمة cross_asset بجانب الدفاتر (os.chdir أدناه يُخرجنا من المستودع)
+    global INVOKE_CWD
+    INVOKE_CWD = os.getcwd()
     data = os.path.abspath(a.data)
     weights = os.path.abspath(a.weights) if a.weights else None
     os.makedirs(a.out, exist_ok=True)
@@ -106,6 +126,27 @@ def main():
         src = _cell_src(c)
         if re.search(r"^drive\.mount\(", src, re.M) or "def run_wiring_selftest" in src:
             continue
+        if "PANEL_MODE = False" in src:
+            if not a.panel:
+                continue
+            ov = {"PANEL_VARIANTS": a.panel.split(","), "PANEL_SEEDS": [int(x) for x in a.panel_seeds.split(",")],
+                  "PANEL_RUN_ROOT": os.path.abspath("panel_runs"),
+                  "PANEL_BASELINE": a.panel_baseline or ("model" if (a.train or weights) else None)}
+            if ov["PANEL_BASELINE"] not in (None, "model"):
+                ov["PANEL_BASELINE"] = os.path.abspath(os.path.join(INVOKE_CWD, ov["PANEL_BASELINE"]))
+            if a.panel_epochs:
+                ov["PANEL_EPOCHS"] = a.panel_epochs
+            if a.panel_batch_samples:
+                ov["PANEL_BATCH_SAMPLES"] = a.panel_batch_samples
+            if a.panel_subset:
+                d, c = a.panel_subset.split(",")
+                ov["PANEL_SUBSET"] = {"last_days": int(d), "coins": int(c)}
+            if a.panel_first_touch:
+                ov["PANEL_FIRST_TOUCH"] = os.path.abspath(os.path.join(INVOKE_CWD, a.panel_first_touch))
+            if a.panel_overrides:
+                ov["PANEL_OVERRIDES"] = json.loads(a.panel_overrides)
+            src = src.replace("PANEL_MODE = False", "PANEL_MODE = True").replace(
+                "# ── نهاية الإعدادات ──", f"globals().update({ov!r})")
         if "run_full_analysis(" in src and "full_results" in src:   # القسم ٦ (chicks): اختياري، يُستدعى لاحقاً
             continue
         src = src.replace("TARGET_MODE = None", f"TARGET_MODE = {a.target_mode!r}")
