@@ -259,7 +259,7 @@ def model_x(part, idx=None, coins=False):
     return {"input_sequence": X, "coin_id": (part["aid"] if idx is None else part["aid"][idx]).astype("int32")}
 
 
-def evaluate(model, part, max_n=None, seed=0):
+def evaluate(model, part, max_n=None, seed=0, probs_out=None):
     idx = np.arange(len(part["X"]))
     if max_n and len(idx) > max_n:
         idx = np.sort(np.random.default_rng(seed).choice(len(idx), max_n, replace=False))
@@ -269,6 +269,8 @@ def evaluate(model, part, max_n=None, seed=0):
     for t in TARGETS:
         yt = part["y"][t][idx]
         p = np.asarray(out[f"y_{t}_class_logits"]).ravel()
+        if probs_out is not None:
+            probs_out[t] = p
         res[f"{t}_auc"] = auc(yt, p)
         res[f"{t}_acc"] = float(np.mean((p >= 0.5) == (yt > 0)))
         res[f"{t}_ic"], res[f"{t}_ic_t"] = daily_ic(yt, np.asarray(out[f"y_{t}"]).ravel(), part["days"][idx])
@@ -384,7 +386,8 @@ def target_configs(extra_class):
 
 
 # ───────────────────────────── train ─────────────────────────────
-def train_eval(name, S, model_cfg, trainer_cfg, epochs, seed=0, shuffle=False, batch_size=256, run_root="/tmp/am_runs"):
+def train_eval(name, S, model_cfg, trainer_cfg, epochs, seed=0, shuffle=False, batch_size=256, run_root="/tmp/am_runs",
+               pred_dir=None):
     ns = project()
     import tensorflow as tf
     tr, va, te = S["train"], S["val"], S["test"]
@@ -418,9 +421,14 @@ def train_eval(name, S, model_cfg, trainer_cfg, epochs, seed=0, shuffle=False, b
     coins = bool(mcfg.get("n_coins"))
     if coins:
         mcfg["n_coins"] = int(S["n_coins"])
-    ds = lambda X, y, sh: (tf.data.Dataset.from_tensor_slices((X, y)).shuffle(len(y[next(iter(y))]), seed=seed) if sh
-                           else tf.data.Dataset.from_tensor_slices((X, y))).batch(batch_size, drop_remainder=sh).prefetch(2)
-    train_ds = ds(model_x(tr, coins=coins), ytr, True)
+    # خلط أرقام العيّنات ثم جمعها (gather) بدل خلط البيانات نفسها: ~0.1 ثانية للحقبة بدل ~1 (نفس التوزيع، ترتيب آخر)
+    Xtr = tf.nest.map_structure(tf.constant, model_x(tr, coins=coins))
+    Ytr = {k: tf.constant(v) for k, v in ytr.items()}
+    train_ds = (tf.data.Dataset.range(len(tr["X"])).shuffle(len(tr["X"]), seed=seed)
+                .batch(batch_size, drop_remainder=True)
+                .map(lambda i: (tf.nest.map_structure(lambda a: tf.gather(a, i), Xtr),
+                                {k: tf.gather(v, i) for k, v in Ytr.items()}), num_parallel_calls=tf.data.AUTOTUNE)
+                .prefetch(2))
     # التحقّق بدفعات 2048: نفس الأوزان ونفس العيّنات، أقلّ بـ8 مرّات من الخطوات (57 ألف عيّنة val مقابل 4 آلاف
     # train على little كانت تجعل التحقّق ~14 ضعف التدريب ومقيّداً بالمعالج). يغيّر val_* تغيّراً ضئيلاً فقط.
     val_ds = tf.data.Dataset.from_tensor_slices((model_x(va, coins=coins), to_y(va))).batch(max(batch_size, 2048)).prefetch(2)
@@ -439,11 +447,32 @@ def train_eval(name, S, model_cfg, trainer_cfg, epochs, seed=0, shuffle=False, b
                 r.update({f"test_{k}": v for k, v in evaluate(trainer.model, te, 12000).items()})
                 traj.append(r)
 
+    tm = {"train": 0.0, "val": 0.0, "callbacks": 0.0}
+
+    class TimeFirst(tf.keras.callbacks.Callback):   # أين يذهب الوقت: خطوات التدريب / التحقّق / callbacks نهاية الحقبة
+        def on_epoch_begin(self, epoch, logs=None):
+            tm["_t"] = time.time()
+
+        def on_test_begin(self, logs=None):
+            tm["train"] += time.time() - tm["_t"]
+            tm["_t"] = time.time()
+
+        def on_test_end(self, logs=None):
+            tm["val"] += time.time() - tm["_t"]
+
+        def on_epoch_end(self, epoch, logs=None):
+            tm["_t"] = time.time()
+
+    class TimeLast(tf.keras.callbacks.Callback):
+        def on_epoch_end(self, epoch, logs=None):
+            tm["callbacks"] += time.time() - tm["_t"]
+
     cbs = [c for c in callbacks if type(c).__name__ != "EpochCheckpointCallback"]
     t0 = time.time()
     with contextlib.redirect_stdout(io.StringIO()):
         hist = trainer.fit(train_ds, validation_data=val_ds, initial_epoch=ie, epochs=epochs,
-                           callbacks=[Probe()] + cbs, verbose=0)
+                           callbacks=[TimeFirst(), Probe()] + cbs + [TimeLast()], verbose=0)
+    t_fit = time.time() - t0
     best = next(c for c in cbs if type(c).__name__ == "BestModelTracker")
     res = {"name": name, "seconds": time.time() - t0, "epochs_run": len(hist.history.get("loss", [])),
            "best_epoch": best.best_epoch, "monitor": cfg["callbacks"]["early_stopping"]["monitor"],
@@ -452,9 +481,16 @@ def train_eval(name, S, model_cfg, trainer_cfg, epochs, seed=0, shuffle=False, b
         if tag == "last":
             trainer.model.set_weights(last["w"])
         for pn, part in (("train", tr_eval), ("val", va), ("test", te)):
-            for k, v in evaluate(trainer.model, part, 20000 if pn == "train" else None).items():
+            probs = {} if (pred_dir and tag == "best" and pn == "test") else None
+            for k, v in evaluate(trainer.model, part, 20000 if pn == "train" else None, probs_out=probs).items():
                 res[f"{tag}_{pn}_{k}"] = v
+            if probs:   # توقّعات test لأوزان «الأفضل» — لقياس متوسط البذور (ensemble) بلا تدريب إضافي
+                os.makedirs(pred_dir, exist_ok=True)
+                np.savez_compressed(os.path.join(pred_dir, f"{name}.npz"),
+                                    **{t: v.astype("float16") for t, v in probs.items()})
     res["trajectory"] = traj
+    res["time"] = {k: round(v, 1) for k, v in tm.items() if not k.startswith("_")}
+    res["time"]["final_eval"] = round(time.time() - t0 - t_fit, 1)
     shutil.rmtree(run_dir, ignore_errors=True)
     return res
 
@@ -547,6 +583,20 @@ def split_items(items, n):
     return [[it for _i, it in sorted(p, key=lambda x: (first[x[1].split(":")[0]], x[0]))] for p in parts if p]
 
 
+def pred_dir_of(a):
+    return a.pred_dir or f"{a.out}.preds"
+
+
+def ensemble_auc(pred_dir, kind, names):
+    """AUC لمتوسط احتمالات test عبر عدّة تشغيلات (بذور) — None إن نقص ملف."""
+    try:
+        y = np.load(os.path.join(pred_dir, f"_labels_{kind}.npz"))
+        ps = [np.load(os.path.join(pred_dir, f"{n}.npz")) for n in names]
+    except (OSError, FileNotFoundError):
+        return None
+    return {t: auc(y[t], np.mean([p[t].astype("float32") for p in ps], axis=0)) for t in TARGETS}
+
+
 def load_panel(a):
     px, vol = load_history_csv(a.history_dir) if a.history_dir else load_coinmetrics(a.coinmetrics_dir)
     if a.max_assets and px.shape[1] > a.max_assets:
@@ -565,6 +615,7 @@ def run_serial(a, items):
     px, vol, env = load_panel(a)
     print(f"panel: {env} | runs: {len(items)}", flush=True)
     cache, cfgs, done, refs = {}, configs(), [], {}
+    pred_dir = pred_dir_of(a)
     last_use = {it.split(":")[0]: i for i, it in enumerate(items)}
     for i_item, item in enumerate(items):
         p = parse_item(item)
@@ -573,6 +624,9 @@ def run_serial(a, items):
             cache[kind] = scenario(px, vol, kind)
             print(f"scenario {kind}: train={len(cache[kind]['train']['X'])} val={len(cache[kind]['val']['X'])} "
                   f"test={len(cache[kind]['test']['X'])}", flush=True)
+            os.makedirs(pred_dir, exist_ok=True)
+            np.savez_compressed(os.path.join(pred_dir, f"_labels_{kind}.npz"),
+                                **{t: cache[kind]["test"]["y"][t].astype("float32") for t in TARGETS})
             for tag, kw in (("", {}), ("_shuf", {"shuffle": True}), ("_tunedC", {"tune": True})):
                 lr_ref = linear_reference(cache[kind], **kw)
                 refs[f"{kind}{tag}"] = lr_ref
@@ -583,13 +637,17 @@ def run_serial(a, items):
         if p["cfg"] != "linear":   # cfg=linear: المرجع الخطّي وحده لهذا السيناريو
             name = item_name(p)
             r = train_eval(name, cache[kind], *apply_hp(*cfgs[p["cfg"]], p["hp"]), epochs=p["epochs"], seed=p["seed"],
-                           shuffle=p["shuf"], batch_size=int(p["hp"].get("bs", 256)))
+                           shuffle=p["shuf"], batch_size=int(p["hp"].get("bs", 256)),
+                           pred_dir=None if p["shuf"] else pred_dir)
             r.update({"item": item, "kind": kind, "cfg": p["cfg"], "hp": p["hp"], "shuffle": p["shuf"],
                       "seed": p["seed"], "epochs": p["epochs"]})
             done.append(r)
             with open(a.out, "a") as f:
                 f.write(json.dumps(r, default=str) + "\n")
+            tt = r.get("time", {})
             print(f"[{r['seconds']:5.0f}s] {name}: best@{r['best_epoch']}/{r['epochs_run']} | "
+                  f"time train/val/cb/eval={tt.get('train', 0):.0f}/{tt.get('val', 0):.0f}/{tt.get('callbacks', 0):.0f}/"
+                  f"{tt.get('final_eval', 0):.0f}s | "
                   + " ".join(f"{q}_{s_}_{t}_auc={r[f'{q}_{s_}_{t}_auc']:.3f}" for q in ("best", "last")
                              for s_ in ("train", "test") for t in TARGETS), flush=True)
         if last_use[kind] == i_item:
@@ -619,7 +677,8 @@ def run_parallel(a, items, n):
             os.remove(out)
         outs.append(out)
         print(f"   [w{k}] {' '.join(part)}", flush=True)
-        procs.append(subprocess.Popen([sys.executable, os.path.abspath(__file__), *data, "--out", out, "--run", *part],
+        procs.append(subprocess.Popen([sys.executable, os.path.abspath(__file__), *data, "--out", out,
+                                       "--pred-dir", pred_dir_of(a), "--run", *part],
                                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env))
 
     def pump(k, pr):
@@ -711,12 +770,13 @@ def select_winners(results):
     return best
 
 
-def fair_table(results, refs, winners, seeds):
+def fair_table(results, refs, winners, seeds, pred_dir=None):
     """جدول المقارنة العادلة: لكل نوع أفضل إعداد له (على val)، ثم test بمتوسط ± انحراف عبر البذور."""
     lines = ["### FAIR-SUMMARY (كل نوع بأفضل إعداداته على val؛ test = متوسط ± انحراف عبر "
              f"{len(seeds)} بذور؛ الحفظ = AUC تدريب «الأفضل» على تسميات مخلوطة)",
-             "| kind | type | best hp (val) | val | test mag | test dir | train-test gap mag/dir | shuffled train mag/dir | epochs |",
-             "|---|---|---|---|---|---|---|---|---|"]
+             "| kind | type | best hp (val) | val | test mag | test dir | ensemble mag/dir | train-test gap mag/dir | "
+             "shuffled train mag/dir | epochs |",
+             "|---|---|---|---|---|---|---|---|---|---|"]
     ms = lambda xs: f"{np.mean(xs):.3f}±{np.std(xs):.3f}" if len(xs) > 1 else f"{xs[0]:.3f}"
     for (kind, cfg), w in sorted(winners.items(), key=lambda x: (x[0][0], -val_score(x[1]))):
         same = lambda r: r["kind"] == kind and r["cfg"] == cfg and r["hp"] == w["hp"]
@@ -725,15 +785,17 @@ def fair_table(results, refs, winners, seeds):
         hp = " ".join(f"{k}={v}" for k, v in sorted(w["hp"].items())) or "-"
         gap = lambda t: [r[f"best_train_{t}_auc"] - r[f"best_test_{t}_auc"] for r in runs]
         shs = f"{sh[0]['best_train_mag_auc']:.3f}/{sh[0]['best_train_dir_auc']:.3f}" if sh else "-"
+        ens = ensemble_auc(pred_dir, kind, [r["name"] for r in runs]) if pred_dir and len(runs) > 1 else None
+        ens_s = f"{ens['mag']:.3f}/{ens['dir']:.3f}" if ens else "-"
         lines.append(f"| {kind} | {cfg} | {hp} | {val_score(w):.3f} | {ms([r['best_test_mag_auc'] for r in runs])} | "
-                     f"{ms([r['best_test_dir_auc'] for r in runs])} | {np.mean(gap('mag')):.3f}/{np.mean(gap('dir')):.3f} | "
+                     f"{ms([r['best_test_dir_auc'] for r in runs])} | {ens_s} | {np.mean(gap('mag')):.3f}/{np.mean(gap('dir')):.3f} | "
                      f"{shs} | {'/'.join(str(r['best_epoch']) for r in runs)} |")
     for name, ref in refs.items():
         if name.endswith("_tunedC"):
             c = "/".join(f"{ref.get(f'{t}_C', '-')}" for t in TARGETS)
             lines.append(f"| {name[:-7]} | linear (C={c} on val) | - | "
                          f"{np.mean([ref[f'{t}_val_auc'] for t in TARGETS]):.3f} | {ref['mag_test_auc']:.3f} | "
-                         f"{ref['dir_test_auc']:.3f} | {ref['mag_train_auc'] - ref['mag_test_auc']:.3f}/"
+                         f"{ref['dir_test_auc']:.3f} | - | {ref['mag_train_auc'] - ref['mag_test_auc']:.3f}/"
                          f"{ref['dir_train_auc'] - ref['dir_test_auc']:.3f} | - | - |")
     return "\n".join(lines)
 
@@ -750,6 +812,7 @@ def main():
     ap.add_argument("--max-assets", type=int, default=None,
                     help="أطول N عملات تاريخاً فقط (للسرعة مع مئات العملات)")
     ap.add_argument("--summary", action="store_true", help="اطبع في النهاية ملخّصاً مضغوطاً للنسخ")
+    ap.add_argument("--pred-dir", default=None, help="مجلد توقّعات test لكل تشغيل (افتراضياً: <out>.preds)")
     ap.add_argument("--parallel", type=int, default=None,
                     help="عدد التشغيلات المتزامنة على نفس GPU (افتراضياً: حقل parallel في الخطة، وإلا 1)")
     a = ap.parse_args()
@@ -788,7 +851,7 @@ def main():
                                       f"{time.time() - t0:.0f}s") if x)
         print("\n" + summarize(results, refs, header=hdr))
         if tune:
-            print("\n" + fair_table(results, refs, winners, seeds))
+            print("\n" + fair_table(results, refs, winners, seeds, pred_dir=pred_dir_of(a)))
 
 
 if __name__ == "__main__":
