@@ -24,25 +24,30 @@ asyncio بخيط منفصل عند وجود حلقة أحداث تعمل مسب�
     نفس الأرشيف عبر مضيف التخزين s3-ap-northeast-1.amazonaws.com/data.binance.vision.
 
 ما يُنتجه (كلها داخل مجلد Drive واحد عند تمرير --drive-root، أو تلقائياً على Colab):
-    <drive-root>/history_<interval>/<SYMBOL>.csv       ← CONFIG['drive_raw_dir'] = "history_<interval>"
+    <drive-root>/history_<interval>/<SYMBOL>.csv.gz    ← CONFIG['drive_raw_dir'] = "history_<interval>"
+                                                          CONFIG['drive_raw_pattern'] = "{name}.csv.gz"
     <drive-root>/crypto_data/asset_registry.csv         ← CONFIG['asset_registry_path']
-    <drive-root>/crypto_data/gaps_report.csv            ← تقرير مفصّل بكل ثغرة موجودة (جديد)
-    <drive-root>/funding_rate/<SYMBOL>.csv   (--funding)
-    <drive-root>/open_interest/<SYMBOL>.csv  (--open-interest: timestamp, open_interest — ساعي من الأرشيف)
-    <drive-root>/futures_metrics/<SYMBOL>.csv (--open-interest: كل أعمدة metrics ساعياً، للاستخدام لاحقاً)
+    <drive-root>/crypto_data/gaps_report.csv            ← تقرير مفصّل بكل ثغرة موجودة
+    <drive-root>/funding_rate/<SYMBOL>.csv.gz   (--funding)
+    <drive-root>/open_interest/<SYMBOL>.csv.gz  (--open-interest: timestamp, open_interest — ساعي من الأرشيف)
+    <drive-root>/futures_metrics/<SYMBOL>.csv.gz (--open-interest: كل أعمدة metrics، للاستخدام لاحقاً)
+    <drive-root>/premium_index_<interval>/<SYMBOL>.csv.gz (--premium: مؤشر العلاوة بنفس فريم الشموع)
+
+كل عملة = ملف واحد متصل (لا ملف لكل شهر/يوم): تُحمَّل ملفات ZIP الشهرية/اليومية لها بالتوازي، تُفك في
+الذاكرة، تُدمج بلا تكرار وبترتيب زمني، تُضغط gzip وتُحفظ ذرّياً، ثم تُحرَّر الذاكرة قبل العملة التالية
+(--workers عملات معاً × --downloads تحميل متزامن). pandas يقرأ .csv.gz مباشرة: pd.read_csv(path).
+ملفات csv عادية من تشغيل سابق تُحوَّل إلى csv.gz تلقائياً (بلا إعادة تحميل). --no-gzip يُبقي csv عادياً.
 
 أعمدة ملف الشموع:
     timestamp (ms, وقت فتح الشمعة), datetime_utc, open, high, low, close, volume,
     quote_volume, trades, taker_buy_volume, taker_buy_quote_volume
 
-الاستخدام على Google Colab (Drive مُركَّب) — أبسط طريقة: الصق الكود في خلية وشغّلها بعد تعديل
-DRIVE_ROOT / SYMBOLS / FUNDING / FIX_GAPS أدناه حسب حاجتك (تُتجاهل عند تمرير وسائط سطر أوامر حقيقية
-عبر %run):
+الاستخدام على Google Colab (خلية واحدة — tools/fetch_history_colab_cell.py فيها النسخة الكاملة):
     from google.colab import drive
     drive.mount('/content/drive')
-    # ثم الصق محتوى هذا الملف في خلية وشغّلها — أو:
-    !python fetch_history_vision_colab.py --drive-root /content/drive/MyDrive --interval 1h --funding \
-        --symbols-file /content/drive/MyDrive/CryptoData/symbols.txt
+    !wget -q -O fetch_history_vision_colab.py https://raw.githubusercontent.com/yuosef772424/crypto-signal-prediction/claude/charming-sagan-kswo2r/tools/fetch_history_vision_colab.py
+    !python fetch_history_vision_colab.py --drive-root /content/drive/MyDrive --interval 15m \
+        --start 2020-01-01 --funding --open-interest --oi-start 2021-01-01 --vision-only
 
     ملف symbols.txt (اختياري لكن أضمن من الاكتشاف التلقائي): رمز واحد بكل سطر، وأي سطر يبدأ
     بـ # يُتجاهل. بدونه يحاول السكربت الاكتشاف تلقائياً (exchangeInfo إن توفر الوصول، وإلا فهرسة
@@ -50,8 +55,10 @@ DRIVE_ROOT / SYMBOLS / FUNDING / FIX_GAPS أدناه حسب حاجتك (تُتج
     ملفاتها القديمة، فتُخفَّف مشكلة انحياز البقاء التي كانت تحتاج --include-delisted سابقاً).
 
 إضافات اختيارية عبر سطر الأوامر:
-    --interval 1h --funding               # فريم إعداد الساعة في خط الأنابيب + أرشيف معدّل التمويل
-    --open-interest                       # آخر 30 يوماً من الفائدة المفتوحة (تراكمي عبر التشغيلات)
+    --interval 15m --funding              # الفريم الافتراضي 15m + أرشيف معدّل التمويل (شهري)
+    --open-interest --oi-start 2021-01-01 # الفائدة المفتوحة + metrics من الأرشيف (منذ 2020-09)
+    --premium                             # مؤشر العلاوة بنفس الفريم (يغطي الشهر الحالي الذي ينقص التمويل)
+    --workers 4 --downloads 24            # التوازي: عملات معاً × ملفات ZIP متزامنة
     --include-delisted                    # مع اكتشاف عبر exchangeInfo فقط؛ فهرسة vision تشملها دائماً
     --drive-root "G:/My Drive"            # اكتب البنية مباشرة في Drive
     --registry-only                       # أعد بناء السجلّ + تقرير الثغرات من الملفات الموجودة فقط
@@ -65,8 +72,11 @@ asset_registry.csv وgaps_report.csv من الملفات الفعلية في ك�
 import argparse
 import asyncio
 import csv
+import gc
+import gzip
 import io
 import os
+import shutil
 import sys
 import time
 import urllib.error
@@ -108,7 +118,9 @@ FIX_GAPS = False                # True: حاول إصلاح الثغرات ال�
 MAX_PER_REQUEST = 1500          # أقصى شموع في طلب REST واحد (لإكمال اليوم الحالي فقط)
 MAX_CONCURRENT = 20             # طلبات REST متوازية (تُستخدم فقط إن كان الوصول المباشر متاحاً)
 VISION_CONCURRENT = 24          # تحميلات ZIP متوازية من data.binance.vision (لا حدّ معدّل معلن)
-SYMBOLS_IN_PARALLEL = 4
+SYMBOLS_IN_PARALLEL = 4         # عملات تُعالَج معاً (كل عملة: تحميل ← فك ← دمج ← ضغط ← حفظ ← تحرير الذاكرة)
+USE_GZIP = True                 # حفظ <SYMBOL>.csv.gz (أصغر ~3-4 مرات؛ pandas يقرؤه مباشرة) — False: csv عادي
+GZIP_LEVEL = 6
 WEIGHT_BUDGET_PER_MIN = 2000
 FUNDING_REQ_PER_MIN = 90
 MAX_RETRIES = 5
@@ -121,6 +133,7 @@ ONLY_USDT_PERPETUAL = True
 CSV_HEADER = ["timestamp", "datetime_utc", "open", "high", "low", "close", "volume",
               "quote_volume", "trades", "taker_buy_volume", "taker_buy_quote_volume"]
 LEGACY_HEADER = CSV_HEADER[:7]
+PREMIUM_HEADER = ["timestamp", "datetime_utc", "open", "high", "low", "close"]   # مؤشر العلاوة (أساس التمويل)
 
 MAINNET = "https://fapi.binance.com"
 TESTNET = "https://testnet.binancefuture.com"
@@ -399,9 +412,11 @@ def vision_klines_url(symbol: str, interval: str, year: int, month: int, day: Op
             f"{symbol}-{interval}-{year:04d}-{month:02d}-{day:02d}.zip")
 
 
-def download_zip_rows(url: str) -> Optional[List[list]]:
+def download_zip_rows(url: str, transform=None):
     """يُرجع None إن لم يوجد الملف بعد (شهر/يوم لم يُرفع، أو عملة غير موجودة في تلك الفترة) —
-    حالة طبيعية متوقعة. يرفع استثناء فقط عند مشاكل شبكة حقيقية (لتُعاد المحاولة)."""
+    حالة طبيعية متوقعة. يرفع استثناء فقط عند مشاكل شبكة حقيقية (لتُعاد المحاولة).
+    transform(rows) يُطبَّق داخل خيط التحميل نفسه: الصفوف تُحوَّل فوراً لشكلها النهائي المضغوط
+    (سطر نصي واحد لكل شمعة) فلا تبقى قوائم الحقول الخام في الذاكرة."""
     req = urllib.request.Request(url, headers={"User-Agent": "candle-history-fetcher"})
     try:
         with urllib.request.urlopen(req, timeout=REQUEST_TIMEOUT) as resp:
@@ -419,21 +434,23 @@ def download_zip_rows(url: str) -> Optional[List[list]]:
                 text = f.read().decode("utf-8", errors="ignore")
     except zipfile.BadZipFile:
         return None
+    del raw
     rows = list(csv.reader(text.splitlines()))
+    del text
     if not rows:
         return None
     first_cell = (rows[0][0] if rows[0] else "").strip()
     if not first_cell.lstrip("-").isdigit():          # صف رأس نصي في الإصدارات الأحدث من الأرشيف
         rows = rows[1:]
-    return rows
+    return transform(rows) if transform is not None else rows
 
 
-async def fetch_zip_rows_async(url: str, sem: asyncio.Semaphore) -> Optional[List[list]]:
+async def fetch_zip_rows_async(url: str, sem: asyncio.Semaphore, transform=None):
     last_err: Optional[Exception] = None
     for attempt in range(VISION_RETRIES):
         try:
             async with sem:
-                return await asyncio.to_thread(download_zip_rows, url)
+                return await asyncio.to_thread(download_zip_rows, url, transform)
         except Exception as e:
             last_err = e
             await asyncio.sleep(min(2 ** attempt, 15))
@@ -441,8 +458,19 @@ async def fetch_zip_rows_async(url: str, sem: asyncio.Semaphore) -> Optional[Lis
     return None
 
 
+def kline_line(k: list) -> str:
+    """صف أرشيف/REST ← سطر CSV_HEADER (بدون close_time وignore)."""
+    ts = int(k[0])
+    return f"{ts},{fmt_dt(ts)},{k[1]},{k[2]},{k[3]},{k[4]},{k[5]},{k[7]},{k[8]},{k[9]},{k[10]}"
+
+
+def premium_line(k: list) -> str:
+    ts = int(k[0])
+    return f"{ts},{fmt_dt(ts)},{k[1]},{k[2]},{k[3]},{k[4]}"
+
+
 def kline_row(k: list) -> list:
-    return [int(k[0]), fmt_dt(int(k[0])), k[1], k[2], k[3], k[4], k[5], k[7], k[8], k[9], k[10]]
+    return kline_line(k).split(",")
 
 
 async def list_symbols_from_vision(sem: asyncio.Semaphore) -> Dict[str, dict]:
@@ -483,80 +511,139 @@ async def list_symbols_from_vision(sem: asyncio.Semaphore) -> Dict[str, dict]:
     return out
 
 
-async def download_symbol_vision(symbol: str, onboard_ms: int, start_ms: int, end_ms: int,
-                                 interval: str, interval_ms: int, out_dir: Path,
+async def list_series_keys(symbol: str, kind: str, interval: str, first_ts: int, end_ms: int) -> List[str]:
+    """مفاتيح ZIP اللازمة لتغطية [first_ts, end_ms) لسلسلة واحدة (klines أو premiumIndexKlines):
+    ملف شهري لكل شهر مكتمل منشور، وملفات يومية للأشهر غير المنشورة شهرياً (الشهر الحالي، أو شهر
+    انتهى للتو ولم يُرفع بعد). الفهرسة تعرف الموجود فعلاً ⇒ لا طلبات 404 لأشهر قبل إدراج العملة."""
+    now_ms = int(time.time() * 1000)
+    today = fmt_dt((now_ms // 86_400_000) * 86_400_000)[:10]
+    lo_ym, hi_ym = _ym(first_ts), _ym(min(end_ms, now_ms))
+    monthly = await asyncio.to_thread(
+        list_vision_keys, f"data/futures/um/monthly/{kind}/{symbol}/{interval}/")
+    by_month = {_month_of_key(k): k for k in monthly if lo_ym <= _month_of_key(k) <= hi_ym}
+    if monthly:
+        first_listed = min(_month_of_key(k) for k in monthly)
+        need = [(y, m) for (y, m, _a, _b) in month_list(first_ts, end_ms)
+                if (y, m) >= first_listed and (y, m) not in by_month]
+        if hi_ym not in by_month and hi_ym not in need:
+            need.append(hi_ym)                                     # الشهر الحالي (لا ملف شهري له بعد)
+        daily_prefixes = [f"data/futures/um/daily/{kind}/{symbol}/{interval}/{symbol}-{interval}-{y:04d}-{m:02d}"
+                          for (y, m) in need]
+    else:                                                          # عملة جديدة: ملفات يومية فقط
+        daily_prefixes = [f"data/futures/um/daily/{kind}/{symbol}/{interval}/"]
+    lo_day, hi_day = fmt_dt(first_ts)[:10], fmt_dt(end_ms)[:10]
+    daily: List[str] = []
+    for pref in daily_prefixes:
+        for k in await asyncio.to_thread(list_vision_keys, pref):
+            if lo_day <= k[-14:-4] <= hi_day and k[-14:-4] < today:
+                daily.append(k)
+    return sorted(by_month.values()) + sorted(daily)
+
+
+def _migrate_variant(path: Path, header: List[str]) -> str:
+    """ملف من تشغيل سابق بالصيغة الأخرى (csv ↔ csv.gz) بنفس الرأس ⇒ يُحوَّل كما هو (استكمال بلا إعادة تحميل)
+    ثم يُحذف الأصل. برأس مختلف ⇒ يُحذف ويُعاد التحميل كاملاً."""
+    old = other_variant(path)
+    if path.exists() or not old.exists():
+        return ""
+    if read_header(old) != header:
+        old.unlink()
+        return " | أُعيد تحميله كاملاً (صيغة قديمة)"
+    tmp = path.with_name(path.name + ".tmp")
+    with _open_bin(old, "rb") as src, _open_bin(tmp, "wb", gz=path.name.endswith(".gz")) as dst:
+        shutil.copyfileobj(src, dst, 1 << 20)
+    os.replace(tmp, path)
+    old.unlink()
+    return " | حُوِّل من " + old.name
+
+
+async def download_series_vision(symbol: str, kind: str, header: List[str], line_fn, onboard_ms: int,
+                                 start_ms: int, end_ms: int, interval: str, interval_ms: int, out_dir: Path,
                                  vision_sem: asyncio.Semaphore,
                                  rest_ctx: Optional[dict]) -> Tuple[str, int, str]:
-    path = out_dir / f"{symbol}.csv"
+    """سلسلة واحدة لعملة واحدة: تحميل كل ملفات ZIP المطلوبة **بالتوازي** ← فك الضغط وتحويل كل صف لسطر نهائي
+    (داخل خيوط التحميل) ← دمج بلا تكرار وترتيب زمني ← كتابة ملف واحد متصل <SYMBOL>.csv.gz ← تحرير الذاكرة."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = data_path(out_dir, symbol)
     first_ts = max(start_ms, onboard_ms)
     resumed, note = False, ""
 
-    if RESUME and path.exists():
-        header = read_header(path)
-        if header == CSV_HEADER:
-            last_ts = read_last_timestamp(path)
-            if last_ts is not None:
-                first_ts = max(first_ts, last_ts + interval_ms)
-                resumed = True
-        elif header == LEGACY_HEADER:
-            note = " | أُعيد تحميله كاملاً (صيغة قديمة)"
-        else:
-            note = " | أُعيد تحميله كاملاً (رأس غير معروف)"
+    if RESUME:
+        note = _migrate_variant(path, header)
+        if path.exists():
+            if read_header(path) == header:
+                last_ts = read_last_timestamp(path)
+                if last_ts is not None:
+                    first_ts = max(first_ts, last_ts + interval_ms)
+                    resumed = True
+            else:
+                note += " | أُعيد تحميله كاملاً (رأس غير معروف)"
 
     if first_ts >= end_ms:
         return "محدّث مسبقاً", 0, note
 
     now_ms = int(time.time() * 1000)
     today_start_ms = (now_ms // 86_400_000) * 86_400_000
-    batches: List[List[list]] = []
 
-    # 1) أشهر كاملة قبل الشهر الحالي — ملف شهري واحد، أو أيام منفردة إن لم يُرفع الشهر بعد
-    for (y, m, ms_start, ms_end) in month_list(first_ts, end_ms):
-        rows = await fetch_zip_rows_async(vision_klines_url(symbol, interval, y, m), vision_sem)
-        if rows is not None:
-            batches.append(rows)
-        else:
-            for (yy, mm, dd, _dms) in days_between(max(ms_start, first_ts), min(ms_end, end_ms)):
-                drows = await fetch_zip_rows_async(
-                    vision_klines_url(symbol, interval, yy, mm, dd), vision_sem)
-                if drows:
-                    batches.append(drows)
+    def transform(rows: List[list]) -> List[Tuple[int, str]]:
+        out = []
+        for k in rows:
+            try:
+                ts, close_time = int(k[0]), int(k[6])
+                if first_ts <= ts <= end_ms and close_time < now_ms:
+                    out.append((ts, line_fn(k)))
+            except (ValueError, IndexError):
+                continue
+        return out
 
-    # 2) الشهر الحالي (جزئي) حتى نهاية أمس — ملفات يومية
-    cur_month_start_ms, _ = month_bounds(*_ym(now_ms))
-    for (yy, mm, dd, _dms) in days_between(max(first_ts, cur_month_start_ms), min(end_ms, today_start_ms)):
-        drows = await fetch_zip_rows_async(vision_klines_url(symbol, interval, yy, mm, dd), vision_sem)
-        if drows:
-            batches.append(drows)
+    # 1) كل الأشهر/الأيام المنشورة — تحميل متوازٍ (سقفه vision_sem المشترك بين كل العملات)
+    keys = await list_series_keys(symbol, kind, interval, first_ts, end_ms)
+    results = await asyncio.gather(*[fetch_zip_rows_async(f"{VISION_BASE}/{k}", vision_sem, transform)
+                                     for k in keys])
+    unique: Dict[int, str] = {}
+    for part in results:
+        unique.update(part or ())
+    del results
 
-    # 3) اليوم الحالي — فقط عبر API المباشر إن كان متاحاً
+    # 2) اليوم الحالي (الشموع فقط) — عبر API المباشر إن كان متاحاً
     tail_note = ""
-    if end_ms > today_start_ms:
+    if kind == "klines" and end_ms > today_start_ms:
         if rest_ctx is not None:
             try:
-                tail_rows = await fetch_rest_klines(symbol, max(first_ts, today_start_ms), end_ms,
-                                                    interval, interval_ms, rest_ctx)
-                if tail_rows:
-                    batches.append(tail_rows)
+                tail = await fetch_rest_klines(symbol, max(first_ts, today_start_ms), end_ms,
+                                               interval, interval_ms, rest_ctx)
+                unique.update(transform(tail))
             except Exception as e:
                 tail_note = f" | تعذّر إكمال اليوم الحالي عبر API المباشر: {e}"
         else:
             tail_note = " | اليوم الحالي غير مكتمل (API المباشر غير متاح من هذه الشبكة)"
 
-    unique: Dict[int, list] = {}
-    for batch in batches:
-        for k in batch:
-            try:
-                ts, close_time = int(k[0]), int(k[6])
-            except (ValueError, IndexError):
-                continue
-            if first_ts <= ts <= end_ms and close_time < now_ms:
-                unique[ts] = k
-    rows = [kline_row(unique[t]) for t in sorted(unique)]
-    if not rows:
+    n = len(unique)
+    if not n:
         return "لا توجد بيانات جديدة", 0, note + tail_note
-    write_rows(path, rows, append=resumed)
-    return ("تم (استكمال)" if resumed else "تم"), len(rows), note + tail_note
+    lines = [unique[t] for t in sorted(unique)]
+    del unique
+    await asyncio.to_thread(write_lines, path, lines, resumed, header)   # الضغط خارج حلقة الأحداث
+    del lines
+    gc.collect()
+    return ("تم (استكمال)" if resumed else "تم"), n, note + tail_note
+
+
+async def download_symbol_vision(symbol: str, onboard_ms: int, start_ms: int, end_ms: int,
+                                 interval: str, interval_ms: int, out_dir: Path,
+                                 vision_sem: asyncio.Semaphore,
+                                 rest_ctx: Optional[dict]) -> Tuple[str, int, str]:
+    return await download_series_vision(symbol, "klines", CSV_HEADER, kline_line, onboard_ms, start_ms, end_ms,
+                                        interval, interval_ms, out_dir, vision_sem, rest_ctx)
+
+
+async def download_premium_vision(symbol: str, start_ms: int, end_ms: int, interval: str, interval_ms: int,
+                                  premium_dir: Path, vision_sem: asyncio.Semaphore) -> int:
+    """مؤشر العلاوة (premiumIndexKlines: (سعر العقد − المؤشر)/المؤشر) بنفس فريم الشموع — أساس معدّل التمويل
+    لحظياً، ويغطي الشهر الحالي الذي لا يوفّر أرشيف التمويل الشهري بياناته بعد."""
+    _s, n, _n = await download_series_vision(symbol, "premiumIndexKlines", PREMIUM_HEADER, premium_line, 0,
+                                             start_ms, end_ms, interval, interval_ms, premium_dir, vision_sem, None)
+    return n
 
 
 # ═══════════════ التمويل والفائدة المفتوحة من الأرشيف العلني (بلا fapi) ═══════════════
@@ -569,8 +656,7 @@ async def download_funding_vision(symbol: str, start_ms: int, end_ms: int, fundi
                                   vision_sem: asyncio.Semaphore) -> int:
     """ملفات fundingRate الشهرية (calc_time, funding_interval_hours, last_funding_rate) ← أرشيف
     timestamp,funding_rate بنفس صيغة download_funding_rest (يقرؤه خط الأنابيب كما هو)."""
-    path = funding_dir / f"{symbol}.csv"
-    last = _archive_last_ms(path)
+    last = _archive_last_ms(funding_dir, symbol)
     lo = max(start_ms, (last + 1) if last is not None else 0)
     keys = await asyncio.to_thread(list_vision_keys, f"data/futures/um/monthly/fundingRate/{symbol}/")
     lo_ym, hi_ym = _ym(lo), _ym(end_ms)
@@ -585,31 +671,37 @@ async def download_funding_vision(symbol: str, start_ms: int, end_ms: int, fundi
                 continue
             if lo <= ts <= end_ms and len(r) >= 3:
                 new[fmt_pandas_utc(ts)] = r[2]
-    return _merge_archive(path, "funding_rate", new) if new else 0
+    return _merge_archive(funding_dir, symbol, "funding_rate", new) if new else 0
 
 
 METRICS_COLS = ["sum_open_interest", "sum_open_interest_value", "count_toptrader_long_short_ratio",
                 "sum_toptrader_long_short_ratio", "count_long_short_ratio", "sum_taker_long_short_vol_ratio"]
 
 
-def _merge_multi(path: Path, cols: List[str], new_rows: Dict[str, List[str]]) -> int:
+def _read_table(d: Path, symbol: str, cols: List[str]) -> Dict[str, List[str]]:
+    """أرشيف (timestamp + cols) بأيّ الصيغتين (csv أو csv.gz)."""
     rows: Dict[str, List[str]] = {}
-    if path.exists():
-        with open(path, newline="", encoding="utf-8") as f:
-            for r in csv.DictReader(f):
-                if r.get("timestamp"):
-                    rows[r["timestamp"]] = [r.get(c, "") for c in cols]
+    for p in (data_path(d, symbol), other_variant(data_path(d, symbol))):
+        if p.exists():
+            with open_text(p) as f:
+                for r in csv.DictReader(f):
+                    if r.get("timestamp"):
+                        rows[r["timestamp"]] = [r.get(c, "") for c in cols]
+    return rows
+
+
+def _merge_multi(d: Path, symbol: str, cols: List[str], new_rows: Dict[str, List[str]]) -> int:
+    """دمج بلا تكرار على timestamp + ترتيب + كتابة ملف واحد (csv.gz افتراضياً)؛ نسخة الصيغة الأخرى تُحذف."""
+    rows = _read_table(d, symbol, cols)
     before = len(rows)
     rows.update(new_rows)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".csv.tmp")
-    with open(tmp, "w", newline="", encoding="utf-8") as f:
-        w = csv.writer(f)
-        w.writerow(["timestamp"] + cols)
-        for ts in sorted(rows):
-            w.writerow([ts] + rows[ts])
-    os.replace(tmp, path)
-    return len(rows) - before
+    path = data_path(d, symbol)
+    write_lines(path, [",".join([ts] + rows[ts]) for ts in sorted(rows)], False, ["timestamp"] + cols)
+    if other_variant(path).exists():
+        other_variant(path).unlink()
+    n = len(rows) - before
+    del rows
+    return n
 
 
 async def download_metrics_vision(symbol: str, start_ms: int, end_ms: int, oi_dir: Path, metrics_dir: Path,
@@ -617,8 +709,7 @@ async def download_metrics_vision(symbol: str, start_ms: int, end_ms: int, oi_di
     """ملفات metrics اليومية (كل 5 دقائق) ← آخر قيمة في كل فترة period_ms:
     open_interest/<S>.csv (timestamp, open_interest = sum_open_interest — ما يقرؤه خط الأنابيب) و
     futures_metrics/<S>.csv (كل أعمدة METRICS_COLS)."""
-    oi_path = oi_dir / f"{symbol}.csv"
-    last = _archive_last_ms(oi_path)
+    last = _archive_last_ms(oi_dir, symbol)
     lo = max(start_ms, ((last // 86_400_000) + 1) * 86_400_000 if last is not None else 0)
     keys = await asyncio.to_thread(list_vision_keys, f"data/futures/um/daily/metrics/{symbol}/")
     lo_day, hi_day = fmt_dt(lo)[:10], fmt_dt(end_ms)[:10]
@@ -640,49 +731,28 @@ async def download_metrics_vision(symbol: str, start_ms: int, end_ms: int, oi_di
                 agg[bucket] = (ts, r[2:8])
     oi_new = {fmt_pandas_utc(b): v[1][0] for b, v in agg.items() if v[1][0]}
     met_new = {fmt_pandas_utc(b): v[1] for b, v in agg.items()}
-    _merge_multi(metrics_dir / f"{symbol}.csv", METRICS_COLS, met_new)
-    return _merge_archive(oi_path, "open_interest", oi_new) if oi_new else 0
+    del batches, agg
+    _merge_multi(metrics_dir, symbol, METRICS_COLS, met_new)
+    return _merge_archive(oi_dir, symbol, "open_interest", oi_new) if oi_new else 0
 
 
 # ═══════════════ التمويل والفائدة المفتوحة (عبر API المباشر — لإكمال الأحدث فقط) ═══════════════
-def _archive_last_ms(path: Path) -> Optional[int]:
-    if not path.exists():
-        return None
-    last = None
-    with open(path, newline="", encoding="utf-8") as f:
-        for row in csv.DictReader(f):
-            last = row.get("timestamp") or last
-    if not last:
+def _archive_last_ms(d: Path, symbol: str) -> Optional[int]:
+    ts = [t for t in _read_table(d, symbol, [])]
+    if not ts:
         return None
     try:
-        return int(datetime.fromisoformat(last.replace("Z", "+00:00")).timestamp() * 1000)
+        return int(datetime.fromisoformat(max(ts).replace("Z", "+00:00")).timestamp() * 1000)
     except ValueError:
         return None
 
 
-def _merge_archive(path: Path, value_col: str, new_rows: Dict[str, str]) -> int:
-    rows: Dict[str, str] = {}
-    if path.exists():
-        with open(path, newline="", encoding="utf-8") as f:
-            for r in csv.DictReader(f):
-                if r.get("timestamp"):
-                    rows[r["timestamp"]] = r.get(value_col, "")
-    before = len(rows)
-    rows.update(new_rows)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".csv.tmp")
-    with open(tmp, "w", newline="", encoding="utf-8") as f:
-        w = csv.writer(f)
-        w.writerow(["timestamp", value_col])
-        for ts in sorted(rows):
-            w.writerow([ts, rows[ts]])
-    os.replace(tmp, path)
-    return len(rows) - before
+def _merge_archive(d: Path, symbol: str, value_col: str, new_rows: Dict[str, str]) -> int:
+    return _merge_multi(d, symbol, [value_col], {k: [v] for k, v in new_rows.items()})
 
 
 async def download_funding_rest(symbol, onboard_ms, start_ms, end_ms, funding_dir: Path, rest_ctx: dict) -> int:
-    path = funding_dir / f"{symbol}.csv"
-    last = _archive_last_ms(path)
+    last = _archive_last_ms(funding_dir, symbol)
     cursor = max(start_ms, onboard_ms, (last + 1) if last is not None else 0)
     new: Dict[str, str] = {}
     while cursor < end_ms:
@@ -697,7 +767,7 @@ async def download_funding_rest(symbol, onboard_ms, start_ms, end_ms, funding_di
         if len(batch) < 1000 or nxt <= cursor:
             break
         cursor = nxt
-    return _merge_archive(path, "funding_rate", new) if new else 0
+    return _merge_archive(funding_dir, symbol, "funding_rate", new) if new else 0
 
 
 async def download_open_interest_rest(symbol, oi_dir: Path, period: str, rest_ctx: dict) -> int:
@@ -718,20 +788,69 @@ async def download_open_interest_rest(symbol, oi_dir: Path, period: str, rest_ct
         if len(batch) < 500 or nxt <= cursor:
             break
         cursor = nxt
-    return _merge_archive(oi_dir / f"{symbol}.csv", "open_interest", new) if new else 0
+    return _merge_archive(oi_dir, symbol, "open_interest", new) if new else 0
 
 
-# ═══════════════ ملفات CSV ═══════════════
+# ═══════════════ ملفات CSV / CSV.GZ ═══════════════
+def data_ext() -> str:
+    return ".csv.gz" if USE_GZIP else ".csv"
+
+
+def data_path(d: Path, symbol: str) -> Path:
+    return d / f"{symbol}{data_ext()}"
+
+
+def other_variant(path: Path) -> Path:
+    """<S>.csv.gz ↔ <S>.csv"""
+    return path.with_name(path.name[:-3]) if path.name.endswith(".gz") else path.with_name(path.name + ".gz")
+
+
+def symbol_of(path: Path) -> str:
+    n = path.name
+    return n[:-7] if n.endswith(".csv.gz") else n[:-4] if n.endswith(".csv") else path.stem
+
+
+def list_data_files(d: Path) -> Dict[str, Path]:
+    """رمز ← ملفه (csv.gz أو csv؛ عند وجود الاثنين تُفضَّل صيغة التشغيل الحالي)."""
+    out: Dict[str, Path] = {}
+    if not d.exists():
+        return out
+    for p in sorted(d.iterdir()):
+        if p.name.endswith((".csv", ".csv.gz")):
+            sym = symbol_of(p)
+            if sym not in out or p.name.endswith(data_ext()):
+                out[sym] = p
+    return out
+
+
+def _open_bin(path: Path, mode: str, gz: Optional[bool] = None):
+    """gz=None: من امتداد path نفسه (الملف المؤقت <S>.csv.gz.tmp يمرّر gz صراحةً)."""
+    gz = path.name.endswith(".gz") if gz is None else gz
+    return gzip.open(path, mode, compresslevel=GZIP_LEVEL) if gz else open(path, mode)
+
+
+def open_text(path: Path):
+    return (gzip.open(path, "rt", newline="", encoding="utf-8") if path.name.endswith(".gz")
+            else open(path, newline="", encoding="utf-8"))
+
+
 def read_header(path: Path) -> Optional[List[str]]:
     try:
-        with open(path, newline="", encoding="utf-8") as f:
+        with open_text(path) as f:
             return next(csv.reader(f), None)
-    except OSError:
+    except (OSError, EOFError):
         return None
 
 
 def read_last_timestamp(path: Path) -> Optional[int]:
     try:
+        if path.name.endswith(".gz"):                    # لا قراءة من الذيل في gzip: مرور تدفقي واحد
+            last = ""
+            with gzip.open(path, "rt", encoding="utf-8", errors="ignore") as f:
+                for line in f:
+                    if line.strip():
+                        last = line
+            return int(last.split(",")[0])
         with open(path, "rb") as f:
             f.seek(0, os.SEEK_END)
             size = f.tell()
@@ -740,21 +859,30 @@ def read_last_timestamp(path: Path) -> Optional[int]:
             f.seek(max(0, size - 4096))
             lines = f.read().decode("utf-8", errors="ignore").strip().splitlines()
         return int(lines[-1].split(",")[0])
-    except (ValueError, IndexError, OSError):
+    except (ValueError, IndexError, OSError, EOFError):
         return None
 
 
-def write_rows(path: Path, rows: List[list], append: bool):
-    if append:
-        with open(path, "a", newline="", encoding="utf-8") as f:
-            csv.writer(f).writerows(rows)
-        return
-    tmp = path.with_suffix(".csv.tmp")
-    with open(tmp, "w", newline="", encoding="utf-8") as f:
-        w = csv.writer(f)
-        w.writerow(CSV_HEADER)
-        w.writerows(rows)
+def write_lines(path: Path, lines: List[str], append: bool, header: List[str] = CSV_HEADER):
+    """كتابة ذرّية: ملف مؤقت ثم os.replace (انقطاع أثناء الكتابة لا يُفسد الملف القديم).
+    append مع gzip = عضو gzip جديد في نهاية نسخة من الملف (صيغة gzip قياسية يقرؤها pandas/gzip)."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    if append and path.exists():
+        shutil.copyfile(path, tmp)
+        mode = "ab"
+    else:
+        mode = "wb"
+    with _open_bin(tmp, mode, gz=path.name.endswith(".gz")) as f:
+        if mode == "wb":
+            f.write((",".join(header) + "\n").encode("utf-8"))
+        for i in range(0, len(lines), 20_000):
+            f.write(("\n".join(lines[i:i + 20_000]) + "\n").encode("utf-8"))
     os.replace(tmp, path)
+
+
+def write_rows(path: Path, rows: List[list], append: bool):
+    write_lines(path, [",".join(str(x) for x in r) for r in rows], append)
 
 
 # ═══════════════ فحص الثغرات (جديد) ═══════════════
@@ -762,7 +890,7 @@ def detect_gaps(path: Path, interval_ms: int) -> List[dict]:
     """يمسح ملف عملة واحدة ويُرجع كل ثغرة فعلية فيه (فرق أكبر من فريم واحد بين شمعتين متتاليتين)."""
     gaps: List[dict] = []
     prev = None
-    with open(path, newline="", encoding="utf-8") as f:
+    with open_text(path) as f:
         reader = csv.reader(f)
         next(reader, None)
         for row in reader:
@@ -785,12 +913,12 @@ def write_gaps_report(report_path: Path, out_dir: Path, interval_ms: int) -> Tup
     """يُعاد بناؤه بالكامل من الملفات الفعلية في كل تشغيل. يُرجع (عدد الثغرات، عدد العملات المتأثرة)."""
     all_rows = []
     affected = 0
-    for p in sorted(out_dir.glob("*.csv")):
+    for sym, p in list_data_files(out_dir).items():
         gaps = detect_gaps(p, interval_ms)
         if gaps:
             affected += 1
             for g in gaps:
-                all_rows.append({"symbol": p.stem, **g})
+                all_rows.append({"symbol": sym, **g})
     report_path.parent.mkdir(parents=True, exist_ok=True)
     tmp = report_path.with_suffix(".csv.tmp")
     with open(tmp, "w", newline="", encoding="utf-8") as f:
@@ -808,7 +936,7 @@ async def fix_gaps_for_symbol(symbol: str, path: Path, gaps: List[dict], interva
     if not gaps:
         return 0
     existing: Dict[int, list] = {}
-    with open(path, newline="", encoding="utf-8") as f:
+    with open_text(path) as f:
         reader = csv.reader(f)
         next(reader, None)
         for row in reader:
@@ -847,9 +975,9 @@ def write_archive_report(report_path: Path, dirs: Dict[str, Path]) -> Tuple[int,
     rows, with_gaps = [], 0
     now = time.time()
     for kind, d in dirs.items():
-        for p in sorted(d.glob("*.csv")) if d.exists() else []:
+        for sym, p in list_data_files(d).items():
             ts = []
-            with open(p, newline="", encoding="utf-8") as f:
+            with open_text(p) as f:
                 for r in csv.DictReader(f):
                     try:
                         ts.append(datetime.fromisoformat(r["timestamp"].replace("Z", "+00:00")).timestamp())
@@ -862,7 +990,7 @@ def write_archive_report(report_path: Path, dirs: Dict[str, Path]) -> Tuple[int,
             step = sorted(diffs)[len(diffs) // 2] if diffs else 0
             gaps = [x for x in diffs if step and x > 1.5 * step]
             with_gaps += bool(gaps)
-            rows.append({"kind": kind, "symbol": p.stem, "first_utc": fmt_dt(int(ts[0] * 1000)),
+            rows.append({"kind": kind, "symbol": sym, "first_utc": fmt_dt(int(ts[0] * 1000)),
                          "last_utc": fmt_dt(int(ts[-1] * 1000)), "rows": len(ts),
                          "step_hours": round(step / 3600, 2), "n_gaps": len(gaps),
                          "max_gap_hours": round(max(gaps) / 3600, 1) if gaps else 0,
@@ -881,7 +1009,7 @@ def file_stats(path: Path, interval_ms: int) -> dict:
     n = gaps = missing = zero_vol = bad = 0
     first = last = prev = None
     max_gap = 0
-    with open(path, newline="", encoding="utf-8") as f:
+    with open_text(path) as f:
         reader = csv.reader(f)
         header = next(reader, None) or []
         idx = {c: i for i, c in enumerate(header)}
@@ -921,8 +1049,7 @@ def update_registry(registry_path: Path, out_dir: Path, interval: str, interval_
             for r in reader:
                 if r.get("name"):
                     existing[r["name"]] = r
-    for p in sorted(out_dir.glob("*.csv")):
-        name = p.stem
+    for name, p in list_data_files(out_dir).items():
         row = existing.get(name, {"name": name})
         meta = symbols_meta.get(name, {})
         row.update({"status": meta.get("status", row.get("status", "")),
@@ -963,7 +1090,13 @@ def parse_args():
                    help="الفائدة المفتوحة + metrics من الأرشيف (ساعياً) منذ --oi-start")
     p.add_argument("--oi-start", default=OI_START_DATE, help="بداية أرشيف الفائدة المفتوحة، مثال 2024-01-01")
     p.add_argument("--skip-klines", action="store_true", help="التمويل/الفائدة المفتوحة فقط (الشموع موجودة)")
-    p.add_argument("--oi-period", default="1h", help="دقة الفائدة المفتوحة (5m..1d)")
+    p.add_argument("--oi-period", default="1h", help="دقة الفائدة المفتوحة وmetrics (5m..1d؛ 15m = فريم الشموع)")
+    p.add_argument("--premium", action="store_true",
+                   help="مؤشر العلاوة premiumIndexKlines بنفس الفريم ← premium_index/<S>.csv.gz (أساس التمويل لحظياً)")
+    p.add_argument("--workers", type=int, default=SYMBOLS_IN_PARALLEL,
+                   help="عملات تُعالَج بالتوازي (كل واحدة: تحميل←فك←دمج←ضغط←حفظ←تحرير الذاكرة)")
+    p.add_argument("--downloads", type=int, default=VISION_CONCURRENT, help="ملفات ZIP تُحمَّل بالتوازي (إجمالاً)")
+    p.add_argument("--no-gzip", action="store_true", help="احفظ csv عادياً بدل csv.gz")
     p.add_argument("--include-delisted", action="store_true",
                    help="مع اكتشاف exchangeInfo فقط؛ فهرسة data.binance.vision تشمل المشطوبة دائماً")
     p.add_argument("--registry-only", action="store_true", help="أعد بناء السجلّ وتقرير الثغرات فقط")
@@ -989,6 +1122,8 @@ async def main():
         args.drive_root = str(colab_drive)
         print(f"Colab: الكتابة في {colab_drive} مباشرة (history_<interval>/ و crypto_data/).")
 
+    global USE_GZIP
+    USE_GZIP = not args.no_gzip
     interval, interval_ms = args.interval, interval_to_ms(args.interval)
     start_ms = parse_date_ms(args.start)
     end_ms = parse_date_ms(args.end) if args.end else int(time.time() * 1000)
@@ -1006,6 +1141,7 @@ async def main():
     registry_path = Path(args.registry) if args.registry else root / "crypto_data" / "asset_registry.csv"
     gaps_report_path = registry_path.parent / "gaps_report.csv"
     funding_dir, oi_dir, metrics_dir = root / "funding_rate", root / "open_interest", root / "futures_metrics"
+    premium_dir = root / f"premium_index_{interval}"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     base_url = args.base_url or resolve_base_url(args.testnet)
@@ -1022,14 +1158,14 @@ async def main():
               " والتمويل/الفائدة المفتوحة.")
     else:
         print(f"    ⚠ غير متاحة من هذه الشبكة ({rest_reason}) — الاعتماد الكامل على data.binance.vision."
-              " اليوم الحالي سيبقى ناقصاً حتى تُعاد المحاولة من شبكة غير محظورة (نفس الأمر يُكمل تلقائياً"
-              " بفضل resume). التمويل والفائدة المفتوحة سيُتخطّيان.")
+              " اليوم الحالي سيبقى ناقصاً حتى تُعاد المحاولة (نفس الأمر يُكمل تلقائياً بفضل resume)."
+              " التمويل/الفائدة المفتوحة/العلاوة تُجلب من الأرشيف نفسه.")
 
     kl_limiter, fr_limiter = WeightLimiter(WEIGHT_BUDGET_PER_MIN), WeightLimiter(FUNDING_REQ_PER_MIN)
     req_sem = asyncio.Semaphore(MAX_CONCURRENT)
     rest_ctx = ({"base_url": base_url, "limiter": kl_limiter, "fr_limiter": fr_limiter, "req_sem": req_sem}
                 if rest_available else None)
-    vision_sem = asyncio.Semaphore(VISION_CONCURRENT)
+    vision_sem = asyncio.Semaphore(max(1, args.downloads))
 
     print("[2] جلب قائمة العملات...")
     has_wanted = bool(args.symbols.strip() or args.symbols_file)
@@ -1081,7 +1217,8 @@ async def main():
     print(f"    السجلّ: {registry_path}")
     print(f"    تقرير الثغرات: {gaps_report_path}")
 
-    sym_sem = asyncio.Semaphore(SYMBOLS_IN_PARALLEL)
+    sym_sem = asyncio.Semaphore(max(1, args.workers))
+    print(f"    التوازي: {args.workers} عملات × {args.downloads} تحميل متزامن | الحفظ: {data_ext()}")
     total, done, total_candles = len(symbols), 0, 0
     failed: List[str] = []
 
@@ -1099,6 +1236,14 @@ async def main():
                 except Exception as e:
                     failed.append(sym)
                     parts.append(f"[فشل الشموع] {e}")
+
+            if args.premium:
+                try:
+                    k = await download_premium_vision(sym, start_ms, end_ms, interval, interval_ms,
+                                                      premium_dir, vision_sem)
+                    parts.append(f"علاوة +{k:,}")
+                except Exception as e:
+                    parts.append(f"[تعذّر مؤشر العلاوة] {e}")
 
             if args.funding:
                 try:
@@ -1120,7 +1265,8 @@ async def main():
                     parts.append(f"[تعذّرت الفائدة المفتوحة] {e}")
 
             done += 1
-            print(f"[{done}/{total}] {sym}: " + " | ".join(parts))
+            gc.collect()                                   # كل ما حُمّل لهذه العملة كُتب — تحرير الذاكرة
+            print(f"[{done}/{total}] {sym}: " + " | ".join(parts), flush=True)
 
     print("[4] بدء التحميل من data.binance.vision" + (" + استكمال بـ API المباشر" if rest_available else "")
           + " ...")
@@ -1150,14 +1296,14 @@ async def main():
     if args.fix_gaps and ng and rest_available:
         print("[5] محاولة إصلاح الثغرات المكتشفة عبر API المباشر...")
         total_fixed = 0
-        for p in sorted(out_dir.glob("*.csv")):
+        for sym, p in list_data_files(out_dir).items():
             gaps = detect_gaps(p, interval_ms)
             if not gaps:
                 continue
-            fixed = await fix_gaps_for_symbol(p.stem, p, gaps, interval, interval_ms, rest_ctx)
+            fixed = await fix_gaps_for_symbol(sym, p, gaps, interval, interval_ms, rest_ctx)
             if fixed:
                 total_fixed += fixed
-                print(f"    {p.stem}: أُصلحت {fixed} شمعة")
+                print(f"    {sym}: أُصلحت {fixed} شمعة")
         if total_fixed:
             ng2, na2 = write_gaps_report(gaps_report_path, out_dir, interval_ms)
             print(f"[✓] بعد الإصلاح: {ng2} ثغرة متبقية في {na2} عملة (كان {ng} في {na})")
@@ -1173,7 +1319,7 @@ async def main():
     if not args.drive_root:
         print(f"\n    ارفع محتوى {root} إلى جذر MyDrive، أو شغّل بـ --drive-root لتُكتب في Drive مباشرة.")
     print("\n    في خط الأنابيب (crypto_data_pipeline_v6):")
-    print(f"      update_config({{'drive_raw_dir': '{rel(out_dir)}', "
+    print(f"      update_config({{'drive_raw_dir': '{rel(out_dir)}', 'drive_raw_pattern': '{{name}}{data_ext()}', "
           f"'asset_registry_path': '{rel(registry_path)}'}})")
     if interval == "1h":
         print(f"      apply_hourly_preset({{'drive_raw_dir': '{rel(out_dir)}'}})")
