@@ -343,6 +343,19 @@ def arch_variants(am, rt):
         "RL_gru_1l_selcls": ({**gru, "num_layers": 1}, sel),
         "RL_tiny_selcls": ({**RL, **tiny}, sel),
     })
+    # EMA: زخم 0.999 بلا إحماء يُبقي 0.999^N من المتوسط على أوزان أول الخطوات (N≈960 على بيانات Drive القليلة جداً)
+    emaw = {**rt_lr, "optimizer": {**rt_lr["optimizer"], "ema_warmup": True}}
+    emaw1 = {**rt_lr, "optimizer": {**rt_lr["optimizer"], "ema_warmup": True, "ema_window_epochs": 1.0}}
+    raw = {**rt_lr, "callbacks": {**rt_lr.get("callbacks", {}),
+                                  "early_stopping": {**rt_lr.get("callbacks", {}).get("early_stopping", {}),
+                                                     "weights_snapshot": "raw"}}}
+    out.update({
+        "RL_gru_emaw": (gru, emaw),
+        "RL_gru_raw": (gru, raw),
+        "RL_tiny_emaw": ({**RL, **tiny}, emaw),
+        "RL_gru_emaw1": (gru, emaw1),
+        "RL_tiny_emaw1": ({**RL, **tiny}, emaw1),
+    })
     return out
 
 
