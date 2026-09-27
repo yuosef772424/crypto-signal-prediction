@@ -352,6 +352,7 @@ def arch_variants(am, rt):
     out.update({
         "RL_gru_emaw": (gru, emaw),
         "RL_gru_raw": (gru, raw),
+        "RL_tiny_raw": ({**RL, **tiny}, raw),
         "RL_tiny_emaw": ({**RL, **tiny}, emaw),
         "RL_gru_emaw1": (gru, emaw1),
         "RL_tiny_emaw1": ({**RL, **tiny}, emaw1),
