@@ -184,7 +184,9 @@ def test_training(encoder_builder=None, seq_len=8, n_features=5, epochs=None, st
                                    train_assets=tr.assets, val_assets=va.assets,
                                    model_cfg=dict(d_model=16, num_heads=4), verbose=False)
         for name, (v, t) in res["runs"].items():
-            _check(list(t.columns) == BASELINE_COLS and list(v.columns) == BASELINE_COLS, f"أعمدة {name}: {list(t.columns)}")
+            lbl = [f"y_{x}_class" for x in ("high", "low", "close")]      # تسميات التدريب تُلحَق بعد أعمدة المرجع
+            _check(all(list(d.columns) in (BASELINE_COLS, BASELINE_COLS + lbl) for d in (t, v)),
+                   f"أعمدة {name}: {list(t.columns)}")
             _check(len(t) == te.n and len(v) == va.n and t[["mu_close", "p_up_close"]].notna().all().all(), "صفوف/NaN")
             _check((t["asset"] != "all").all() and (v["asset"] != "all").all(), "أسماء العملات مفقودة")
         import json

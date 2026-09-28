@@ -59,7 +59,10 @@ class PanelDataTests(unittest.TestCase):
         self.assertEqual(exact.sizes.max(), 1)                               # الطابع الدقيق: مجموعات من عملة واحدة
         ps = PanelSplit(X, y, lc, assets, "g32", day_ns=G)
         self.assertEqual(set(ps.sizes.tolist()), {n_coins})
-        self.assertTrue(ps.check()["ok"])
+        # طوابع مختلفة في مجموعة واحدة: الانتباه يرى مستقبل العملة في نوافذ أقرانها ⇒ مرفوضة إلا بتجاوز صريح
+        self.assertEqual(ps.mixed_timestamp_groups(), ps.n_days)
+        self.assertFalse(ps.check()["ok"])
+        self.assertTrue(ps.check(allow_mixed_timestamps=True)["ok"])
         self.assertEqual(ps.take(np.arange(0, n, 2)).day_ns, G)
         self.assertEqual(ps.subset(last_days=5).n_days, 5)
         np.testing.assert_array_equal(ps.day_key, pd.to_datetime(ts).floor("32h").asi8)
@@ -318,6 +321,87 @@ class PanelModelTests(unittest.TestCase):
             auc[att] = roc_auc_score(va.ycls[:, 2], logit[:, 2])
         print(f"\n   AUC close (val): A {auc[True]:.3f} | B {auc[False]:.3f}")
         self.assertGreater(auc[True], auc[False] + 0.05, auc)
+
+
+class AuditRound1Tests(unittest.TestCase):
+    """إصلاحات الجولة ١ (docs/research/audit/repro_01..05) — كل اختبار يفشل على الكود قبل الإصلاح."""
+
+    def test_report_auc_uses_trained_label(self):
+        """repro_01: AUC في panel_compare على تسمية التدريب (return افتراضياً، أو عمود y_*_class المصدَّر)، لا «فوق الوسيط»."""
+        import numpy as np
+        import pandas as pd
+        from cross_asset.report import summarize
+        rng = np.random.default_rng(0)
+        n_ts, n_c = 30, 20
+        ts = np.repeat(np.arange(n_ts) * 86_400 * 10**9, n_c).astype("float64")
+        n = len(ts)
+        mkt = np.repeat(rng.normal(0, .02, n_ts), n_c)
+        last = 100 * np.exp(rng.normal(size=n))
+        fut = last * (1 + mkt + rng.normal(0, .01, n))
+        ret_lbl = (fut > last).astype(int)
+        df = pd.DataFrame({"asset": np.tile([f"C{i}" for i in range(n_c)], n_ts), "timestamp": ts, "entry": last,
+                           "last_high": last, "last_low": last, "fut_close": fut, "fut_high": fut, "fut_low": fut,
+                           "p_up_high": ret_lbl.astype(float), "p_up_low": ret_lbl.astype(float)})
+        self.assertAlmostEqual(summarize(df, df)[0]["auc_high"], 1.0)
+        rel = summarize(df, df, target_mode="relative")[0]["auc_high"]
+        self.assertLess(rel, 1.0)
+        # عمود التسمية المصدَّر يغلب target_mode
+        lab = df.assign(y_high_class=ret_lbl, y_low_class=ret_lbl)
+        self.assertAlmostEqual(summarize(lab, lab, target_mode="relative")[0]["auc_high"], 1.0)
+
+    def test_min_coins_covers_every_sample_each_epoch(self):
+        """repro_04: A_ic_k يرى كل عيّنة تدريب مرّة واحدة في الحقبة (الأجزاء لا تُرمى)."""
+        import numpy as np
+        ps = st.synthetic_split(n_assets=83, n_days=60, seed=0)
+        for epoch in range(3):
+            seen = np.concatenate([b["idx"] for b in ps.iter_batches(1024, 16, shuffle=True, seed=0, epoch=epoch,
+                                                                   min_coins=5)])
+            np.testing.assert_array_equal(np.sort(seen), np.arange(ps.n))
+
+    def test_build_panel_splits_rejects_mixed_timestamps(self):
+        """repro_05: بيانات غير محاذاة بمجموعة أرضية أوسع من الفريم تُرفَض، وتمرّ بتجاوز صريح فقط."""
+        import numpy as np
+        from cross_asset.experiment import build_panel_splits
+        H = 3600 * 10**9
+        n_c, n_g, G = 6, 12, 32 * H
+        ts = np.concatenate([10_000 * G + c * H + np.arange(n_g) * G for c in range(n_c)]).astype("float64")
+        n = len(ts)
+        lc = np.c_[np.ones((n, 3)), ts, np.ones((n, 3))]
+        y = {f"y_{t}_{k}": np.zeros(n, "float32") for t in ("high", "low", "close") for k in ("class", "reg")}
+        sp = {"X_1h": np.zeros((n, 4, 2), "float32"), "y": y, "last_candles": lc}
+        names = np.repeat([f"C{c}" for c in range(n_c)], n_g)
+        with self.assertRaises(RuntimeError):
+            build_panel_splits(sp, sp, sp, "1h", names, names, verbose=False, day_ns=G)
+        build_panel_splits(sp, sp, sp, "1h", names, names, verbose=False, day_ns=G, allow_mixed_timestamps=True)
+
+    def test_resume_refuses_different_data(self):
+        """repro_02: run_dir دُرِّب على بيانات A يرفض الاستئناف على بيانات B بنفس الشكل والتواريخ."""
+        import shutil
+        import tempfile
+        import numpy as np
+        from cross_asset.data import PanelSplit
+        from cross_asset.experiment import run_panel_variant
+        tr = st.synthetic_split(20, 20, seed=0, name="train")
+        va = st.synthetic_split(20, 8, start_day=18100, seed=1, name="val")
+        te = st.synthetic_split(20, 8, start_day=18200, seed=2, name="test")
+
+        def flip(ps):
+            y = {}
+            for i, t in enumerate(ps.targets):
+                y[f"y_{t}_class"], y[f"y_{t}_reg"] = 1 - ps.ycls[:, i], -ps.yreg[:, i]
+            return PanelSplit(ps.X, y, ps.lc, ps.assets, ps.name, ps.targets)
+        cfg = dict(epochs=1, batch_samples=150, max_days=8, lr_warmup_epochs=0, lr_schedule={"type": "constant"})
+        root = tempfile.mkdtemp(prefix="panel_fp_")
+        try:
+            args = (lambda: st._TinyBase(8, 5), 8, 5, root, "B", 0, dict(d_model=16, num_heads=4), cfg)
+            run_panel_variant(tr, va, te, *args, verbose=False)
+            run_panel_variant(tr, va, te, *args, verbose=False)            # نفس البيانات: يُستأنف
+            with self.assertRaises(RuntimeError):
+                run_panel_variant(flip(tr), va, te, *args, verbose=False)
+            self.assertNotEqual(tr.content_hash(), flip(tr).content_hash())
+            self.assertEqual(tr.content_hash(), st.synthetic_split(20, 20, seed=0, name="train").content_hash())
+        finally:
+            shutil.rmtree(root, ignore_errors=True)
 
 
 if __name__ == "__main__":

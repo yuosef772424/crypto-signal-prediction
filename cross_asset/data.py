@@ -64,6 +64,20 @@ class PanelSplit:
         n_rep = np.repeat(self.sizes, self.sizes).astype("float64")
         self.yrank[order] = (rk.to_numpy() - 0.5 / np.maximum(n_rep, 1.0) - 0.5).astype("float32")
 
+    def content_hash(self, max_rows=4096):
+        """بصمة محتوى القسم: الأهداف وlast_candles وأسماء العملات كاملة، وعيّنة صفوف X متباعدة بانتظام (X قد تبلغ
+        جيجابايتات). تفرّق بين بيانات بنفس الشكل والتواريخ ومحتوى مختلف (إعادة بناء بعد إصلاح في خط الأنابيب)."""
+        import hashlib
+        h = hashlib.sha1()
+        for a in (self.ycls, self.yreg, self.lc):
+            h.update(np.ascontiguousarray(a).tobytes())
+        if self.assets is not None:
+            h.update("\x1f".join(map(str, self.assets)).encode())
+        rows = np.unique(np.linspace(0, self.n - 1, min(self.n, int(max_rows))).astype("int64")) if self.n else []
+        h.update(np.ascontiguousarray(np.asarray(self.X[rows], dtype="float32")).tobytes())
+        h.update(str((self.n,) + tuple(np.shape(self.X)[1:])).encode())
+        return h.hexdigest()[:16]
+
     def take(self, idx, name=None):
         """قسم جديد من صفوف idx فقط (ينسخ X[idx] — للمجموعات الفرعية الصغيرة/الاختبار)."""
         idx = np.sort(np.asarray(idx))
@@ -128,7 +142,10 @@ class PanelSplit:
         """يجمع أيام الدفعة. max_coins (تدريب فقط، اختياري): عيّنة عشوائية من عملات الأيام الأكبر منه — يكسر
         «كل عيّنة مرّة واحدة» عمداً، لذا الافتراضي None.
         min_coins (تدريب فقط، اختياري): عدد عملات عشوائي لكل مجموعة k ~ U[min_coins, min(max_coins, n)] — كي يتعلّم
-        النموذج العمل بأي عدد عملات يراه وقت الاستخدام (السوق كله أو قائمة مراقبة صغيرة). None = السلوك السابق حرفياً."""
+        النموذج العمل بأي عدد عملات يراه وقت الاستخدام (السوق كله أو قائمة مراقبة صغيرة). None = السلوك السابق حرفياً.
+        المجموعة تُقسَم عشوائياً إلى ⌊n/k⌋ جزءاً (كل جزء مجموعة انتباه مستقلّة بين k و2k−1 عملة، وبحدّ max_coins إن
+        أُعطي) — لا تُرمى البقية: لو أُخذت k عملة فقط لرأى المتغيّر نحو نصف عيّنات التدريب في الحقبة، فتختلط مقارنته
+        بمتغيّر بلا min_coins بين «سياق متغيّر» و«بيانات أقل»."""
         rng = rng or np.random.default_rng(0)
         idx_lists = []
         for d in day_list:
@@ -137,7 +154,9 @@ class PanelSplit:
                 hi = min(int(max_coins or len(ii)), len(ii))
                 k = int(rng.integers(min(int(min_coins), hi), hi + 1))
                 if k < len(ii):
-                    ii = np.sort(rng.choice(ii, k, replace=False))
+                    n_parts = max(len(ii) // k, -(-len(ii) // int(max_coins)) if max_coins else 1)
+                    idx_lists.extend(np.sort(p) for p in np.array_split(rng.permutation(ii), n_parts))
+                    continue
             elif max_coins and len(ii) > max_coins:
                 ii = np.sort(rng.choice(ii, max_coins, replace=False))
             idx_lists.append(ii)
@@ -210,8 +229,19 @@ class PanelSplit:
             yield self.assemble(cur, None if scored is None else cur_s)
 
     # ── فحوص السلامة ──
-    def check(self, min_group=5):
-        """يُرجع قاموس فحوص؛ ok=False إن فشل فحص جوهري (تغطية، نقاء اليوم، تكرار عملة في يوم)."""
+    def mixed_timestamp_groups(self):
+        """عدد المجموعات التي تجمع أكثر من طابع دقيق واحد. في مجموعة كهذه تنتهي نافذة عملة عند T ونافذة قرينها عند
+        T+1h…: مدخلات القرين تحوي شموع أفق الأولى، والانتباه عبر العملات يقرؤها (تسرّب من المستقبل)."""
+        if not self.n:
+            return 0
+        k, t = self.day_key[self.order], self.ts[self.order]
+        first = np.repeat(t[self.bounds[:-1]], self.sizes)
+        return int(len(np.unique(k[t != first])))
+
+    def check(self, min_group=5, allow_mixed_timestamps=False):
+        """يُرجع قاموس فحوص؛ ok=False إن فشل فحص جوهري (تغطية، نقاء اليوم، تكرار عملة في يوم، أو مجموعة تخلط طوابع
+        مختلفة — انظر mixed_timestamp_groups). allow_mixed_timestamps=True يتجاوز الأخير صراحةً (لتجربة تقيس التسرّب
+        نفسه مثلاً)، ويبقى العدد ظاهراً في الجدول."""
         covered = np.sort(np.concatenate([self.day_indices(d) for d in range(self.n_days)])) if self.n else np.zeros(0)
         coverage_ok = bool(np.array_equal(covered, np.arange(self.n)))
         pure = all(len(np.unique(self.day_key[self.day_indices(d)])) == 1 for d in range(self.n_days))
@@ -232,11 +262,12 @@ class PanelSplit:
             "coins_per_day_max": int(self.sizes.max()) if self.n else 0,
             "each_sample_once": coverage_ok, "day_groups_pure": bool(pure),
             "misaligned_timestamps": int(self.misaligned.sum()), "misaligned_assets": mis_assets[:20],
-            "duplicate_asset_day": dups,
+            "duplicate_asset_day": dups, "groups_mixed_timestamps": self.mixed_timestamp_groups(),
             f"days_lt_{min_group}_coins": int(small.sum()),
             f"samples_in_days_lt_{min_group}": int(self.sizes[small].sum()),
         }
-        out["ok"] = coverage_ok and pure and dups == 0
+        out["ok"] = (coverage_ok and pure and dups == 0
+                     and (allow_mixed_timestamps or out["groups_mixed_timestamps"] == 0))
         return out
 
 

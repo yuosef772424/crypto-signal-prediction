@@ -4,7 +4,10 @@
 في نفس الطابع الزمني — مطابق لـ retarget_splits(mode="relative") لأن ملف الإشارات يحوي كل عيّنات القسم.
 
 المقاييس (test للحكم، val للمرجع فقط — لا شيء يُختار على test):
-  auc_*            : AUC لكل هدف (p_up_* مقابل «تتفوّق على وسيط اليوم»)، مُجمَّع على كل الصفوف.
+  auc_*            : AUC لكل هدف مقابل التسمية التي دُرِّب عليها النموذج نفسها، مُجمَّع على كل الصفوف: عمود y_{هدف}_class
+                     في ملف الإشارات إن وُجد (export_signals يصدّره)، وإلا تُشتق من target_mode (انظر train_labels).
+                     سابقاً كانت دائماً «تتفوّق على وسيط اليوم» حتى لنموذج دُرِّب على أهداف خط الأنابيب (return)،
+                     فلم يطابق AUC هنا AUC التدريب ولا evaluate_k_coins.
   ic_*             : IC يومي = متوسط Spearman(الدرجة، العائد) لكل يوم (≥ min_coins عملة) و t = متوسط/انحراف·√أيام.
   reg_ic_close     : IC يومي لـ mu_close مقابل العائد النسبي (IC الانحدار في تقرير الفجوة).
   volq_ic          : IC داخل خُمسيات التقلّب السابق (انحراف عوائد 20 يوماً سابقة لكل عملة)، متوسط الخُمسيات ثم الأيام.
@@ -23,10 +26,34 @@ warnings.filterwarnings("ignore", message="An input array is constant")
 DAY = pd.Timedelta(days=1)
 
 
-def prepare(df, group_ns=None):
+def train_labels(d, raw, target_mode=None):
+    """{هدف: تسمية 1/0} = ما دُرِّب عليه النموذج. الأولوية لعمود y_{هدف}_class المصدَّر مع الإشارات؛ وإلا من target_mode
+    (TARGET_MODE في main): None/"return" = أهداف خط الأنابيب (القيمة المستقبلية > آخر قيمة من نفس النوع)،
+    "return_close" = نسبة لآخر إغلاق، و"+relative" (أو "relative") = فوق وسيط المجموعة. وضع آخر بلا عمود تسمية ←
+    لا تسمية (لا AUC) بدل تسمية خاطئة."""
+    mode = target_mode or "return"
+    base, _, suffix = mode.partition("+")
+    if base == "relative" and not suffix:
+        base, suffix = "return", "relative"
+    out = {}
+    for t, v in raw.items():
+        col = f"y_{t}_class"
+        if col in d:
+            out[t] = (d[col] > 0).astype(int)
+            continue
+        if base == "return_close":
+            v = d[{"high": "fut_high", "low": "fut_low", "close": "fut_close"}[t]] / d["entry"] - 1.0
+        elif base != "return":
+            continue
+        out[t] = (v > (v.groupby(d["timestamp"]).transform("median") if suffix == "relative" else 0.0)).astype(int)
+    return out
+
+
+def prepare(df, group_ns=None, target_mode=None):
     """يضيف r (عائد close الخام)، rel_{هدف} (نسبي لوسيط اليوم)، cls_{هدف}، وpvol (تقلّب سابق بلا نظر للمستقبل).
     group_ns: None = التجميع بالطابع الدقيق. غير ذلك: timestamp يُستبدَل بأرضيته (من epoch) — لطوابع غير متطابقة
-    بين العملات (فريم الساعة)، بنفس group_freq في retarget_splits؛ الطابع الأصلي يبقى في timestamp_raw."""
+    بين العملات (فريم الساعة)، بنفس group_freq في retarget_splits؛ الطابع الأصلي يبقى في timestamp_raw.
+    cls_{هدف}: تسمية التدريب (train_labels)؛ rel_{هدف} يبقى نسبياً لوسيط المجموعة (لمقاييس IC)."""
     d = df.copy()
     if group_ns:
         d["timestamp_raw"] = d["timestamp"]
@@ -35,7 +62,8 @@ def prepare(df, group_ns=None):
     raw = {"close": d["r"], "high": d["fut_high"] / d["last_high"] - 1.0, "low": d["fut_low"] / d["last_low"] - 1.0}
     for t, v in raw.items():
         d[f"rel_{t}"] = (v - v.groupby(d["timestamp"]).transform("median")).clip(-1, 1)
-        d[f"cls_{t}"] = (v > v.groupby(d["timestamp"]).transform("median")).astype(int)
+    for t, c in train_labels(d, raw, target_mode).items():
+        d[f"cls_{t}"] = c
     d = d.sort_values(["asset", "timestamp"])
     # r عند اليوم t-1 = عائد (t-1 → t) معروف عند إغلاق t ⇒ shift(1) بلا تسرّب
     d["pvol"] = d.groupby("asset")["r"].transform(lambda x: x.shift(1).rolling(20, min_periods=5).std())
@@ -127,13 +155,13 @@ def bracket_table(d, score="p_up_close", B=0.05, first_touch=None, n_dec=10):
     return t[["up", "down", "amb", "none", "touch", "up_share", "n_resolved"]]
 
 
-def summarize(val_df, test_df, first_touch=None, B=0.05, min_coins=10, group_ns=None):
-    """قاموس المقاييس لنموذج واحد + جدول القوس (test)."""
-    V, T = prepare(val_df, group_ns), prepare(test_df, group_ns)
+def summarize(val_df, test_df, first_touch=None, B=0.05, min_coins=10, group_ns=None, target_mode=None):
+    """قاموس المقاييس لنموذج واحد + جدول القوس (test). target_mode: TARGET_MODE الذي دُرِّب عليه (انظر train_labels)."""
+    V, T = prepare(val_df, group_ns, target_mode), prepare(test_df, group_ns, target_mode)
     m = {"test_days": T["timestamp"].nunique(), "test_rows": len(T)}
     from sklearn.metrics import roc_auc_score
     for t in ("high", "low", "close"):
-        if f"p_up_{t}" in T:
+        if f"p_up_{t}" in T and f"cls_{t}" in T and 0 < T[f"cls_{t}"].mean() < 1:
             m[f"auc_{t}"] = roc_auc_score(T[f"cls_{t}"], T[f"p_up_{t}"])
     if "p_up_close" not in T:     # close معلّق: بقية المقاييس معرّفة على درجة close
         return m, pd.DataFrame(columns=["up", "down", "amb", "none", "touch", "up_share", "n_resolved"])
@@ -172,11 +200,12 @@ ROWS = [("auc_high", "AUC high"), ("auc_low", "AUC low"), ("auc_close", "AUC clo
         ("test_days", "أيام test")]
 
 
-def compare(runs, first_touch=None, B=0.05, verbose=True, group_ns=None):
-    """runs: {اسم: (val_df, test_df)}. يُرجع (جدول المقارنة، {اسم: جدول القوس}). group_ns: انظر prepare."""
+def compare(runs, first_touch=None, B=0.05, verbose=True, group_ns=None, target_mode=None):
+    """runs: {اسم: (val_df, test_df)}. يُرجع (جدول المقارنة، {اسم: جدول القوس}). group_ns: انظر prepare؛
+    target_mode: انظر train_labels."""
     metrics, brackets = {}, {}
     for name, (v, t) in runs.items():
-        metrics[name], brackets[name] = summarize(v, t, first_touch, B, group_ns=group_ns)
+        metrics[name], brackets[name] = summarize(v, t, first_touch, B, group_ns=group_ns, target_mode=target_mode)
     table = pd.DataFrame({name: {label: m.get(k, np.nan) for k, label in ROWS} for name, m in metrics.items()})
     if verbose:
         with pd.option_context("display.width", 200, "display.float_format", "{:.4f}".format):

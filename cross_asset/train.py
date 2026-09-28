@@ -120,12 +120,17 @@ class PanelTrainer:
     """حلقة تدريب بسيطة وقابلة للاستئناف (run_dir على Drive يكفي لاستئناف بعد انقطاع Colab).
 
     run_dir/state.json            : الحقبة، الأفضل، الصبر، السجلّ، وبصمة الإعداد (لا يُستأنف تدريب بإعداد مختلف)
+                                    وبصمة محتوى البيانات data_fp (لا يُستأنف على بيانات أخرى بنفس الشكل والتواريخ)
     run_dir/last.weights.h5 + last_ema.npz + last_opt.npz : حالة آخر حقبة مكتملة
     run_dir/best.weights.h5       : أفضل حقبة على val (بأوزان EMA إن فُعّلت)
     """
 
-    def __init__(self, model, cfg, run_dir, reg_scale, seq_len, n_features, fingerprint=None, verbose=True):
+    def __init__(self, model, cfg, run_dir, reg_scale, seq_len, n_features, fingerprint=None, verbose=True,
+                 data_fingerprint=None):
         self.model, self.run_dir, self.verbose = model, run_dir, verbose
+        # منفصلة عن fingerprint عمداً: إدخالها في _fp يُبطل استئناف كل التشغيلات السابقة لها. حالة بلا data_fp (قبلها)
+        # تُستأنف مع تحذير صريح؛ حالة بـ data_fp مختلف ترفض.
+        self.data_fp = data_fingerprint
         self.targets = tuple(getattr(model, "targets", ("high", "low", "close")))   # ترتيب أعمدة logit/mu
         self.cfg = {**DEFAULT_TRAIN_CFG, **(cfg or {})}
         self.cfg["ic_on"] = tuple(self.cfg["ic_on"])
@@ -264,6 +269,14 @@ class PanelTrainer:
         if state.get("fingerprint") != self._fp():
             raise RuntimeError(f"run_dir {self.run_dir} فيه تدريب بإعداد مختلف (بصمة {state.get('fingerprint')} ≠ "
                                f"{self._fp()}) — غيّر run_dir أو احذفه")
+        if self.data_fp is not None:
+            if state.get("data_fp") is None:
+                warnings.warn(f"⚠️ run_dir {self.run_dir} بلا بصمة بيانات (أقدم منها): يُستأنف دون تحقّق أن البيانات هي "
+                              "نفسها التي دُرِّب عليها — احذفه إن أُعيد بناء البيانات", RuntimeWarning, stacklevel=2)
+                state["data_fp"] = self.data_fp
+            elif state["data_fp"] != self.data_fp:
+                raise RuntimeError(f"run_dir {self.run_dir} دُرِّب على بيانات مختلفة (بصمة البيانات {state['data_fp']} ≠ "
+                                   f"{self.data_fp}) — غيّر run_dir أو احذفه")
         self.model.load_weights(os.path.join(self.run_dir, "last.weights.h5"))
         if self.ema_vars:
             z = np.load(os.path.join(self.run_dir, "last_ema.npz"))
@@ -282,7 +295,7 @@ class PanelTrainer:
     def fit(self, train_ps, val_ps):
         c = self.cfg
         state = self._load_state() or {"epoch": 0, "best": None, "best_epoch": None, "wait": 0, "history": [],
-                                       "fingerprint": self._fp()}
+                                       "fingerprint": self._fp(), "data_fp": self.data_fp}
         if state["epoch"] and self.verbose:
             print(f"↩️ استئناف من الحقبة {state['epoch']} (الأفضل {state['best']} @ {state['best_epoch']})", flush=True)
         steps = len(train_ps.batch_plan(c["batch_samples"], c["max_days"], shuffle=True, seed=c["seed"], epoch=0))
@@ -381,4 +394,7 @@ def export_signals(ps, logit, mu, split_name, targets=("high", "low", "close")):
     df["pred_low"] = df["last_low"] * (1.0 + df["mu_low"])
     df["up"] = (df["fut_close"] > df["entry"]).astype(int)
     df["split"] = split_name
+    # بعد أعمدة collect_signals (لا بينها): تسمية التدريب نفسها — report.summarize يقيس AUC عليها لا على تسمية يعيد اشتقاقها
+    for i, t in enumerate(targets):
+        df[f"y_{t}_class"] = ps.ycls[:, i].astype(int)
     return df

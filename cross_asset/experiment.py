@@ -14,6 +14,7 @@ evaluate_k_coins يقيس أي نموذج مدرَّب حين يرى k عملة 
 import json
 import os
 import time
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -56,8 +57,10 @@ def _count(vars_):
 
 
 def build_panel_splits(train, val, test, model_tf, train_assets=None, val_assets=None, subset=None, verbose=True,
-                       day_ns=None, targets=None):
+                       day_ns=None, targets=None, allow_mixed_timestamps=False):
     """PanelSplit لكل قسم + فحوص السلامة (ترفع خطأً إن فشل فحص جوهري). day_ns: None = يوم UTC.
+    مجموعة تخلط طوابع مختلفة (بيانات غير محاذاة مع day_ns أوسع من الفريم) تُرفَض: الانتباه عبر العملات يرى فيها مستقبل
+    العملة من نوافذ أقرانها. allow_mixed_timestamps=True يتجاوز ذلك صراحةً.
     targets: None = high/low/close؛ مثلاً ("high", "low") حين يُعلَّق close (SUSPENDED_TARGETS في main)."""
     g, tg = day_ns or DAY_NS, tuple(targets or TARGETS)
     tr = panel_split_from(train, model_tf, train_assets, "train", targets=tg, day_ns=g)
@@ -65,7 +68,7 @@ def build_panel_splits(train, val, test, model_tf, train_assets=None, val_assets
     te = panel_split_from(test, model_tf, None, "test", targets=tg, day_ns=g)
     if subset:
         tr, va, te = (s.subset(**subset) for s in (tr, va, te))
-    checks = [s.check() for s in (tr, va, te)]
+    checks = [s.check(allow_mixed_timestamps=allow_mixed_timestamps) for s in (tr, va, te)]
     if verbose:
         print("🧩 بيانات اللوحة (يوم UTC = عيّنة):\n" + format_checks(checks), flush=True)
     bad = [c["split"] for c in checks if not c["ok"]]
@@ -81,6 +84,11 @@ def run_panel_variant(tr, va, te, encoder_builder, seq_len, n_features, run_dir,
     from .model import build_panel_model, extract_encoder
     from .train import PanelTrainer, export_signals, robust_scales
 
+    mixed = {s.name: s.mixed_timestamp_groups() for s in (tr, va, te)}
+    if any(mixed.values()) and VARIANTS[variant]["model"].get("cross_attention"):
+        warnings.warn(f"⚠️ مجموعات تخلط طوابع مختلفة {mixed}: الانتباه عبر العملات يرى مستقبل كل عملة في نوافذ أقرانها — "
+                      "نتائج هذا المتغيّر غير صالحة للحكم (build_panel_splits يرفضها إلا بـ allow_mixed_timestamps=True)",
+                      RuntimeWarning, stacklevel=2)
     v = VARIANTS[variant]
     mcfg = {**DEFAULT_MODEL_CFG, **(model_cfg or {}), **v["model"]}
     if tr.targets != TARGETS:   # فقط لغير الافتراضي: بصمة التشغيلات القائمة لا تتغيّر
@@ -99,7 +107,9 @@ def run_panel_variant(tr, va, te, encoder_builder, seq_len, n_features, run_dir,
           "days": [str(tr.days[0]), str(tr.days[-1]), str(va.days[-1])]}
     if tr.day_ns != DAY_NS:     # فقط لغير اليومي: بصمة التشغيلات اليومية القائمة لا تتغيّر (يبقى الاستئناف ممكناً)
         fp["day_ns"] = tr.day_ns
-    trainer = PanelTrainer(model, tcfg, run_dir, reg_scale, seq_len, n_features, fingerprint=fp, verbose=verbose)
+    data_fp = "|".join(s.content_hash() for s in (tr, va, te))
+    trainer = PanelTrainer(model, tcfg, run_dir, reg_scale, seq_len, n_features, fingerprint=fp, verbose=verbose,
+                           data_fingerprint=data_fp)
     t0 = time.time()
     state = trainer.fit(tr, va)
     trainer.load_best()
@@ -168,8 +178,9 @@ def _align_baseline(runs, base_names, verbose=True):
     for b in base_names:
         parts = []
         for i, sp in enumerate(("val", "test")):
-            ref = runs[panel[0]][i][["asset", "timestamp"]]
-            df = runs[b][i]
+            ref = runs[panel[0]][i]
+            ref = ref[["asset", "timestamp"] + [c for c in ref if c.startswith("y_") and c.endswith("_class")]]
+            df = runs[b][i].drop(columns=[c for c in ref if c.startswith("y_")], errors="ignore")   # تسمية التدريب من اللوحة
             m = df.merge(ref.drop_duplicates(), on=["asset", "timestamp"], how="inner")
             if verbose:
                 print(f"🔗 {b}/{sp}: {len(m):,} صفاً مطابقاً من {len(df):,} (اللوحة {len(ref):,})"
@@ -182,17 +193,20 @@ def _align_baseline(runs, base_names, verbose=True):
 def run_panel_experiment(train, val, test, model_tf, encoder_builder, seq_len, n_features, run_root,
                          variants=("A_ic", "B_ic"), seeds=(0,), model_cfg=None, train_cfg=None,
                          train_assets=None, val_assets=None, subset=None, baseline=None, first_touch=None,
-                         verbose=True, day_ns=None, targets=None, k_eval=None, k_draws=3):
+                         verbose=True, day_ns=None, targets=None, k_eval=None, k_draws=3,
+                         allow_mixed_timestamps=False, target_mode=None):
     """baseline: {اسم: (val_df, test_df)} إشارات النموذج الحالي على نفس التقسيم (collect_signals) — اختياري.
     first_touch: جدول (asset, day, first) من bracket_fetch.py لحسم اللمس المزدوج في القوس — اختياري.
     day_ns: عرض مجموعة الطوابع للتدريب والتقييم (None = يوم UTC). لفريم الساعة بطوابع غير متطابقة بين العملات
     مثلاً 32 * 3600 * 10**9 (= stride) — يجب أن يطابق group_freq في retarget_splits.
     targets: None = high/low/close؛ غير ذلك رؤوس هذه الأهداف فقط.
+    target_mode: TARGET_MODE في main — لتسمية AUC في panel_compare حين يغيب عمود y_*_class (report.train_labels).
     k_eval: مثلاً (5, 10, 20, None) — بعد تدريب كل متغيّر/بذرة: evaluate_k_coins على test، ويُحفظ
     k_coins_test.csv وإشارات كل k في مجلد التشغيل، وجدول مجمَّع panel_k_coins.csv في run_root. None = لا شيء.
     يُرجع {"runs": {اسم: (val_df, test_df)}, "table": جدول المقارنة, "brackets": {...}, "checks": [...], "k_eval": جدول|None}."""
     tr, va, te, checks = build_panel_splits(train, val, test, model_tf, train_assets, val_assets, subset, verbose,
-                                            day_ns=day_ns, targets=targets)
+                                            day_ns=day_ns, targets=targets,
+                                            allow_mixed_timestamps=allow_mixed_timestamps)
     runs = dict(baseline or {})
     states, k_tables = {}, {}
     for variant in variants:
@@ -212,7 +226,7 @@ def run_panel_experiment(train, val, test, model_tf, encoder_builder, seq_len, n
                               flush=True)
             del trainer
     runs = _align_baseline(runs, set(baseline or {}), verbose)
-    table, brackets = compare(runs, first_touch=first_touch, verbose=False, group_ns=day_ns)
+    table, brackets = compare(runs, first_touch=first_touch, verbose=False, group_ns=day_ns, target_mode=target_mode)
     # متوسط ± نصف المدى عبر البذور لكل متغيّر
     for variant in variants:
         cols = [f"{variant}_s{s}" for s in seeds]
