@@ -86,6 +86,9 @@ def main():
     ap.add_argument("--split-dates", default=None,
                     help="train_end,val_end (مثلاً 2025-06-24,2025-11-21): تقسيم زمني صريح بدل نِسَب العيّنات")
     ap.add_argument("--target-mode", default=None, help="TARGET_MODE في main (مثلاً relative). None = أهداف خط الأنابيب")
+    ap.add_argument("--group-freq", default=None,
+                    help="عرض مجموعة الطوابع المقطعية (مثلاً 32h) لـ +relative (group_freq في retarget_splits) ولنموذج "
+                         "اللوحة (day_ns) معاً — لبيانات لا تتطابق طوابع عملاتها. None = الطابع الدقيق / يوم UTC")
     ap.add_argument("--anti-memorization", default="true", choices=("true", "false"))
     ap.add_argument("--reports", default=",".join(REPORTS), help=f"من {REPORTS}")
     ap.add_argument("--mn-quantiles", default="0.05,0.1,0.2,0.3,0.5",
@@ -145,11 +148,19 @@ def main():
                 ov["PANEL_FIRST_TOUCH"] = os.path.abspath(os.path.join(INVOKE_CWD, a.panel_first_touch))
             if a.panel_overrides:
                 ov["PANEL_OVERRIDES"] = json.loads(a.panel_overrides)
+            if a.group_freq:
+                import pandas as pd
+                src = src.replace("subset=PANEL_SUBSET,", f"subset=PANEL_SUBSET, day_ns={pd.Timedelta(a.group_freq).value},")
+            # رؤوس اللوحة = أهداف main غير المعلّقة (SUSPENDED_TARGETS)؛ الثلاثة ⇒ نفس السلوك السابق
+            src = src.replace("subset=PANEL_SUBSET,", "subset=PANEL_SUBSET, targets=tuple(PRICE_TARGETS),")
             src = src.replace("PANEL_MODE = False", "PANEL_MODE = True").replace(
                 "# ── نهاية الإعدادات ──", f"globals().update({ov!r})")
         if "run_full_analysis(" in src and "full_results" in src:   # القسم ٦ (chicks): اختياري، يُستدعى لاحقاً
             continue
         src = src.replace("TARGET_MODE = None", f"TARGET_MODE = {a.target_mode!r}")
+        if a.group_freq:
+            src = src.replace("retarget_splits(train, val, test, mode=TARGET_MODE)",
+                              f"retarget_splits(train, val, test, mode=TARGET_MODE, group_freq={a.group_freq!r})")
         if not a.train:
             src = src.replace("RUN_MAIN_TRAINING = True", "RUN_MAIN_TRAINING = False")
         else:

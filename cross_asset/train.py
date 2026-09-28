@@ -77,22 +77,28 @@ def day_pearson(pred, target, day, n_days, min_n):
     return tf.reduce_sum(corr * valid) / tf.maximum(tf.reduce_sum(valid), 1.0), tf.reduce_sum(valid)
 
 
-def panel_loss(out, batch, cfg, reg_scale):
-    """يُرجع (الخسارة الكلية، قاموس مكوّنات)."""
+def _ic_index(targets):
+    """هدف حدّ IC: close إن وُجد، وإلا آخر الأهداف (مثلاً low حين close معلّق)."""
+    return targets.index("close") if "close" in targets else len(targets) - 1
+
+
+def panel_loss(out, batch, cfg, reg_scale, targets=("high", "low", "close")):
+    """يُرجع (الخسارة الكلية، قاموس مكوّنات). targets بترتيب أعمدة logit/mu (افتراضياً الثلاثة)."""
     ls = cfg["label_smoothing"]
     ycls = batch["ycls"] * (1.0 - ls) + 0.5 * ls
-    bce = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=ycls, logits=out["logit"]), axis=0)   # (3,)
+    bce = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=ycls, logits=out["logit"]), axis=0)   # (K,)
     err = out["mu"] - batch["yreg"] / reg_scale
     a, d = tf.abs(err), cfg["huber_delta"]
-    huber = tf.reduce_mean(tf.where(a <= d, 0.5 * err * err, d * (a - 0.5 * d)), axis=0)                      # (3,)
+    huber = tf.reduce_mean(tf.where(a <= d, 0.5 * err * err, d * (a - 0.5 * d)), axis=0)                      # (K,)
     total = cfg["w_cls"] * tf.reduce_sum(bce) + cfg["w_reg"] * tf.reduce_sum(huber)
-    comps = {"bce_high": bce[0], "bce_low": bce[1], "bce_close": bce[2],
-             "huber_high": huber[0], "huber_low": huber[1], "huber_close": huber[2]}
+    comps = {**{f"bce_{t}": bce[i] for i, t in enumerate(targets)},
+             **{f"huber_{t}": huber[i] for i, t in enumerate(targets)}}
+    ci = _ic_index(list(targets))
     n_days = tf.reduce_max(batch["day"]) + 1
     ics = []
     for k in cfg["ic_on"]:
-        ic, n_valid = day_pearson(out[k][:, 2], batch["yrank"], batch["day"], n_days, float(cfg["ic_min_coins"]))
-        comps[f"ic_{k}_close"] = ic
+        ic, n_valid = day_pearson(out[k][:, ci], batch["yrank"], batch["day"], n_days, float(cfg["ic_min_coins"]))
+        comps[f"ic_{k}_{targets[ci]}"] = ic
         ics.append(ic)
     if ics:
         comps["ic_days"] = n_valid
@@ -103,7 +109,7 @@ def panel_loss(out, batch, cfg, reg_scale):
 
 
 _SIG = {"x": None, "day": tf.TensorSpec([None], tf.int32), "pos": tf.TensorSpec([None], tf.int32),
-        "ycls": tf.TensorSpec([None, 3], tf.float32), "yreg": tf.TensorSpec([None, 3], tf.float32),
+        "ycls": tf.TensorSpec([None, None], tf.float32), "yreg": tf.TensorSpec([None, None], tf.float32),
         "yrank": tf.TensorSpec([None], tf.float32)}
 
 
@@ -117,6 +123,7 @@ class PanelTrainer:
 
     def __init__(self, model, cfg, run_dir, reg_scale, seq_len, n_features, fingerprint=None, verbose=True):
         self.model, self.run_dir, self.verbose = model, run_dir, verbose
+        self.targets = tuple(getattr(model, "targets", ("high", "low", "close")))   # ترتيب أعمدة logit/mu
         self.cfg = {**DEFAULT_TRAIN_CFG, **(cfg or {})}
         self.cfg["ic_on"] = tuple(self.cfg["ic_on"])
         self.reg_scale = tf.constant(np.asarray(reg_scale, dtype="float32"))
@@ -140,7 +147,7 @@ class PanelTrainer:
     def _train_step_py(self, batch):
         with tf.GradientTape() as tape:
             out = self.model(batch, training=True)
-            loss, comps = panel_loss(out, batch, self.cfg, self.reg_scale)
+            loss, comps = panel_loss(out, batch, self.cfg, self.reg_scale, self.targets)
         tv = self.model.trainable_variables
         grads = tape.gradient(loss, tv)
         self.opt.apply_gradients(zip(grads, tv))
@@ -153,7 +160,7 @@ class PanelTrainer:
 
     def _eval_step_py(self, batch):
         out = self.model(batch, training=False)
-        _, comps = panel_loss(out, batch, self.cfg, self.reg_scale)
+        _, comps = panel_loss(out, batch, self.cfg, self.reg_scale, self.targets)
         return comps, out
 
     @staticmethod
@@ -181,7 +188,7 @@ class PanelTrainer:
         backup = self._swap_in_ema() if use_ema else None
         try:
             sums, n_tot = {}, 0
-            logits = np.zeros((ps.n, 3), "float32")
+            logits = np.zeros((ps.n, len(ps.targets)), "float32")
             for b in ps.iter_batches(self.cfg["batch_samples"], self.cfg["max_days"]):
                 comps, out = self._eval_step(self._tf_batch(b))
                 m = len(b["idx"])
@@ -197,18 +204,19 @@ class PanelTrainer:
             y = ps.ycls[:, i]
             if 0 < y.mean() < 1:
                 res[f"val_auc_{t}"] = float(roc_auc_score(y, logits[:, i]))
-        df = pd.DataFrame({"d": ps.day_key, "s": logits[:, 2], "r": ps.yreg[:, 2]})
+        ci = _ic_index(list(ps.targets))
+        df = pd.DataFrame({"d": ps.day_key, "s": logits[:, ci], "r": ps.yreg[:, ci]})
         ic = df.groupby("d").filter(lambda g: len(g) >= 10).groupby("d").apply(
             lambda g: g["s"].corr(g["r"], method="spearman"))
-        res["val_ic_close"] = float(ic.mean()) if len(ic) else float("nan")
+        res[f"val_ic_{ps.targets[ci]}"] = float(ic.mean()) if len(ic) else float("nan")
         return res
 
     def predict(self, ps, use_ema=False):
         """(logit, mu بوحدات العائد) لكل عيّنة بترتيب X الأصلي. use_ema=False: الأوزان الحالية (بعد load_best هي الأفضل)."""
         backup = self._swap_in_ema() if use_ema else None
         try:
-            logit = np.zeros((ps.n, 3), "float32")
-            mu = np.zeros((ps.n, 3), "float32")
+            logit = np.zeros((ps.n, len(ps.targets)), "float32")
+            mu = np.zeros((ps.n, len(ps.targets)), "float32")
             for b in ps.iter_batches(self.cfg["batch_samples"], self.cfg["max_days"]):
                 out = self._predict_step(self._tf_batch(b, ("x", "day", "pos")))
                 logit[b["idx"]] = out["logit"].numpy()
@@ -305,7 +313,8 @@ class PanelTrainer:
                 print(f"[{epoch + 1:>3}/{c['epochs']}] {row['sec']:.0f}s {n_b} خطوة | train loss {tr['train_loss']:.4f} | "
                       f"val loss {va['val_loss']:.4f} | AUC h/l/c {va.get('val_auc_high', np.nan):.3f}/"
                       f"{va.get('val_auc_low', np.nan):.3f}/{va.get('val_auc_close', np.nan):.3f} | "
-                      f"IC close {va['val_ic_close']:+.4f}" + (" ⭐" if improved else f" (صبر {state['wait']}/{c['patience']})"),
+                      f"IC {self.targets[_ic_index(list(self.targets))]} "
+                      f"{va[f'val_ic_{self.targets[_ic_index(list(self.targets))]}']:+.4f}" + (" ⭐" if improved else f" (صبر {state['wait']}/{c['patience']})"),
                       flush=True)
         return state
 

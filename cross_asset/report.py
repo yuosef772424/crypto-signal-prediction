@@ -23,9 +23,14 @@ warnings.filterwarnings("ignore", message="An input array is constant")
 DAY = pd.Timedelta(days=1)
 
 
-def prepare(df):
-    """يضيف r (عائد close الخام)، rel_{هدف} (نسبي لوسيط اليوم)، cls_{هدف}، وpvol (تقلّب سابق بلا نظر للمستقبل)."""
+def prepare(df, group_ns=None):
+    """يضيف r (عائد close الخام)، rel_{هدف} (نسبي لوسيط اليوم)، cls_{هدف}، وpvol (تقلّب سابق بلا نظر للمستقبل).
+    group_ns: None = التجميع بالطابع الدقيق. غير ذلك: timestamp يُستبدَل بأرضيته (من epoch) — لطوابع غير متطابقة
+    بين العملات (فريم الساعة)، بنفس group_freq في retarget_splits؛ الطابع الأصلي يبقى في timestamp_raw."""
     d = df.copy()
+    if group_ns:
+        d["timestamp_raw"] = d["timestamp"]
+        d["timestamp"] = (d["timestamp"].astype("int64") // int(group_ns)) * int(group_ns)
     d["r"] = d["fut_close"] / d["entry"] - 1.0
     raw = {"close": d["r"], "high": d["fut_high"] / d["last_high"] - 1.0, "low": d["fut_low"] / d["last_low"] - 1.0}
     for t, v in raw.items():
@@ -122,14 +127,16 @@ def bracket_table(d, score="p_up_close", B=0.05, first_touch=None, n_dec=10):
     return t[["up", "down", "amb", "none", "touch", "up_share", "n_resolved"]]
 
 
-def summarize(val_df, test_df, first_touch=None, B=0.05, min_coins=10):
+def summarize(val_df, test_df, first_touch=None, B=0.05, min_coins=10, group_ns=None):
     """قاموس المقاييس لنموذج واحد + جدول القوس (test)."""
-    V, T = prepare(val_df), prepare(test_df)
+    V, T = prepare(val_df, group_ns), prepare(test_df, group_ns)
     m = {"test_days": T["timestamp"].nunique(), "test_rows": len(T)}
     from sklearn.metrics import roc_auc_score
     for t in ("high", "low", "close"):
         if f"p_up_{t}" in T:
             m[f"auc_{t}"] = roc_auc_score(T[f"cls_{t}"], T[f"p_up_{t}"])
+    if "p_up_close" not in T:     # close معلّق: بقية المقاييس معرّفة على درجة close
+        return m, pd.DataFrame(columns=["up", "down", "amb", "none", "touch", "up_share", "n_resolved"])
     m["ic_p_up_close"], m["ic_p_up_close_t"], _ = daily_ic(T, "p_up_close", "r", min_coins)
     m["val_ic_p_up_close"], m["val_ic_p_up_close_t"], _ = daily_ic(V, "p_up_close", "r", min_coins)
     if "mu_close" in T:
@@ -165,11 +172,11 @@ ROWS = [("auc_high", "AUC high"), ("auc_low", "AUC low"), ("auc_close", "AUC clo
         ("test_days", "أيام test")]
 
 
-def compare(runs, first_touch=None, B=0.05, verbose=True):
-    """runs: {اسم: (val_df, test_df)}. يُرجع (جدول المقارنة، {اسم: جدول القوس})."""
+def compare(runs, first_touch=None, B=0.05, verbose=True, group_ns=None):
+    """runs: {اسم: (val_df, test_df)}. يُرجع (جدول المقارنة، {اسم: جدول القوس}). group_ns: انظر prepare."""
     metrics, brackets = {}, {}
     for name, (v, t) in runs.items():
-        metrics[name], brackets[name] = summarize(v, t, first_touch, B)
+        metrics[name], brackets[name] = summarize(v, t, first_touch, B, group_ns=group_ns)
     table = pd.DataFrame({name: {label: m.get(k, np.nan) for k, label in ROWS} for name, m in metrics.items()})
     if verbose:
         with pd.option_context("display.width", 200, "display.float_format", "{:.4f}".format):

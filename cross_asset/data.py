@@ -33,6 +33,7 @@ class PanelSplit:
 
     def __init__(self, X, y, last_candles, assets=None, name="", targets=TARGETS, day_ns=DAY_NS):
         self.name, self.targets, self.X = name, tuple(targets), X
+        self.day_ns = int(day_ns)
         self.n = len(X)
         self.lc = np.asarray(last_candles, dtype="float64")
         if len(self.lc) != self.n:
@@ -41,8 +42,10 @@ class PanelSplit:
         if self.assets is not None and len(self.assets) != self.n:
             raise ValueError(f"{name}: assets {len(self.assets)} ≠ X {self.n}")
         self.ts = self.lc[:, LC["timestamp"]].astype("int64")
-        self.day_key = (self.ts // day_ns) * day_ns          # بداية يوم UTC
-        self.misaligned = self.ts != self.day_key            # طابع ليس 00:00 UTC
+        # مفتاح المجموعة المقطعية: يوم UTC افتراضياً. day_ns آخر (مثلاً 32 ساعة) لبيانات لا تتطابق طوابع عملاتها —
+        # كفريم الساعة بـ stride=32 حيث تبدأ نوافذ كل عملة من إدراجها: الأرضية المشتركة (من epoch) تجمع كل عملة مرّة.
+        self.day_key = (self.ts // self.day_ns) * self.day_ns
+        self.misaligned = self.ts != self.day_key            # طابع ليس بداية مجموعته (00:00 UTC في اليومي)
         self.ycls = np.stack([(np.asarray(y[f"y_{t}_class"]).ravel() > 0) for t in self.targets], 1).astype("float32")
         self.yreg = np.stack([np.asarray(y[f"y_{t}_reg"]).ravel() for t in self.targets], 1).astype("float32")
 
@@ -69,7 +72,8 @@ class PanelSplit:
             y[f"y_{t}_class"] = self.ycls[idx, i].copy()       # 1/0 — ترميز خط الأنابيب الحالي
             y[f"y_{t}_reg"] = self.yreg[idx, i]
         return PanelSplit(np.asarray(self.X[idx]), y, self.lc[idx],
-                          None if self.assets is None else self.assets[idx], name or self.name, self.targets)
+                          None if self.assets is None else self.assets[idx], name or self.name, self.targets,
+                          day_ns=self.day_ns)
 
     def subset(self, last_days=None, coins=None, seed=0):
         """مجموعة فرعية للاختبار السريع: آخر last_days يوماً متتالياً، و coins عملة على الأكثر (نفس العملات عبر
@@ -182,15 +186,16 @@ def _concat_dict(split_dict, model_tf):
     return X, y, lc, assets
 
 
-def panel_split_from(split_or_dict, model_tf, asset_names=None, name="", targets=TARGETS):
+def panel_split_from(split_or_dict, model_tf, asset_names=None, name="", targets=TARGETS, day_ns=DAY_NS):
     """من مخرَج split_data/retarget_splits: قسم مدمج (train/val) أو قاموس {عملة: قسم} (test).
-    asset_names للقسم المدمج: split_asset_names(dataset, 'train'|'val') من دفتر main (بنفس أقنعة split_data)."""
+    asset_names للقسم المدمج: split_asset_names(dataset, 'train'|'val') من دفتر main (بنفس أقنعة split_data).
+    day_ns: عرض مجموعة الطوابع (يوم UTC افتراضياً) — انظر PanelSplit."""
     if "y" in split_or_dict:
         X, y, lc = split_or_dict[f"X_{model_tf}"], split_or_dict["y"], split_or_dict["last_candles"]
         assets = asset_names if asset_names is not None and len(asset_names) == len(lc) else None
     else:
         X, y, lc, assets = _concat_dict(split_or_dict, model_tf)
-    return PanelSplit(X, y, lc, assets=assets, name=name, targets=targets)
+    return PanelSplit(X, y, lc, assets=assets, name=name, targets=targets, day_ns=day_ns)
 
 
 def format_checks(checks):

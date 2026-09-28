@@ -40,8 +40,70 @@ class PanelDataTests(unittest.TestCase):
         sub = ps.take(np.arange(0, ps.n, 3))                 # take يمرّ بترميز 1/0 ولا يفقد التسميات
         np.testing.assert_array_equal(sub.ycls, ps.ycls[np.arange(0, ps.n, 3)])
 
+    def test_group_width_for_unaligned_timestamps(self):
+        """فريم الساعة بـ stride=32: طوابع كل عملة بطور مختلف ⇒ day_ns=32 ساعة يجمع كل عملة مرّة في كل مجموعة، ويبقى
+        عبر take/subset، ويطابق أرضية report.prepare(group_ns) وgroup_freq في retarget_splits (pandas floor)."""
+        import numpy as np
+        import pandas as pd
+        from cross_asset.data import DAY_NS, PanelSplit
+        from cross_asset.report import prepare
+        H, G = 3600 * 10**9, 32 * 3600 * 10**9
+        n_coins, n_steps = 6, 20
+        ts = np.concatenate([(1_000 * G + c * 5 * H) + np.arange(n_steps) * G for c in range(n_coins)])  # طور 5c ساعة
+        assets = np.repeat([f"C{c}" for c in range(n_coins)], n_steps)
+        n = len(ts)
+        lc = np.c_[np.ones((n, 3)), ts.astype("float64"), np.ones((n, 3))]
+        y = {f"y_{t}_{k}": np.zeros(n, "float32") for t in ("high", "low", "close") for k in ("class", "reg")}
+        X = np.zeros((n, 4, 2), "float32")
+        exact = PanelSplit(X, y, lc, assets, "exact", day_ns=H)
+        self.assertEqual(exact.sizes.max(), 1)                               # الطابع الدقيق: مجموعات من عملة واحدة
+        ps = PanelSplit(X, y, lc, assets, "g32", day_ns=G)
+        self.assertEqual(set(ps.sizes.tolist()), {n_coins})
+        self.assertTrue(ps.check()["ok"])
+        self.assertEqual(ps.take(np.arange(0, n, 2)).day_ns, G)
+        self.assertEqual(ps.subset(last_days=5).n_days, 5)
+        np.testing.assert_array_equal(ps.day_key, pd.to_datetime(ts).floor("32h").asi8)
+        df = pd.DataFrame({"asset": assets, "timestamp": ts.astype("float64"), "entry": 1.0, "fut_close": 1.0,
+                           "last_high": 1.0, "last_low": 1.0, "fut_high": 1.0, "fut_low": 1.0})
+        np.testing.assert_array_equal(np.sort(prepare(df, group_ns=G)["timestamp"].unique()), ps.days)
+        self.assertEqual(PanelSplit(X, y, lc, assets, "d").day_ns, DAY_NS)   # الافتراضي لم يتغيّر
+
 
 class PanelModelTests(unittest.TestCase):
+    def test_suspended_close_high_low_only(self):
+        """close معلّق (SUSPENDED_TARGETS في main): رأسان فقط، حدّ IC على low، تصدير وتقرير بلا أعمدة close."""
+        import shutil
+        import tempfile
+        import numpy as np
+        from cross_asset.experiment import run_panel_experiment
+        tr = st.synthetic_split(20, 30, seed=1, name="train")
+        va = st.synthetic_split(20, 12, start_day=18200, seed=2, name="val")
+        te = st.synthetic_split(20, 12, start_day=18300, seed=3, name="test")
+
+        def as_split(ps):
+            y = {f"y_{t}_{k}": (ps.ycls[:, i] * 2 - 1 if k == "class" else ps.yreg[:, i])
+                 for i, t in enumerate(ps.targets) for k in ("class", "reg")}
+            return {"X_1D": ps.X, "y": y, "last_candles": ps.lc}
+        root = tempfile.mkdtemp(prefix="panel_hl_")
+        try:
+            res = run_panel_experiment(
+                as_split(tr), as_split(va),
+                {a: as_split(te.take(np.flatnonzero(te.assets == a))) for a in np.unique(te.assets)}, "1D", lambda: st._TinyBase(8, 5), 8, 5, root,
+                variants=("A_ic",), seeds=(0,), model_cfg=dict(d_model=16, num_heads=4),
+                train_cfg=dict(epochs=1, batch_samples=150, max_days=8, lr_warmup_epochs=0), verbose=False,
+                train_assets=tr.assets, val_assets=va.assets, targets=("high", "low"))
+            v, t = res["runs"]["A_ic_s0"]
+            self.assertIn("p_up_low", t)
+            self.assertNotIn("p_up_close", t)
+            self.assertEqual(len(t), te.n)
+            self.assertTrue(np.isfinite(t[["p_up_high", "p_up_low", "mu_high", "mu_low"]].to_numpy()).all())
+            import json
+            with open(f"{root}/panel_A_ic_s0/state.json") as f:
+                self.assertIn("val_ic_low", json.load(f)["history"][0])
+            self.assertTrue(np.isfinite(res["table"].loc["AUC low", "A_ic_s0"]))
+        finally:
+            shutil.rmtree(root, ignore_errors=True)
+
     def test_masking(self):
         self.assertTrue(st.test_masking())
 

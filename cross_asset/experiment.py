@@ -15,7 +15,7 @@ import time
 import numpy as np
 import pandas as pd
 
-from .data import format_checks, panel_split_from
+from .data import DAY_NS, TARGETS, format_checks, panel_split_from
 from .report import compare, up_share_table
 
 VARIANTS = {
@@ -50,11 +50,14 @@ def _count(vars_):
     return int(sum(np.prod(v.shape) for v in vars_))
 
 
-def build_panel_splits(train, val, test, model_tf, train_assets=None, val_assets=None, subset=None, verbose=True):
-    """PanelSplit لكل قسم + فحوص السلامة (ترفع خطأً إن فشل فحص جوهري)."""
-    tr = panel_split_from(train, model_tf, train_assets, "train")
-    va = panel_split_from(val, model_tf, val_assets, "val")
-    te = panel_split_from(test, model_tf, None, "test")
+def build_panel_splits(train, val, test, model_tf, train_assets=None, val_assets=None, subset=None, verbose=True,
+                       day_ns=None, targets=None):
+    """PanelSplit لكل قسم + فحوص السلامة (ترفع خطأً إن فشل فحص جوهري). day_ns: None = يوم UTC.
+    targets: None = high/low/close؛ مثلاً ("high", "low") حين يُعلَّق close (SUSPENDED_TARGETS في main)."""
+    g, tg = day_ns or DAY_NS, tuple(targets or TARGETS)
+    tr = panel_split_from(train, model_tf, train_assets, "train", targets=tg, day_ns=g)
+    va = panel_split_from(val, model_tf, val_assets, "val", targets=tg, day_ns=g)
+    te = panel_split_from(test, model_tf, None, "test", targets=tg, day_ns=g)
     if subset:
         tr, va, te = (s.subset(**subset) for s in (tr, va, te))
     checks = [s.check() for s in (tr, va, te)]
@@ -75,6 +78,8 @@ def run_panel_variant(tr, va, te, encoder_builder, seq_len, n_features, run_dir,
 
     v = VARIANTS[variant]
     mcfg = {**DEFAULT_MODEL_CFG, **(model_cfg or {}), **v["model"]}
+    if tr.targets != TARGETS:   # فقط لغير الافتراضي: بصمة التشغيلات القائمة لا تتغيّر
+        mcfg["targets"] = tr.targets
     tcfg = {**(train_cfg or {}), **v["train"], "seed": seed}
     tf.keras.utils.set_random_seed(seed)
     encoder = extract_encoder(encoder_builder())
@@ -87,6 +92,8 @@ def run_panel_variant(tr, va, te, encoder_builder, seq_len, n_features, run_dir,
               f"المجموع {n_all:,} — {mcfg} | مقياس الانحدار {np.round(reg_scale, 4).tolist()}", flush=True)
     fp = {"variant": variant, "model": mcfg, "n": [tr.n, va.n, te.n],
           "days": [str(tr.days[0]), str(tr.days[-1]), str(va.days[-1])]}
+    if tr.day_ns != DAY_NS:     # فقط لغير اليومي: بصمة التشغيلات اليومية القائمة لا تتغيّر (يبقى الاستئناف ممكناً)
+        fp["day_ns"] = tr.day_ns
     trainer = PanelTrainer(model, tcfg, run_dir, reg_scale, seq_len, n_features, fingerprint=fp, verbose=verbose)
     t0 = time.time()
     state = trainer.fit(tr, va)
@@ -94,7 +101,7 @@ def run_panel_variant(tr, va, te, encoder_builder, seq_len, n_features, run_dir,
     out = {}
     for name, ps in (("val", va), ("test", te)):
         logit, mu = trainer.predict(ps)
-        out[name] = export_signals(ps, logit, mu, name)
+        out[name] = export_signals(ps, logit, mu, name, targets=ps.targets)
         out[name].to_csv(os.path.join(run_dir, f"signals_{name}.csv.gz"), index=False)
     meta = {"variant": variant, "seed": seed, "model_cfg": mcfg, "train_cfg": trainer.cfg,
             "reg_scale": reg_scale.tolist(), "best_epoch": state["best_epoch"], "best": state["best"],
@@ -131,11 +138,15 @@ def _align_baseline(runs, base_names, verbose=True):
 def run_panel_experiment(train, val, test, model_tf, encoder_builder, seq_len, n_features, run_root,
                          variants=("A_ic", "B_ic"), seeds=(0,), model_cfg=None, train_cfg=None,
                          train_assets=None, val_assets=None, subset=None, baseline=None, first_touch=None,
-                         verbose=True):
+                         verbose=True, day_ns=None, targets=None):
     """baseline: {اسم: (val_df, test_df)} إشارات النموذج الحالي على نفس التقسيم (collect_signals) — اختياري.
     first_touch: جدول (asset, day, first) من bracket_fetch.py لحسم اللمس المزدوج في القوس — اختياري.
+    day_ns: عرض مجموعة الطوابع للتدريب والتقييم (None = يوم UTC). لفريم الساعة بطوابع غير متطابقة بين العملات
+    مثلاً 32 * 3600 * 10**9 (= stride) — يجب أن يطابق group_freq في retarget_splits.
+    targets: None = high/low/close؛ غير ذلك رؤوس هذه الأهداف فقط.
     يُرجع {"runs": {اسم: (val_df, test_df)}, "table": جدول المقارنة, "brackets": {...}, "checks": [...]}."""
-    tr, va, te, checks = build_panel_splits(train, val, test, model_tf, train_assets, val_assets, subset, verbose)
+    tr, va, te, checks = build_panel_splits(train, val, test, model_tf, train_assets, val_assets, subset, verbose,
+                                            day_ns=day_ns, targets=targets)
     runs = dict(baseline or {})
     states = {}
     for variant in variants:
@@ -146,7 +157,7 @@ def run_panel_experiment(train, val, test, model_tf, encoder_builder, seq_len, n
             runs[f"{variant}_s{seed}"] = (v, t)
             states[f"{variant}_s{seed}"] = {"best_epoch": st["best_epoch"], "epochs": st["epoch"]}
     runs = _align_baseline(runs, set(baseline or {}), verbose)
-    table, brackets = compare(runs, first_touch=first_touch, verbose=False)
+    table, brackets = compare(runs, first_touch=first_touch, verbose=False, group_ns=day_ns)
     # متوسط ± نصف المدى عبر البذور لكل متغيّر
     for variant in variants:
         cols = [f"{variant}_s{s}" for s in seeds]
