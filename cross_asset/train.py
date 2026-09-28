@@ -355,12 +355,13 @@ def realized_return(ps):
 
 def asym_score(ps, mu):
     """تباين المدى المتوقَّع log(up + 1e-3) − log(dn + 1e-3)، حيث up = القمة المتوقَّعة ÷ P − 1 وdn = 1 − القاع المتوقَّع ÷ P
-    (P آخر إغلاق، mu بوحدات العائد، وكلاهما مقصوص عند 1e-5). نفس تعريف skew في
+    (P آخر إغلاق، mu بوحدات هدف التدريب — يُقسَم هنا على ps.target_scale ليصير عائداً؛ وكلاهما مقصوص عند 1e-5). نفس تعريف skew في
     docs/research/scripts/hourly_1h/exc_analysis.py، الذي حمل معلومة الاتجاه (IC ≈ 0.05 مع العائد، القسم ٤). None إن
     غاب high أو low."""
     if "high" not in ps.targets or "low" not in ps.targets:
         return None
     lc, t = ps.lc, list(ps.targets)
+    mu = np.asarray(mu, dtype="float64") / getattr(ps, "target_scale", 1.0)
     up = np.maximum(lc[:, 0] * (1.0 + mu[:, t.index("high")]) / lc[:, 2] - 1.0, 1e-5)
     dn = np.maximum(1.0 - lc[:, 1] * (1.0 + mu[:, t.index("low")]) / lc[:, 2], 1e-5)
     return np.log(up + 1e-3) - np.log(dn + 1e-3)
@@ -379,8 +380,10 @@ def group_ic(ps, score, target, min_n=10):
 
 
 def export_signals(ps, logit, mu, split_name, targets=("high", "low", "close")):
-    """إشارات بنفس أعمدة collect_signals في دفتر main (بلا wst/conf — لا رؤوس عدم يقين هنا)."""
+    """إشارات بنفس أعمدة collect_signals في دفتر main (بلا wst/conf — لا رؤوس عدم يقين هنا).
+    mu بوحدات هدف التدريب (عائد × ps.target_scale)؛ يُقسَم أولاً فتبقى أعمدة mu_* عائداً وpred_* أسعاراً حقيقية."""
     lc = ps.lc
+    mu = np.asarray(mu, dtype="float64") / getattr(ps, "target_scale", 1.0)
     df = pd.DataFrame({
         "asset": ps.assets if ps.assets is not None else np.array(["all"] * ps.n, dtype=object),
         "timestamp": lc[:, 3], "entry": lc[:, 2], "last_high": lc[:, 0], "last_low": lc[:, 1],

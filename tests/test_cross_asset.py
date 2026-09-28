@@ -323,6 +323,40 @@ class PanelModelTests(unittest.TestCase):
         self.assertGreater(auc[True], auc[False] + 0.05, auc)
 
 
+class RegTargetScaleTests(unittest.TestCase):
+    """reg_target_scale (خط الأنابيب): y_*_reg = عائد × المقياس، فكل تحويل إلى سعر يقسم عليه أولاً."""
+
+    def _pair(self, scale):
+        import numpy as np
+        from cross_asset.data import panel_split_from
+        ps = st.synthetic_split(seed=4)
+        split = {"X_1D": ps.X, "last_candles": ps.lc,
+                 "y": {**{f"y_{t}_reg": ps.yreg[:, i] * scale for i, t in enumerate(ps.targets)},
+                       **{f"y_{t}_class": ps.ycls[:, i] for i, t in enumerate(ps.targets)}}}
+        if scale != 1.0:
+            split["reg_target_scale"] = scale             # يختمه دفتر main من dataset['reg_target_scale']
+        return panel_split_from(split, "1D", name="s"), np.random.default_rng(0).normal(0, 0.01, (ps.n, 3))
+
+    def test_export_signals_identical_for_scaled_model_output(self):
+        import numpy as np
+        from cross_asset.train import asym_score, export_signals
+        ps1, mu = self._pair(1.0)
+        ps100, _ = self._pair(100.0)
+        self.assertEqual((ps1.target_scale, ps100.target_scale), (1.0, 100.0))
+        self.assertEqual(ps100.take(np.arange(10)).target_scale, 100.0)   # take/subset يحفظان المقياس
+        logit = np.zeros_like(mu)
+        a = export_signals(ps1, logit, mu, "t", targets=ps1.targets)
+        b = export_signals(ps100, logit, mu * 100.0, "t", targets=ps100.targets)
+        for c in ("pred_high", "pred_low", "mu_high", "mu_low", "mu_close"):
+            np.testing.assert_allclose(b[c].to_numpy(), a[c].to_numpy(), rtol=1e-12, err_msg=c)
+        np.testing.assert_allclose(a["pred_high"], a["last_high"] * (1 + mu[:, ps1.targets.index("high")]))
+        np.testing.assert_allclose(asym_score(ps100, mu * 100.0), asym_score(ps1, mu), rtol=1e-12)
+
+    def test_old_split_without_key_is_unscaled(self):
+        ps, _ = self._pair(1.0)
+        self.assertEqual(ps.target_scale, 1.0)
+
+
 class AuditRound1Tests(unittest.TestCase):
     """إصلاحات الجولة ١ (docs/research/audit/repro_01..05) — كل اختبار يفشل على الكود قبل الإصلاح."""
 

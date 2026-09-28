@@ -37,7 +37,7 @@ for t,fc in [('high','future_high_max'),('low','future_low_min'),('close','futur
     r=L[fc]/L['last_'+t]-1
     c=(r>0).astype(float)
     print(t,'class match',(c.values==d[f'y_{t}_class']).mean(),'up share',d[f'y_{t}_class'].mean(),
-          'reg match (maxabs diff)',np.nanmax(np.abs(np.clip(r.values,-1,1)-d[f'y_{t}_reg'])), 'ties r==0',(r==0).mean())
+          'reg match (maxabs diff)',np.nanmax(np.abs(np.clip(r.values,-1,1)*d.get('reg_target_scale',1.0)-d[f'y_{t}_reg'])), 'ties r==0',(r==0).mean())
 # sanity: high>=low etc
 print('last_high>=last_close',(L.last_high>=L.last_close).mean(),'fut_high>=fut_close',(L.future_high_max>=L.future_close).mean(),'fut_low<=fut_close',(L.future_low_min<=L.future_close).mean())
 # feature per last step vs price

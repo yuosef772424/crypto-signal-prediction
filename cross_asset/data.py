@@ -29,10 +29,13 @@ class PanelSplit:
                    الصعود = y > 0، فالترميزان يُقرآن بلا تحويل.
     last_candles : (N, 7) بأعمدة LAST_COLUMNS.
     assets       : أسماء العملات لكل صف (اختياري؛ لازم لفحص التكرار وللتصدير).
+    target_scale : reg_target_scale الذي بُنيت به y_{هدف}_reg (عائد × المقياس). يُقسَم عليه قبل أي تحويل إلى سعر
+                   أو عائد (asym_score، export_signals)؛ 1.0 لبيانات قديمة بلا المفتاح.
     """
 
-    def __init__(self, X, y, last_candles, assets=None, name="", targets=TARGETS, day_ns=DAY_NS):
+    def __init__(self, X, y, last_candles, assets=None, name="", targets=TARGETS, day_ns=DAY_NS, target_scale=1.0):
         self.name, self.targets, self.X = name, tuple(targets), X
+        self.target_scale = float(target_scale)
         self.day_ns = int(day_ns)
         self.n = len(X)
         self.lc = np.asarray(last_candles, dtype="float64")
@@ -87,7 +90,7 @@ class PanelSplit:
             y[f"y_{t}_reg"] = self.yreg[idx, i]
         return PanelSplit(np.asarray(self.X[idx]), y, self.lc[idx],
                           None if self.assets is None else self.assets[idx], name or self.name, self.targets,
-                          day_ns=self.day_ns)
+                          day_ns=self.day_ns, target_scale=self.target_scale)
 
     def subset(self, last_days=None, coins=None, seed=0):
         """مجموعة فرعية للاختبار السريع: آخر last_days يوماً متتالياً، و coins عملة على الأكثر (نفس العملات عبر
@@ -281,16 +284,21 @@ def _concat_dict(split_dict, model_tf):
     return X, y, lc, assets
 
 
-def panel_split_from(split_or_dict, model_tf, asset_names=None, name="", targets=TARGETS, day_ns=DAY_NS):
+def panel_split_from(split_or_dict, model_tf, asset_names=None, name="", targets=TARGETS, day_ns=DAY_NS,
+                     target_scale=None):
     """من مخرَج split_data/retarget_splits: قسم مدمج (train/val) أو قاموس {عملة: قسم} (test).
     asset_names للقسم المدمج: split_asset_names(dataset, 'train'|'val') من دفتر main (بنفس أقنعة split_data).
-    day_ns: عرض مجموعة الطوابع (يوم UTC افتراضياً) — انظر PanelSplit."""
+    day_ns: عرض مجموعة الطوابع (يوم UTC افتراضياً) — انظر PanelSplit.
+    target_scale: None يقرأ 'reg_target_scale' المختوم على القسم (دفتر main يختمه من البيانات)، وإلا 1.0."""
+    if target_scale is None:
+        first = split_or_dict if "y" in split_or_dict else next(iter(split_or_dict.values()), {})
+        target_scale = first.get("reg_target_scale", 1.0)
     if "y" in split_or_dict:
         X, y, lc = split_or_dict[f"X_{model_tf}"], split_or_dict["y"], split_or_dict["last_candles"]
         assets = asset_names if asset_names is not None and len(asset_names) == len(lc) else None
     else:
         X, y, lc, assets = _concat_dict(split_or_dict, model_tf)
-    return PanelSplit(X, y, lc, assets=assets, name=name, targets=targets, day_ns=day_ns)
+    return PanelSplit(X, y, lc, assets=assets, name=name, targets=targets, day_ns=day_ns, target_scale=target_scale)
 
 
 def group_ns_for(base_tf, stride):
