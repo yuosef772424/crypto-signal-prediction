@@ -7,6 +7,9 @@
 المتغيّرات (VARIANTS):
   A     : انتباه عبر العملات، بلا حدّ IC            B     : نفس النموذج بلا انتباه (FFN لكل عملة فقط)، بلا حدّ IC
   A_ic  : انتباه + حدّ IC اليومي لـ close           B_ic  : بلا انتباه + حدّ IC
+  A_ic_k: مثل A_ic، لكن كل مجموعة تدريب ترى k ~ U[5, كل العملات] عملة (min_coins) — للاستخدام على عدد عملات متغيّر
+
+evaluate_k_coins يقيس أي نموذج مدرَّب حين يرى k عملة فقط لكل طابع (5، 10، 20، الكل).
 """
 import json
 import os
@@ -23,7 +26,9 @@ VARIANTS = {
     "A_ic": {"model": {"cross_attention": True}, "train": {"lambda_ic": 0.5}},
     "B": {"model": {"cross_attention": False}, "train": {"lambda_ic": 0.0}},
     "B_ic": {"model": {"cross_attention": False}, "train": {"lambda_ic": 0.5}},
+    "A_ic_k": {"model": {"cross_attention": True}, "train": {"lambda_ic": 0.5, "min_coins": 5}},
 }
+K_EVAL_DEFAULT = (5, 10, 20, None)      # None = كل عملات الطابع
 DEFAULT_MODEL_CFG = dict(d_model=64, n_cross_layers=1, num_heads=4, dropout=0.25, attn_dropout=0.1, ff_mult=2,
                          class_head_hidden=32, head_hidden=64)
 
@@ -114,6 +119,45 @@ def run_panel_variant(tr, va, te, encoder_builder, seq_len, n_features, run_dir,
     return out["val"], out["test"], state, trainer
 
 
+def evaluate_k_coins(trainer, ps, ks=K_EVAL_DEFAULT, draws=3, seed=0, min_group=10, export_dir=None):
+    """مقاييس test حين يرى النموذج k عملة فقط لكل طابع: كل مجموعة تُقسَم عشوائياً إلى أجزاء من k عملة
+    (ps.chunk_groups)، فكل عيّنة تُتنبّأ مرّة واحدة بسياق k بالضبط (أو كل الطابع إن كان أصغر)، وتُحسب المقاييس على
+    نفس الصفوف لكل k.
+    IC لكل طابع يُحسب على المجموعة كاملة (≥ min_group) — أي: هل يرتّب النموذج العملات جيداً حين لم يرَ معاً إلا k منها؟
+    يُرجع جدولاً بصف لكل k: متوسط وانحراف المقاييس عبر draws سحبة (k=None حتمي فسحبة واحدة).
+    export_dir: يحفظ إشارات السحبة الأولى لكل k محدود (signals_test_k{k}.csv.gz) للتحليل المحلي."""
+    from sklearn.metrics import roc_auc_score
+    from .train import asym_score, export_signals, group_ic, realized_return
+    r = realized_return(ps)
+    rows = []
+    for k in ks:
+        per = []
+        for dr in range(1 if not k else int(draws)):
+            groups = ps.chunk_groups(k, seed=int(seed) * 1000 + dr)
+            logit, mu = trainer.predict(ps, groups=groups)
+            ctx = np.concatenate([np.full(len(s), len(g)) for g, s in zip(*groups)])      # السياق لكل صف محسوب
+            m = {"k": "all" if not k else int(k), "draw": dr, "context_mean": float(ctx.mean())}
+            for i, t in enumerate(ps.targets):
+                y = ps.ycls[:, i]
+                if 0 < y.mean() < 1:
+                    m[f"auc_{t}"] = float(roc_auc_score(y, logit[:, i]))
+                m[f"ic_{t}"] = group_ic(ps, logit[:, i], ps.yreg[:, i], min_group)
+            a = asym_score(ps, mu)
+            if a is not None:
+                m["ic_asym"] = group_ic(ps, a, r, min_group)
+            per.append(m)
+            if export_dir and k and dr == 0:
+                export_signals(ps, logit, mu, f"test_k{k}", targets=ps.targets).to_csv(
+                    os.path.join(export_dir, f"signals_test_k{k}.csv.gz"), index=False)
+        df = pd.DataFrame(per)
+        num = df.drop(columns=["k", "draw"])
+        row = {"k": df["k"].iloc[0], "draws": len(df), **num.mean().to_dict()}
+        if len(df) > 1:
+            row.update({f"{c}_sd": v for c, v in num.std(ddof=1).items() if c != "context_mean"})
+        rows.append(row)
+    return pd.DataFrame(rows).set_index("k")
+
+
 def _align_baseline(runs, base_names, verbose=True):
     """يقصر إشارات النموذج الحالي على صفوف (عملة، طابع) نفسها التي في إشارات اللوحة — المقارنة على نفس العيّنات
     دائماً (ضروري مع subset، وفحص سلامة بدونه: يجب أن تتطابق الصفوف كلها)."""
@@ -138,24 +182,35 @@ def _align_baseline(runs, base_names, verbose=True):
 def run_panel_experiment(train, val, test, model_tf, encoder_builder, seq_len, n_features, run_root,
                          variants=("A_ic", "B_ic"), seeds=(0,), model_cfg=None, train_cfg=None,
                          train_assets=None, val_assets=None, subset=None, baseline=None, first_touch=None,
-                         verbose=True, day_ns=None, targets=None):
+                         verbose=True, day_ns=None, targets=None, k_eval=None, k_draws=3):
     """baseline: {اسم: (val_df, test_df)} إشارات النموذج الحالي على نفس التقسيم (collect_signals) — اختياري.
     first_touch: جدول (asset, day, first) من bracket_fetch.py لحسم اللمس المزدوج في القوس — اختياري.
     day_ns: عرض مجموعة الطوابع للتدريب والتقييم (None = يوم UTC). لفريم الساعة بطوابع غير متطابقة بين العملات
     مثلاً 32 * 3600 * 10**9 (= stride) — يجب أن يطابق group_freq في retarget_splits.
     targets: None = high/low/close؛ غير ذلك رؤوس هذه الأهداف فقط.
-    يُرجع {"runs": {اسم: (val_df, test_df)}, "table": جدول المقارنة, "brackets": {...}, "checks": [...]}."""
+    k_eval: مثلاً (5, 10, 20, None) — بعد تدريب كل متغيّر/بذرة: evaluate_k_coins على test، ويُحفظ
+    k_coins_test.csv وإشارات كل k في مجلد التشغيل، وجدول مجمَّع panel_k_coins.csv في run_root. None = لا شيء.
+    يُرجع {"runs": {اسم: (val_df, test_df)}, "table": جدول المقارنة, "brackets": {...}, "checks": [...], "k_eval": جدول|None}."""
     tr, va, te, checks = build_panel_splits(train, val, test, model_tf, train_assets, val_assets, subset, verbose,
                                             day_ns=day_ns, targets=targets)
     runs = dict(baseline or {})
-    states = {}
+    states, k_tables = {}, {}
     for variant in variants:
         for seed in seeds:
             run_dir = os.path.join(run_root, f"panel_{variant}_s{seed}")
-            v, t, st, _ = run_panel_variant(tr, va, te, encoder_builder, seq_len, n_features, run_dir, variant, seed,
-                                            model_cfg, train_cfg, verbose)
+            v, t, st, trainer = run_panel_variant(tr, va, te, encoder_builder, seq_len, n_features, run_dir, variant,
+                                                  seed, model_cfg, train_cfg, verbose)
             runs[f"{variant}_s{seed}"] = (v, t)
             states[f"{variant}_s{seed}"] = {"best_epoch": st["best_epoch"], "epochs": st["epoch"]}
+            if k_eval:
+                kt = evaluate_k_coins(trainer, te, tuple(k_eval), k_draws, seed, export_dir=run_dir)
+                kt.to_csv(os.path.join(run_dir, "k_coins_test.csv"))
+                k_tables[f"{variant}_s{seed}"] = kt
+                if verbose:
+                    with pd.option_context("display.width", 250, "display.float_format", "{:.4f}".format):
+                        print(f"\n🔢 {variant}/s{seed} على test حين يرى k عملة فقط لكل طابع:\n{kt.to_string()}",
+                              flush=True)
+            del trainer
     runs = _align_baseline(runs, set(baseline or {}), verbose)
     table, brackets = compare(runs, first_touch=first_touch, verbose=False, group_ns=day_ns)
     # متوسط ± نصف المدى عبر البذور لكل متغيّر
@@ -166,6 +221,10 @@ def run_panel_experiment(train, val, test, model_tf, encoder_builder, seq_len, n
             table[f"{variant} ±"] = (table[cols].max(axis=1) - table[cols].min(axis=1)) / 2
     ups = up_share_table(brackets)
     os.makedirs(run_root, exist_ok=True)
+    k_all = None
+    if k_tables:
+        k_all = pd.concat(k_tables, names=["run"])
+        k_all.to_csv(os.path.join(run_root, "panel_k_coins.csv"))
     table.to_csv(os.path.join(run_root, "panel_compare.csv"))
     ups.to_csv(os.path.join(run_root, "panel_up_share.csv"))
     if verbose:
@@ -175,4 +234,4 @@ def run_panel_experiment(train, val, test, model_tf, encoder_builder, seq_len, n
             print("\nقوس ±5%: نسبة «+5% أولاً» من المحسومة لكل عُشر p_up_close (1 = الأدنى) — المطلوب تصاعد:")
             print(ups.to_string())
             print(f"\nالحقب: {states}\n💾 {os.path.join(run_root, 'panel_compare.csv')}")
-    return {"runs": runs, "table": table, "brackets": brackets, "checks": checks, "states": states}
+    return {"runs": runs, "table": table, "brackets": brackets, "checks": checks, "states": states, "k_eval": k_all}

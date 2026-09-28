@@ -95,8 +95,9 @@ def main():
                     help="أطراف المحفظة المحايدة (0.5 = الكون كله لأوزان الرتب)")
     ap.add_argument("--mn-universe", default=None, help="None = كل العملات | categories | قائمة رموز مفصولة بفواصل")
     ap.add_argument("--out", default="eval_out")
-    ap.add_argument("--panel", default=None, help="متغيّرات نموذج اللوحة مفصولة بفواصل (A,A_ic,B,B_ic) — يشغّل القسم ٧-ح")
-    ap.add_argument("--panel-seeds", default="0", help="بذور مفصولة بفواصل")
+    ap.add_argument("--panel", default=None, help="متغيّرات نموذج اللوحة مفصولة بفواصل (A,A_ic,B,B_ic,A_ic_k) — يشغّل "
+                                                  "القسم ٧-ح؛ preset = متغيّرات --panel-preset")
+    ap.add_argument("--panel-seeds", default=None, help="بذور مفصولة بفواصل (افتراضياً 0، أو بذور --panel-preset)")
     ap.add_argument("--panel-epochs", type=int, default=None, help="None = حقب main (أو --epochs)")
     ap.add_argument("--panel-batch-samples", type=int, default=None)
     ap.add_argument("--panel-subset", default=None, help="last_days,coins — اختبار سريع على مجموعة فرعية")
@@ -104,6 +105,9 @@ def main():
                     help="model | مسار best.weights.h5 | مجلد signals_{val,test}.csv.gz (الافتراضي: model مع --weights/--train)")
     ap.add_argument("--panel-first-touch", default=None, help="bracket_first_5.pkl لحسم اللمس المزدوج في القوس")
     ap.add_argument("--panel-overrides", default=None, help='JSON: {"train": {...}, "model": {...}}')
+    ap.add_argument("--panel-preset", default=None, help="PANEL_PRESET في القسم ٧-ح (مثلاً 1h_s8)")
+    ap.add_argument("--panel-k-eval", default=None, help="مثلاً 5,10,20,all — مقاييس test حين يرى النموذج k عملة فقط")
+    ap.add_argument("--panel-patience", type=int, default=None)
     a = ap.parse_args()
     if not a.train and not a.weights and not a.panel:
         ap.error("--weights أو --train أو --panel")
@@ -132,13 +136,20 @@ def main():
         if "PANEL_MODE = False" in src:
             if not a.panel:
                 continue
-            ov = {"PANEL_VARIANTS": a.panel.split(","), "PANEL_SEEDS": [int(x) for x in a.panel_seeds.split(",")],
-                  "PANEL_RUN_ROOT": os.path.abspath("panel_runs"),
+            # ov: إعدادات الخلية قبل PANEL_PRESET؛ explicit: ما مُرِّر صراحةً في سطر الأوامر فيكتب فوق الإعداد الجاهز أيضاً
+            ov = {"PANEL_RUN_ROOT": os.path.abspath("panel_runs"),
                   "PANEL_BASELINE": a.panel_baseline or ("model" if (a.train or weights) else None)}
             if ov["PANEL_BASELINE"] not in (None, "model"):
                 ov["PANEL_BASELINE"] = os.path.abspath(os.path.join(INVOKE_CWD, ov["PANEL_BASELINE"]))
+            explicit = {}
+            if a.panel != "preset":
+                explicit["PANEL_VARIANTS"] = a.panel.split(",")
+            if a.panel_seeds or not a.panel_preset:
+                explicit["PANEL_SEEDS"] = [int(x) for x in (a.panel_seeds or "0").split(",")]
             if a.panel_epochs:
-                ov["PANEL_EPOCHS"] = a.panel_epochs
+                explicit["PANEL_EPOCHS"] = a.panel_epochs
+            if a.panel_patience:
+                explicit["PANEL_PATIENCE"] = a.panel_patience
             if a.panel_batch_samples:
                 ov["PANEL_BATCH_SAMPLES"] = a.panel_batch_samples
             if a.panel_subset:
@@ -148,13 +159,18 @@ def main():
                 ov["PANEL_FIRST_TOUCH"] = os.path.abspath(os.path.join(INVOKE_CWD, a.panel_first_touch))
             if a.panel_overrides:
                 ov["PANEL_OVERRIDES"] = json.loads(a.panel_overrides)
-            if a.group_freq:
-                import pandas as pd
-                src = src.replace("subset=PANEL_SUBSET,", f"subset=PANEL_SUBSET, day_ns={pd.Timedelta(a.group_freq).value},")
-            # رؤوس اللوحة = أهداف main غير المعلّقة (SUSPENDED_TARGETS)؛ الثلاثة ⇒ نفس السلوك السابق
-            src = src.replace("subset=PANEL_SUBSET,", "subset=PANEL_SUBSET, targets=tuple(PRICE_TARGETS),")
+            if a.group_freq:           # الخلية تمرّر day_ns (PANEL_GROUP) وtargets=PRICE_TARGETS بنفسها
+                explicit["PANEL_GROUP"] = a.group_freq
+            if a.panel_k_eval:
+                explicit["PANEL_K_EVAL"] = tuple(None if x == "all" else int(x) for x in a.panel_k_eval.split(","))
+            if a.panel_preset:
+                ov["PANEL_PRESET"] = a.panel_preset
+            if a.panel_baseline:
+                explicit["PANEL_BASELINE"] = ov["PANEL_BASELINE"]
             src = src.replace("PANEL_MODE = False", "PANEL_MODE = True").replace(
-                "# ── نهاية الإعدادات ──", f"globals().update({ov!r})")
+                "# ── نهاية الإعدادات ──", f"globals().update({ {**ov, **explicit}!r})").replace(
+                "    globals().update(PANEL_PRESETS[PANEL_PRESET])",
+                f"    globals().update(PANEL_PRESETS[PANEL_PRESET])\n    globals().update({explicit!r})")
         if "run_full_analysis(" in src and "full_results" in src:   # القسم ٦ (chicks): اختياري، يُستدعى لاحقاً
             continue
         src = src.replace("TARGET_MODE = None", f"TARGET_MODE = {a.target_mode!r}")

@@ -69,7 +69,188 @@ class PanelDataTests(unittest.TestCase):
         self.assertEqual(PanelSplit(X, y, lc, assets, "d").day_ns, DAY_NS)   # الافتراضي لم يتغيّر
 
 
+def _grid_split(n_coins=12, n_groups=30, step_h=8, seed=0, seq_len=8, n_features=5, name="grid"):
+    """طوابع على شبكة step_h ساعة مشتركة بين العملات (كمخرَج خط الأنابيب بـ align_windows_to_grid وstride=8)."""
+    import numpy as np
+    from cross_asset.data import PanelSplit
+    rng = np.random.default_rng(seed)
+    H = 3600 * 10**9
+    g0 = 20_000 * 24 // step_h
+    ts = np.concatenate([(g0 + np.arange(n_groups)) * step_h * H for _ in range(n_coins)])
+    assets = np.repeat([f"C{c:02d}" for c in range(n_coins)], n_groups)
+    n = len(ts)
+    close = 100 * np.exp(rng.normal(size=n))
+    r, eh, el = rng.normal(scale=0.01, size=(3, n))
+    lc = np.c_[close * 1.01, close * 0.99, close, ts.astype("float64"), close * (1 + r), close * (0.99 + el),
+               close * (1.01 + eh)]
+    y = {}
+    for t, fut, last in (("high", 6, 0), ("low", 5, 1), ("close", 4, 2)):
+        ret = lc[:, fut] / lc[:, last] - 1
+        y[f"y_{t}_reg"], y[f"y_{t}_class"] = ret.astype("float32"), (ret > 0).astype("float32")
+    X = rng.normal(size=(n, seq_len, n_features)).astype("float32")
+    return PanelSplit(X, y, lc, assets, name, targets=("high", "low"), day_ns=step_h * H)
+
+
+class DynamicCoinTests(unittest.TestCase):
+    """المجموعات بالطابع الدقيق (8h)، عدد العملات العشوائي في التدريب (min_coins)، وتقييم k عملة."""
+
+    def test_exact_8h_grouping_pure_and_full(self):
+        import numpy as np
+        from cross_asset.data import group_ns_for
+        ps = _grid_split(n_coins=12, n_groups=30)
+        self.assertEqual(ps.day_ns, group_ns_for("1h", 8))
+        c = ps.check()
+        self.assertTrue(c["ok"] and c["day_groups_pure"])
+        self.assertEqual(c["misaligned_timestamps"], 0)
+        self.assertEqual(c["coins_per_day_median"], 12)
+        self.assertEqual(c["assets"], 12)
+        self.assertEqual(ps.n_days, 30)
+        self.assertTrue(all(len(np.unique(ps.ts[ps.day_indices(d)])) == 1 for d in range(ps.n_days)))
+
+    def test_min_coins_sampling(self):
+        import numpy as np
+        ps = st.synthetic_split(n_assets=30, n_days=60, seed=4)
+        kw = dict(batch_samples=200, max_days=6, shuffle=True, seed=3, epoch=2)
+        sizes, full = [], []
+        for b in ps.iter_batches(min_coins=5, **kw):
+            for g in np.unique(b["day"]):
+                m = b["day"] == g
+                n_day = int(ps.sizes[ps.days == ps.day_key[b["idx"][m][0]]][0])
+                k = int(m.sum())
+                self.assertLessEqual(k, n_day)
+                self.assertGreaterEqual(k, min(5, n_day))
+                self.assertEqual(sorted(b["pos"][m].tolist()), list(range(k)))
+                self.assertEqual(len(np.unique(ps.day_key[b["idx"][m]])), 1)
+                sizes.append(k)
+                full.append(n_day)
+        self.assertGreater(len(set(sizes)), 10)                 # أحجام متنوّعة فعلاً
+        self.assertLess(np.mean(sizes), np.mean(full))
+        # حتمي من (seed, epoch)، وmax_coins سقف أعلى
+        a = [b["idx"] for b in ps.iter_batches(min_coins=5, **kw)]
+        b2 = [b["idx"] for b in ps.iter_batches(min_coins=5, **kw)]
+        self.assertTrue(all(np.array_equal(x, y) for x, y in zip(a, b2)))
+        for b in ps.iter_batches(min_coins=5, max_coins=8, **kw):
+            self.assertLessEqual(np.bincount(b["day"]).max(), 8)
+        # الافتراضي (None) وval/test (بلا shuffle) = كل عيّنة مرّة واحدة كما كان
+        for it in (ps.iter_batches(**kw), ps.iter_batches(200, 6, shuffle=False, min_coins=5)):
+            seen = np.concatenate([b["idx"] for b in it])
+            np.testing.assert_array_equal(np.sort(seen), np.arange(ps.n))
+
+    def test_chunk_groups_cover_each_sample_once(self):
+        """كل عيّنة تُحسب مرّة واحدة بالضبط، وكل جزء فيه k عملة بالضبط من طابع واحد (الباقي يُكمَّل بعملات سياق)."""
+        import numpy as np
+        ps = _grid_split(n_coins=23, n_groups=10)
+        for k in (5, 10, 20, 30, None):
+            members, scored = ps.chunk_groups(k, seed=1)
+            np.testing.assert_array_equal(np.sort(np.concatenate(scored)), np.arange(ps.n))
+            for g, sc in zip(members, scored):
+                self.assertEqual(len(np.unique(ps.day_key[g])), 1)
+                self.assertEqual(len(g), min(k or 23, 23))
+                self.assertTrue(np.isin(sc, g).all())
+            seen = np.concatenate([b["idx"][b["score"]] for b in ps.iter_group_batches(members, 50, 4, scored)])
+            np.testing.assert_array_equal(np.sort(seen), np.arange(ps.n))
+        a, b = ps.chunk_groups(5, 1)[0], ps.chunk_groups(5, 2)[0]
+        self.assertFalse(all(np.array_equal(x, y) for x, y in zip(a, b)))
+
+    def test_model_built_once_applies_to_any_group_size(self):
+        """نموذج واحد (بُني مرّة) على مجموعات بأحجام 1..30: مخرج المجموعة وحدها = مخرجها داخل دفعة مع مجموعات أخرى
+        بأحجام مختلفة (القناع يعزل الحشو)، ومع الانتباه يتغيّر مخرج العملة بتغيّر سياقها، وبدونه لا."""
+        import numpy as np
+        import tensorflow as tf
+        from cross_asset.model import build_panel_model, tiny_encoder
+        ps = _grid_split(n_coins=30, n_groups=6)
+        rng = np.random.default_rng(0)
+        for att in (True, False):
+            tf.keras.utils.set_random_seed(2)
+            m = build_panel_model(tiny_encoder(8, 5), 8, 5, d_model=16, num_heads=4, cross_attention=att, dropout=0.0,
+                                  targets=("high", "low"))
+            groups = [np.sort(rng.choice(ps.day_indices(d), k, replace=False)) for d, k in enumerate((1, 2, 5, 17, 30))]
+            big = ps.assemble(groups)
+            o_big = m({k: big[k] for k in ("x", "day", "pos")}, training=False)["logit"].numpy()
+            where = {i: r for r, i in enumerate(big["idx"])}
+            for g in groups:
+                alone = ps.assemble([g])
+                o = m({k: alone[k] for k in ("x", "day", "pos")}, training=False)["logit"].numpy()
+                np.testing.assert_allclose(o_big[[where[i] for i in alone["idx"]]], o, atol=1e-5)
+            # نفس العملة في سياقين مختلفين من طابعها
+            d0 = ps.day_indices(0)
+            full = ps.assemble([d0])
+            sub = ps.assemble([d0[:5]])
+            o_full = m({k: full[k] for k in ("x", "day", "pos")}, training=False)["logit"].numpy()
+            o_sub = m({k: sub[k] for k in ("x", "day", "pos")}, training=False)["logit"].numpy()
+            same = np.allclose(o_full[:5], o_sub, atol=1e-5)
+            self.assertEqual(same, not att)
+
+    def test_evaluate_k_coins(self):
+        """جدول k: سياق ≤ k، نفس الصفوف لكل k، k=None = predict العادي؛ وبلا انتباه (B) المقاييس لا تتغيّر بـ k."""
+        import tempfile
+        import numpy as np
+        import tensorflow as tf
+        from cross_asset.experiment import evaluate_k_coins
+        from cross_asset.model import build_panel_model, tiny_encoder
+        from cross_asset.train import PanelTrainer, robust_scales
+        ps = _grid_split(n_coins=24, n_groups=20, seed=5)
+        tabs = {}
+        for att in (True, False):
+            tf.keras.utils.set_random_seed(0)
+            m = build_panel_model(tiny_encoder(8, 5), 8, 5, d_model=16, num_heads=4, cross_attention=att, dropout=0.0,
+                                  targets=ps.targets)
+            tr = PanelTrainer(m, dict(batch_samples=100, max_days=4), tempfile.mkdtemp(), robust_scales(ps.yreg), 8, 5,
+                              verbose=False)
+            base = tr.predict(ps)[0]
+            np.testing.assert_allclose(tr.predict(ps, groups=ps.chunk_groups(None))[0], base, atol=1e-5)
+            out = tempfile.mkdtemp()
+            tabs[att] = evaluate_k_coins(tr, ps, (5, 10, None), draws=2, seed=0, export_dir=out)
+            import os
+            self.assertTrue(os.path.exists(os.path.join(out, "signals_test_k5.csv.gz")))
+        t = tabs[True]
+        self.assertEqual(list(t.index), [5, 10, "all"])
+        self.assertEqual(t.loc[5, "context_mean"], 5)
+        self.assertEqual(t.loc[10, "context_mean"], 10)
+        self.assertEqual(t.loc["all", "context_mean"], 24)
+        self.assertEqual(t.loc["all", "draws"], 1)
+        self.assertIn("ic_asym", t.columns)
+        self.assertTrue(np.isfinite(t[["auc_high", "auc_low", "ic_high", "ic_low", "ic_asym"]].to_numpy()).all())
+        self.assertGreater(abs(t.loc[5, "auc_high"] - t.loc["all", "auc_high"]), 1e-7)    # الانتباه: السياق يغيّر
+        b = tabs[False]
+        for col in ("auc_high", "auc_low", "ic_high", "ic_asym"):
+            self.assertAlmostEqual(b.loc[5, col], b.loc["all", col], places=5)
+
+
 class PanelModelTests(unittest.TestCase):
+    def test_best_epoch_restore_uses_val_metric(self):
+        """الإيقاف المبكر والأفضل على مقياس val (أصغر أفضل لـ val_loss، أكبر أفضل لغيره)، وload_best يعيد أوزان
+        تلك الحقبة بالضبط (مقياس val نفسه)، والبصمة لا تتغيّر بإضافة min_coins=None (استئناف التشغيلات القديمة)."""
+        import hashlib
+        import json
+        import tempfile
+        import numpy as np
+        import tensorflow as tf
+        from cross_asset.model import build_panel_model, tiny_encoder
+        from cross_asset.train import PanelTrainer, robust_scales
+        tr_ps = st.synthetic_split(20, 40, seed=1, signal=2.0)
+        va_ps = st.synthetic_split(20, 15, start_day=18200, seed=2, signal=2.0)
+        for monitor, sign in (("val_loss", -1), ("val_ic_close", 1)):
+            tf.keras.utils.set_random_seed(0)
+            m = build_panel_model(tiny_encoder(8, 5), 8, 5, d_model=16, num_heads=4)
+            cfg = dict(epochs=5, patience=2, batch_samples=150, max_days=8, lr_warmup_epochs=0, lr_initial=3e-3,
+                       lr_schedule={"type": "constant"}, monitor=monitor)
+            t = PanelTrainer(m, cfg, tempfile.mkdtemp(), robust_scales(tr_ps.yreg), 8, 5, verbose=False)
+            state = t.fit(tr_ps, va_ps)
+            h = [r[monitor] for r in state["history"]]
+            self.assertEqual(state["best_epoch"], int(np.argmax(sign * np.asarray(h))) + 1, h)
+            waits = 0
+            for i in range(1, len(h)):
+                waits = 0 if sign * h[i] > sign * max(h[:i], key=lambda v: sign * v) else waits + 1
+            self.assertTrue(len(h) == cfg["epochs"] or waits >= cfg["patience"], (h, waits))
+            t.load_best()
+            self.assertAlmostEqual(t.evaluate(va_ps, use_ema=False)[monitor], state["best"], places=5)
+        # البصمة القديمة (قبل min_coins) = الجديدة حين min_coins=None
+        old = {k: v for k, v in t.cfg.items() if k not in ("epochs", "patience", "min_coins")}
+        blob = json.dumps({"cfg": old, **t.fingerprint}, sort_keys=True, default=str)
+        self.assertEqual(t._fp(), hashlib.sha1(blob.encode()).hexdigest()[:12])
+
+
     def test_suspended_close_high_low_only(self):
         """close معلّق (SUSPENDED_TARGETS في main): رأسان فقط، حدّ IC على low، تصدير وتقرير بلا أعمدة close."""
         import shutil

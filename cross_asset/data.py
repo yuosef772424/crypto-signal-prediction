@@ -124,27 +124,90 @@ class PanelSplit:
             plan.append(cur)
         return plan
 
-    def make_batch(self, day_list, max_coins=None, rng=None):
+    def make_batch(self, day_list, max_coins=None, rng=None, min_coins=None):
         """يجمع أيام الدفعة. max_coins (تدريب فقط، اختياري): عيّنة عشوائية من عملات الأيام الأكبر منه — يكسر
-        «كل عيّنة مرّة واحدة» عمداً، لذا الافتراضي None."""
-        idx, day, pos = [], [], []
-        for b, d in enumerate(day_list):
+        «كل عيّنة مرّة واحدة» عمداً، لذا الافتراضي None.
+        min_coins (تدريب فقط، اختياري): عدد عملات عشوائي لكل مجموعة k ~ U[min_coins, min(max_coins, n)] — كي يتعلّم
+        النموذج العمل بأي عدد عملات يراه وقت الاستخدام (السوق كله أو قائمة مراقبة صغيرة). None = السلوك السابق حرفياً."""
+        rng = rng or np.random.default_rng(0)
+        idx_lists = []
+        for d in day_list:
             ii = self.day_indices(d)
-            if max_coins and len(ii) > max_coins:
-                ii = np.sort((rng or np.random.default_rng(0)).choice(ii, max_coins, replace=False))
+            if min_coins:
+                hi = min(int(max_coins or len(ii)), len(ii))
+                k = int(rng.integers(min(int(min_coins), hi), hi + 1))
+                if k < len(ii):
+                    ii = np.sort(rng.choice(ii, k, replace=False))
+            elif max_coins and len(ii) > max_coins:
+                ii = np.sort(rng.choice(ii, max_coins, replace=False))
+            idx_lists.append(ii)
+        return self.assemble(idx_lists)
+
+    def assemble(self, idx_lists, scored=None):
+        """دفعة من قائمة مجموعات (كل مجموعة فهارس صفوف تتشارك الانتباه): المجموعة b ← day=b، والمواضع 0..n_b-1.
+        make_batch يمرّر أياماً كاملة (أو عيّنات منها)؛ chunk_groups يمرّر أجزاءً من الأيام لتقييم «k عملة».
+        scored (اختياري، موازٍ لـ idx_lists): الصفوف التي يُؤخذ تنبؤها من هذه المجموعة ← مفتاح "score" منطقي؛
+        البقية سياق فقط (تُتنبّأ في مجموعة أخرى)."""
+        idx, day, pos, sc = [], [], [], []
+        for b, ii in enumerate(idx_lists):
             idx.append(ii)
             day.append(np.full(len(ii), b, dtype="int32"))
             pos.append(np.arange(len(ii), dtype="int32"))
+            sc.append(np.ones(len(ii), bool) if scored is None else np.isin(ii, scored[b]))
         idx = np.concatenate(idx)
         srt = np.argsort(idx, kind="stable")      # قراءة X بترتيب الذاكرة أسرع؛ الترتيب داخل الدفعة لا يغيّر شيئاً
         idx, day, pos = idx[srt], np.concatenate(day)[srt], np.concatenate(pos)[srt]
-        return {"idx": idx, "x": np.asarray(self.X[idx], dtype="float32"), "day": day, "pos": pos,
-                "ycls": self.ycls[idx], "yreg": self.yreg[idx], "yrank": self.yrank[idx]}
+        out = {"idx": idx, "x": np.asarray(self.X[idx], dtype="float32"), "day": day, "pos": pos,
+               "ycls": self.ycls[idx], "yreg": self.yreg[idx], "yrank": self.yrank[idx]}
+        if scored is not None:
+            out["score"] = np.concatenate(sc)[srt]
+        return out
 
-    def iter_batches(self, batch_samples=1024, max_days=16, shuffle=False, seed=0, epoch=0, max_coins=None):
+    def iter_batches(self, batch_samples=1024, max_days=16, shuffle=False, seed=0, epoch=0, max_coins=None,
+                     min_coins=None):
         rng = np.random.default_rng([int(seed), int(epoch), 1])
         for dl in self.batch_plan(batch_samples, max_days, shuffle, seed, epoch):
-            yield self.make_batch(dl, max_coins=max_coins if shuffle else None, rng=rng)
+            yield self.make_batch(dl, max_coins=max_coins if shuffle else None, rng=rng,
+                                  min_coins=min_coins if shuffle else None)
+
+    # ── تقييم بعدد عملات محدود ──
+    def chunk_groups(self, k=None, seed=0):
+        """يقسم كل مجموعة عشوائياً إلى أجزاء من k عملة بالضبط، فتُتنبّأ كل عيّنة مرّة واحدة وهي ترى k−1 عملة أخرى من
+        طابعها فقط. يُرجع (members, scored): members[i] عملات الجزء i (ما يراه الانتباه)، وscored[i] ما يُؤخذ تنبؤه منه.
+        الباقي حين لا يقسم k عدد العملات: جزء أخير من آخر k عملة في الترتيب العشوائي، يُحسب منه الباقي فقط والبقية سياق.
+        مجموعة أصغر من k تبقى كاملة. k=None: المجموعات كاملة (التنبؤ العادي).
+        التغطية الكاملة تجعل مقاييس كل k على نفس الصفوف بالضبط، فالفرق بينها أثر السياق لا أثر اختيار العيّنات."""
+        if not k:
+            groups = [self.day_indices(d) for d in range(self.n_days)]
+            return groups, groups
+        k, rng = int(k), np.random.default_rng(seed)
+        members, scored = [], []
+        for d in range(self.n_days):
+            ii = rng.permutation(self.day_indices(d))
+            n_full = len(ii) // k
+            for j in range(n_full):
+                members.append(np.sort(ii[j * k:(j + 1) * k]))
+                scored.append(members[-1])
+            rest = ii[n_full * k:]
+            if len(rest):
+                members.append(np.sort(ii[-k:]) if n_full else np.sort(ii))
+                scored.append(np.sort(rest))
+        return members, scored
+
+    def iter_group_batches(self, groups, batch_samples=1024, max_days=16, scored=None):
+        """دفعات من مجموعات جاهزة (مخرَج chunk_groups) بنفس قواعد batch_plan: تُملأ حتى batch_samples أو max_days.
+        مع scored تحمل كل دفعة مفتاح "score" (انظر assemble)."""
+        cur, cur_s, cur_n = [], [], 0
+        for i, g in enumerate(groups):
+            if cur and (cur_n + len(g) > batch_samples or len(cur) >= max_days):
+                yield self.assemble(cur, None if scored is None else cur_s)
+                cur, cur_s, cur_n = [], [], 0
+            cur.append(g)
+            if scored is not None:
+                cur_s.append(scored[i])
+            cur_n += len(g)
+        if cur:
+            yield self.assemble(cur, None if scored is None else cur_s)
 
     # ── فحوص السلامة ──
     def check(self, min_group=5):
@@ -161,6 +224,7 @@ class PanelSplit:
         small = self.sizes < min_group
         out = {
             "split": self.name, "samples": int(self.n), "days": int(self.n_days),
+            "assets": int(len(np.unique(self.assets))) if self.assets is not None else -1,
             "first_day": str(pd.Timestamp(int(self.days[0])))[:10] if self.n else "",
             "last_day": str(pd.Timestamp(int(self.days[-1])))[:10] if self.n else "",
             "coins_per_day_min": int(self.sizes.min()) if self.n else 0,
@@ -196,6 +260,13 @@ def panel_split_from(split_or_dict, model_tf, asset_names=None, name="", targets
     else:
         X, y, lc, assets = _concat_dict(split_or_dict, model_tf)
     return PanelSplit(X, y, lc, assets=assets, name=name, targets=targets, day_ns=day_ns)
+
+
+def group_ns_for(base_tf, stride):
+    """عرض المجموعة المقطعية لبيانات محاذاة على الشبكة (align_windows_to_grid في خط الأنابيب): stride × مدة الفريم.
+    اليومي بـ stride=1 ← DAY_NS (السلوك الافتراضي نفسه)؛ 1h بـ stride=8 ← 8 ساعات = الطابع الدقيق، فكل مجموعة
+    تجمع العملات التي تنتهي نوافذها في اللحظة نفسها تماماً."""
+    return int(max(int(stride), 1) * pd.Timedelta(str(base_tf).replace("D", "d")).value)
 
 
 def format_checks(checks):
