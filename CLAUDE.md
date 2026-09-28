@@ -1,27 +1,28 @@
-# تعليمات العمل على هذا المشروع
+# Working Instructions for This Project
 
-> القسم الأول قواعد خاصة بهذا المشروع، وتليه فلسفة العمل العامة (بالإنجليزية). عند التعارض تُقدَّم قواعد المشروع في ما يخصّه.
+> The first part holds rules specific to this project; the general working philosophy follows. On conflict, the project rules win within their scope.
 
-## اللغة
-- الردود بالعربية.
+## Language
+- **Reply to the user in Arabic.** Instructions, agent prompts and protocol documents may be in English (models follow English instructions more faithfully); translate on demand.
 
-## الوكلاء (subagents)
-- **الأساس:** أسند المهام الكبيرة المستقلة إلى وكيل يعمل في الخلفية. أمثلة: بناء أداة أو حزمة، تجارب طويلة، أو قراءة وتحليل ملفات كثيرة أو سجلات تشغيل ضخمة.
-- **الهدف: حماية سياق المحادثة الرئيسية لا تقليل الاستهلاك الكلي.** الوكيل يبدأ بسياق فارغ، ويعود بتقرير مختصر فقط. بذلك تبقى المحادثة الرئيسية خفيفة ومركّزة على الخط الأساسي (النموذج والتدريب والقرارات)، ويتأخر ضغطها وفقدان تفاصيلها. أما التوكنات الكلية فقد تزيد لا تنقص، لأن الوكيل يعيد قراءة ما يحتاجه من ملفات.
-- **رسالة الوكيل تحمل ما يلزمه فقط:**
-  - الهدف ومعيار الإنجاز.
-  - المسارات والفروع.
-  - القيود.
-  - النتائج السابقة ذات الصلة، حتى لا يعيد تجارب محسومة.
-  - شكل التقرير المطلوب منه.
-- **لا تُسند إلى وكيل:**
-  - المهام الصغيرة: تعديل سطر، سؤال سريع، أو قراءة ملف واحد.
-  - المهام التي تعتمد على نقاش جارٍ مع المستخدم خطوة بخطوة.
-  - ما يحتاج معظم سياق المحادثة، فشرحه للوكيل أغلى من تنفيذه مباشرة.
-- **التعامل مع الوكلاء العاملين:**
-  - لا تكرر عمل وكيل ما زال يعمل.
-  - أرسل له المتطلبات الجديدة برسالة بدل إنشاء وكيل آخر.
-  - انقل للمستخدم خلاصة تقريره، لا نصّه كاملاً.
+## Subagents
+- **Default:** delegate large, self-contained tasks to a background agent — e.g. building a tool or package, long experiments, or reading and analysing many files or large run logs.
+- **Goal: protect the main conversation's context, not reduce total usage.** An agent starts with an empty context and returns only a short report, so the main conversation stays light and focused on the core line (model, training, decisions) and is compacted later, losing fewer details. Total tokens may go up, not down, because the agent re-reads what it needs.
+- **An agent's prompt carries only what it needs:**
+  - the goal and the definition of done;
+  - paths and branches;
+  - constraints;
+  - relevant prior results, so it doesn't redo settled experiments;
+  - the report format expected from it.
+- **Do not delegate:**
+  - small tasks: a one-line edit, a quick question, reading a single file;
+  - work that depends on a step-by-step discussion with the user;
+  - work that needs most of the conversation's context — explaining it would cost more than doing it.
+- **Working with running agents:**
+  - never duplicate the work of an agent that is still running;
+  - send it new requirements by message instead of spawning another agent;
+  - relay a summary of its report to the user, not the full text.
+- **Auditor/builder rounds** follow `docs/research/audit/PROTOCOL.md`; the auditor's independence from the builder's reasoning is its most important rule.
 
 ---
 

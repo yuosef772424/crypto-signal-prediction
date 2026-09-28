@@ -1,37 +1,38 @@
-# بروتوكول التدقيق والتحسين (مدقّق ↔ باني)
+# Audit / Improvement Protocol (Auditor ↔ Builder)
 
-الغرض: تحسين النموذج وخط الأنابيب بجولات من التدقيق والإصلاح دون أن يتأثّر أحد الطرفين بحجج الآخر. التأثّر المتبادل
-يُنتج موافقة لا تحسّناً، ويُخفي العيوب المشتركة بدل أن يكشفها. لذلك **استقلال المدقّق أهمّ بند في هذا البروتوكول**،
-وكل ما يلي يخدمه.
+Purpose: improve the model and the data pipeline through rounds of auditing and fixing without either side being swayed
+by the other's arguments. Mutual influence produces agreement, not improvement, and hides shared defects instead of
+exposing them. **The auditor's independence is therefore the most important rule here**, and everything below serves it.
 
-## الأدوار
+## Roles
 
-| الدور | يرى | لا يرى | يُنتج |
+| Role | Sees | Does not see | Produces |
 |---|---|---|---|
-| **المدقّق** | الكود عند commit محدّد، والبيانات، ومخرجات التقييم الخام (CSV/JSON) | تقارير الباني، ونقاشاته، وتبريراته. الوثائق والتعليقات تُعامَل كادّعاءات للفحص لا كشرح يُتبنّى | سكربت إعادة إنتاج لكل عيب (`repro_*.py`) + أدلّة: الأمر، والمخرَج، والمتوقَّع مقابل الفعلي |
-| **الباني** | سكربتات إعادة الإنتاج ومخرجاتها فقط | نصّ حجج المدقّق وتحليله | إصلاح يجعل السكربت ينجح + فرضية تحسين مكتوبة مسبقاً (ما سيتغيّر، وبكم، وكيف يُقاس) |
-| **الحَكَم** | — | — | ليس وكيلاً: كود تقييم ثابت بمعايير مسجّلة مسبقاً. لا يُقبل ادّعاء تحسّن إلا بمخرجاته |
-| **المنسّق** | كل شيء | — | ينقل **الأدلّة فقط** بين الطرفين، لا آراءه ولا آراءهما |
+| **Auditor** | The code at a pinned commit, the data, and raw evaluation outputs (CSV/JSON) | Builder reports, discussions, rationale. Docs and code comments are treated as claims to test, never as explanations to adopt | One reproduction script per defect (`repro_*.py`) plus evidence: command, output, expected vs actual |
+| **Builder** | The reproduction scripts and their outputs only | The auditor's arguments or analysis | A fix that makes the repro pass, plus a pre-registered improvement hypothesis (what changes, by how much, how it is measured) |
+| **Judge** | — | — | Not an agent: a fixed evaluation harness with pre-registered criteria. No improvement claim is accepted without its output |
+| **Orchestrator** | Everything | — | Relays **evidence only** between the two sides — never its own opinions or theirs |
 
-## قواعد الاستقلال
+## Independence rules
 
-1. **القناة الوحيدة بين الطرفين هي الأدلّة القابلة للتشغيل**: المدقّق يسلّم سكربتاً يفشل، والباني يسلّم كوداً يجعله
-   ينجح. لا يُنقل بينهما أي نصّ حجاجي.
-2. **التوقّع قبل القراءة**: قبل قراءة تبرير أي مكوّن يكتب المدقّق السلوك الصحيح المتوقَّع من المبادئ الأولى (لا نظر
-   للمستقبل، ومحاذاة صحيحة، وتقسيم نظيف)، ثم يقارن الكود به.
-3. **الإصلاحات السابقة لا تُعفى من الفحص**: قائمة العيوب المُصلحة سياق لا حدود؛ الإصلاح قد يكون ناقصاً.
-4. **تنوّع المدقّق**: النموذج نفسه يشارك الباني نقاط العمى. عند الإمكان يُشغَّل المدقّق بنموذج مختلف أو بقائمة فحص
-   مختلفة في كل جولة.
-5. **لا جدال**: إن اعترض الباني على عيب، فالردّ الوحيد المقبول سكربت يُظهر أن السلوك صحيح. الحَكَم هو التشغيل.
+1. **The only channel between the sides is runnable evidence.** The auditor hands over a failing script; the builder
+   hands back code that makes it pass. No argumentative text crosses over.
+2. **Expectation before reading.** Before reading the rationale for any component, the auditor writes down the correct
+   behaviour from first principles (no look-ahead, correct alignment, clean split), then checks the code against it.
+3. **Past fixes are not exempt.** The list of fixed bugs is context, not a boundary; a fix may be incomplete.
+4. **Auditor diversity.** The same model shares the builder's blind spots. When possible, run the auditor on a different
+   model, or with a different checklist, each round.
+5. **No debate.** If the builder disputes a finding, the only acceptable reply is a script showing the behaviour is
+   correct. The run is the judge.
 
-## حماية نزاهة التقييم
+## Evaluation integrity
 
-- **val** للاختيار، و**test** للمقارنة بين الجولات، و**فترة احتياطية مغلقة** (آخر 2–3 أشهر) لا يراها أي طرف وتُفتح
-  مرّة واحدة عند الإصدار.
-- كل متغيّر مُجرَّب يُحسب في تصحيح الاختبارات المتعدّدة، بما فيه العكس والإعدادات المرفوضة.
-- تتوقّف الجولات حين لا تأتي الجولة بعيب مثبت ولا بتحسّن يتجاوز ضجيج البذور.
+- **val** selects, **test** compares rounds, and a **sealed holdout** (the last 2–3 months) is seen by neither side and
+  opened once, at release.
+- Every variant tried counts toward the multiple-testing correction, including inversions and rejected settings.
+- Rounds stop when a round yields neither a proven defect nor an improvement beyond seed noise.
 
-## السجلّ المشترك
+## Shared ledger
 
-`ledger.md` في هذا المجلّد. كل صفّ: المعرّف، والادّعاء، والحالة (مفتوح / مثبت / مرفوض / مُصلح)، ورابط الدليل.
-**لا حجج في السجلّ** — الأدلّة فقط، حتى لا يصبح قناة تأثير غير مباشرة.
+`ledger.md` in this folder. Each row: id, claim, status (open / proven / rejected / fixed), evidence link.
+**No arguments in the ledger** — evidence only, so it cannot become an indirect channel of influence.
