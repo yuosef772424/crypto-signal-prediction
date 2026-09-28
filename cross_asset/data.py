@@ -284,15 +284,66 @@ def _concat_dict(split_dict, model_tf):
     return X, y, lc, assets
 
 
+# عمودا (آخر، مستقبلي) في last_candles لكل هدف: y_{هدف}_reg = clip(مستقبلي/آخر − 1) × reg_target_scale في وضع 'return'.
+_RETURN_COLS = {"high": ("last_high", "future_high_max"), "low": ("last_low", "future_low_min"),
+                "close": ("last_close", "future_close")}
+
+
+def implied_target_scale(y, last_candles, targets=TARGETS, min_rows=10, agree=0.9, rtol=1e-3):
+    """المقياس الذي بُنيت به y_{هدف}_reg كما تشهد به البيانات نفسها: y_reg ÷ (مستقبلي/آخر − 1) من last_candles.
+
+    يُرجع المقياس إن اتّفق عليه ≥ agree من الصفوف (عوائد بين 1e-4 و0.5، فالقصّ ودقّة float32 لا تُربكه)، وإلا None:
+    أهداف ليست عائداً مضروباً في ثابت (relative/volatility من retarget_splits، 'window_scale' القديم) لا مقياس لها هنا."""
+    lc = np.asarray(last_candles, dtype="float64")
+    ratios = []
+    for t in targets:
+        key = f"y_{t}_reg"
+        if key not in y or t not in _RETURN_COLS:
+            continue
+        a, b = _RETURN_COLS[t]
+        with np.errstate(divide="ignore", invalid="ignore"):
+            r = lc[:, LC[b]] / lc[:, LC[a]] - 1.0
+        v = np.asarray(y[key], dtype="float64").ravel()
+        ok = np.isfinite(r) & np.isfinite(v) & (np.abs(r) > 1e-4) & (np.abs(r) < 0.5)
+        ratios.append(v[ok] / r[ok])
+    ratios = np.concatenate(ratios) if ratios else np.zeros(0)
+    if len(ratios) < min_rows:
+        return None
+    s = float(np.median(ratios))
+    if not np.isfinite(s) or s <= 0:
+        return None
+    return s if float(np.mean(np.abs(ratios / s - 1.0) < rtol)) >= agree else None
+
+
+def _resolve_target_scale(members, model_targets):
+    """مقياس y_reg لقسم بلا target_scale صريح: الختم 'reg_target_scale' إن وُجد، وإلا 1.0 — **ما لم** تشهد البيانات
+    بمقياس آخر فيُرفع خطأ. كان الغياب يُقرأ 1.0 بصمت، فتخرج أعمدة mu_*/pred_* المصدَّرة أكبر بـ100× (1h_s8) دون أي
+    عَرَض في IC/AUC (docs/research/audit/r2_06_panel_scale_unstamped.py). ملف قديم بلا مقياس: y = عائد ⇒ 1.0 كما كان."""
+    stamps = {float(m["reg_target_scale"]) for m in members if "reg_target_scale" in m}
+    if len(stamps) > 1:
+        raise ValueError(f"أجزاء القسم مختومة بمقاييس مختلفة: {sorted(stamps)}")
+    if stamps:
+        return stamps.pop()
+    for m in members:
+        s = implied_target_scale(m["y"], m["last_candles"], model_targets)
+        if s is not None and abs(s - 1.0) > 1e-3:
+            raise ValueError(
+                f"القسم بلا ختم 'reg_target_scale' لكن y_*_reg = عائد × {s:.6g} بحسب last_candles. قراءته 1.0 تُفسد كل "
+                f"عائد وسعر مُصدَّر. اختم القسم بمقياس البيانات (split['reg_target_scale'] = dataset['reg_target_scale']، "
+                f"كما يفعل دفتر main في القسم ٣) أو مرّر target_scale صراحةً.")
+    return 1.0
+
+
 def panel_split_from(split_or_dict, model_tf, asset_names=None, name="", targets=TARGETS, day_ns=DAY_NS,
                      target_scale=None):
     """من مخرَج split_data/retarget_splits: قسم مدمج (train/val) أو قاموس {عملة: قسم} (test).
     asset_names للقسم المدمج: split_asset_names(dataset, 'train'|'val') من دفتر main (بنفس أقنعة split_data).
     day_ns: عرض مجموعة الطوابع (يوم UTC افتراضياً) — انظر PanelSplit.
-    target_scale: None يقرأ 'reg_target_scale' المختوم على القسم (دفتر main يختمه من البيانات)، وإلا 1.0."""
+    target_scale: None يقرأ 'reg_target_scale' المختوم على القسم (دفتر main يختمه من البيانات)؛ غيابه = 1.0 إلا إن
+    شهدت last_candles بمقياس آخر ⇒ ValueError (انظر _resolve_target_scale)."""
+    members = [split_or_dict] if "y" in split_or_dict else list(split_or_dict.values())
     if target_scale is None:
-        first = split_or_dict if "y" in split_or_dict else next(iter(split_or_dict.values()), {})
-        target_scale = first.get("reg_target_scale", 1.0)
+        target_scale = _resolve_target_scale(members, tuple(targets))
     if "y" in split_or_dict:
         X, y, lc = split_or_dict[f"X_{model_tf}"], split_or_dict["y"], split_or_dict["last_candles"]
         assets = asset_names if asset_names is not None and len(asset_names) == len(lc) else None

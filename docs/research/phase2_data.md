@@ -38,11 +38,12 @@
 | `VWAP_DEVIATION` *(فتحة قائمة)* | (إغلاق آخر شمعة − VWAP) ÷ VWAP، حيث VWAP = Σquote_volume ÷ Σvolume | sign_robust |
 | `VOL_CONC_HHI` *(فتحة قائمة)* | مؤشر هيرفندال لحصص الحجم على 24 ساعة | unit_0_1 |
 | `ITD_TAKER_BUY_RATIO` | Σtaker_buy_volume ÷ Σvolume | unit_0_1 |
-| `ITD_TRADES_LOG` | log1p(عدد صفقات اليوم) | cumulative (تقييس داخل النافذة) |
+| `ITD_TRADES_LOG` | log1p(عدد صفقات اليوم) | log_centered (ناقص وسيط النافذة، بلا قسمة: قيمة يومية داخل نافذة ساعات دالّة درجية، وتقييسها بـIQR النافذة كان يمحو حجم التغيّر — [r2_04](audit/r2_04_step_feature_saturation.py)) |
 | `ITD_TRADES_Z` | درجة معيارية لـ `ITD_TRADES_LOG` مقابل الثلاثين يوماً **السابقة** للعملة نفسها | zscore |
 | `ITD_RVOL` | 100·√Σr² لعوائد 15m اللوغاريتمية داخل اليوم (تقلّب محقَّق، بالنسبة المئوية) | percent |
 | `ITD_VOL_TOPK` | حصة أعلى 4 شموع 15m من حجم اليوم | unit_0_1 |
 | `ITD_available` | 1 إن غطّت شموع اليوم 75% أو أكثر | binary_flag |
+| `EFF_RATIO_available`, `VWAP_DEVIATION_available`, `VOL_CONC_HHI_available` | 1 حيث للفتحة قيمة من 15m | binary_flag (كل `*_available`؛ كانت unit_0_1 فتُصفَّر حين تثبت — [r2_03](audit/r2_03_dead_availability_flags.py)) |
 | `FUND_rate`, `FUND_rate_z` | آخر تسوية قبل الإغلاق، ودرجتها المعيارية على آخر 90 تسوية | funding_rate / zscore |
 | `FUND_sum_1d`, `FUND_sum_3d` | مجموع التسويات في آخر يوم وفي آخر 3 أيام | funding_rate |
 | `OI_chg_1` | log OI(إغلاق t) − log OI(إغلاق t−1)، أي تغيّر يومي على الفريم اليومي | sign_robust |

@@ -357,6 +357,46 @@ class RegTargetScaleTests(unittest.TestCase):
         self.assertEqual(ps.target_scale, 1.0)
 
 
+class AuditRound2Tests(unittest.TestCase):
+    """r2_06: قسم بلا ختم reg_target_scale لا يُقرأ 1.0 بصمت حين تشهد last_candles بمقياس آخر."""
+
+    def _split(self, scale, stamp=None, n=60):
+        import numpy as np
+        rng = np.random.default_rng(0)
+        ts = 1_750_003_200 * 10**9 + (np.arange(n) // 6) * 8 * 3600 * 10**9
+        c = 100 + rng.normal(0, 1, n)
+        lh, ll = c * 1.004, c * 0.996
+        fh, fl, fc = lh * (1 + rng.normal(0, .01, n)), ll * (1 + rng.normal(0, .01, n)), c * (1 + rng.normal(0, .01, n))
+        lc = np.stack([lh, ll, c, ts.astype("float64"), fc, fl, fh], 1)
+        y = {"y_high_reg": ((fh / lh - 1) * scale).astype("float32"), "y_low_reg": ((fl / ll - 1) * scale).astype("float32"),
+             "y_close_reg": ((fc / c - 1) * scale).astype("float32"),
+             "y_high_class": (fh > lh).astype("float32"), "y_low_class": (fl > ll).astype("float32"),
+             "y_close_class": (fc > c).astype("float32")}
+        sp = {"X_1h": np.zeros((n, 4, 2), "float32"), "y": y, "last_candles": lc}
+        if stamp is not None:
+            sp["reg_target_scale"] = stamp
+        return sp
+
+    def test_unstamped_scaled_split_refused(self):
+        from cross_asset.data import panel_split_from
+        with self.assertRaises(ValueError):
+            panel_split_from(self._split(100.0), "1h", targets=("high", "low"))
+        with self.assertRaises(ValueError):                                     # قاموس test لكل عملة أيضاً
+            panel_split_from({"A": self._split(100.0), "B": self._split(100.0)}, "1h", targets=("high", "low"))
+
+    def test_stamped_and_old_unscaled_splits(self):
+        from cross_asset.data import implied_target_scale, panel_split_from
+        self.assertEqual(panel_split_from(self._split(100.0, stamp=100.0), "1h").target_scale, 100.0)
+        self.assertEqual(panel_split_from(self._split(1.0), "1h").target_scale, 1.0)        # ملف قديم: عائد خام
+        self.assertEqual(panel_split_from(self._split(100.0), "1h", target_scale=100.0).target_scale, 100.0)
+        sp = self._split(100.0)
+        self.assertAlmostEqual(implied_target_scale(sp["y"], sp["last_candles"]), 100.0, places=3)
+        sp["y"]["y_high_reg"] = sp["y"]["y_high_reg"][::-1].copy()                # ليس عائداً × ثابت (relative مثلاً)
+        sp["y"]["y_low_reg"] = sp["y"]["y_low_reg"][::-1].copy()
+        sp["y"]["y_close_reg"] = sp["y"]["y_close_reg"][::-1].copy()
+        self.assertIsNone(implied_target_scale(sp["y"], sp["last_candles"]))
+
+
 class AuditRound1Tests(unittest.TestCase):
     """إصلاحات الجولة ١ (docs/research/audit/repro_01..05) — كل اختبار يفشل على الكود قبل الإصلاح."""
 
