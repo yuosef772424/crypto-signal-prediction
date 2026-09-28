@@ -23,6 +23,23 @@ class PanelDataTests(unittest.TestCase):
         self.assertTrue(a.check()["ok"])
         self.assertEqual(a.n_days, 10)
 
+    def test_class_label_encoding_agnostic(self):
+        """خط الأنابيب يُصدر _class بترميز 1/0، وretarget_splits (main) وبيانات أقدم بـ ±1 — كلاهما يعطي نفس ycls."""
+        import numpy as np
+        from cross_asset.data import PanelSplit
+        ps = st.synthetic_split(seed=3)                      # يبني تسميات ±1
+        for enc in ("pm1", "unit"):
+            y = {}
+            for i, t in enumerate(ps.targets):
+                up = ps.ycls[:, i]
+                y[f"y_{t}_class"] = up * 2.0 - 1.0 if enc == "pm1" else up.copy()
+                y[f"y_{t}_reg"] = ps.yreg[:, i]
+            other = PanelSplit(ps.X, y, ps.lc, ps.assets, enc, ps.targets)
+            np.testing.assert_array_equal(other.ycls, ps.ycls)
+            self.assertEqual(set(np.unique(other.ycls).tolist()), {0.0, 1.0})
+        sub = ps.take(np.arange(0, ps.n, 3))                 # take يمرّ بترميز 1/0 ولا يفقد التسميات
+        np.testing.assert_array_equal(sub.ycls, ps.ycls[np.arange(0, ps.n, 3)])
+
 
 class PanelModelTests(unittest.TestCase):
     def test_masking(self):

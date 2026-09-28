@@ -25,7 +25,8 @@ class PanelSplit:
     """قسم واحد (train أو val أو test) مجمَّعاً حسب اليوم.
 
     X            : مصفوفة النوافذ (N, T, F) — مرجع لا نسخة.
-    y            : قاموس خط الأنابيب {y_{هدف}_class: ±1, y_{هدف}_reg: عائد} (بعد retarget_splits إن وُجد).
+    y            : قاموس خط الأنابيب {y_{هدف}_class: 1/0 (أو ±1 القديم/retarget_splits), y_{هدف}_reg: عائد}.
+                   الصعود = y > 0، فالترميزان يُقرآن بلا تحويل.
     last_candles : (N, 7) بأعمدة LAST_COLUMNS.
     assets       : أسماء العملات لكل صف (اختياري؛ لازم لفحص التكرار وللتصدير).
     """
@@ -65,7 +66,7 @@ class PanelSplit:
         idx = np.sort(np.asarray(idx))
         y = {}
         for i, t in enumerate(self.targets):
-            y[f"y_{t}_class"] = self.ycls[idx, i] * 2.0 - 1.0
+            y[f"y_{t}_class"] = self.ycls[idx, i].copy()       # 1/0 — ترميز خط الأنابيب الحالي
             y[f"y_{t}_reg"] = self.yreg[idx, i]
         return PanelSplit(np.asarray(self.X[idx]), y, self.lc[idx],
                           None if self.assets is None else self.assets[idx], name or self.name, self.targets)
