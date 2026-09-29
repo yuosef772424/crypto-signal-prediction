@@ -280,8 +280,13 @@
     يُصدَّر أيضاً `pred_close_up = P·(1 + mu_close)` و`pred_close_down = P·(1 − mu_close)`، أي الاتجاهان.
   - مع `range_pos`: `pred_close = pred_low + clip(mu_close, 0, 1)·(pred_high − pred_low)`.
   - `ic_asym` (`asym_score`) في هذا الوضع هو `mu_high − mu_low` مباشرة.
-  - قسم chicks (٦) يفكّ high وlow من P. close لا يدخله إلا مع `range_pos`، لأن اتجاهه في رأس التصنيف الذي لا يقرؤه chicks.
-    سعر close مع `abs_return` يأتي من `collect_signals` و`real_price_predictions`.
+  - قسم chicks (٦) يفكّ high وlow من P، وclose في التعريفين. مع `abs_return`: `pred_close = P·(1 + s·mu_close)` حيث `s`
+    من `p_up_close` (مخرَج `y_close_class_logits` بعد sigmoid، `≥ 0.5` صعود)، ويقرؤه chicks من النموذج نفسه
+    (`TargetSpec.class_key` و`signed_by_class`) فلا يمرّ عبر `test_dict`. الحقيقة (اتجاه السعر الفعلي) من `last_candles`.
+  - `detect_success_failure_patterns` يعمل لكل رأس (high/low/close) على حدة افتراضياً (`per_head=True`؛ `per_head=False`
+    للجدول المجمَّع القديم)، لأن `predicted_change_pct` موجب دائماً لـ high وسالب دائماً لـ low فتنقسم الشجرة المجمَّعة على
+    الرأس لا على النجاح. يُبلَّغ لكل رأس خط الأساس الساذج (حصة الفئة الأكثر) والدقة الموزونة (داخل العيّنة)، ويدخل
+    `p_up` (احتمال صعود رأس تصنيفه) خاصية مرشّحة حين يتوفّر.
 - **close مُفعَّل تلقائياً** في هذا الوضع (`SUSPENDED_TARGETS = ()`). يبقى معلّقاً في الأوضاع الأخرى.
 - **لا `entry_range+relative`.** الوسيط المقطعي لا يُطبَّق على مقدار، والناتج لا يُعكس إلى سعر، فالتركيب مرفوض بخطأ صريح.
 - `mu_close` مقدار في هذا الوضع، فمقياسا `reg_ic_close` و`ic_mu_close` في `cross_asset/report.py` (ارتباطه بعائد موقَّع)

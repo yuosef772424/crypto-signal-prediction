@@ -15,6 +15,7 @@ import sys
 import unittest
 
 import numpy as np
+import pandas as pd
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
@@ -303,8 +304,9 @@ class EntryRangeTargetTests(unittest.TestCase):
                     np.testing.assert_array_equal(df5["pred_close"], df5["pred_close_up"])
 
     def test_chicks_decode_roundtrip(self):
-        """EVAL_TARGET_SPECS لـ entry_range: high/low من P دائماً؛ close في chicks مع range_pos فقط (abs_return بلا اتجاه)."""
-        for close_reg, names in (("abs_return", ["high", "low"]), ("range_pos", ["high", "low", "close"])):
+        """EVAL_TARGET_SPECS لـ entry_range: high/low من P دائماً، وclose في الحالتين: موقعاً في المدى (range_pos)
+        أو مقداراً باتجاه رأس التصنيف (abs_return — تفاصيله في EntryRangeChicksCloseTests)."""
+        for close_reg, names in (("abs_return", ["high", "low", "close"]), ("range_pos", ["high", "low", "close"])):
             for scale in (1.0, 100.0):
                 ns = _main_ns(scale)
                 ns["train"], ns["val"], ns["test"] = _retarget(ns, close_reg=close_reg)
@@ -317,23 +319,30 @@ class EntryRangeTargetTests(unittest.TestCase):
                 split = ns["test"]["AAA"]
                 lc, p = split["last_candles"], _prices(split)
                 raw = {t: split["y"][f"y_{t}_reg"] for t in names}
+                if close_reg == "abs_return":
+                    raw["close_p_up"] = np.where(p["C"] > p["P"], 0.9, 0.1)     # اتجاه close من رأس التصنيف
                 dec = ns["decode_predictions_v4"](raw, ns["EVAL_TARGET_SPECS"], None, lc[:, :4])   # بلا أعمدة المستقبل
                 want_h, want_l = _reachable(p["P"], p["H"], p["L"])
                 np.testing.assert_allclose(dec["high"]["pred_real"], want_h, rtol=1e-6)
                 np.testing.assert_allclose(dec["low"]["pred_real"], want_l, rtol=1e-6)
-                if "close" in names:
+                if close_reg == "range_pos":
                     ok = (p["H"] > p["P"]) & (p["L"] < p["P"]) & (p["H"] / p["P"] < 2)
-                    np.testing.assert_allclose(dec["close"]["pred_real"][ok], p["C"][ok], rtol=1e-6)
+                else:
+                    ok = np.abs(p["C"] / p["P"] - 1) < 1
+                np.testing.assert_allclose(dec["close"]["pred_real"][ok], p["C"][ok], rtol=1e-6)
                 # verify_decoding بأعمدة المستقبل: الفكّ سليم، والهدف المقصوص/المصفَّر يظهر كعدم اتساق بنسبته الفعلية
                 dec = ns["decode_predictions_v4"](raw, ns["EVAL_TARGET_SPECS"], None, lc)
                 rep = ns["verify_decoding"](raw, dec, ns["EVAL_TARGET_SPECS"], None,
                                             {f"y_{t}": v for t, v in raw.items()}, lc, verbose=False)
-                for t, fut in (("high", want_h), ("low", want_l)):
+                checks = [("high", want_h, p["H"]), ("low", want_l, p["L"])]
+                if close_reg == "abs_return":   # مقصوص عند ±100% كغيره: الحركة +200% لا تُعاد حرفياً
+                    checks.append(("close", p["P"] * (1 + np.where(p["C"] > p["P"], 1, -1)
+                                                       * np.clip(np.abs(p["C"] / p["P"] - 1), 0, 1)), p["C"]))
+                for t, fut, true in checks:
                     self.assertTrue(rep[t]["roundtrip_ok"], (t, scale))
-                    true = p["H"] if t == "high" else p["L"]
                     self.assertAlmostEqual(rep[t]["true_value_inconsistent_frac"],
                                            float(np.mean(np.abs(fut - true) / true > 1e-3)), places=9)
-                if "close" in names:
+                if close_reg == "range_pos":
                     self.assertEqual(rep["close"]["status"], "ok", (scale, rep["close"]))
                 # عدم اليقين عرضٌ موجب حتى لـ low (reg_scale سالب)
                 ones = np.ones(len(lc))
@@ -381,6 +390,195 @@ class EntryRangeTargetTests(unittest.TestCase):
         mag = ns["retarget_splits"](ns["train"], ns["val"], ns["test"], mode="magnitude", verbose=False)[0]
         for t in ("high", "low", "close"):
             np.testing.assert_allclose(er[0]["y"][f"y_{t}_reg"], mag["y"][f"y_{t}_reg"], rtol=1e-6, atol=1e-6)
+
+
+class EntryRangeChicksCloseTests(unittest.TestCase):
+    """chicks في entry_range مع abs_return: close = P·(1 + s·mu/scale) باتجاه رأس التصنيف، وتحليل الأنماط لكل رأس."""
+
+    @staticmethod
+    def _chicks_ns(scale, close_reg="abs_return"):
+        ns = _main_ns(scale)
+        ns["train"], ns["val"], ns["test"] = _retarget(ns, close_reg=close_reg)
+        for idx in (19, 20):
+            src = _cell("main.ipynb", idx)
+            exec(compile(src[src.index("import dataclasses"):] if idx == 20 else src, f"main#cell{idx}", "exec"), ns)
+        # test_all_assets_v4 (chicks ٨): تحميل الدفتر العام يتخطّاها (تحوي نصّ الاستدعاء)، وهنا هي المسار المختبَر
+        exec(compile(_cell("chicks_v4_5_input_output_patterns.ipynb", 18), "chicks#cell18", "exec"), ns)
+        return ns
+
+    @staticmethod
+    def _model(ns, p_up, noise_seed=0):
+        """نموذج مزيّف يُخرج y_* (المقدار الحقيقي) وy_*_class_logits (احتمال) لكل صفّ يُعرَّف بمعرّفه في X[:, 0, 0]."""
+        ids = np.concatenate([np.arange(len(s["last_candles"])) + 1000 * i for i, s in enumerate(ns["test"].values())])
+        for i, s in enumerate(ns["test"].values()):
+            X = np.zeros_like(s["X_1h"])
+            X[:, 0, 0] = np.arange(len(X)) + 1000 * i
+            s["X_1h"] = X
+        table = {}
+        for i, s in enumerate(ns["test"].values()):
+            for j in range(len(s["last_candles"])):
+                table[j + 1000 * i] = {**{f"y_{t}": s["y"][f"y_{t}_reg"][j] for t in ("high", "low", "close")},
+                                       **{f"y_{t}_class_logits": p_up[t][i][j] for t in ("high", "low", "close")}}
+
+        def model(x, training=False):
+            xb = x[0] if isinstance(x, (tuple, list)) else x         # predict_batch_v4 يمرّر tuple بنافذة لكل إطار
+            rows = [table[int(v)] for v in np.asarray(xb)[:, 0, 0]]
+            return {k: np.array([r[k] for r in rows], "float32").reshape(-1, 1) for k in rows[0]}
+        model.table = table
+        return model
+
+    def test_close_price_uses_sign_from_p_up(self):
+        for scale in (1.0, 100.0):
+            ns = self._chicks_ns(scale)
+            self.assertEqual(ns["CHICKS_TARGETS"], ["high", "low", "close"])
+            spec = {s.name: s for s in ns["EVAL_TARGET_SPECS"]}["close"]
+            self.assertTrue(spec.signed_by_class and spec.relative_to_entry)
+            self.assertEqual(spec.class_key, "y_close_class_logits")
+            split = ns["test"]["AAA"]
+            p = _prices(split)
+            mu = split["y"]["y_close_reg"].astype("float64")
+            for name, p_up in (("truth", np.where(p["C"] > p["P"], 0.9, 0.1)), ("all_up", np.full(len(mu), 0.9)),
+                               ("all_down", np.full(len(mu), 0.1)), ("boundary", np.full(len(mu), 0.5))):
+                s_sign = np.where(p_up >= 0.5, 1.0, -1.0)                     # 0.5 بالضبط ← صعود
+                dec = ns["decode_predictions_v4"]({"close": mu, "close_p_up": p_up}, [spec], None, split["last_candles"])
+                want = p["P"] * (1.0 + s_sign * mu / scale)
+                np.testing.assert_allclose(dec["close"]["pred_real"], want, rtol=1e-12, err_msg=f"{name} {scale}")
+                np.testing.assert_allclose(dec["close"]["p_up"], p_up)
+                # مطابق لصيغة main الوحيدة (entry_range_to_prices) لا نسخة منها
+                np.testing.assert_allclose(dec["close"]["pred_real"], ns["entry_range_to_prices"](
+                    p["P"], close=mu / scale, close_reg="abs_return", p_close_up=p_up)["close"], rtol=1e-12)
+            # مقدار مشترك، إشارة عكسية: الفرق عن P متناظر
+            up = ns["decode_predictions_v4"]({"close": mu, "close_p_up": np.full(len(mu), 0.9)}, [spec], None, split["last_candles"])
+            dn = ns["decode_predictions_v4"]({"close": mu, "close_p_up": np.full(len(mu), 0.1)}, [spec], None, split["last_candles"])
+            np.testing.assert_allclose(up["close"]["pred_real"] + dn["close"]["pred_real"], 2 * p["P"], rtol=1e-12)
+            # بلا احتمال لا تخمين
+            with self.assertRaises(ValueError):
+                ns["decode_predictions_v4"]({"close": mu}, [spec], None, split["last_candles"])
+
+    def test_class_output_reaches_chicks_through_model_call(self):
+        """المسار الكامل: build_chicks_test_dict ← test_all_assets_v4 ← predict_batch_v4 يقرأ y_close_class_logits من النموذج."""
+        ns = self._chicks_ns(100.0)
+        rng = np.random.default_rng(3)
+        ps = {t: [rng.uniform(0.05, 0.95, len(s["last_candles"])) for s in ns["test"].values()] for t in ("high", "low", "close")}
+        for i, s in enumerate(ns["test"].values()):                     # close: احتمال يوافق الاتجاه الفعلي بضجيج 25%
+            truth = s["y"]["y_close_class"] > 0
+            flip = rng.random(len(truth)) < 0.25
+            ps["close"][i] = np.where(truth ^ flip, 0.8, 0.2)
+        model = self._model(ns, ps)
+        td = ns["build_chicks_test_dict"](ns["test"], "1h")
+        self.assertEqual(set(td["AAA"]["y"]), {"high", "low", "close"})
+        for i, (a, s) in enumerate(td.items()):
+            s["X_1h"] = ns["test"][a]["X_1h"]
+        res = ns["test_all_assets_v4"](model, td, ["1h"], ns["EVAL_TARGET_SPECS"], verbose=False, batch_size=256)
+        ver = res["verification_summary"].query("target == 'close'").set_index("asset")
+        self.assertTrue(ver["roundtrip_ok"].all())
+        for i, (a, row) in enumerate(res["per_asset_results"].iterrows()):
+            split = ns["test"][row["asset"]]
+            pr = _prices(split)
+            c = row["close"]
+            want_sign = np.where(ps["close"][list(ns["test"]).index(row["asset"])] >= 0.5, 1.0, -1.0)
+            mu = split["y"]["y_close_reg"].astype("float64")
+            np.testing.assert_allclose(c["pred_real"], pr["P"] * (1 + want_sign * mu / 100.0), rtol=1e-6)
+            np.testing.assert_allclose(c["true_real"], pr["C"])
+            # فكّ الحقيقة (مقدار × اتجاه فعلي) يعيد السعر إلا ما قُصّ عند ±100% (+200% هنا) — نسبته الفعلية لا أكثر
+            fut = pr["P"] * (1 + np.where(pr["C"] > pr["P"], 1, -1) * np.clip(np.abs(pr["C"] / pr["P"] - 1), 0, 1))
+            self.assertAlmostEqual(ver.loc[row["asset"], "true_value_inconsistent_frac"],
+                                   float(np.mean(np.abs(fut - pr["C"]) / pr["C"] > 1e-3)), places=9)
+            # الاتجاه الصائب = اتجاه رأس التصنيف مقابل الاتجاه الفعلي (Win% = دقة الرأس)
+            np.testing.assert_array_equal(c["direction_correct"], (want_sign == np.where(pr["C"] > pr["P"], 1, -1)).astype(int))
+        # رأس التصنيف غائب من النموذج ← خطأ صريح لا اتجاه مخمَّن
+        del model.table
+        bad = lambda x, training=False: {k: v for k, v in model(x).items() if k != "y_close_class_logits"}
+        with self.assertRaises(KeyError):
+            ns["predict_batch_v4"](bad, (td["AAA"]["X_1h"],), ns["EVAL_TARGET_SPECS"])
+
+    def test_pattern_discovery_runs_per_head(self):
+        ns = self._chicks_ns(100.0)
+        rng = np.random.default_rng(4)
+        ps = {t: [rng.uniform(0.05, 0.95, len(s["last_candles"])) for s in ns["test"].values()] for t in ("high", "low", "close")}
+        model = self._model(ns, ps)
+        td = ns["build_chicks_test_dict"](ns["test"], "1h")
+        for a, s in td.items():
+            s["X_1h"] = ns["test"][a]["X_1h"]
+        res = ns["test_all_assets_v4"](model, td, ["1h"], ns["EVAL_TARGET_SPECS"], verbose=False, batch_size=256)
+        flat = ns["build_flat_dataframe"](res["per_asset_results"], ns["EVAL_TARGET_SPECS"])
+        self.assertEqual(set(flat["target"]), {"high", "low", "close"})
+        self.assertTrue(flat["p_up"].notna().all())
+        # الفوارق البنيوية بين الرؤوس التي كانت تُضلّل الشجرة المجمَّعة
+        self.assertTrue((flat[flat.target == "high"]["predicted_change_pct"] >= 0).all())
+        self.assertTrue((flat[flat.target == "low"]["predicted_change_pct"] <= 0).all())
+        got = ns["detect_success_failure_patterns"](flat, verbose=False)
+        self.assertEqual(got["mode"], "per_head")
+        self.assertEqual(sorted(got["per_head"]), ["close", "high", "low"])
+        self.assertEqual(sorted(got["summary"]["head"]), ["close", "high", "low"])
+        for h, r in got["per_head"].items():
+            self.assertEqual(r["head"], h)
+            self.assertEqual(r["n"], int((flat.target == h).sum()))
+            self.assertIn("p_up", r["features"])
+            self.assertIn("p_up", set(r["feature_importance"]["الخاصية"]))
+            y = flat[flat.target == h]["correct"]
+            self.assertAlmostEqual(r["tree_naive_baseline_accuracy"], max(y.mean(), 1 - y.mean()))
+            self.assertTrue(0.0 <= r["tree_balanced_accuracy"] <= 1.0)
+        row = got["summary"].set_index("head")
+        self.assertEqual(set(row.columns) >= {"naive_baseline_accuracy", "tree_balanced_accuracy"}, True)
+        # الخيار المجمَّع: نتيجة واحدة بالحقول القديمة، ولا p_up حين يغيب عن رأس (هنا حاضر في الكل)
+        pooled = ns["detect_success_failure_patterns"](flat, per_head=False, verbose=False)
+        self.assertEqual(pooled["mode"], "pooled")
+        self.assertNotIn("per_head", pooled)
+        self.assertEqual(pooled["n"], len(flat))
+        # رأس واحد أو بلا عمود target: الحقول القديمة على المستوى الأعلى (يقرؤها selective.py)
+        one = ns["detect_success_failure_patterns"](flat[flat.target == "close"].drop(columns="target"), verbose=False)
+        self.assertEqual(list(one["per_head"]), ["all"])
+        for k in ("tree_accuracy", "tree_balanced_accuracy", "tree_naive_baseline_accuracy", "feature_importance", "tree_rules"):
+            self.assertIn(k, one)
+        # رأس بلا عيّنات كافية يُسجَّل تخطّيه ولا يُفشل الباقي
+        few = pd.concat([flat[flat.target != "low"], flat[flat.target == "low"].head(5)])
+        r = ns["detect_success_failure_patterns"](few, verbose=False)
+        self.assertEqual(sorted(r["per_head"]), ["close", "high"])
+        self.assertEqual(list(r["skipped"]), ["low"])
+
+    def test_other_modes_unchanged(self):
+        ns = _main_ns(100.0)                                        # target_mode = None (return)
+        for idx in (19, 20):
+            src = _cell("main.ipynb", idx)
+            exec(compile(src[src.index("import dataclasses"):] if idx == 20 else src, f"main#cell{idx}", "exec"), ns)
+        self.assertEqual(ns["CHICKS_TARGETS"], ["high", "low", "close"])
+        for s in ns["EVAL_TARGET_SPECS"]:
+            self.assertIsNone(s.class_key, s.name)
+            self.assertFalse(s.signed_by_class, s.name)
+        # مواصفة بلا class_key: تتجاهل p_up لو وُجد في raw ولا تغيّر الفكّ
+        split = ns["test"]["AAA"]
+        lc = split["last_candles"]
+        raw = {t: np.random.default_rng(1).normal(0, 1, len(lc)) for t in ("high", "low", "close")}
+        a = ns["decode_predictions_v4"](raw, ns["EVAL_TARGET_SPECS"], None, lc)
+        b = ns["decode_predictions_v4"](dict(raw, close_p_up=np.zeros(len(lc))), ns["EVAL_TARGET_SPECS"], None, lc)
+        for t in raw:
+            np.testing.assert_array_equal(a[t]["pred_real"], b[t]["pred_real"])
+            self.assertNotIn("direction_sign", a[t])
+        # signed_by_class بلا class_key أو بلا فكّ نسبة لسعر الدخول: مرفوض
+        with self.assertRaises(ValueError):
+            ns["TargetSpec"](name="close", signed_by_class=True, relative_to_entry=True)
+        with self.assertRaises(ValueError):
+            ns["TargetSpec"](name="close", signed_by_class=True, class_key="y_close_class_logits")
+        # p_up كله NaN (أوضاع لا تقرؤه) ← خاصية غير مرشّحة، والباقي كما كان؛ وحضوره الكامل ← مرشّحة
+        rng = np.random.default_rng(2)
+        n = 80
+        df = pd.DataFrame({"asset": "A", "target": "close", "confidence": rng.random(n), "uncertainty": rng.random(n),
+                           "aleatoric": rng.random(n), "epistemic": rng.random(n), "predicted_change_pct": rng.normal(0, 1, n),
+                           "correct": rng.integers(0, 2, n), "pct_error": rng.random(n), "p_up": np.nan})
+        r = ns["detect_success_failure_patterns"](df, verbose=False)
+        self.assertEqual(r["features"], ["confidence", "uncertainty", "aleatoric", "epistemic", "predicted_change_pct"])
+        df["p_up"] = rng.random(n)
+        self.assertEqual(ns["detect_success_failure_patterns"](df, verbose=False)["features"][-1], "p_up")
+        # feature_cols صريحة تُحترم كما هي (لا p_up تلقائياً)
+        r = ns["detect_success_failure_patterns"](df, feature_cols=["confidence"], verbose=False)
+        self.assertEqual(r["features"], ["confidence"])
+
+    def test_range_pos_close_unchanged(self):
+        ns = self._chicks_ns(100.0, "range_pos")
+        close = {s.name: s for s in ns["EVAL_TARGET_SPECS"]}["close"]
+        self.assertEqual(close.range_of, ("high", "low"))
+        self.assertFalse(close.signed_by_class)
 
 
 class EntryRangeConsumerTests(unittest.TestCase):
