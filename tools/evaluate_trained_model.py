@@ -31,6 +31,11 @@ import numpy as np
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REPORTS = ("gap", "verification", "market_neutral", "candle", "chicks", "signals")
+# أوضاع الهدف المقبولة = TARGET_MODES في main القسم ٣-ب (+ "+relative" لكل وضع يقبله؛ entry_range لا يقبله) —
+# tests/test_entry_range.py يثبّت التطابق، فوضع جديد في الدفتر بلا إضافته هنا يُفشل الاختبار لا التقييم بصمت.
+_BASE_MODES = ("return", "return_close", "scaled", "magnitude", "volnorm")
+TARGET_MODE_CHOICES = (_BASE_MODES + ("relative",) + tuple(f"{b}+relative" for b in _BASE_MODES)
+                       + ("entry_range",))
 INVOKE_CWD = os.getcwd()
 
 
@@ -85,7 +90,8 @@ def main():
     ap.add_argument("--run-dir", default="run", help="مع --train: مجلد نقاط الحفظ (نسبة لـ --out)")
     ap.add_argument("--split-dates", default=None,
                     help="train_end,val_end (مثلاً 2025-06-24,2025-11-21): تقسيم زمني صريح بدل نِسَب العيّنات")
-    ap.add_argument("--target-mode", default=None, help="TARGET_MODE في main (مثلاً relative). None = أهداف خط الأنابيب")
+    ap.add_argument("--target-mode", default=None, choices=TARGET_MODE_CHOICES, metavar="MODE",
+                    help=f"TARGET_MODE في main، أحد {TARGET_MODE_CHOICES}. بلا الخيار = أهداف خط الأنابيب")
     ap.add_argument("--group-freq", default=None,
                     help="عرض مجموعة الطوابع المقطعية (مثلاً 32h) لـ +relative (group_freq في retarget_splits) ولنموذج "
                          "اللوحة (day_ns) معاً — لبيانات لا تتطابق طوابع عملاتها. None = الطابع الدقيق / يوم UTC")

@@ -30,12 +30,18 @@ class PanelSplit:
     last_candles : (N, 7) بأعمدة LAST_COLUMNS.
     assets       : أسماء العملات لكل صف (اختياري؛ لازم لفحص التكرار وللتصدير).
     target_scale : reg_target_scale الذي بُنيت به y_{هدف}_reg (عائد × المقياس). يُقسَم عليه قبل أي تحويل إلى سعر
-                   أو عائد (asym_score، export_signals)؛ 1.0 لبيانات قديمة بلا المفتاح.
+                   أو عائد (asym_score، export_signals)؛ 1.0 لبيانات قديمة بلا المفتاح. رقم واحد، أو مصفوفة (K,) بترتيب
+                   targets حين يختلف مقياس الأهداف (entry_range: close موقع [0,1] بلا مقياس).
+    target_mode  : وضع الهدف المختوم على القسم (retarget_splits في main)؛ None = أهداف خط الأنابيب. يحدّد عكس mu إلى
+                   سعر في export_signals وasym_score.
     """
 
-    def __init__(self, X, y, last_candles, assets=None, name="", targets=TARGETS, day_ns=DAY_NS, target_scale=1.0):
+    def __init__(self, X, y, last_candles, assets=None, name="", targets=TARGETS, day_ns=DAY_NS, target_scale=1.0,
+                 target_mode=None):
         self.name, self.targets, self.X = name, tuple(targets), X
-        self.target_scale = float(target_scale)
+        self.target_scale = (np.asarray(target_scale, dtype="float64") if np.ndim(target_scale)
+                             else float(target_scale))
+        self.target_mode = target_mode
         self.day_ns = int(day_ns)
         self.n = len(X)
         self.lc = np.asarray(last_candles, dtype="float64")
@@ -90,7 +96,7 @@ class PanelSplit:
             y[f"y_{t}_reg"] = self.yreg[idx, i]
         return PanelSplit(np.asarray(self.X[idx]), y, self.lc[idx],
                           None if self.assets is None else self.assets[idx], name or self.name, self.targets,
-                          day_ns=self.day_ns, target_scale=self.target_scale)
+                          day_ns=self.day_ns, target_scale=self.target_scale, target_mode=self.target_mode)
 
     def subset(self, last_days=None, coins=None, seed=0):
         """مجموعة فرعية للاختبار السريع: آخر last_days يوماً متتالياً، و coins عملة على الأكثر (نفس العملات عبر
@@ -334,6 +340,14 @@ def _resolve_target_scale(members, model_targets):
     return 1.0
 
 
+def _per_target_scale(members, targets, scale):
+    """مقياس كل هدف المختوم (reg_target_scales من retarget_splits) إن اختلف عن المشترك ← مصفوفة بترتيب targets؛
+    وإلا المشترك كما هو (السلوك القديم)."""
+    per = (members[0].get("reg_target_scales") or {}) if members else {}
+    arr = [float(per.get(t, scale)) for t in targets]
+    return np.asarray(arr) if any(abs(v - float(scale)) > 1e-12 for v in arr) else scale
+
+
 def panel_split_from(split_or_dict, model_tf, asset_names=None, name="", targets=TARGETS, day_ns=DAY_NS,
                      target_scale=None):
     """من مخرَج split_data/retarget_splits: قسم مدمج (train/val) أو قاموس {عملة: قسم} (test).
@@ -343,13 +357,33 @@ def panel_split_from(split_or_dict, model_tf, asset_names=None, name="", targets
     شهدت last_candles بمقياس آخر ⇒ ValueError (انظر _resolve_target_scale)."""
     members = [split_or_dict] if "y" in split_or_dict else list(split_or_dict.values())
     if target_scale is None:
-        target_scale = _resolve_target_scale(members, tuple(targets))
+        target_scale = _per_target_scale(members, tuple(targets), _resolve_target_scale(members, tuple(targets)))
+    modes = {m.get("target_mode") for m in members}
+    if len(modes) > 1:
+        raise ValueError(f"أجزاء القسم مختومة بأوضاع هدف مختلفة: {sorted(modes, key=str)}")
     if "y" in split_or_dict:
         X, y, lc = split_or_dict[f"X_{model_tf}"], split_or_dict["y"], split_or_dict["last_candles"]
         assets = asset_names if asset_names is not None and len(asset_names) == len(lc) else None
     else:
         X, y, lc, assets = _concat_dict(split_or_dict, model_tf)
-    return PanelSplit(X, y, lc, assets=assets, name=name, targets=targets, day_ns=day_ns, target_scale=target_scale)
+    return PanelSplit(X, y, lc, assets=assets, name=name, targets=targets, day_ns=day_ns, target_scale=target_scale,
+                      target_mode=modes.pop() if modes else None)
+
+
+def entry_range_to_prices(entry, high=None, low=None, close=None):
+    """عكس أهداف entry_range (retarget_splits في main، القسم ٣-ب) إلى أسعار — نفس entry_range_to_prices في الدفتر.
+    الأهداف بوحدة العائد (بعد القسمة على المقياس): high = قمة/P − 1، low = 1 − قاع/P (مقدار موجب)، close = موقع [0,1]:
+        pred_high = P·(1 + high)، pred_low = P·(1 − low)، pred_close = pred_low + clip(close, 0, 1)·(pred_high − pred_low).
+    P = آخر إغلاق. يُرجع {هدف: سعر} لما أمكن حسابه (close يحتاج high وlow)."""
+    P = np.asarray(entry, dtype="float64")
+    out = {}
+    if high is not None:
+        out["high"] = P * (1.0 + np.asarray(high, dtype="float64"))
+    if low is not None:
+        out["low"] = P * (1.0 - np.asarray(low, dtype="float64"))
+    if close is not None and "high" in out and "low" in out:
+        out["close"] = out["low"] + np.clip(np.asarray(close, dtype="float64"), 0.0, 1.0) * (out["high"] - out["low"])
+    return out
 
 
 def group_ns_for(base_tf, stride):

@@ -22,7 +22,7 @@ from .data import DAY_NS, PanelSplit
 
 BASELINE_COLS = ["asset", "timestamp", "entry", "last_high", "last_low", "fut_close", "fut_high", "fut_low",
                  "mu_high", "p_up_high", "mu_low", "p_up_low", "mu_close", "p_up_close", "pred_high", "pred_low",
-                 "up", "split"]
+                 "up", "target_mode", "split"]
 
 
 def synthetic_split(n_assets=30, n_days=60, seq_len=8, n_features=5, start_day=18000, seed=0, signal=0.0,
