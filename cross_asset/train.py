@@ -360,7 +360,7 @@ def asym_score(ps, mu):
     (P آخر إغلاق، mu بوحدات هدف التدريب — يُقسَم هنا على ps.target_scale ليصير عائداً؛ وكلاهما مقصوص عند 1e-5). نفس تعريف skew في
     docs/research/scripts/hourly_1h/exc_analysis.py، الذي حمل معلومة الاتجاه (IC ≈ 0.05 مع العائد، القسم ٤). None إن
     غاب high أو low.
-    entry_range: الرأسان هما up وdn أنفسهما من P (dn موجب) ⇒ التباين mu_high − mu_low مباشرة، بلا عكس إشارة."""
+    entry_range: الرأسان مقدارا الصعود والهبوط من P (كلاهما غير سالب) ⇒ التباين mu_high − mu_low مباشرة."""
     if "high" not in ps.targets or "low" not in ps.targets:
         return None
     lc, t = ps.lc, list(ps.targets)
@@ -387,7 +387,8 @@ def group_ic(ps, score, target, min_n=10):
 def export_signals(ps, logit, mu, split_name, targets=("high", "low", "close")):
     """إشارات بنفس أعمدة collect_signals في دفتر main (بلا wst/conf — لا رؤوس عدم يقين هنا).
     mu بوحدات هدف التدريب (عائد × ps.target_scale)؛ يُقسَم أولاً فتبقى أعمدة mu_* عائداً وpred_* أسعاراً حقيقية.
-    العكس إلى سعر حسب ps.target_mode (مختوم في عمود target_mode): entry_range من آخر إغلاق (+ pred_close)، وإلا كل
+    العكس إلى سعر حسب ps.target_mode (مختوم في عمود target_mode): entry_range من آخر إغلاق (+ pred_close باتجاه رأس
+    تصنيف close، وpred_close_up/pred_close_down بالاتجاهين مع abs_return؛ التعريف مختوم في entry_close_reg)، وإلا كل
     هدف من آخر سعر نوعه كخط الأنابيب."""
     lc = ps.lc
     mu = np.asarray(mu, dtype="float64") / getattr(ps, "target_scale", 1.0)
@@ -402,16 +403,21 @@ def export_signals(ps, logit, mu, split_name, targets=("high", "low", "close")):
         df[f"p_up_{t}"] = p[:, i]
     mode = getattr(ps, "target_mode", None)
     if mode == "entry_range":
-        px = entry_range_to_prices(df["entry"].to_numpy(), **{t: df[f"mu_{t}"].to_numpy() for t in targets
-                                                               if t in ("high", "low", "close")})
+        close_reg = getattr(ps, "entry_close_reg", None) or "abs_return"
+        px = entry_range_to_prices(df["entry"].to_numpy(), close_reg=close_reg,
+                                   p_close_up=df["p_up_close"].to_numpy() if "p_up_close" in df else None,
+                                   **{t: df[f"mu_{t}"].to_numpy() for t in targets if t in ("high", "low", "close")})
         df["pred_high"], df["pred_low"] = px.get("high", np.nan), px.get("low", np.nan)
-        if "close" in px:
-            df["pred_close"] = px["close"]
+        for k in ("close", "close_up", "close_down"):
+            if k in px:
+                df[f"pred_{k}"] = px[k]
     else:
         df["pred_high"] = df["last_high"] * (1.0 + df["mu_high"])
         df["pred_low"] = df["last_low"] * (1.0 + df["mu_low"])
     df["up"] = (df["fut_close"] > df["entry"]).astype(int)
     df["target_mode"] = mode or "return"
+    if mode == "entry_range":
+        df["entry_close_reg"] = close_reg   # ختم التعريف كما في collect_signals: المستهلك لا يخمّن وحدة mu_close
     df["split"] = split_name
     # بعد أعمدة collect_signals (لا بينها): تسمية التدريب نفسها — report.summarize يقيس AUC عليها لا على تسمية يعيد اشتقاقها
     for i, t in enumerate(targets):

@@ -34,14 +34,17 @@ class PanelSplit:
                    targets حين يختلف مقياس الأهداف (entry_range: close موقع [0,1] بلا مقياس).
     target_mode  : وضع الهدف المختوم على القسم (retarget_splits في main)؛ None = أهداف خط الأنابيب. يحدّد عكس mu إلى
                    سعر في export_signals وasym_score.
+    entry_close_reg : مع target_mode="entry_range": تعريف انحدار close ("abs_return" | "range_pos")، مختوم كذلك؛ None
+                   خارجه. يحدّد وحدة mu_close وطريقة عكسه (entry_range_to_prices).
     """
 
     def __init__(self, X, y, last_candles, assets=None, name="", targets=TARGETS, day_ns=DAY_NS, target_scale=1.0,
-                 target_mode=None):
+                 target_mode=None, entry_close_reg=None):
         self.name, self.targets, self.X = name, tuple(targets), X
         self.target_scale = (np.asarray(target_scale, dtype="float64") if np.ndim(target_scale)
                              else float(target_scale))
         self.target_mode = target_mode
+        self.entry_close_reg = entry_close_reg
         self.day_ns = int(day_ns)
         self.n = len(X)
         self.lc = np.asarray(last_candles, dtype="float64")
@@ -96,7 +99,8 @@ class PanelSplit:
             y[f"y_{t}_reg"] = self.yreg[idx, i]
         return PanelSplit(np.asarray(self.X[idx]), y, self.lc[idx],
                           None if self.assets is None else self.assets[idx], name or self.name, self.targets,
-                          day_ns=self.day_ns, target_scale=self.target_scale, target_mode=self.target_mode)
+                          day_ns=self.day_ns, target_scale=self.target_scale, target_mode=self.target_mode,
+                          entry_close_reg=self.entry_close_reg)
 
     def subset(self, last_days=None, coins=None, seed=0):
         """مجموعة فرعية للاختبار السريع: آخر last_days يوماً متتالياً، و coins عملة على الأكثر (نفس العملات عبر
@@ -361,28 +365,44 @@ def panel_split_from(split_or_dict, model_tf, asset_names=None, name="", targets
     modes = {m.get("target_mode") for m in members}
     if len(modes) > 1:
         raise ValueError(f"أجزاء القسم مختومة بأوضاع هدف مختلفة: {sorted(modes, key=str)}")
+    close_regs = {m.get("entry_close_reg") for m in members}
+    if len(close_regs) > 1:
+        raise ValueError(f"أجزاء القسم مختومة بتعريفات close مختلفة: {sorted(close_regs, key=str)}")
     if "y" in split_or_dict:
         X, y, lc = split_or_dict[f"X_{model_tf}"], split_or_dict["y"], split_or_dict["last_candles"]
         assets = asset_names if asset_names is not None and len(asset_names) == len(lc) else None
     else:
         X, y, lc, assets = _concat_dict(split_or_dict, model_tf)
     return PanelSplit(X, y, lc, assets=assets, name=name, targets=targets, day_ns=day_ns, target_scale=target_scale,
-                      target_mode=modes.pop() if modes else None)
+                      target_mode=modes.pop() if modes else None,
+                      entry_close_reg=close_regs.pop() if close_regs else None)
 
 
-def entry_range_to_prices(entry, high=None, low=None, close=None):
+def entry_range_to_prices(entry, high=None, low=None, close=None, close_reg="abs_return", p_close_up=None):
     """عكس أهداف entry_range (retarget_splits في main، القسم ٣-ب) إلى أسعار — نفس entry_range_to_prices في الدفتر.
-    الأهداف بوحدة العائد (بعد القسمة على المقياس): high = قمة/P − 1، low = 1 − قاع/P (مقدار موجب)، close = موقع [0,1]:
-        pred_high = P·(1 + high)، pred_low = P·(1 − low)، pred_close = pred_low + clip(close, 0, 1)·(pred_high − pred_low).
-    P = آخر إغلاق. يُرجع {هدف: سعر} لما أمكن حسابه (close يحتاج high وlow)."""
+    الأهداف بوحدة العائد (بعد القسمة على المقياس) وP = آخر إغلاق:
+        high → P·(1 + high)،  low → P·(1 − low)
+        close (abs_return) → P·(1 + s·close)، s = +1 إن كان p_close_up ≥ 0.5 وإلا −1؛ ويُرجَع الاتجاهان أيضاً
+                              close_up = P·(1 + close)، close_down = P·(1 − close). بلا p_close_up لا يُرجَع "close".
+        close (range_pos)  → pred_low + clip(close, 0, 1)·(pred_high − pred_low) — يحتاج high وlow.
+    يُرجع {اسم: سعر} لما أمكن حسابه."""
     P = np.asarray(entry, dtype="float64")
     out = {}
     if high is not None:
         out["high"] = P * (1.0 + np.asarray(high, dtype="float64"))
     if low is not None:
         out["low"] = P * (1.0 - np.asarray(low, dtype="float64"))
-    if close is not None and "high" in out and "low" in out:
-        out["close"] = out["low"] + np.clip(np.asarray(close, dtype="float64"), 0.0, 1.0) * (out["high"] - out["low"])
+    if close is not None:
+        c = np.asarray(close, dtype="float64")
+        if close_reg == "range_pos":
+            if "high" in out and "low" in out:
+                out["close"] = out["low"] + np.clip(c, 0.0, 1.0) * (out["high"] - out["low"])
+        elif close_reg == "abs_return":
+            out["close_up"], out["close_down"] = P * (1.0 + c), P * (1.0 - c)
+            if p_close_up is not None:
+                out["close"] = np.where(np.asarray(p_close_up, dtype="float64") >= 0.5, out["close_up"], out["close_down"])
+        else:
+            raise ValueError(f"close_reg غير معروف: {close_reg!r} — المتاح: abs_return, range_pos")
     return out
 
 

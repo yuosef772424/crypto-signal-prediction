@@ -36,6 +36,8 @@ REPORTS = ("gap", "verification", "market_neutral", "candle", "chicks", "signals
 _BASE_MODES = ("return", "return_close", "scaled", "magnitude", "volnorm")
 TARGET_MODE_CHOICES = (_BASE_MODES + ("relative",) + tuple(f"{b}+relative" for b in _BASE_MODES)
                        + ("entry_range",))
+# تعريف انحدار close في entry_range = ENTRY_CLOSE_REGS في main القسم ٣-ب (يثبّته tests/test_entry_range.py)
+ENTRY_CLOSE_REG_CHOICES = ("abs_return", "range_pos")
 INVOKE_CWD = os.getcwd()
 
 
@@ -92,6 +94,9 @@ def main():
                     help="train_end,val_end (مثلاً 2025-06-24,2025-11-21): تقسيم زمني صريح بدل نِسَب العيّنات")
     ap.add_argument("--target-mode", default=None, choices=TARGET_MODE_CHOICES, metavar="MODE",
                     help=f"TARGET_MODE في main، أحد {TARGET_MODE_CHOICES}. بلا الخيار = أهداف خط الأنابيب")
+    ap.add_argument("--entry-close-reg", default=None, choices=ENTRY_CLOSE_REG_CHOICES, metavar="REG",
+                    help=f"ENTRY_CLOSE_REG في main (مع --target-mode entry_range)، أحد {ENTRY_CLOSE_REG_CHOICES}. "
+                         "بلا الخيار = abs_return")
     ap.add_argument("--group-freq", default=None,
                     help="عرض مجموعة الطوابع المقطعية (مثلاً 32h) لـ +relative (group_freq في retarget_splits) ولنموذج "
                          "اللوحة (day_ns) معاً — لبيانات لا تتطابق طوابع عملاتها. None = الطابع الدقيق / يوم UTC")
@@ -180,6 +185,8 @@ def main():
         if "run_full_analysis(" in src and "full_results" in src:   # القسم ٦ (chicks): اختياري، يُستدعى لاحقاً
             continue
         src = src.replace("TARGET_MODE = None", f"TARGET_MODE = {a.target_mode!r}")
+        if a.entry_close_reg:
+            src = src.replace('ENTRY_CLOSE_REG = "abs_return"', f"ENTRY_CLOSE_REG = {a.entry_close_reg!r}")
         if a.group_freq:
             src = src.replace("retarget_splits(train, val, test, mode=TARGET_MODE)",
                               f"retarget_splits(train, val, test, mode=TARGET_MODE, group_freq={a.group_freq!r})")

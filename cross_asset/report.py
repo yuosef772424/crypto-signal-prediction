@@ -24,28 +24,14 @@ import pandas as pd
 
 warnings.filterwarnings("ignore", message="An input array is constant")
 DAY = pd.Timedelta(days=1)
-# عتبة high/low الافتراضية في entry_range (ENTRY_RANGE_CLASS_THRESHOLD في main). ملفات إشارات entry_range تحمل
-# y_{هدف}_class نفسها (collect_signals وexport_signals)، فلا تُستعمل إلا لملف بلا تلك الأعمدة.
-ENTRY_RANGE_CLASS_THRESHOLD = 0.002
 
 
-def _entry_range_value(d, t):
-    """هدف entry_range المستمر من أعمدة الإشارات (نفس _raw_target في main): up_exc، dn_exc، أو موقع الإغلاق في المدى."""
-    if t == "high":
-        return d["fut_high"] / d["entry"] - 1.0
-    if t == "low":
-        return 1.0 - d["fut_low"] / d["entry"]
-    rng = d["fut_high"] - d["fut_low"]
-    with np.errstate(divide="ignore", invalid="ignore"):
-        return pd.Series(np.where(rng > 0, (d["fut_close"] - d["fut_low"]) / rng, 0.5), index=d.index)
-
-
-def train_labels(d, raw, target_mode=None, class_threshold=ENTRY_RANGE_CLASS_THRESHOLD):
+def train_labels(d, raw, target_mode=None):
     """{هدف: تسمية 1/0} = ما دُرِّب عليه النموذج. الأولوية لعمود y_{هدف}_class المصدَّر مع الإشارات؛ وإلا من target_mode
     (TARGET_MODE في main؛ None = عمود target_mode المختوم في الملف إن وُجد): None/"return" = أهداف خط الأنابيب (القيمة
-    المستقبلية > آخر قيمة من نفس النوع)، "return_close" = نسبة لآخر إغلاق، "entry_range" = up_exc/dn_exc > class_threshold
-    وموقع الإغلاق > 0.5، و"+relative" (أو "relative") = فوق وسيط المجموعة. وضع آخر بلا عمود تسمية ← لا تسمية (لا AUC)
-    بدل تسمية خاطئة."""
+    المستقبلية > آخر قيمة من نفس النوع)، "entry_range" = التعريف نفسه (اتجاه من نوع الهدف؛ المقدار في الانحدار فقط)،
+    "return_close" = نسبة لآخر إغلاق، و"+relative" (أو "relative") = فوق وسيط المجموعة. وضع آخر بلا عمود تسمية ← لا
+    تسمية (لا AUC) بدل تسمية خاطئة."""
     if target_mode is None and "target_mode" in d:
         stamped = pd.unique(d["target_mode"].dropna())
         target_mode = stamped[0] if len(stamped) == 1 else None
@@ -53,15 +39,13 @@ def train_labels(d, raw, target_mode=None, class_threshold=ENTRY_RANGE_CLASS_THR
     base, _, suffix = mode.partition("+")
     if base == "relative" and not suffix:
         base, suffix = "return", "relative"
+    if base == "entry_range" and not suffix:
+        base = "return"   # تسميات entry_range = تسميات خط الأنابيب (انظر أعلاه)
     out = {}
     for t, v in raw.items():
         col = f"y_{t}_class"
         if col in d:
             out[t] = (d[col] > 0).astype(int)
-            continue
-        if base == "entry_range" and not suffix:
-            v = _entry_range_value(d, t)
-            out[t] = (v > (0.5 if t == "close" else class_threshold)).astype(int)
             continue
         if base == "return_close":
             v = d[{"high": "fut_high", "low": "fut_low", "close": "fut_close"}[t]] / d["entry"] - 1.0
