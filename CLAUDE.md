@@ -22,6 +22,3 @@
   - relay a summary of its report to the user, not the full text.
 - **Model choice (cost):** spawn subagents with `model: "sonnet"` by default — tasks are delegated with a clear spec, so the cheaper model suffices. Use a stronger model only for open-ended research or design work, and say why when you do.
 - **Auditor/builder rounds** follow `docs/research/audit/PROTOCOL.md`; the auditor's independence from the builder's reasoning is its most important rule.
-
-## Scope
-- Do what the task asks, no more. Extra research, broad audits or extra verification passes only when the user asks for them.
