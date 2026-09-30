@@ -13,7 +13,8 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..")
 
 
 def load_notebook(name, skip_contains=(), quiet=True, ns=None):
-    nb = json.load(open(os.path.join(ROOT, name)))
+    with open(os.path.join(ROOT, name), encoding="utf-8") as f:
+        nb = json.load(f)
     ns = {} if ns is None else ns
     ns.setdefault("__name__", "audit_nb")
     buf = io.StringIO()
@@ -34,5 +35,7 @@ def load_notebook(name, skip_contains=(), quiet=True, ns=None):
 
 def load_pipeline(quiet=True):
     """crypto_data_pipeline_v6.ipynb without its big self-test cell (cell with run_all_selftests-style suite)."""
+    # RUN_HOURLY_4H_SELFTESTS=False: خلية 20-ج تشغّل اختبارها السريع تلقائياً في Colab؛ هنا تُعرَّف دالته فقط.
     return load_notebook("crypto_data_pipeline_v6.ipynb",
-                         skip_contains=("اختبارات ذاتية لتعديلات هذا الدفتر",), quiet=quiet)
+                         skip_contains=("اختبارات ذاتية لتعديلات هذا الدفتر",), quiet=quiet,
+                         ns={"RUN_HOURLY_4H_SELFTESTS": False})

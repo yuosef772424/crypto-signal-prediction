@@ -146,7 +146,13 @@ class PanelTrainer:
         self.ema_vars = [tf.Variable(v, trainable=False) for v in model.trainable_variables] if self.cfg["ema"] else []
         self.ema_step = tf.Variable(0.0, trainable=False)
         self.ema_target = tf.Variable(0.999, trainable=False)
-        sig = dict(_SIG, x=tf.TensorSpec([None, seq_len, n_features], tf.float32))
+        if isinstance(seq_len, dict):        # متعدّد الفريمات: مواصفة لكل فريم بمفتاحه
+            x_sig = {t: tf.TensorSpec([None, int(seq_len[t]),
+                                       int(n_features[t] if isinstance(n_features, dict) else n_features)], tf.float32)
+                     for t in seq_len}
+        else:
+            x_sig = tf.TensorSpec([None, seq_len, n_features], tf.float32)
+        sig = dict(_SIG, x=x_sig)
         self._train_step = tf.function(self._train_step_py, input_signature=[sig])
         self._eval_step = tf.function(self._eval_step_py, input_signature=[sig])
         self._predict_step = tf.function(
@@ -175,7 +181,7 @@ class PanelTrainer:
 
     @staticmethod
     def _tf_batch(b, keys=("x", "day", "pos", "ycls", "yreg", "yrank")):
-        return {k: tf.convert_to_tensor(b[k]) for k in keys}
+        return {k: tf.nest.map_structure(tf.convert_to_tensor, b[k]) for k in keys}     # x قد يكون قاموس فريمات
 
     # ── أوزان EMA ──
     def _swap_in_ema(self):

@@ -19,13 +19,22 @@ TARGETS = ("high", "low", "close")
 
 
 def extract_encoder(base_model, layer_name="trunk_drop"):
-    """يقتطع نموذج build_nig_timenet_v2 حتى الجذع: (N, T, F) ← (N, d). الرؤوس غير المستخدمة لا تدخل النموذج الناتج."""
+    """يقتطع نموذج build_nig_timenet_v2 حتى الجذع: (N, T, F) ← (N, d). الرؤوس غير المستخدمة لا تدخل النموذج الناتج.
+    نموذج متعدّد الفريمات: مُدخلات المُرمِّز هي مُدخلات النموذج (باسم كل فريم) فيُغذَّى بقاموس {فريم: (N, T_tf, F_tf)}،
+    وخرجه (N, عدد_الفريمات × d) — PanelModel يُسقطه إلى d_model بطبقة enc_proj حين يختلف عنه."""
     inp = base_model.inputs[0] if len(base_model.inputs) == 1 else base_model.inputs
     return keras.Model(inp, base_model.get_layer(layer_name).output, name="coin_encoder")
 
 
 def tiny_encoder(seq_len, n_features, d_model=16):
-    """مُرمِّز صغير للاختبارات الذاتية فقط (فيه BatchNorm مثل المُرمِّز الحقيقي كي يُختبَر أثره)."""
+    """مُرمِّز صغير للاختبارات الذاتية فقط (فيه BatchNorm مثل المُرمِّز الحقيقي كي يُختبَر أثره). seq_len/n_features
+    قاموسان {فريم: قيمة} ← فرع GRU لكل فريم (مُدخله باسم الفريم) وتسلسل تضميناتها، كنموذج build_nig_timenet_v2 متعدّد الفريمات."""
+    if isinstance(seq_len, dict):
+        ins = {tf: layers.Input((int(seq_len[tf]), int(n_features[tf] if isinstance(n_features, dict) else n_features)),
+                                name=str(tf)) for tf in seq_len}
+        hs = [layers.GRU(d_model, name=f"gru_{tf}")(layers.BatchNormalization(name=f"bn_{tf}")(i)) for tf, i in ins.items()]
+        h = layers.Concatenate(name="branch_concat")(hs) if len(hs) > 1 else hs[0]
+        return keras.Model(list(ins.values()), layers.Dropout(0.1)(h), name="tiny_encoder")
     inp = layers.Input((seq_len, n_features))
     h = layers.BatchNormalization()(inp)
     h = layers.GRU(d_model)(h)
@@ -75,7 +84,7 @@ class CrossAssetBlock(layers.Layer):
 
 
 class PanelModel(keras.Model):
-    """المدخل: {"x": (M,T,F), "day": (M,), "pos": (M,)}. المخرج: {"logit": (M,3), "mu": (M,3)} بترتيب TARGETS.
+    """المدخل: {"x": (M,T,F) أو {فريم: (M,T_tf,F_tf)}, "day": (M,), "pos": (M,)}. المخرج: {"logit": (M,3), "mu": (M,3)} بترتيب TARGETS.
     logit = لوجِت «تتفوّق على وسيط اليوم» (sigmoid عند التصدير)، mu = العائد النسبي المُقيَّس (× المقياس عند التصدير)."""
 
     def __init__(self, encoder, d_model=64, n_cross_layers=1, num_heads=4, cross_attention=True, dropout=0.25,
@@ -116,7 +125,9 @@ class PanelModel(keras.Model):
 def build_panel_model(encoder, seq_len, n_features, **cfg):
     """يبني PanelModel ويستدعيه مرّة على دفعة وهمية (يومان) كي تُنشأ كل الأوزان قبل التدريب/التحميل."""
     m = PanelModel(encoder, **cfg)
-    dummy = {"x": tf.zeros((3, seq_len, n_features)), "day": tf.constant([0, 0, 1], tf.int32),
+    x = ({t: tf.zeros((3, int(seq_len[t]), int(n_features[t] if isinstance(n_features, dict) else n_features)))
+          for t in seq_len} if isinstance(seq_len, dict) else tf.zeros((3, seq_len, n_features)))
+    dummy = {"x": x, "day": tf.constant([0, 0, 1], tf.int32),
              "pos": tf.constant([0, 1, 0], tf.int32)}
     m(dummy, training=False)
     return m

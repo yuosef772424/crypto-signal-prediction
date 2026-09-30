@@ -100,6 +100,9 @@ def main():
     ap.add_argument("--group-freq", default=None,
                     help="عرض مجموعة الطوابع المقطعية (مثلاً 32h) لـ +relative (group_freq في retarget_splits) ولنموذج "
                          "اللوحة (day_ns) معاً — لبيانات لا تتطابق طوابع عملاتها. None = الطابع الدقيق / يوم UTC")
+    ap.add_argument("--model-tfs", default=None,
+                    help="فريمات مُدخل النموذج مفصولة بفواصل (مثلاً 1h,4h) = MODEL_TFS في main: فرع مُرمِّز لكل فريم، والبيانات "
+                         "يجب أن تحويها (build_hourly_4h_dataset). بلا الخيار = فريم واحد كما كان")
     ap.add_argument("--anti-memorization", default="true", choices=("true", "false"))
     ap.add_argument("--reports", default=",".join(REPORTS), help=f"من {REPORTS}")
     ap.add_argument("--mn-quantiles", default="0.05,0.1,0.2,0.3,0.5",
@@ -136,6 +139,8 @@ def main():
     import builtins
     builtins.display = print
     ns = {"__name__": "__main__", "display": print}
+    if a.model_tfs:
+        ns["MODEL_TFS"] = [t.strip() for t in a.model_tfs.split(",") if t.strip()]     # يقرؤه القسم ٣ من main
     nb = json.load(open(os.path.join(REPO, "main.ipynb"), encoding="utf-8"))
     t0 = time.time()
     for i, c in enumerate(nb["cells"]):
@@ -224,7 +229,9 @@ def main():
             print(f"✅ تدريب مكتمل — الأوزان (أفضل حقبة) ← {os.path.abspath('trained.weights.h5')}", flush=True)
         print(f"   main cell {i} ✓ ({time.time() - t0:.0f}s)", flush=True)
 
-    model, train, val, test, tf_ = ns["model"], ns["train"], ns["val"], ns["test"], ns["MODEL_TF"]
+    model, train, val, test = ns["model"], ns["train"], ns["val"], ns["test"]
+    tfs = ns["_tfs_of"]()
+    tf_ = ns["MODEL_TF"] if len(tfs) == 1 else tfs       # فريم واحد: الاسم كما كان؛ أكثر: قائمة الفريمات لمُدخل النموذج
     want = set(a.reports.split(","))
     runs = [
         ("gap", "٧-ز فجوة التعميم", lambda: ns["generalization_gap_report"](model, train, val, test, model_tf=tf_)),
@@ -239,7 +246,7 @@ def main():
          lambda: [_named(ns, ns["collect_signals"](model, sp, tf_), name).assign(split=name)
                   .to_csv(f"signals_{name}.csv.gz", index=False) for name, sp in (("val", val), ("test", test))]),
         ("chicks", "٦ chicks (tearsheet + الدلالة الإحصائية)",
-         lambda: ns["run_full_analysis"](model=model, test_dict=ns["test_dict"], timeframes=[tf_],
+         lambda: ns["run_full_analysis"](model=model, test_dict=ns["test_dict"], timeframes=tfs,
                                          target_specs=ns["EVAL_TARGET_SPECS"], out_dir="analysis_outputs",
                                          pnl_market_neutral=ns["CHICKS_MARKET_NEUTRAL"])
          if ns.get("test_dict") is not None else print("⏭️ test_dict غير مدعوم لهذا الوضع")),

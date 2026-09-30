@@ -59,6 +59,7 @@ def _count(vars_):
 def build_panel_splits(train, val, test, model_tf, train_assets=None, val_assets=None, subset=None, verbose=True,
                        day_ns=None, targets=None, allow_mixed_timestamps=False):
     """PanelSplit لكل قسم + فحوص السلامة (ترفع خطأً إن فشل فحص جوهري). day_ns: None = يوم UTC.
+    model_tf: فريم واحد، أو قائمة فريمات (["1h", "4h"]) لنموذج متعدّد الفريمات (X قاموس {فريم: مصفوفة}).
     مجموعة تخلط طوابع مختلفة (بيانات غير محاذاة مع day_ns أوسع من الفريم) تُرفَض: الانتباه عبر العملات يرى فيها مستقبل
     العملة من نوافذ أقرانها. allow_mixed_timestamps=True يتجاوز ذلك صراحةً.
     targets: None = high/low/close؛ مثلاً ("high", "low") حين يُعلَّق close (SUSPENDED_TARGETS في main)."""
@@ -79,7 +80,8 @@ def build_panel_splits(train, val, test, model_tf, train_assets=None, val_assets
 
 def run_panel_variant(tr, va, te, encoder_builder, seq_len, n_features, run_dir, variant="A_ic", seed=0,
                       model_cfg=None, train_cfg=None, verbose=True):
-    """يدرّب (أو يستأنف) متغيّراً واحداً ويصدّر إشاراته. يُرجع (val_df, test_df, state, trainer)."""
+    """يدرّب (أو يستأنف) متغيّراً واحداً ويصدّر إشاراته. يُرجع (val_df, test_df, state, trainer).
+    seq_len/n_features: عددان، أو قاموسان {فريم: قيمة} لأقسام X قاموسية (متعدّدة الفريمات) ومُرمِّز بفرع لكل فريم."""
     import tensorflow as tf
     from .model import build_panel_model, extract_encoder
     from .train import PanelTrainer, export_signals, robust_scales
@@ -107,6 +109,8 @@ def run_panel_variant(tr, va, te, encoder_builder, seq_len, n_features, run_dir,
           "days": [str(tr.days[0]), str(tr.days[-1]), str(va.days[-1])]}
     if tr.day_ns != DAY_NS:     # فقط لغير اليومي: بصمة التشغيلات اليومية القائمة لا تتغيّر (يبقى الاستئناف ممكناً)
         fp["day_ns"] = tr.day_ns
+    if tr.tfs is not None:      # متعدّد الفريمات فقط: نوافذ كل فريم تدخل البصمة (فريم واحد: البصمة القديمة نفسها)
+        fp["tfs"] = {tf: [int(x) for x in np.shape(tr.X[tf])[1:]] for tf in tr.tfs}
     data_fp = "|".join(s.content_hash() for s in (tr, va, te))
     trainer = PanelTrainer(model, tcfg, run_dir, reg_scale, seq_len, n_features, fingerprint=fp, verbose=verbose,
                            data_fingerprint=data_fp)

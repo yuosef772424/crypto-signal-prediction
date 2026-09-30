@@ -24,7 +24,8 @@ LC = {"last_high": 0, "last_low": 1, "last_close": 2, "timestamp": 3,
 class PanelSplit:
     """قسم واحد (train أو val أو test) مجمَّعاً حسب اليوم.
 
-    X            : مصفوفة النوافذ (N, T, F) — مرجع لا نسخة.
+    X            : مصفوفة النوافذ (N, T, F) — مرجع لا نسخة. أو قاموس ``{فريم: (N, T_tf, F_tf)}`` لنموذج متعدّد الفريمات
+                   (1h+4h): كل فريم يُجمَع بالفهارس نفسها (صف i هو العيّنة i في كل الفريمات)، وx الدفعة قاموس بالمفاتيح نفسها.
     y            : قاموس خط الأنابيب {y_{هدف}_class: 1/0 (أو ±1 القديم/retarget_splits), y_{هدف}_reg: عائد}.
                    الصعود = y > 0، فالترميزان يُقرآن بلا تحويل.
     last_candles : (N, 7) بأعمدة LAST_COLUMNS.
@@ -41,12 +42,17 @@ class PanelSplit:
     def __init__(self, X, y, last_candles, assets=None, name="", targets=TARGETS, day_ns=DAY_NS, target_scale=1.0,
                  target_mode=None, entry_close_reg=None):
         self.name, self.targets, self.X = name, tuple(targets), X
+        self.tfs = list(X) if isinstance(X, dict) else None      # None = فريم واحد (المسار القديم حرفياً)
+        if self.tfs is not None:
+            lens = {tf: len(X[tf]) for tf in self.tfs}
+            if len(set(lens.values())) != 1:
+                raise ValueError(f"{name}: فريمات X بأعداد عيّنات مختلفة {lens}")
         self.target_scale = (np.asarray(target_scale, dtype="float64") if np.ndim(target_scale)
                              else float(target_scale))
         self.target_mode = target_mode
         self.entry_close_reg = entry_close_reg
         self.day_ns = int(day_ns)
-        self.n = len(X)
+        self.n = len(X[self.tfs[0]]) if self.tfs is not None else len(X)
         self.lc = np.asarray(last_candles, dtype="float64")
         if len(self.lc) != self.n:
             raise ValueError(f"{name}: last_candles {len(self.lc)} ≠ X {self.n}")
@@ -86,9 +92,21 @@ class PanelSplit:
         if self.assets is not None:
             h.update("\x1f".join(map(str, self.assets)).encode())
         rows = np.unique(np.linspace(0, self.n - 1, min(self.n, int(max_rows))).astype("int64")) if self.n else []
-        h.update(np.ascontiguousarray(np.asarray(self.X[rows], dtype="float32")).tobytes())
-        h.update(str((self.n,) + tuple(np.shape(self.X)[1:])).encode())
+        if self.tfs is None:        # فريم واحد: بصمة التشغيلات القائمة لا تتغيّر
+            h.update(np.ascontiguousarray(np.asarray(self.X[rows], dtype="float32")).tobytes())
+            h.update(str((self.n,) + tuple(np.shape(self.X)[1:])).encode())
+        else:
+            for tf in self.tfs:
+                h.update(str(tf).encode())
+                h.update(np.ascontiguousarray(np.asarray(self.X[tf][rows], dtype="float32")).tobytes())
+                h.update(str((self.n,) + tuple(np.shape(self.X[tf])[1:])).encode())
         return h.hexdigest()[:16]
+
+    def gather_x(self, idx):
+        """نوافذ الصفوف idx بـ float32 (X قد تُخزَّن float16 لتوفير الذاكرة): مصفوفة (M, T, F)، أو قاموس {فريم: (M, T_tf, F_tf)}."""
+        if self.tfs is None:
+            return np.asarray(self.X[idx], dtype="float32")
+        return {tf: np.asarray(self.X[tf][idx], dtype="float32") for tf in self.tfs}
 
     def take(self, idx, name=None):
         """قسم جديد من صفوف idx فقط (ينسخ X[idx] — للمجموعات الفرعية الصغيرة/الاختبار)."""
@@ -97,7 +115,8 @@ class PanelSplit:
         for i, t in enumerate(self.targets):
             y[f"y_{t}_class"] = self.ycls[idx, i].copy()       # 1/0 — ترميز خط الأنابيب الحالي
             y[f"y_{t}_reg"] = self.yreg[idx, i]
-        return PanelSplit(np.asarray(self.X[idx]), y, self.lc[idx],
+        X = np.asarray(self.X[idx]) if self.tfs is None else {tf: np.asarray(self.X[tf][idx]) for tf in self.tfs}
+        return PanelSplit(X, y, self.lc[idx],
                           None if self.assets is None else self.assets[idx], name or self.name, self.targets,
                           day_ns=self.day_ns, target_scale=self.target_scale, target_mode=self.target_mode,
                           entry_close_reg=self.entry_close_reg)
@@ -189,7 +208,7 @@ class PanelSplit:
         idx = np.concatenate(idx)
         srt = np.argsort(idx, kind="stable")      # قراءة X بترتيب الذاكرة أسرع؛ الترتيب داخل الدفعة لا يغيّر شيئاً
         idx, day, pos = idx[srt], np.concatenate(day)[srt], np.concatenate(pos)[srt]
-        out = {"idx": idx, "x": np.asarray(self.X[idx], dtype="float32"), "day": day, "pos": pos,
+        out = {"idx": idx, "x": self.gather_x(idx), "day": day, "pos": pos,
                "ycls": self.ycls[idx], "yreg": self.yreg[idx], "yrank": self.yrank[idx]}
         if scored is not None:
             out["score"] = np.concatenate(sc)[srt]
@@ -284,10 +303,17 @@ class PanelSplit:
         return out
 
 
+def _tf_list(model_tf):
+    """اسم فريم (str) أو قائمة فريمات ← قائمة؛ فريم واحد يبقى على المسار القديم (X مصفوفة) وأكثر يعطي X قاموساً."""
+    return [model_tf] if isinstance(model_tf, str) else list(model_tf)
+
+
 def _concat_dict(split_dict, model_tf):
     names = list(split_dict)
     parts = [split_dict[a] for a in names]
-    X = np.concatenate([p[f"X_{model_tf}"] for p in parts])
+    tfs = _tf_list(model_tf)
+    X = (np.concatenate([p[f"X_{tfs[0]}"] for p in parts]) if len(tfs) == 1
+         else {tf: np.concatenate([p[f"X_{tf}"] for p in parts]) for tf in tfs})
     lc = np.concatenate([np.asarray(p["last_candles"]) for p in parts])
     y = {k: np.concatenate([np.asarray(p["y"][k]).ravel() for p in parts]) for k in parts[0]["y"]}
     assets = np.concatenate([np.array([a] * len(p["last_candles"]), dtype=object) for a, p in zip(names, parts)])
@@ -355,6 +381,7 @@ def _per_target_scale(members, targets, scale):
 def panel_split_from(split_or_dict, model_tf, asset_names=None, name="", targets=TARGETS, day_ns=DAY_NS,
                      target_scale=None):
     """من مخرَج split_data/retarget_splits: قسم مدمج (train/val) أو قاموس {عملة: قسم} (test).
+    model_tf: اسم فريم، أو قائمة فريمات (["1h", "4h"]) فيصير X قاموساً {فريم: مصفوفة} — الفريم الأول هو الأساسي.
     asset_names للقسم المدمج: split_asset_names(dataset, 'train'|'val') من دفتر main (بنفس أقنعة split_data).
     day_ns: عرض مجموعة الطوابع (يوم UTC افتراضياً) — انظر PanelSplit.
     target_scale: None يقرأ 'reg_target_scale' المختوم على القسم (دفتر main يختمه من البيانات)؛ غيابه = 1.0 إلا إن
@@ -369,7 +396,9 @@ def panel_split_from(split_or_dict, model_tf, asset_names=None, name="", targets
     if len(close_regs) > 1:
         raise ValueError(f"أجزاء القسم مختومة بتعريفات close مختلفة: {sorted(close_regs, key=str)}")
     if "y" in split_or_dict:
-        X, y, lc = split_or_dict[f"X_{model_tf}"], split_or_dict["y"], split_or_dict["last_candles"]
+        tfs = _tf_list(model_tf)
+        X = (split_or_dict[f"X_{tfs[0]}"] if len(tfs) == 1 else {tf: split_or_dict[f"X_{tf}"] for tf in tfs})
+        y, lc = split_or_dict["y"], split_or_dict["last_candles"]
         assets = asset_names if asset_names is not None and len(asset_names) == len(lc) else None
     else:
         X, y, lc, assets = _concat_dict(split_or_dict, model_tf)
