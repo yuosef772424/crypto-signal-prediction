@@ -209,6 +209,33 @@ class PipelineMultiTFTests(unittest.TestCase):
         self.assertEqual(ns["embargo_candles"](ds, cfg), 32 * 4 + 1)                 # 129 ساعة لا 33
         self.assertEqual(ns["embargo_candles"]({**ds, "timeframes": ["1h"]}, cfg), 33)   # فريم واحد كما كان
 
+    def test_embargo_widens_off_the_4h_phase_and_for_legacy(self):
+        """R3-01/R3-02: الشبكة المشتركة (stride مضاعف لـ4h) تُبقي 129؛ أي طور آخر أو legacy يُضيف ratio-1 ولا يبقى 33."""
+        ns = self.ns
+        cfg = deepcopy(ns["CONFIG"])
+        cfg.update(tf_order=["1h", "4h"], base_tf="1h", window_sizes={"1h": 32, "4h": 32}, forecast_horizon=1,
+                   embargo_candles=None, align_windows_to_grid=True, higher_tf_mode="closed", stride=8)
+        ds = {"base_tf": "1h", "timeframes": ["1h", "4h"], "window_sizes": cfg["window_sizes"], "forecast_horizon": 1}
+        emb = lambda **kw: ns["embargo_candles"]({**ds, **{k: v for k, v in kw.items() if k in ("stride", "higher_tf_mode")}},
+                                                 {**cfg, **{k: v for k, v in kw.items() if k == "align_windows_to_grid"}})
+        self.assertEqual(emb(stride=8), 129)                                   # الإعداد المشحون: بلا تغيير
+        self.assertEqual(emb(stride=4), 129)
+        self.assertEqual(emb(stride=1), 132)                                   # الطور غير ثابت: 128 + 3 + 1
+        self.assertEqual(emb(stride=5), 132)
+        self.assertEqual(emb(stride=8, align_windows_to_grid=False), 132)
+        self.assertEqual(emb(stride=8, higher_tf_mode="legacy"), 129)          # legacy: نافذة 4h تمتدّ 128h أيضاً (كانت 33)
+        self.assertEqual(emb(stride=1, higher_tf_mode="legacy"), 132)
+
+    def test_audit_normalization_float16_matches_float32(self):
+        """R3-03: X مخزّن float16 يعطي std/verdict نفسها كـfloat32 (كان std=inf عند تجاوز مجموع المربّعات 65504)."""
+        ns = self.ns
+        x = np.random.default_rng(0).normal(0, 1, (4000, 32, 2)).astype("float16")     # 128k قيمة/ميزة: مربّعاتها > 65504
+        t16 = ns["audit_normalization"](x, ["close", "volume"], verbose=False)
+        t32 = ns["audit_normalization"](x.astype("float32"), ["close", "volume"], verbose=False)
+        self.assertTrue(np.isfinite(t16["std"]).all())
+        np.testing.assert_allclose(t16["std"], t32["std"], rtol=1e-6)
+        self.assertEqual(list(t16["verdict"]), list(t32["verdict"]))
+
 
 # ══════════════════════════════════════════════════════════════════════════════════════════════════
 # النموذج
