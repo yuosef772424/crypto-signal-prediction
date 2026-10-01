@@ -280,3 +280,17 @@ Evaluation on TEST: Spearman(S, realised return), AUC of stage 2 for sign(return
 its 2022 distribution, short if ≤ 10th; same TP/SL/cost/5m-path rules as H21; variants: (a) S, (b) S only when R1 and R2
 agree, (c) stage 2. ACCEPT (any variant, 3 tested): net mean > 0, day-clustered t > 2.5, ≥ 7/10 coins, both 2023–24 and
 2025–26 > 0 — in BOTH timeframes or in 4h alone (pre-declared: 4h was H21's near-break-even case).
+
+---
+## Addendum L (2026-10-01, written BEFORE computation): H23 owner's "wick capture" — limits at predicted high/low, exit at close
+Rule: at the OPEN of candle k place a SELL limit at the predicted high and a BUY limit at the predicted low of candle k;
+any filled position is closed at candle k's close. Both may fill (outside bar) → profit = predicted high − predicted low.
+Targets (ATR14 units, relative to the open O_k): h = (High_k − O_k)/ATR ≥ 0, l = (Low_k − O_k)/ATR ≤ 0.
+Features: H21's B + W set computed up to close k−1 (causal). Models: HistGradientBoosting QUANTILE regression for h and l
+at quantile q ∈ {0.3, 0.5, 0.7} (for l the mirrored quantile 1−q, i.e. equally "far"); baseline: constant-distance
+levels = unconditional training quantile of h / l (pure ATR bands) — the model must beat this.
+Fill: limit fills only if the candle trades THROUGH the level by 2 bp (High ≥ level×1.0002 for the sell). No path issue:
+exit is always the candle close. Costs: entry maker 0.02%, exit at close taker 0.05% + 0.02% slip (0.09% RT).
+Data: 10 coins Binance spot, TF ∈ {15m, 1h, 4h}; train ≤ 2021, validation 2022, TEST 2023-01→2026-09 (once).
+Configs: 3 TF × 3 q × 2 (model / ATR-band baseline) = 18. ACCEPT: net mean per filled trade > 0, day-clustered t > 3.0,
+> 0 in ≥ 7/10 coins and in both 2023–24 and 2025–26, AND the model beats its own ATR-band baseline.
