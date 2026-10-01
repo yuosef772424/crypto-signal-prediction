@@ -230,3 +230,25 @@ only train/trade on windows that satisfy entry conditions (same filter live).
   small independent trade held H bars; cost 0.07% per side (0.14% RT). Maker-cost (0.04% RT) shown descriptively.
 - Configs: 2 TF × 4 filters = 8. ACCEPT on TEST: net mean per trade > 0 with day-clustered t > 2.5, > 0 in ≥ 7 of 10
   coins, and > 0 in both 2023–24 and 2025–26. CNN must also beat the logistic baseline's net mean.
+
+---
+## Addendum I (2026-10-01, written BEFORE computation): H20 "step 1" information test for alternative representations
+Question: do symbolic tokens, causal wavelet features or recurrence-plot (RQA) features carry predictive information
+BEYOND plain multi-horizon returns/volatility? Cheap test before any Transformer/CNN is built.
+Data/labels/splits identical to H19: 10 coins, TF {1h, 4h}, label = sign of return from next open over H = 8 (1h) /
+6 (4h) bars; train ≤ 2021, validation 2022, test 2023-01→2026-09. Everything causal (trailing windows only).
+- z_t = log return / trailing σ (100 bars, lagged one bar).
+- B (baseline): z_t; Σz over 4, 16, 32 bars; log(σ20/σ100); volume z-score (20 bars).
+- T (tokens): z_t binned into 9 levels by TRAINING-ONLY quantiles; trigram context (last 3 tokens, 729 contexts);
+  features = smoothed train-estimated P(up | context) (log-odds). Language test: cross-entropy of the next TOKEN
+  under the trigram model vs the unigram model, on test data.
+- W (wavelet, causal Haar à-trous on cumulative z): detail d_j(t) = mean of last 2^(j−1) bars − mean of the 2^(j−1)
+  before, j = 1..5; features = d_j(t) and mean d_j² over the last 16 bars.
+- R (recurrence, window 32, embedding m = 3, ε = 20th pct of in-window distances): DET, LAM, mean diagonal length,
+  diagonal-length entropy, recurrence of the current state, and the DIRECTIONAL analog feature = mean next-bar z
+  that followed past in-window states similar to the current one.
+Models: logistic regression (standardised) on B, B+T, B+W, B+R, B+T+W+R. Report test AUC, test log-loss, per-coin AUC
+gain, and net P&L with the H19 trading rule (top/bottom 20% of validation p, 0.14% RT).
+DECISION RULE ("worth step 2"): a representation qualifies if, in BOTH timeframes, it adds ≥ +0.005 test AUC over B,
+improves AUC in ≥ 7/10 coins and improves net P&L; tokens additionally qualify if next-token cross-entropy on test is
+≥ 0.5% below unigram.
