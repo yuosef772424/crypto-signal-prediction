@@ -205,3 +205,8 @@ ACCEPT: pooled net expectancy > 0 with day-clustered t > 3.0 (Bonferroni 24), > 
 of 2018–2021, 2022–2023, 2024–2026. BTC/ETH/SOL reported descriptively only.
 - Amendment G.1 (before any H18 data is fetched): the dataset only carries ADA, BCH, BNB, DOGE, TRX, XRP, ZEC as
   untouched coins (LTC/LINK/AVAX/DOT absent). Coin set = these 7; coin criterion becomes > 0 in ≥ 5 of 7.
+- Clarification G.2 (implementation bug found after the first H18 run, before any acceptance decision): a BUY limit
+  at EMA20 is only a pullback order if it rests BELOW the market. The first run also placed it when close < EMA20
+  (a marketable limit that would fill at the lower market price, yet was booked at EMA20) — biased against the rule.
+  Fixed: long orders only when close > EMA20, short orders only when close < EMA20. Grid and acceptance unchanged;
+  the buggy run is kept in the log for transparency.
