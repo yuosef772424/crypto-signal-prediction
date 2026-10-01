@@ -70,3 +70,23 @@ Interim fact: median 30–60d short return is large (+25–42% vs BTC, win 71–
   + 2% adverse slippage. 6 combos total.
 - Selection on DISC only (max mean net return per trade with t_month > 2); VAL must agree in sign with t > 2;
   then HOLDOUT once. Cost 0.3% RT. Funding still not modelled (to be estimated from a sample afterwards).
+
+---
+## Addendum B (2026-10-01, written BEFORE any HOLDOUT data is looked at)
+
+**H12 final (full data, 413 listings):** the A.2 rule selects H=60, S=0.5 on DISC (mean +17.3%/trade,
+t_month 2.74 — the only configs with t>2 are S=0.5). VAL for that config: mean −2.4%, t −0.53 → **fails**.
+H12 is REJECTED; per the rule, its HOLDOUT is **not** spent. (Interim DISC t=3.3 on the alphabetically
+partial sample was a sample-completeness artefact.)
+
+**H06 and H07 did not meet the formal acceptance criteria** (DISC |t|>3 and VAL t>2 were never reached).
+They can therefore NOT be accepted by any HOLDOUT outcome. The single HOLDOUT look below is
+**descriptive only**: it decides whether they deserve a longer-history test (2020→2026 15m data), nothing more.
+Specs frozen here:
+- **H06-BTC / H06-ETH:** every day, long at the 20:00 UTC hourly price, exit at the 22:00 UTC price
+  (= the two hourly returns stamped 21h and 22h). Report mean gross bp/trade, t (daily), win rate,
+  net at maker 0.04% RT and taker 0.12% RT. "Agrees" = gross mean > 0.
+- **H07:** `TSMOM30_LO_BTC+ETH` exactly as in `07_trend.py` (sign of 30d log return, long-only,
+  2% vol target per coin, 0.12% RT), compared with `BUYHOLD_BTC+ETH` on the same window.
+  "Agrees" = Sharpe > 0 AND Sharpe ≥ buy&hold Sharpe. Deflated Sharpe reported with N = 44 trend
+  configs (family) and N ≈ 750 (all configs tried in this project).
