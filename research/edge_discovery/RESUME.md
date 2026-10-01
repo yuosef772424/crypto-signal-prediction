@@ -42,3 +42,14 @@
 | `01..11_*.py` | الشاشات المنفّذة (كل واحدة قابلة لإعادة التشغيل) |
 | `*.csv` | مخرجات الشاشات |
 | `data_tools/` | فك ترميز تنزيلات Drive وبناء اللوحة |
+
+
+## تشغيل نموذج الصور (H19) على Colab — توقّف هنا عمداً بطلب المالك
+- اكتمل: 4h (C0..C3) و 1h C0 — النتائج في `image_cnn_results.csv` (السكربت يتخطّى أي تجربة موجودة فيه ويكمل الباقي).
+- المتبقي: 1h C1, C2, C3.
+- الخطوات على Colab (يفضّل GPU):
+  1. `pip install numba torch scikit-learn pandas pyarrow`
+  2. ضع ملفات `ohlc_<SYMBOL>_5m.parquet` للعملات العشر في مجلد (مثلاً Drive) — تُبنى من github Speirsy11/crypto-dataset
+     (5m parquet عبر media.githubusercontent.com، ثم الدمج كما في هذه الجلسة).
+  3. `DATA_DIR=/content/drive/MyDrive/ohlc OUT_CSV=image_cnn_results.csv python3 25_image_cnn.py`
+- لاستخدام GPU: أضف `.to('cuda')` للنموذج والدفعات — غير مطلوب للنتائج، فقط للسرعة.

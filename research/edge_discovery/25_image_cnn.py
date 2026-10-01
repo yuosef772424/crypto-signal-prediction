@@ -5,7 +5,7 @@ from numba import njit
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import roc_auc_score
-D = '/home/user/research'; OUT = 'image_cnn_results.csv'
+D = os.environ.get('DATA_DIR', '/home/user/research'); OUT = os.environ.get('OUT_CSV', 'image_cnn_results.csv')
 COINS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'ADAUSDT', 'BCHUSDT', 'BNBUSDT', 'DOGEUSDT', 'TRXUSDT', 'XRPUSDT', 'ZECUSDT']
 W, PH, VH = 32, 48, 12; IMH, IMW = PH + VH, 3 * W
 COST = 0.0007
