@@ -90,3 +90,25 @@ Specs frozen here:
   2% vol target per coin, 0.12% RT), compared with `BUYHOLD_BTC+ETH` on the same window.
   "Agrees" = Sharpe > 0 AND Sharpe ≥ buy&hold Sharpe. Deflated Sharpe reported with N = 44 trend
   configs (family) and N ≈ 750 (all configs tried in this project).
+
+---
+## Addendum C (2026-10-01, written BEFORE computing any of the results below)
+
+Motivation: PR #7 (anti-memorization) showed (a) a longer daily history is reachable (CoinMetrics community
+data, raw GitHub files; Drive `history_1d` 2019-09→2026-09), and (b) a relative-direction classifier with test
+AUC 0.538 (linear) – 0.555 (GRU). Our main lesson is that AUC ≠ mean return, so (b) must be checked in P&L terms.
+
+**H07-OOS (genuinely untouched period).** Data: CoinMetrics `PriceUSD` daily (00:00 UTC) for BTC and ETH.
+Period 2018-01-01 → 2023-12-31 (none of it was used by this project). Strategy frozen exactly as H07:
+long-only, sign of 30-day log return, 2% daily vol target per coin (30d realised vol, cap 3×), equal risk across
+the two coins, 0.12% RT on turnover. Benchmark: buy & hold with the same vol scaling.
+- PASS = Sharpe > 0 AND Sharpe ≥ benchmark Sharpe AND maxDD shallower than benchmark. Also reported by
+  calendar year and per coin. Lookbacks N ∈ {7,14,21,45,60,90} reported as descriptive only (selection was N=30).
+
+**H13 (PR #7 signal → money).** Universe: CoinMetrics assets with ≥ 700 daily prices since 2018 (stablecoins
+excluded). Features = the PR #7 `build_features` set (last-day values, causal). Target = next-day return above the
+cross-sectional median. Model = logistic regression (PR #7's linear reference; standardised features), fit once on
+data ≤ 2023-06-28, frozen. Test 2024-07-01 → last date. Each day: long the top decile of predicted probability,
+short the bottom decile, equal weight, 1-day hold, 0.12% RT on turnover (2× stress also reported).
+- PASS = AUC replicates (> 0.52) AND net mean daily return > 0 with t > 2 AND both halves of the test period > 0.
+- Caveat stated up front: the test window overlaps our VAL/HOLD calendar period (different data/hypothesis).
