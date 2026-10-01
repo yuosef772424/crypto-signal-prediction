@@ -187,3 +187,19 @@ Split: DISC 2017-08→2021-12, VAL 2022–2023, HOLD 2024-01→2026-09 (HOLD tou
 Acceptance: DISC net expectancy (R) > 0 with day-clustered t > 3.9 (Bonferroni 5% for 600) AND > 0 in each coin;
 VAL: expectancy > 0, t > 2; HOLD: expectancy > 0. Survivors then: 2× cost stress, pyramiding (add on repeated
 signal, cap 3) and hedge variant evaluated descriptively.
+
+---
+## Addendum G (2026-10-01, after H17 failed; written BEFORE fetching/computing H18 data)
+H17 result: 0 of 600 configs passed (best DISC t = 1.79). Post-hoc diagnostic (23_chart_rules_gross.py): at 15m a
+round trip costs 0.21–0.38 R (1-ATR stop), at 1h 0.10–0.18 R; the only setup with positive GROSS expectancy in
+all three periods is P7 trend pullback (+0.03…+0.05 R). Because the BTC/ETH/SOL HOLD numbers of P7 have now been
+seen, H18 is tested on UNTOUCHED coins only.
+
+**H18 maker-entry trend pullback.** Coins: ADA, XRP, BNB, DOGE, LTC, LINK, AVAX, DOT (Binance spot, never used
+in this project), full history to 2026-09. Rule: on signal TF bar close, if EMA20 > EMA50 (signal TF) place a BUY
+limit at that bar's EMA20 for the next bar (mirror SELL limit when EMA20 < EMA50). Fill only if price trades through
+by 2 bp. Max 3 concurrent positions per coin (scaling-in allowed). Stop = k×ATR14 below/above entry, target = m×k×ATR.
+Costs: entry & TP maker 0.02%; stop/time exit taker 0.05% + 0.02% slip. Time exit 24h (15m) / 72h (1h).
+Grid: TF {15m, 1h} × k {1, 2, 3} × m {2, 3} × HTF {none, 4h-aligned (4h close vs EMA50)} = 24 configs.
+ACCEPT: pooled net expectancy > 0 with day-clustered t > 3.0 (Bonferroni 24), > 0 in ≥ 6 of 8 coins, and > 0 in each
+of 2018–2021, 2022–2023, 2024–2026. BTC/ETH/SOL reported descriptively only.
