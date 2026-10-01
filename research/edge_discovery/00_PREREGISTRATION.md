@@ -267,3 +267,16 @@ Trading rule (fixed): asymmetry Â = Û + D̂n; long if Â ≥ 90th pct of valid
 (taker 0.07%), take-profit limit at E ± 0.8·Û (resp. D̂n) ATR (maker 0.02%), stop at E ∓ |D̂n| (resp. Û) ATR (taker 0.07%),
 time exit at H (taker); resolved on the 5m path, stop first if both inside one 5m bar.
 ACCEPT: net mean per trade > 0, day-clustered t > 2.5, > 0 in ≥ 7/10 coins and in both 2023–24 and 2025–26.
+
+---
+## Addendum K (2026-10-01, written BEFORE computation): H22 direction from the 4 outputs + entry-candle details
+Owner's idea: combine the four H21 outputs arithmetically with the last (entry) candle to infer direction.
+Identities (ATR units, relative to entry E): close return = Dn + CL = U + CH. Two independent implied forecasts:
+R1 = D̂n + ĈL, R2 = Û + ĈH (models fit separately). Direction signal S = (R1 + R2)/2; agreement = sign(R1) == sign(R2).
+Stage 2 (stacking): logistic regression on [Û, D̂n, ĈL, ĈH, R1, R2, Û + D̂n] + entry-candle details (body/ATR,
+upper wick/ATR, lower wick/ATR, close position in range, range/ATR, volume z). Stage-1 models trained ≤ 2021 (as H21);
+stage 2 FIT ON VALIDATION 2022 ONLY (out-of-sample stage-1 predictions); TEST 2023-01→2026-09.
+Evaluation on TEST: Spearman(S, realised return), AUC of stage 2 for sign(return), and trades: long if score ≥ 90th pct of
+its 2022 distribution, short if ≤ 10th; same TP/SL/cost/5m-path rules as H21; variants: (a) S, (b) S only when R1 and R2
+agree, (c) stage 2. ACCEPT (any variant, 3 tested): net mean > 0, day-clustered t > 2.5, ≥ 7/10 coins, both 2023–24 and
+2025–26 > 0 — in BOTH timeframes or in 4h alone (pre-declared: 4h was H21's near-break-even case).
