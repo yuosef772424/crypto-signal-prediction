@@ -297,3 +297,15 @@ Configs: 3 TF × 3 q × 2 (model / ATR-band baseline) = 18. ACCEPT: net mean per
 - Addendum L.1 (owner's reverse, written BEFORE computation): BUY STOP at the predicted high, SELL STOP at the predicted
   low, exit at the candle close. Stop orders are taker: fill at level×(1+2 bp) for buys (level×(1−2 bp) for sells),
   cost 0.07% entry + 0.07% exit (0.14% RT). Same models, quantiles, ATR-band baseline, test window and ACCEPT rule as L.
+
+---
+## Addendum M (2026-10-01, written BEFORE computation): H24 regime filters ADX / NATR / ATR on H23 & H23-R
+Owner's request: filter the wick-capture (fade, H23) and breakout (H23-R) trades with ADX, NATR and ATR.
+Indicators on the signal TF, known at close k−1: ADX(14) (Wilder); NATR = ATR14/close, expressed as its percentile within
+the coin's trailing 500 bars; ATR ratio = ATR14/ATR100 (raw ATR is price-scaled, so it is used as a ratio).
+Filters: F1 ADX<20, F2 ADX>25, F3 NATR pct>0.7, F4 NATR pct<0.3, F5 ATRratio>1.2, F6 ATRratio<0.8, plus the theory combos
+F7-fade = ADX<20 & ATRratio<1 (quiet range) and F7-breakout = ADX>25 & ATRratio>1.2 & NATR pct>0.5 (trend expansion).
+Strategies: fade (maker in / taker out, 0.09% RT) and breakout (stops, 0.14% RT), levels from the H23 quantile models,
+q ∈ {0.5, 0.7}; TF ∈ {15m, 1h, 4h}. Grid = 2 strategies × 3 TF × 2 q × 7 filters = 84.
+SELECTION on VALIDATION 2022 only (stage-1 models trained ≤ 2021): net mean > 0 and day-clustered t > 2.
+CONFIRMATION on TEST 2023-01→2026-09 for selected configs only: net > 0, t > 2.5, ≥ 7/10 coins, both 2023–24 and 2025–26 > 0.
