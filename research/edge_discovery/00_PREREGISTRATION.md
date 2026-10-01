@@ -135,3 +135,26 @@ Tests per signal: (a) Spearman corr(signal, fwd 30d log return) on non-overlappi
 (b) timing strategy: long BTC when the signal is on its favourable side of its expanding median, else cash (0.12% RT),
 vs buy & hold. ACCEPT = DISC corr sign as theorised with t>2, VAL same sign AND strategy Sharpe > buy&hold,
 HOLD same sign AND Sharpe > buy&hold. 6 signals → Bonferroni noted (t>2.64 for 5% family-wise).
+
+---
+## Addendum E (2026-10-01, written BEFORE any simulation): H16 owner's "previous-candle range fade"
+Rule (owner's spec): at the open of candle k place a SELL limit at high[k−1] and a BUY limit at low[k−1]
+(valid for candle k only). A filled short takes profit with a BUY limit at low[k−1]; a filled long takes profit
+with a SELL limit at high[k−1]. Positions can accumulate across candles. R = high[k−1] − low[k−1].
+Data: Binance spot OHLC (github Speirsy11/crypto-dataset) BTC/ETH/SOL; signal candles 1h/4h/1d; fills resolved
+on the 5-minute path. Conservative fill model: a limit fills only if price trades THROUGH it by 2 bp; no TP in
+the same 5m bar as its entry; if SL and TP are both reachable inside one 5m bar, SL is assumed first.
+Costs: limit (entry/TP) 0.02% per side (maker); market exits (SL/time/forced) 0.05% + 0.02% slippage.
+Funding not modelled (both sides held; noted).
+
+Risk variants (fixed now; nothing else will be tried):
+- V0 raw: no stop, no cap (owner's rule as-is; open positions marked to market).
+- V1 cap: at most 3 open positions per side; no stop.
+- V2 owner's trend-hedge: cap 5 per side; when open shorts − open longs ≥ 2 the longs' TP is suspended (they ride
+  the trend) and vice versa; TP re-armed when the imbalance falls below 2 (exit at market if already beyond TP).
+- V3 stop+time: cap 3 per side; stop at 1R beyond entry; time-exit at market after 3 candles.
+- V4 regime filter: V3, but orders only when Kaufman efficiency ratio ER(20) of closes < 0.3 (range-bound market).
+
+Split: DISC 2017-08→2021-12, VAL 2022-01→2023-12, HOLD 2024-01→2026-09 (calendar overlaps earlier HOLDs; new
+strategy, disclosed). Selection: best (variant, timeframe) by DISC net expectancy pooled over the 3 coins, among
+those with daily-PnL t > 2; VAL must have net expectancy > 0 and t > 2; then HOLD once (expectancy > 0, PF > 1.1).
