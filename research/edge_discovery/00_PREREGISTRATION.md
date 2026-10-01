@@ -57,3 +57,16 @@ is a different mechanism (low float / high FDV / unlock supply) with many *indep
   edge and funding drag must be measured before any real use (new listings often carry negative funding,
   which shorts pay).
 - Accept only if DISC and VAL both show the same sign with t > 2 and HOLDOUT sign agrees.
+
+### Addendum A.1 (before any listing return was looked at)
+Traditional-finance perps (stocks, ETFs, pre-IPO, metals, energy, gold tokens) are excluded from H12 because the
+hypothesis concerns token supply/unlock dynamics. Exclusion list fixed by name only: `data_tools/tradfi_exclude.txt`.
+
+### Addendum A.2 (after seeing DISC/VAL fixed-horizon results, BEFORE any stop-loss test or HOLDOUT look)
+Interim fact: median 30–60d short return is large (+25–42% vs BTC, win 71–83%) but the right tail is real
+(COAIUSDT +4600% in 30d). A naked short is not tradable. Pre-specified risk-controlled variant:
+- Short at entry (listing+24h), hedge long BTC same notional. Exit at day H ∈ {30, 60} or when coin price
+  ≥ entry × (1+S), S ∈ {none, 0.5, 1.0}; checked on hourly closes, stop fill = the breaching hourly price
+  + 2% adverse slippage. 6 combos total.
+- Selection on DISC only (max mean net return per trade with t_month > 2); VAL must agree in sign with t > 2;
+  then HOLDOUT once. Cost 0.3% RT. Funding still not modelled (to be estimated from a sample afterwards).
