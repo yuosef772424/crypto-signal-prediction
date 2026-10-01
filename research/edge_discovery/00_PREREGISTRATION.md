@@ -203,3 +203,5 @@ Costs: entry & TP maker 0.02%; stop/time exit taker 0.05% + 0.02% slip. Time exi
 Grid: TF {15m, 1h} × k {1, 2, 3} × m {2, 3} × HTF {none, 4h-aligned (4h close vs EMA50)} = 24 configs.
 ACCEPT: pooled net expectancy > 0 with day-clustered t > 3.0 (Bonferroni 24), > 0 in ≥ 6 of 8 coins, and > 0 in each
 of 2018–2021, 2022–2023, 2024–2026. BTC/ETH/SOL reported descriptively only.
+- Amendment G.1 (before any H18 data is fetched): the dataset only carries ADA, BCH, BNB, DOGE, TRX, XRP, ZEC as
+  untouched coins (LTC/LINK/AVAX/DOT absent). Coin set = these 7; coin criterion becomes > 0 in ≥ 5 of 7.
