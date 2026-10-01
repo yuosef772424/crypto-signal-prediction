@@ -112,3 +112,26 @@ data ≤ 2023-06-28, frozen. Test 2024-07-01 → last date. Each day: long the t
 short the bottom decile, equal weight, 1-day hold, 0.12% RT on turnover (2× stress also reported).
 - PASS = AUC replicates (> 0.52) AND net mean daily return > 0 with t > 2 AND both halves of the test period > 0.
 - Caveat stated up front: the test window overlaps our VAL/HOLD calendar period (different data/hypothesis).
+
+---
+## Addendum D (2026-10-01, written BEFORE computing any result below): H15 on-chain & liquidity signals
+Rationale ("outside the box"): everything so far used price/positioning, which markets price fast. Slow-moving
+fundamental flows (on-chain, stablecoin liquidity) may be priced slowly. Data: CoinMetrics community daily.
+Asset traded: BTC (ETH reported as a secondary check). Horizon: 30 days. All signals use data ≤ t−1 (one extra day
+of publication lag), trade at t's close.
+
+Split (new, for H15 only): DISC ≤ 2019-12-31 (BTC from 2013; stablecoins from 2018), VAL 2020-01-01→2022-12-31,
+HOLD 2023-01-01→2026-05-24. (Overlap with H07's calendar is disclosed; these are different signals.)
+
+Six signals, direction fixed by theory (sign = expected effect on forward BTC return):
+- S1 MVRV: expanding-window percentile of log(CapMVRVCur) — high = overvalued → **negative**.
+- S2 Exchange net flow: 30d Σ(FlowInExNtv − FlowOutExNtv)/SplyCur — coins moving to exchanges → **negative**.
+- S3 Exchange supply trend: 90d change of SplyExNtv/SplyCur → **negative**.
+- S4 Hash-ribbon: HashRate 30d MA / 60d MA − 1 (miner capitulation when < 0) → **positive**.
+- S5 Stablecoin liquidity: 30d log growth of Σ SplyCur(usdt, usdc, dai, busd) → **positive**.
+- S6 Network activity: log(AdrActCnt 30d MA / 365d MA) → **positive**.
+
+Tests per signal: (a) Spearman corr(signal, fwd 30d log return) on non-overlapping month-end samples;
+(b) timing strategy: long BTC when the signal is on its favourable side of its expanding median, else cash (0.12% RT),
+vs buy & hold. ACCEPT = DISC corr sign as theorised with t>2, VAL same sign AND strategy Sharpe > buy&hold,
+HOLD same sign AND Sharpe > buy&hold. 6 signals → Bonferroni noted (t>2.64 for 5% family-wise).
