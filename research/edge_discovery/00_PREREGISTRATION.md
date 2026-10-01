@@ -158,3 +158,32 @@ Risk variants (fixed now; nothing else will be tried):
 Split: DISC 2017-08→2021-12, VAL 2022-01→2023-12, HOLD 2024-01→2026-09 (calendar overlaps earlier HOLDs; new
 strategy, disclosed). Selection: best (variant, timeframe) by DISC net expectancy pooled over the 3 coins, among
 those with daily-PnL t > 2; VAL must have net expectancy > 0 and t > 2; then HOLD once (expectancy > 0, PF > 1.1).
+
+---
+## Addendum F (2026-10-01, written BEFORE any computation): H17 chart-reading rules, low timeframes + HTF filters
+Owner's request: derive conditional entry rules from the chart (not every move), focus on 15m / 1h, allow HTF
+conditions, scaling-in and hedging. Translated into a FIXED grid of classic chart-reading setups.
+
+Data: Binance spot OHLCV BTC/ETH/SOL 2017-08→2026-09 (5m path for exits). Signal TF ∈ {15m, 1h}.
+Setups (long version; short = mirror), evaluated at the signal bar close:
+- P1 engulfing: bar bullish, prior bar bearish, body engulfs prior body.
+- P2 pin-bar rejection: lower wick ≥ 2×body and ≥ 60% of the bar range.
+- P3 liquidity sweep & reclaim: low < min(low of prior 20 bars) and close > that min.
+- P4 Donchian breakout (momentum): close > max(high of prior 20 bars).
+- P5 compression breakout: ATR14/ATR100 in its lowest 20% (rolling 500 bars) and close > max(high prior 10).
+- P6 inside-bar breakout: prior bar is inside its predecessor; close > predecessor high.
+- P7 trend pullback: EMA20 > EMA50 and low ≤ EMA20 ≤ close.
+- P8 capitulation reversal: volume > 3× 20-bar mean, range > 2×ATR14, bar opened above close of prior bar and
+  closes in the upper half of its range after a drop (close < open of 3 bars ago).
+- P9 3-bar exhaustion (mean reversion): 3 consecutive lower closes totalling > 2×ATR14.
+- P10 London breakout: first close above the Asia range (00:00–07:00 UTC high) between 07:00–10:00 UTC.
+HTF filters (completed higher-TF bars only): F0 none; F1 with 4h trend (4h close vs EMA50(4h)); F2 against the 4h
+trend; F3 with daily trend (1d close vs EMA20(1d)); F4 range regime (daily ER(10) < 0.3).
+Execution: entry at next bar open (taker 0.05% + 0.02% slip); stop = 1×ATR14(signal TF) from entry (stop-market,
+taker + slip); target TP ∈ {1R, 2R, 3R} (limit, maker 0.02%); time exit 24h (15m) / 72h (1h) at market.
+SL/TP ordering resolved on 5m bars; if both inside one 5m bar → stop first. Trades may overlap (scaling allowed).
+Grid = 2 TF × 10 setups × 2 directions × 5 filters × 3 targets = 600 configs (pooled over 3 coins).
+Split: DISC 2017-08→2021-12, VAL 2022–2023, HOLD 2024-01→2026-09 (HOLD touched once).
+Acceptance: DISC net expectancy (R) > 0 with day-clustered t > 3.9 (Bonferroni 5% for 600) AND > 0 in each coin;
+VAL: expectancy > 0, t > 2; HOLD: expectancy > 0. Survivors then: 2× cost stress, pyramiding (add on repeated
+signal, cap 3) and hedge variant evaluated descriptively.
