@@ -294,3 +294,6 @@ exit is always the candle close. Costs: entry maker 0.02%, exit at close taker 0
 Data: 10 coins Binance spot, TF ∈ {15m, 1h, 4h}; train ≤ 2021, validation 2022, TEST 2023-01→2026-09 (once).
 Configs: 3 TF × 3 q × 2 (model / ATR-band baseline) = 18. ACCEPT: net mean per filled trade > 0, day-clustered t > 3.0,
 > 0 in ≥ 7/10 coins and in both 2023–24 and 2025–26, AND the model beats its own ATR-band baseline.
+- Addendum L.1 (owner's reverse, written BEFORE computation): BUY STOP at the predicted high, SELL STOP at the predicted
+  low, exit at the candle close. Stop orders are taker: fill at level×(1+2 bp) for buys (level×(1−2 bp) for sells),
+  cost 0.07% entry + 0.07% exit (0.14% RT). Same models, quantiles, ATR-band baseline, test window and ACCEPT rule as L.
