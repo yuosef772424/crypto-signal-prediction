@@ -39,3 +39,21 @@ Walk-forward inside DISCOVERY+VALIDATION uses expanding windows, quarterly refit
 
 Anything failing a step is recorded as rejected with the reason; no criterion is changed after
 seeing results.
+
+---
+## Addendum A (2026-10-01, written BEFORE downloading listing data): H-NL post-listing drift
+
+Motivation: hourly-panel screens (cross-sectional, time-series, events) produced no mean-return edge;
+the robust stylised fact found was extreme right-skew of individual coin returns. New-listing drift
+is a different mechanism (low float / high FDV / unlock supply) with many *independent* events.
+
+- Events: every USDT-M perpetual whose first metrics bar is ≥ 2024-01-15, with ≥ 30 days of data.
+- Entry: price 24h after the first metrics bar (avoid listing-hour chaos). Exits: +7, +30, +60 days.
+- Primary statistic: log return of coin minus log return of BTC over the same window; trade = SHORT coin
+  / LONG BTC (beta 1). Mean across events, t-stat with listing-month clustering.
+- Split by listing time: DISCOVERY 2024-01-15→2025-03-31, VALIDATION 2025-04-01→2025-12-31,
+  HOLDOUT 2026-01-01→(last date allowing the exit).
+- Cost: 0.30% round trip (thin new books). **Funding is NOT in the dataset** — the result is a price-only
+  edge and funding drag must be measured before any real use (new listings often carry negative funding,
+  which shorts pay).
+- Accept only if DISC and VAL both show the same sign with t > 2 and HOLDOUT sign agrees.
