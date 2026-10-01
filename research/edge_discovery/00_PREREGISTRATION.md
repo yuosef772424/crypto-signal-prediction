@@ -210,3 +210,23 @@ of 2018–2021, 2022–2023, 2024–2026. BTC/ETH/SOL reported descriptively onl
   (a marketable limit that would fill at the lower market price, yet was booked at EMA20) — biased against the rule.
   Fixed: long orders only when close > EMA20, short orders only when close < EMA20. Grid and acceptance unchanged;
   the buggy run is kept in the log for transparency.
+
+---
+## Addendum H (2026-10-01, written BEFORE any image/model code is run): H19 chart-image CNN, 1h & 4h, filtered samples
+Owner's idea: feed the model chart IMAGES (Jiang–Kelly–Xiu 2023 style), high trade frequency with small size, and
+only train/trade on windows that satisfy entry conditions (same filter live).
+- Coins: BTC, ETH, SOL, ADA, BCH, BNB, DOGE, TRX, XRP, ZEC (Binance spot, built from 5m bars).
+- TF ∈ {1h, 4h}; window = 32 bars; horizon H = 8 bars (1h) / 6 bars (4h). Entry at next bar open, exit at the open
+  H bars later. Label = 1 if that return > 0.
+- Image (binary, 48×96 px price + 12 px volume): per bar 3 px columns (open tick | high–low bar | close tick),
+  EMA20 line, scaled to the window's [min low, max high]; volume scaled to window max. Causal only.
+- Sample filters, applied identically to train, validation, test and live: C0 none; C1 volatility expansion
+  ATR14/ATR100 > 1.2; C2 trending |EMA20 − EMA50| > 1.5×ATR14; C3 volume spike: last volume > 2× mean of prior 20.
+- Model: CNN, 3 blocks (conv 5×3 → BatchNorm → LeakyReLU → maxpool 2×2), channels 16/32/64, dropout 0.5, linear →
+  logit; Adam lr 1e-3, weight decay 1e-4, batch 256, early stop on validation loss (patience 2, ≤ 8 epochs);
+  ensemble of 2 seeds. Numeric baseline: logistic regression on the same normalised window values.
+- Split: train ≤ 2021-12-31 (train stride 2 bars for 1h, 1 for 4h), validation 2022, TEST 2023-01-01→2026-09 (once).
+- Trading rule (fixed): long if p ≥ 80th percentile of validation p, short if p ≤ 20th percentile; every signal is a
+  small independent trade held H bars; cost 0.07% per side (0.14% RT). Maker-cost (0.04% RT) shown descriptively.
+- Configs: 2 TF × 4 filters = 8. ACCEPT on TEST: net mean per trade > 0 with day-clustered t > 2.5, > 0 in ≥ 7 of 10
+  coins, and > 0 in both 2023–24 and 2025–26. CNN must also beat the logistic baseline's net mean.
