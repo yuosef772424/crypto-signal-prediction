@@ -252,3 +252,18 @@ gain, and net P&L with the H19 trading rule (top/bottom 20% of validation p, 0.1
 DECISION RULE ("worth step 2"): a representation qualifies if, in BOTH timeframes, it adds ≥ +0.005 test AUC over B,
 improves AUC in ≥ 7/10 coins and improves net P&L; tokens additionally qualify if next-token cross-entropy on test is
 ≥ 0.5% below unigram.
+
+---
+## Addendum J (2026-10-01, written BEFORE computation): H21 owner's 4-output "path envelope" model
+Owner's idea: instead of up/down, predict four quantities of the next-H-bar path relative to the entry price E:
+U = (max high − E) ≥ 0, Dn = (min low − E) ≤ 0, CL = (close_H − min low) ≥ 0, CH = (close_H − max high) ≤ 0.
+All divided by ATR14 of the signal bar (otherwise the model just learns volatility levels). (CH is implied by the other
+three; kept as the owner specified.) Data/splits as H19/H20: 10 coins, TF {1h, 4h}, H = 8 / 6 bars, entry = next open;
+train ≤ 2021, validation 2022 (early stopping), test 2023-01→2026-09.
+Features: H20 baseline B + causal wavelet W. Model: HistGradientBoostingRegressor per target (squared error).
+Evaluation on TEST: (a) per-target Spearman vs realised and vs a symmetric-volatility baseline (training mean in ATR
+units); (b) DIRECTIONAL skill = Spearman(Û + D̂n, realised U + Dn) and vs realised close return.
+Trading rule (fixed): asymmetry Â = Û + D̂n; long if Â ≥ 90th pct of validation Â, short if ≤ 10th pct; entry next open
+(taker 0.07%), take-profit limit at E ± 0.8·Û (resp. D̂n) ATR (maker 0.02%), stop at E ∓ |D̂n| (resp. Û) ATR (taker 0.07%),
+time exit at H (taker); resolved on the 5m path, stop first if both inside one 5m bar.
+ACCEPT: net mean per trade > 0, day-clustered t > 2.5, > 0 in ≥ 7/10 coins and in both 2023–24 and 2025–26.
