@@ -20,11 +20,10 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      # No pip cache here: nothing is installed, and an empty cache dir fails the setup-python post step.
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: pip
-          cache-dependency-path: requirements-ci.txt
       # Both scripts are stdlib-only and exit 1 on failure.
       - name: Import direction between zones
         run: python tools/check_deps.py
