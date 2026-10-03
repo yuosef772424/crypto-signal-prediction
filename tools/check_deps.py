@@ -37,11 +37,13 @@ ALLOWLIST: dict[tuple[str, str], str] = {
 
 # --------------------------------------------------------------------------- repo helpers (shared)
 def list_repo_files(root: Path = ROOT) -> list[str]:
-    """Tracked + untracked-but-not-ignored files (posix, relative, sorted); falls back to a walk."""
+    """Files in the git index (posix, relative, sorted); falls back to a walk outside git.
+    Index only, not untracked files: the maps must match what CI checks out, so a local scratch file never
+    enters them (a new module is mapped once it is `git add`-ed, which the pre-commit hook guarantees)."""
     files: list[str] = []
     try:
         out = subprocess.run(
-            ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+            ["git", "ls-files", "-z", "--cached"],
             cwd=root, capture_output=True, check=True,
         ).stdout.decode("utf-8", "surrogateescape")
         files = [f for f in out.split("\0") if f]

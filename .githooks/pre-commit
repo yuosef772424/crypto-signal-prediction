@@ -1,0 +1,12 @@
+#!/bin/sh
+# Regenerate MAP.md / maps/ from the code being committed and stage them, so the maps can never lag the code
+# (PHILOSOPHY.md §4: maps are generated, not written). Then enforce the same checks CI runs.
+# Enabled per clone with: git config core.hooksPath .githooks   (Claude Code sessions do this on SessionStart).
+set -e
+root=$(git rev-parse --show-toplevel)
+cd "$root"
+py=$(command -v python3 || command -v python)
+"$py" tools/build_map.py >/dev/null
+git add MAP.md maps
+"$py" tools/build_map.py --check >/dev/null || { "$py" tools/build_map.py --check; exit 1; }
+"$py" tools/check_deps.py >/dev/null || { "$py" tools/check_deps.py; exit 1; }

@@ -48,25 +48,25 @@
   - `def disk_state() -> dict[str, str]` L502
   - `def main(argv: list[str] | None=None) -> int` L512
 
-### `tools/check_deps.py` (321 lines)
+### `tools/check_deps.py` (323 lines)
 - PURPOSE: Enforce the import direction of PHILOSOPHY.md section 2 with `ast` (modules are never imported): code packages must not import research/docs/tests, and a research study must not import another study; path-based coupling is reported as warn…
 - TAGS: dependencies, imports, import direction, zones, architecture, lint, ci, sys.path, اتجاه الاعتماد
 - PITFALLS: Also hosts the shared repo helpers (Repo, zone_of, file_imports, classify) that tools/build_map.py reuses for DEPENDS. Bare imports (`import lib`) are resolved by a repo-wide module-name index, so only unambiguous names (one zone) are classified. Existing violations are never fixed here: they go in ALLOWLIST below, with a reason.
 - API:
   - `def list_repo_files(root: Path=ROOT) -> list[str]` L39
-  - `def zone_of(rel: str) -> str` L61
-  - `class Repo` L74
-    - `.__init__(self, root: Path=ROOT, files: list[str] | None=None)` L77
-    - `.own_dir_names(self, rel: str) -> set[str]` L100
-    - `.classify(self, dotted: str, rel: str) -> str | None` L103
-  - `def file_imports(tree: ast.AST, rel: str) -> list[tuple[int, str, str]]` L126
-  - `def dotted_name(node: ast.AST) -> str` L155
-  - `def notebook_cells(path: Path) -> tuple[list[tuple[int, str, ast.AST]], list[str], int, int, int]` L185
-  - `def violation_for(own: str, target: str | None) -> str | None` L215
-  - `def check_file(repo: Repo, rel: str) -> list[tuple[int, str, str, str]]` L226
-  - `def check_notebook(repo: Repo, rel: str) -> list[tuple[str, int, str, str, str]]` L266
-  - `def run(repo: Repo) -> tuple[list[str], int, int, int, int]` L281
-  - `def main(argv: list[str] | None=None) -> int` L308
+  - `def zone_of(rel: str) -> str` L63
+  - `class Repo` L76
+    - `.__init__(self, root: Path=ROOT, files: list[str] | None=None)` L79
+    - `.own_dir_names(self, rel: str) -> set[str]` L102
+    - `.classify(self, dotted: str, rel: str) -> str | None` L105
+  - `def file_imports(tree: ast.AST, rel: str) -> list[tuple[int, str, str]]` L128
+  - `def dotted_name(node: ast.AST) -> str` L157
+  - `def notebook_cells(path: Path) -> tuple[list[tuple[int, str, ast.AST]], list[str], int, int, int]` L187
+  - `def violation_for(own: str, target: str | None) -> str | None` L217
+  - `def check_file(repo: Repo, rel: str) -> list[tuple[int, str, str, str]]` L228
+  - `def check_notebook(repo: Repo, rel: str) -> list[tuple[str, int, str, str, str]]` L268
+  - `def run(repo: Repo) -> tuple[list[str], int, int, int, int]` L283
+  - `def main(argv: list[str] | None=None) -> int` L310
 
 ### `tools/colab_bridge.py` (196 lines)
 - PURPOSE: Colab <-> GitHub <-> Claude bridge: copies data from Drive to local Colab disk once per session (prepare_data).
