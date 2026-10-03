@@ -73,16 +73,16 @@
   - `class TestFundingMetrics(unittest.TestCase)` L151
     - (5 methods)
 
-### `tests/test_multi_tf.py` (550 lines)
+### `tests/test_multi_tf.py` (606 lines)
 - PURPOSE: فريمان (1h أساسي + سياق 4h) عبر خط الأنابيب والنموذج واللوحة: python -m unittest tests.test_multi_tf -v (from docstring)
 - DEPENDS: cross_asset, docs
 - API:
-  - `def ohlcv(days, seed, start)` L55
-  - `class PipelineMultiTFTests(unittest.TestCase)` L84
+  - `def ohlcv(days, seed, start)` L79
+  - `class PipelineMultiTFTests(unittest.TestCase)` L108
     - (8 methods)
-  - `class MultiTFModelTests(unittest.TestCase)` L300
+  - `class MultiTFModelTests(unittest.TestCase)` L342
     - (6 methods)
-  - `class PanelMultiTFTests(unittest.TestCase)` L427
+  - `class PanelMultiTFTests(unittest.TestCase)` L469
     - (4 methods)
 
 ### `tests/test_nig_calibration.py` (371 lines)

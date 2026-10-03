@@ -14,6 +14,7 @@ import io
 import json
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -32,13 +33,36 @@ GOLDEN = json.load(open(os.path.join(ROOT, "tests", "golden_pre_multi_tf.json"),
 H_NS = 3600 * 10 ** 9
 
 
+GOLDEN_COMMIT = "4cb2d7b"   # the pre-change commit every recorded digest was taken from
+
+
 def _data_golden(section):
-    """Byte-exact data digests depend on numpy's SIMD path (float64 exp/log differ in the last bits between AVX512 and
-    AVX2). Same values from the same old commit for both paths; see `_simd_note` in the golden file."""
+    """Recorded byte-exact digests for this machine, or None when none were recorded for it.
+    They depend on numpy's SIMD path (float64 exp/log differ in the last bits between X86_V4/AVX512 and X86_V3/AVX2)
+    and on the library versions, so they exist for exactly two cases: the pinned versions on X86_V4 or on X86_V3.
+    Anything else (other CPUs such as ARM, other versions, or CSP_GOLDEN_MODE=differential) returns None, and the
+    caller compares against the old commit itself built on this machine — still byte-exact, never a tolerance."""
+    if os.environ.get("CSP_GOLDEN_MODE") == "differential" or not _versions_match():
+        return None
     from numpy._core._multiarray_umath import __cpu_features__ as cpu
-    if "X86_V4" in cpu and not cpu["X86_V4"]:
+    if cpu.get("X86_V4"):
+        return GOLDEN[section]
+    if cpu.get("X86_V3"):
         return {**GOLDEN[section], **GOLDEN["x86_v3"][section]}
-    return GOLDEN[section]
+    return None
+
+
+def _old_commit_tree():
+    """A temp dir holding the files of GOLDEN_COMMIT (via git archive), or None when git or the commit is missing."""
+    d = tempfile.mkdtemp()
+    try:
+        tar = subprocess.run(["git", "archive", GOLDEN_COMMIT, "crypto_data_pipeline_v6.ipynb", "cross_asset",
+                              "docs/research/audit"], cwd=ROOT, capture_output=True, check=True).stdout
+        subprocess.run(["tar", "-x", "-C", d], input=tar, check=True)
+        return d
+    except (OSError, subprocess.CalledProcessError):
+        shutil.rmtree(d, ignore_errors=True)
+        return None
 
 
 def _versions_match():
@@ -119,14 +143,32 @@ class PipelineMultiTFTests(unittest.TestCase):
                       resample_fn=ns["make_resample_fn"](ns["CONFIG"]), max_workers=1, config=ns["CONFIG"])
 
     # ── الإعدادات القديمة: بايتات مطابقة لما قبل التعديل ──
-    @unittest.skipUnless(_versions_match(), "بصمات البيانات المرجعية تتبع إصدارات numpy/pandas/pandas_ta_classic")
-    def test_old_presets_byte_identical(self):
+    def _old_preset_digests(self):
         ns = self.ns
         single = self._build(ns["HOURLY_W32_S8_OVERRIDES"], ["1h"], {"1h": 32}, days=45)
         legacy = self._build(ns["HOURLY_W32_S8_OVERRIDES"], ["1h", "4h"], {"1h": 32, "4h": 6}, days=45)
+        return {"single_1h": _digest(single), "legacy_1h_4h": _digest(legacy)}
+
+    def test_old_presets_byte_identical(self):
+        have = self._old_preset_digests()
         want = _data_golden("pipeline_digests")
-        self.assertEqual(_digest(single), want["single_1h"], "1h_s8 أحادي الفريم لم يعد مطابقاً لما قبل التعديل")
-        self.assertEqual(_digest(legacy), want["legacy_1h_4h"], "مسار 2-فريم legacy لم يعد مطابقاً لما قبل التعديل")
+        if want is None:                           # no recorded digests for this machine: build the old commit here
+            tree = _old_commit_tree()
+            if tree is None:
+                self.skipTest(f"no recorded digests for this CPU/versions and commit {GOLDEN_COMMIT} is not in the "
+                              "clone (fetch full history) — cannot compare")
+            new_ns = self.ns
+            try:
+                self.ns = _nbload.load_notebook(os.path.join(tree, "crypto_data_pipeline_v6.ipynb"),
+                                                skip_contains=("اختبارات ذاتية لتعديلات هذا الدفتر",),
+                                                ns={"RUN_HOURLY_4H_SELFTESTS": False})
+                want = self._old_preset_digests()
+            finally:
+                self.ns = new_ns
+                shutil.rmtree(tree, ignore_errors=True)
+        single, legacy = have["single_1h"], have["legacy_1h_4h"]
+        self.assertEqual(single, want["single_1h"], "1h_s8 أحادي الفريم لم يعد مطابقاً لما قبل التعديل")
+        self.assertEqual(legacy, want["legacy_1h_4h"], "مسار 2-فريم legacy لم يعد مطابقاً لما قبل التعديل")
 
     # ── الإعداد الجديد ──
     def test_preset_shapes_alignment_and_dtype(self):
@@ -529,8 +571,6 @@ class PanelMultiTFTests(unittest.TestCase):
         finally:
             shutil.rmtree(d, ignore_errors=True)
 
-        if not _versions_match():
-            self.skipTest("بصمات اللوحة المرجعية تتبع إصدار numpy")
         s_tr = st.synthetic_split(20, 40, 8, 5, seed=1, signal=2.0, name="train")
         s_va = st.synthetic_split(20, 20, 8, 5, start_day=18200, seed=2, signal=2.0, name="val")
         s_te = st.synthetic_split(20, 20, 8, 5, start_day=18300, seed=3, signal=2.0, name="test")
@@ -540,8 +580,24 @@ class PanelMultiTFTests(unittest.TestCase):
                                                tcfg | {"batch_samples": 256}, verbose=False)
         finally:
             shutil.rmtree(d, ignore_errors=True)
+        self.assertEqual(state["fingerprint"], GOLDEN["panel"]["fingerprint"])   # config hash: CPU-independent
         g = _data_golden("panel")
-        self.assertEqual(state["fingerprint"], g["fingerprint"])
+        if g is None:                              # no recorded digests for this machine: hash the old commit's data here
+            tree = _old_commit_tree()
+            if tree is None:
+                self.skipTest(f"no recorded digests for this CPU/versions and commit {GOLDEN_COMMIT} is not in the "
+                              "clone (fetch full history) — cannot compare")
+            code = ("import sys; sys.path.insert(0, sys.argv[1]); from cross_asset import selftest as st\n"
+                    "s = [st.synthetic_split(20, 40, 8, 5, seed=1, signal=2.0, name='train'),\n"
+                    "     st.synthetic_split(20, 20, 8, 5, start_day=18200, seed=2, signal=2.0, name='val'),\n"
+                    "     st.synthetic_split(20, 20, 8, 5, start_day=18300, seed=3, signal=2.0, name='test')]\n"
+                    "print('|'.join(x.content_hash() for x in s))")
+            try:
+                fp = subprocess.run([sys.executable, "-c", code, tree], capture_output=True, text=True, check=True,
+                                    env={**os.environ, "TF_CPP_MIN_LOG_LEVEL": "3"}).stdout.strip().splitlines()[-1]
+            finally:
+                shutil.rmtree(tree, ignore_errors=True)
+            g = {"data_fp": fp, "train_content_hash": fp.split("|")[0]}
         self.assertEqual(state["data_fp"], g["data_fp"])
         self.assertEqual(s_tr.content_hash(), g["train_content_hash"])
 
