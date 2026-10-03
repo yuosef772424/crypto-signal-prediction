@@ -80,7 +80,7 @@
 
 ## `crypto_data_pipeline_v6.ipynb`
 - title: خط أنابيب تجهيز بيانات العملات الرقمية — دفتر موحّد (تاريخي + حيّ)
-- cells: 72 (42 code)
+- cells: 74 (43 code)
 - headings: خط أنابيب تجهيز بيانات العملات الرقمية — دفتر موحّد (تاريخي + حيّ) · كيف تستخدم هذا الدفتر · سجل التعديلات في هذه النسخة (مبنية على تدقيق البيانات) · 1) تثبيت الاعتماديات · 2) الاستيرادات العامة · 3) Google Drive — التركيب (الطريقة الوحيدة للتحميل) · 4) ⚙️ الإعدادات الافتراضية (`defaults.py` سابقاً) · 5) الإعدادات الحيّة `CONFIG` (`runtime.py` سابقاً) · 6) أدوات رؤوس المخرجات (`heads.py` سابقاً) · 7) الميزات المخصّصة الساكنة (`custom.py` سابقاً) · 8) توليد الميزات الفنية (`features.py` سابقاً) · 9) التطبيع (`normalize.py` سابقاً) · 10) محاذاة الفريمات الزمنية المتعدّدة (`align.py` سابقاً) · 11) بناء النوافذ والأهداف لأصل واحد (`windows.py` سابقاً) · 12) أدوات التشخيص (`diagnostics.py` سابقاً) · 13) التحميل والمعالجة المتوازية (`parallel.py` سابقاً) · 14) مصادر البيانات التاريخية (`sources.py` سابقاً) — Google Drive المُركَّب حصراً · 15) خط أنابيب تجميع البيانات عبر كل الأصول (`pipeline.py` سابقاً) · 14-ب) سياق سوقي عابر للأصول (Market Context) · 15-ب) تطبيع مقطعي عبر الأصول (اختياري — بروح Qlib CSZScoreNorm/CSRankNorm)
 - API:
   - `def is_colab() -> bool` cell 7 L1
@@ -120,19 +120,24 @@
   - `def exclude_features(names: Any, config: Optional[dict]=None, refresh: bool=True, verbose: bool=True) -> List[str]` cell 18 L138
   - `def extract_features(df: pd.DataFrame, features: List[str]) -> pd.DataFrame` cell 18 L207
   - `def price_indices(features: Optional[List[str]]=None, config: Optional[dict]=None) -> dict` cell 18 L217
-  - `def classify_feature(col_name: str, kinds: Optional[Dict[str, str]]=None, default: str=DEFAULT_KIND) -> str` cell 20 L186
-  - `def calc_scale_params(data: np.ndarray, method: str='robust') -> Tuple[float, float]` cell 20 L217
-  - `def scale_data(data: np.ndarray, center: float, scale: float) -> np.ndarray` cell 20 L233
-  - `def inverse_scale(preds: np.ndarray, bases: np.ndarray) -> np.ndarray` cell 20 L237
-  - `def normalize_column(x: np.ndarray, kind: str, center: float, scale: float, method: str='robust', eps: float=1e-08) -> np.ndarray` cell 20 L264
-  - `def process_window(w: np.ndarray, columns: list, med_p: float, iqr_p: float, method: str='robust', config: Optional[dict]=None, clip_abs: Optional[float]=None) -> np.ndarray` cell 20 L306
-  - `def process_windows(windows: np.ndarray, columns: List[str], centers: np.ndarray, scales: np.ndarray, method: str='robust', config: Optional[dict]=None, clip_abs: Optional[float]=None) -> np.ndarray` cell 20 L337
-  - `def describe_features(features: List[str]) -> Dict[str, List[str]]` cell 20 L447
-  - `def audit_normalization(windows: np.ndarray, features: List[str], verbose: bool=True) -> pd.DataFrame` cell 20 L455
+  - `def classify_feature(col_name: str, kinds: Optional[Dict[str, str]]=None, default: str=DEFAULT_KIND) -> str` cell 20 L201
+  - `def calc_scale_params(data: np.ndarray, method: str='robust') -> Tuple[float, float]` cell 20 L232
+  - `def scale_data(data: np.ndarray, center: float, scale: float) -> np.ndarray` cell 20 L248
+  - `def inverse_scale(preds: np.ndarray, bases: np.ndarray) -> np.ndarray` cell 20 L252
+  - `def price_norm_mode(config: Optional[dict]=None) -> str` cell 20 L279
+  - `def price_pct_clip(config: Optional[dict]=None) -> float` cell 20 L288
+  - `def pct_change_encode(x: np.ndarray, axis: int=0) -> np.ndarray` cell 20 L297
+  - `def pct_change_decode(r: np.ndarray, anchor, anchor_at: str='last', axis: int=0) -> np.ndarray` cell 20 L314
+  - `def normalize_column(x: np.ndarray, kind: str, center: float, scale: float, method: str='robust', eps: float=1e-08, price_mode: str=PRICE_NORM_WINDOW) -> np.ndarray` cell 20 L352
+  - `def process_window(w: np.ndarray, columns: list, med_p: float, iqr_p: float, method: str='robust', config: Optional[dict]=None, clip_abs: Optional[float]=None) -> np.ndarray` cell 20 L400
+  - `def process_windows(windows: np.ndarray, columns: List[str], centers: np.ndarray, scales: np.ndarray, method: str='robust', config: Optional[dict]=None, clip_abs: Optional[float]=None) -> np.ndarray` cell 20 L439
+  - `def describe_features(features: List[str]) -> Dict[str, List[str]]` cell 20 L559
+  - `def audit_normalization(windows: np.ndarray, features: List[str], verbose: bool=True, config: Optional[dict]=None) -> pd.DataFrame` cell 20 L567
   - `def window_end_indices(index: pd.DatetimeIndex, win: int, stride: int, tf: str, config: Optional[dict]=None) -> np.ndarray` cell 22 L36
   - `def align_multi_timeframes_time_based(dfs: Dict[str, pd.DataFrame], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, stride: Optional[int]=None, config: Optional[dict]=None) -> Tuple[Dict[str, np.ndarray]…` cell 22 L81
   - `def prepare_single_asset(dfs: Dict[str, pd.DataFrame], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_horizon: Optional[int]=None, stride: Option…` cell 24 L41
   - `def invert_reg_predictions(preds: np.ndarray, head: str, last_candles: Optional[np.ndarray]=None, bases: Optional[np.ndarray]=None, config: Optional[dict]=None, scale: Optional[float]=None) -> np.ndarray` cell 24 L251
+  - `def decode_price_window(data: Dict, column: str='close', tf: Optional[str]=None, anchor: Optional[np.ndarray]=None, feature_order: Optional[List[str]]=None, mode: Optional[str]=None) -> np.ndarray` cell 24 L297
   - `def check_missing_values(data: Dict[str, Dict], tf_order: Optional[List[str]]=None, config: Optional[dict]=None) -> Dict[str, dict]` cell 26 L9
   - `def diagnose_feature_availability(data: Dict[str, Dict], tf_order: Optional[List[str]]=None, desired_features: Optional[List[str]]=None, config: Optional[dict]=None) -> List[str]` cell 26 L33
   - `def diagnose_data_vs_configs(data: dict, configs: list, n_preview: int=15) -> dict` cell 26 L93
@@ -160,10 +165,10 @@
   - `def momentum_orth_natr_columns(config: Optional[dict]=None) -> List[str]` cell 34 L318
   - `def build_momentum_orth_natr(data: Optional[Dict]=None, config: Optional[dict]=None) -> Optional[Dict[str, Dict[str, pd.DataFrame]]]` cell 34 L349
   - `def add_momentum_orth_natr(dfs: Dict[str, pd.DataFrame], asset_dfs: Optional[Dict[str, pd.DataFrame]], config: Optional[dict]=None) -> Dict[str, pd.DataFrame]` cell 34 L396
-  - `def clear_checkpoint(checkpoint_dir, names: Optional[List[str]]=None) -> int` cell 35 L182
-  - `def build_dataset_from_loader(configs: List[Dict], load_asset_fn: Callable, resample_fn: Callable, tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_hori…` cell 36 L297
-  - `def build_dataset_from_preloaded(configs: List[Dict], data: Dict[str, Dict[str, pd.DataFrame]], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_horizon: O…` cell 36 L459
-  - `def build_dataset(configs: List[Dict], *, data: Optional[Dict]=None, load_asset_fn: Optional[Callable]=None, resample_fn: Optional[Callable]=None, **kwargs) -> Dict` cell 36 L557
+  - `def clear_checkpoint(checkpoint_dir, names: Optional[List[str]]=None) -> int` cell 35 L186
+  - `def build_dataset_from_loader(configs: List[Dict], load_asset_fn: Callable, resample_fn: Callable, tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_hori…` cell 36 L301
+  - `def build_dataset_from_preloaded(configs: List[Dict], data: Dict[str, Dict[str, pd.DataFrame]], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_horizon: O…` cell 36 L463
+  - `def build_dataset(configs: List[Dict], *, data: Optional[Dict]=None, load_asset_fn: Optional[Callable]=None, resample_fn: Optional[Callable]=None, **kwargs) -> Dict` cell 36 L561
   - `def cross_sectional_normalize(dataset: Dict, heads: Optional[List[str]]=None, method: Optional[str]=None, min_assets: Optional[int]=None, clip: Optional[float]=None, config: Optional[dict]=None, verbose: bool=True) -> Dict` cell 38 L20
   - `def invert_cross_sectional(preds: np.ndarray, timestamps: np.ndarray, head: str, dataset: Dict) -> np.ndarray` cell 38 L125
   - `def embargo_candles(data: Dict, config: Optional[dict]=None) -> int` cell 40 L45
@@ -227,6 +232,8 @@
   - `def build_hourly_w32_s8_dataset(checkpoint_dir: Optional[str]=None, save: bool=True, max_workers: Optional[int]=None, estimate: bool=True, require_phase2: bool=True) -> Dict` cell 59 L249
   - `def build_hourly_4h_dataset(checkpoint_dir: Optional[str]=None, save: bool=True, max_workers: Optional[int]=None, estimate: bool=True, require_phase2: bool=True) -> Dict` cell 61 L22
   - `def run_hourly_4h_selftests(verbose: bool=True) -> bool` cell 63 L2
+  - `def pct_decode_consistency(dataset: Dict, column: str='close') -> Dict[str, float]` cell 65 L18
+  - `def build_hourly_pct_dataset(checkpoint_dir: Optional[str]=None, save: bool=True, max_workers: Optional[int]=None, estimate: bool=True, require_phase2: bool=True) -> Dict` cell 65 L43
 
 ## `hypothesis_h001_short_term_reversal.ipynb`
 - title: H001 — الانعكاس قصير المدى (Short-Term Reversal)

@@ -6,7 +6,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 
 ## Root notebooks → maps/notebooks.md
 - `chicks_v4_5_input_output_patterns.ipynb` — 📓 دفتر تقييم النموذج — نسخة مُحسّنة (v4.1) (70 public defs)
-- `crypto_data_pipeline_v6.ipynb` — خط أنابيب تجهيز بيانات العملات الرقمية — دفتر موحّد (تاريخي + حيّ) (142 public defs)
+- `crypto_data_pipeline_v6.ipynb` — خط أنابيب تجهيز بيانات العملات الرقمية — دفتر موحّد (تاريخي + حيّ) (149 public defs)
 - `hypothesis_h001_short_term_reversal.ipynb` — H001 — الانعكاس قصير المدى (Short-Term Reversal) (2 public defs)
 - `hypothesis_h002_classification_head.ipynb` — H002 — رأس التصنيف الثنائي في `NIG-TimeNet v2` (1 public defs)
 - `hypothesis_h003_volatility_reversal.ipynb` — H003 — انعكاس/انكماش التقلّب المدفوع بـ`NATR_14` (Volatility Reversal) (0 public defs)
@@ -33,6 +33,6 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `docs/research/scripts/hourly_1h/` — (no README) | 14 scripts, 0 data files (0 B) → maps/docs_research.md
 
 ## Tests
-- `tests/` — test_audit_round2, test_cross_asset, test_disk_backed, test_entry_range, test_intraday_features, te… | 11 modules, 1 data files (30 KB) → maps/tests.md
+- `tests/` — test_audit_round2, test_cross_asset, test_disk_backed, test_entry_range, test_intraday_features, te… | 12 modules, 1 data files (30 KB) → maps/tests.md
 
 ## Where do I edit X? → `maps/tags.md` (TAGS → modules index)
