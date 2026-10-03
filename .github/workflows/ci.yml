@@ -72,7 +72,11 @@ jobs:
           (api[_-]?key|api[_-]?secret|secret[_-]?key|token|password)["']?[[:space:]]*[=:][[:space:]]*["'][A-Za-z0-9/+_-]{32,}["']
           EOF
           # -o prints only the matched part, and the value is truncated, so the log does not leak the secret.
-          if git grep -nIE -o -f "$RUNNER_TEMP/secret-patterns.txt" | cut -c1-80 | sed 's/^/possible secret: /' | tee /dev/stderr | grep -q .; then
+          # Captured into a variable (not `tee | grep -q`): under pipefail an early-exiting grep can SIGPIPE tee and
+          # turn a hit into a false "clean". `git grep` exits 1 when nothing matches, hence `|| true`.
+          hits=$(git grep -nIE -o -f "$RUNNER_TEMP/secret-patterns.txt" | cut -c1-80 || true)
+          if [ -n "$hits" ]; then
+            printf '%s\n' "$hits" | sed 's/^/possible secret: /'
             echo "::error::possible secret found in tracked files (see log); rotate it and remove it from the tree"
             exit 1
           fi
