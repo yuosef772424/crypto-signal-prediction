@@ -5,6 +5,7 @@
 - 2018-2023: edge_discovery/16_h07_oos
 - 21-23 utc: edge_discovery/06_seasonality
 - 4 outputs: edge_discovery/29_path_envelope
+- 4h context: tests/test_no_lookahead
 - 5m path: edge_discovery/21_range_fade
 - a.2: edge_discovery/13_listing_stops
 - addendum b: edge_discovery/14_holdout
@@ -50,6 +51,7 @@
 - chart images: edge_discovery/25_image_cnn
 - chart patterns: edge_discovery/22_chart_rules
 - ci: tools/build_map, tools/check_deps
+- ci guard: tests/test_no_lookahead
 - cnn: edge_discovery/25_image_cnn
 - coinmetrics: edge_discovery/16_h07_oos, edge_discovery/20_onchain
 - colab: edge_discovery/25_image_cnn, tools/colab_bridge
@@ -179,6 +181,7 @@
 - holdout flag: edge_discovery/13_listing_stops
 - hour of day: edge_discovery/06_seasonality
 - hourly index: edge_discovery/data_tools/build_panel
+- hourly_4h_overrides: tests/test_no_lookahead
 - htf filter: edge_discovery/22_chart_rules
 - hyperliquid: edge_discovery/19_hl_copy
 - ic by quarter: edge_discovery/08_ts_screen
@@ -195,6 +198,7 @@
 - key mask: cross_asset/model
 - klines: tools/fetch_history_csv_concurrent, tools/fetch_history_vision_colab
 - lead-lag: edge_discovery/11_more
+- leakage: tests/test_no_lookahead
 - limit orders: edge_discovery/21_range_fade, edge_discovery/31_wick_capture
 - lint: tools/check_deps
 - listing: edge_discovery/13_listing_stops
@@ -207,6 +211,7 @@
 - long-only: edge_discovery/07_trend
 - long-short: edge_discovery/03_quintiles
 - long/short ratio: tools/intraday_features
+- look-ahead: tests/test_no_lookahead
 - lr schedule: cross_asset/train
 - ls_acc: edge_discovery/features
 - main.ipynb patched cells: tools/evaluate_trained_model
@@ -231,6 +236,7 @@
 - mvrv: edge_discovery/20_onchain
 - navigation: tools/build_map
 - new listings: edge_discovery/12_listing
+- no future: tests/test_no_lookahead
 - notebooks: tools/build_map
 - numba: edge_discovery/21_range_fade, edge_discovery/22_chart_rules
 - oi change: edge_discovery/features
@@ -255,6 +261,7 @@
 - partial ic: cross_asset/report
 - path envelope: edge_discovery/29_path_envelope
 - per-coin events: edge_discovery/events
+- perturbation: tests/test_no_lookahead
 - phase 1: cross_asset/__init__
 - phase 2: tools/intraday_features
 - pin bar: edge_discovery/22_chart_rules
