@@ -9,6 +9,7 @@ Navigate MAP.md -> maps/<zone>.md -> read only the target symbol by line range (
 - `python tools/check_deps.py` - import direction between zones (fails on a violation).
 - `python tools/build_map.py` - regenerate MAP.md and maps/ after adding or renaming modules or cards.
 - `python tools/build_map.py --check` - fails if the maps are stale.
+- `git config core.hooksPath .githooks` - once per clone (Claude Code sessions do it on SessionStart): the pre-commit hook regenerates and stages the maps and runs the structure checks, so a commit can't leave them stale.
 - `python -m pytest tests/ -q` - full suite, CPU only, no Drive (needs `pip install -r requirements-ci.txt`).
 
 ## Working rules
