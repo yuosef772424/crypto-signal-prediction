@@ -1,0 +1,16 @@
+# Minimal CPU-only dependencies for `python -m pytest tests/ -q` (Python 3.11), as run by .github/workflows/ci.yml.
+# Tested together on Python 3.11.15 / Linux.
+#
+# numpy, pandas and pandas-ta-classic are pinned EXACTLY on purpose: tests/golden_pre_multi_tf.json records the
+# versions it was captured with (numpy 2.4.6, pandas 3.0.6, pandas_ta_classic 0.8.32), and
+# tests/test_multi_tf.py::test_old_presets_byte_identical is skipped (not run) when they differ.
+numpy==2.4.6
+pandas==3.0.6
+pandas-ta-classic==0.8.32
+
+# Other libraries used by the code under test: model build/train (cross_asset, model notebook),
+# the pipeline/chicks notebooks (loaded via docs/research/audit/_nbload.py) and the runner.
+tensorflow-cpu~=2.21.0
+scikit-learn~=1.9.1
+matplotlib~=3.11.2
+pytest~=9.1.1
