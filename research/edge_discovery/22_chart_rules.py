@@ -1,4 +1,13 @@
-"""H17: chart-reading setups on 15m/1h with HTF filters (Addendum F). Exits resolved on the 5m path."""
+"""
+PURPOSE:  H17: 10 classic chart setups x 2 sides x 5 HTF filters x TP 1-3R (600 rules) on 15m/1h with exits resolved
+          on the 5m path.
+TAGS:     H17, chart patterns, engulfing, pin bar, sweep, Donchian, inside bar, London breakout, HTF filter, R
+          multiple, numba
+PITFALLS: Zero rules pass (best t=1.79 of 600); cost in R is 0.21-0.38R on 15m so tiny timeframes cannot win; heavy
+          runtime; needs ohlc_<SYMBOL>_5m.parquet in /home/user/research (built from github Speirsy11/crypto-dataset
+          via LFS; not in repo)
+
+H17: chart-reading setups on 15m/1h with HTF filters (Addendum F). Exits resolved on the 5m path."""
 import numpy as np, pandas as pd, sys
 from numba import njit
 D = '/home/user/research'

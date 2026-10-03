@@ -1,3 +1,10 @@
+"""
+PURPOSE:  Event-study helpers: dedup() cooldown per coin and event_stats() with day-clustered t, market adjustment and
+          costs.
+TAGS:     event study, dedup, cooldown, event_stats, day-clustered t, market adjusted, win rate, per-coin events
+PITFALLS: Per-coin events cluster in a few market-wide days: only day-clustered t is meaningful, raw means mislead
+          (H04).
+"""
 import numpy as np, pandas as pd
 def dedup(E, cool):
     """keep first event per coin, then suppress further events for `cool` hours."""

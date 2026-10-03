@@ -1,3 +1,9 @@
+"""
+PURPOSE:  H06: hour-of-day and day-of-week seasonality for BTC/ETH/ALT50 on DISC and VAL.
+TAGS:     H06, seasonality, hour of day, 21-23 UTC, day of week, DISC vs VAL
+PITFALLS: The 21-22 UTC effect vanished in HOLDOUT 2026 (see 14_holdout.py); needs /home/user/research/panel_*.parquet
+          (built from Drive futures_metrics via data_tools; not in repo, see RESUME.md)
+"""
 import numpy as np, pandas as pd
 from lib import *
 P = load(); L = P['L']; U = P['univ']

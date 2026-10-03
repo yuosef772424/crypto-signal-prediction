@@ -1,4 +1,12 @@
-"""H16: owner's previous-candle range fade (Addendum E). Event-driven on the 5-minute path (numba)."""
+"""
+PURPOSE:  H16: owner's previous-candle range fade (sell limit at prev high, buy limit at prev low, TP at opposite
+          end), event-driven numba sim on the 5m path; variants V0-V4.
+TAGS:     H16, range fade, previous candle, limit orders, V0-V4, grid, 5m path, numba, range_fade csv
+PITFALLS: V0/V1 (no stop) show a 100% win rate only because losers stay open (huge floating loss): judge V3/V4; no
+          edge even in the optimistic upper bound; heavy runtime; needs ohlc_<SYMBOL>_5m.parquet in
+          /home/user/research (built from github Speirsy11/crypto-dataset via LFS; not in repo)
+
+H16: owner's previous-candle range fade (Addendum E). Event-driven on the 5-minute path (numba)."""
 import numpy as np, pandas as pd, sys
 from numba import njit
 D = '/home/user/research'

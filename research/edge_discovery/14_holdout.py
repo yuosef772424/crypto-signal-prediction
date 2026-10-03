@@ -1,4 +1,11 @@
-"""Single descriptive HOLDOUT look for H06/H07 — specs frozen in 00_PREREGISTRATION.md Addendum B."""
+"""
+PURPOSE:  Single descriptive HOLDOUT 2026 look for H06 and H07 (specs frozen in Addendum B), incl. Deflated Sharpe.
+TAGS:     H06, H07, holdout, Addendum B, deflated Sharpe, buy and hold, single touch
+PITFALLS: HOLDOUT 2026 is consumed: re-running does not give a fresh test; any new hypothesis needs new data; needs
+          /home/user/research/panel_*.parquet (built from Drive futures_metrics via data_tools; not in repo, see
+          RESUME.md)
+
+Single descriptive HOLDOUT look for H06/H07 — specs frozen in 00_PREREGISTRATION.md Addendum B."""
 import numpy as np, pandas as pd
 from scipy.stats import norm
 from lib import *; from tsbt import *

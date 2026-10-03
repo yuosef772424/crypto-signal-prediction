@@ -1,3 +1,10 @@
+"""
+PURPOSE:  H03 test: pairwise rank correlations and Fama-MacBeth multivariate regression of 24/72h returns on ranked
+          features.
+TAGS:     H03, Fama-MacBeth, rank correlation, retail long/short ratio, redundancy, multivariate
+PITFALLS: needs /home/user/research/panel_*.parquet (built from Drive futures_metrics via data_tools; not in repo, see
+          RESUME.md)
+"""
 import numpy as np, pandas as pd
 from lib import *
 P = load(); L = P['L']; U = P['univ']; r1 = L.diff()

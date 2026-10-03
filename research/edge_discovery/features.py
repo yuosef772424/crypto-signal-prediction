@@ -1,3 +1,10 @@
+"""
+PURPOSE:  Builds the dict of hourly price/positioning features (momentum, vol, distance to extremes, OI change,
+          long/short ratios, taker flow) from the panel.
+TAGS:     features, build, momentum, volatility, dist_hi/lo, OI change, ls_acc, tt_pos, taker_z, smart-minus-retail,
+          feature panel
+PITFALLS: All features are trailing (causal) but must be paired with fwd() entry at t+1; z-scores use 720h windows.
+"""
 import numpy as np, pandas as pd
 def build(P):
     L = P['L']; r1 = L.diff()

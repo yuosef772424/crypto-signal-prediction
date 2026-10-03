@@ -1,4 +1,12 @@
-"""H13: PR #7 relative-direction signal (linear reference) -> daily long/short decile P&L (Addendum C)."""
+"""
+PURPOSE:  H13: PR #7 relative-direction signal (logistic reference) turned into a daily decile long/short portfolio on
+          44 CoinMetrics assets.
+TAGS:     H13, PR #7, relative direction, logistic, decile long-short, AUC vs P&L, turnover
+PITFALLS: AUC 0.533 replicates but net P&L is ~0 after costs (maxDD -79%, turnover 230%/day); the model is fit once on
+          <=2023-06-28 and frozen; needs CoinMetrics daily CSVs in /home/user/research/coinmetrics (downloaded from
+          github coinmetrics/data; not in repo)
+
+H13: PR #7 relative-direction signal (linear reference) -> daily long/short decile P&L (Addendum C)."""
 import numpy as np, pandas as pd, glob, os
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler

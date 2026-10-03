@@ -1,4 +1,12 @@
-"""H19: chart-image CNN on 1h/4h with sample filters (Addendum H). Resumable: results appended per config."""
+"""
+PURPOSE:  H19: chart-image CNN (JKX style) vs logistic on 1h/4h with sample filters C0-C3; resumable, appends per
+          config to a results CSV.
+TAGS:     H19, CNN, chart images, torch, filters C0-C3, resumable, image_cnn_results.csv, Colab
+PITFALLS: Heavy (CPU-slow; use a Colab GPU via DATA_DIR/OUT_CSV env vars); owner stopped after 5/8 configs (1h C1-C3
+          pending); skips configs already in the CSV; needs torch + numba. Needs ohlc_<SYMBOL>_5m.parquet in
+          /home/user/research (built from github Speirsy11/crypto-dataset via LFS; not in repo)
+
+H19: chart-image CNN on 1h/4h with sample filters (Addendum H). Resumable: results appended per config."""
 import numpy as np, pandas as pd, os, sys, time, json
 import torch, torch.nn as nn
 from numba import njit

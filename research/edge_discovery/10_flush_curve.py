@@ -1,3 +1,10 @@
+"""
+PURPOSE:  H05 dose-response: forward market return by aggregate OI-change bin after market crash hours, plus the
+          deep-flush event list.
+TAGS:     H05, dose-response, OI flush, market z<-2, flush curve, event list
+PITFALLS: Monotonic in DISC but 2025 deep-flush events were mixed; needs /home/user/research/panel_*.parquet (built
+          from Drive futures_metrics via data_tools; not in repo, see RESUME.md)
+"""
 import numpy as np, pandas as pd
 from lib import *
 P = load(); L = P['L']; U = P['univ'] & P['big']

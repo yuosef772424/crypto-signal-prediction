@@ -1,4 +1,12 @@
-"""تقييم ملفات الإشارات (النموذج الحالي أو نموذج اللوحة) بنفس المقاييس، من الأعمدة المُصدَّرة وحدها.
+"""
+PURPOSE:  Evaluates any signals file (current model or panel) with the same metrics: AUC, daily IC, vol-controlled IC,
+          +/-B bracket, market-neutral portfolio.
+TAGS:     evaluation, metrics, daily IC, partial IC, vol-quintile IC, market-neutral portfolio, bracket table,
+          up_share, compare, summarize, signals file, train_labels
+PITFALLS: Judge on test only (val is reference); relative targets are rebuilt from prices and must match
+          retarget_splits(mode='relative'); previous-day vol uses shift(1) to avoid look-ahead.
+
+تقييم ملفات الإشارات (النموذج الحالي أو نموذج اللوحة) بنفس المقاييس، من الأعمدة المُصدَّرة وحدها.
 
 الأهداف النسبية تُعاد من الأسعار: عائد كل نوع (close من الدخول، high/low من آخر high/low) ناقص وسيط كل عملات القسم
 في نفس الطابع الزمني — مطابق لـ retarget_splits(mode="relative") لأن ملف الإشارات يحوي كل عيّنات القسم.

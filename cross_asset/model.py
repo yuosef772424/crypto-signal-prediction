@@ -1,4 +1,12 @@
-"""نموذج اللوحة: مُرمِّز زمني مشترك لكل عملة ← انتباه عبر عملات اليوم نفسه (بقناع) ← رؤوس لكل عملة.
+"""
+PURPOSE:  Panel model: shared per-coin temporal encoder (trunk of the current model) -> masked attention across
+          same-day coins -> per-coin heads.
+TAGS:     panel model, PanelModel, CrossAssetBlock, cross_attention, extract_encoder, trunk_drop, key mask, variant B
+          (no attention), build_panel_model
+PITFALLS: Padding mask must stop a coin seeing padding and a day seeing other days (verified in selftest); encoder
+          must stay identical to the current model's so A vs B isolates cross-coin information flow.
+
+نموذج اللوحة: مُرمِّز زمني مشترك لكل عملة ← انتباه عبر عملات اليوم نفسه (بقناع) ← رؤوس لكل عملة.
 
 المُرمِّز هو **نفس** مُرمِّز النموذج الحالي حرفياً: يُبنى build_model_fn(SEQ_LEN, N_FEATURES, config=MODEL_OVERRIDES)
 كما في دفتر main (مقاومة الحفظ: تمرير المستوى + BatchNorm، ضجيج/إسقاط قنوات، GRU، d_model=64)، ثم يُقتطَع حتى

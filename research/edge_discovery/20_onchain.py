@@ -1,4 +1,11 @@
-"""H15: on-chain & stablecoin-liquidity signals (Addendum D)."""
+"""
+PURPOSE:  H15: on-chain and stablecoin-liquidity signals (MVRV, exchange flows/supply, hash ribbon, stablecoin growth,
+          activity) vs 30d BTC/ETH, monthly Spearman and timing.
+TAGS:     H15, on-chain, MVRV, exchange supply, hash ribbon, stablecoin, CoinMetrics, Addendum D, decay
+PITFALLS: Signals shift(1) for publication lag; all six rejected (edge decays after ~2020); needs CoinMetrics daily
+          CSVs in /home/user/research/coinmetrics (downloaded from github coinmetrics/data; not in repo)
+
+H15: on-chain & stablecoin-liquidity signals (Addendum D)."""
 import numpy as np, pandas as pd
 from scipy.stats import spearmanr
 from tsbt import stats

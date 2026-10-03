@@ -1,3 +1,9 @@
+"""
+PURPOSE:  H05: market-wide crash hour plus aggregate OI flush -> rebound, event table over thresholds (DISC and VAL).
+TAGS:     H05, market crash, OI flush, rebound, dip buying, aggregate OI change, cooldown
+PITFALLS: H05 worked in 2024 only (bull-market regime) and failed in 2025; needs /home/user/research/panel_*.parquet
+          (built from Drive futures_metrics via data_tools; not in repo, see RESUME.md)
+"""
 import numpy as np, pandas as pd
 from lib import *
 P = load(); L = P['L']; U = P['univ'] & P['big']

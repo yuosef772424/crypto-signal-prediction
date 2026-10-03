@@ -1,3 +1,10 @@
+"""
+PURPOSE:  H08: pooled time-series predictability of each feature's own z-score vs vol-normalised forward return (93
+          tests, hourly top-50).
+TAGS:     H08, time-series screen, pooled z*y, IC by quarter, ts_screen_disc.csv
+PITFALLS: Max |t| = 2.7 is noise level; needs /home/user/research/panel_*.parquet (built from Drive futures_metrics
+          via data_tools; not in repo, see RESUME.md)
+"""
 import numpy as np, pandas as pd
 from lib import *; from features import build
 P = load(); L = P['L']; U = P['univ'] & P['big']; F = build(P)

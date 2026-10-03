@@ -1,4 +1,12 @@
-"""Shared data/feature/eval helpers for the edge-discovery study (see 00_PREREGISTRATION.md)."""
+"""
+PURPOSE:  Shared loaders and eval helpers for the study: load() panel, DISC/VAL/HOLD split constants, fwd(),
+          xs_demean(), rank_ic(), tstat().
+TAGS:     load panel, DISC VAL HOLD dates, forward return, universe mask, top-50 big, rank_ic, t-stat, shared helpers,
+          EDGE_DATA
+PITFALLS: Split dates are frozen by the pre-registration (never change); HOLD 2026 is already consumed; universe uses
+          OI value >= $10M one hour earlier (look-ahead safe).
+
+Shared data/feature/eval helpers for the edge-discovery study (see 00_PREREGISTRATION.md)."""
 import numpy as np, pandas as pd, os
 DATA = os.environ.get('EDGE_DATA', '/home/user/research')
 DISC = ('2024-01-01', '2025-03-31 23:00')

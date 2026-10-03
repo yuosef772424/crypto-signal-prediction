@@ -1,4 +1,12 @@
-"""H21 (Addendum J): owner's 4-output path-envelope model -> TP/SL trades on the 5m path."""
+"""
+PURPOSE:  H21: owner's 4-output path-envelope model (max up, max down, close-from-low, close-from-high in ATR units)
+          via HistGBR, then TP/SL trades on the 5m path.
+TAGS:     H21, path envelope, 4 outputs, HistGradientBoosting, asymmetry, TP SL, Addendum J, size vs direction
+PITFALLS: Envelope size is predictable but direction is not (asymmetry corr ~0); 4h ~break-even after costs; needs
+          ohlc_<SYMBOL>_5m.parquet in /home/user/research (built from github Speirsy11/crypto-dataset via LFS; not in
+          repo)
+
+H21 (Addendum J): owner's 4-output path-envelope model -> TP/SL trades on the 5m path."""
 import numpy as np, pandas as pd
 from numba import njit
 from scipy.stats import spearmanr

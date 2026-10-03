@@ -1,4 +1,13 @@
-"""طبقة بيانات اللوحة: تجميع عيّنات split_data حسب يوم UTC، ودفعات من عدّة أيام كاملة.
+"""
+PURPOSE:  Data layer of the panel model: groups split_data samples by UTC day (index lists only) and builds multi-day
+          flat batches (x, day, pos).
+TAGS:     panel data, PanelSplit, panel_split_from, day grouping, batching, batch shape, mixed timestamps, target
+          scale, entry_range_to_prices, integrity checks
+PITFALLS: Groups mixing different timestamps let cross-asset attention read peers' future candles (look-ahead): see
+          mixed_timestamp_groups / check(allow_mixed_timestamps) - leave it False except in an experiment that
+          measures the leak.
+
+طبقة بيانات اللوحة: تجميع عيّنات split_data حسب يوم UTC، ودفعات من عدّة أيام كاملة.
 
 لا يُبنى موتّر أيام×عملات×نافذة×ميزات (جيجابايتات، ومعظمه حشو لأن عدد العملات يتغيّر من 1 إلى ~500 يومياً). بدلاً من
 ذلك تُحفظ لكل يوم قائمة فهارس عيّناته في X الأصلية، وتُجمَع النوافذ بالفهارس وقت الدفعة فقط.

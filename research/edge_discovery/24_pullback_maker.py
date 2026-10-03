@@ -1,4 +1,13 @@
-"""H18: maker-entry trend pullback on untouched coins (Addendum G / G.1)."""
+"""
+PURPOSE:  H18: maker-entry trend pullback (limit at EMA20 in an EMA20/50 trend, scale in to 3, stop k*ATR, target
+          m*k*ATR) on 7 untouched coins.
+TAGS:     H18, pullback, maker limit, EMA20, scaling in, untouched coins, ATR stop, era split
+PITFALLS: Documented bug (Addendum G.2) in the first run: BUY limit placed when close<EMA20 (marketable, booked at
+          EMA20); fixed so longs need close>EMA20 and shorts close<EMA20 - never use
+          pullback_maker_untouched_BUGGY_v1.csv. Edge decayed 2018-21 -> 2024-26. Needs ohlc_<SYMBOL>_5m.parquet in
+          /home/user/research (built from github Speirsy11/crypto-dataset via LFS; not in repo)
+
+H18: maker-entry trend pullback on untouched coins (Addendum G / G.1)."""
 import numpy as np, pandas as pd, sys
 from numba import njit
 D = '/home/user/research'

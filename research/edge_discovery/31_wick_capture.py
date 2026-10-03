@@ -1,4 +1,12 @@
-"""H23 (Addendum L): limits at predicted high / low of the current candle, exit at its close."""
+"""
+PURPOSE:  H23: owner's wick capture - limit sells at predicted high and buys at predicted low of the current candle
+          (quantile GBM), exit at close.
+TAGS:     H23, wick capture, predicted high low, quantile regression, limit orders, adverse selection, Addendum L
+PITFALLS: Negative even before costs (adverse selection: fills happen on momentum candles); compare against constant
+          ATR-band levels; needs ohlc_<SYMBOL>_5m.parquet in /home/user/research (built from github
+          Speirsy11/crypto-dataset via LFS; not in repo)
+
+H23 (Addendum L): limits at predicted high / low of the current candle, exit at its close."""
 import numpy as np, pandas as pd
 from sklearn.ensemble import HistGradientBoostingRegressor
 D = '/home/user/research'

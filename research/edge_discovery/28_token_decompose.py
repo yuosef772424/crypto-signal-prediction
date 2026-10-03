@@ -1,4 +1,12 @@
-"""H20 descriptive follow-up: is the 1h token 'language' about DIRECTION or only about MAGNITUDE (vol clustering)?"""
+"""
+PURPOSE:  H20 follow-up: is the token 'language' about direction or only magnitude (cross-entropy reduction for sign /
+          magnitude / 9-level tokens)?
+TAGS:     H20, token language, sign vs magnitude, cross-entropy, vol clustering, descriptive
+PITFALLS: Reuses 27_repr_info.py via exec of its source up to 'rows = []; lang = []': keep that marker line in 27;
+          needs ohlc_<SYMBOL>_5m.parquet in /home/user/research (built from github Speirsy11/crypto-dataset via LFS;
+          not in repo)
+
+H20 descriptive follow-up: is the 1h token 'language' about DIRECTION or only about MAGNITUDE (vol clustering)?"""
 import numpy as np, pandas as pd, runpy
 g = runpy.run_path('27_repr_info.py', run_name='lib') if False else None
 src = open('27_repr_info.py').read().split("rows = []; lang = []")[0]; ns = {}; exec(src, ns)

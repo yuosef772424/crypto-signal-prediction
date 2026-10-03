@@ -1,4 +1,11 @@
 """
+PURPOSE:  Concurrent downloader of all Binance USDT-perp candles via the live API into the layout the pipeline reads
+          (plus asset_registry, funding, OI).
+TAGS:     download history, klines, binance api, asset_registry, funding rate, open interest, drive-root, resume,
+          include-delisted, CSV
+PITFALLS: Binance blocks US IPs (HTTP 451, typical for Colab): run locally; without --include-delisted delisted coins
+          are missing (survivorship bias); OI history is only the last 30 days.
+
 fetch_history_csv_concurrent.py
 تحميل شموع كل عملات Binance Futures (USDT الدائمة) من تاريخ محدد حتى الآن، بالشكل الذي
 يقرؤه خط الأنابيب (crypto_data_pipeline_v6) مباشرة — بلا أي تحويل يدوي بعده.

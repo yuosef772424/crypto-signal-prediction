@@ -1,4 +1,11 @@
-"""POST-HOC robustness for H07 (labelled: run after the single HOLDOUT look; descriptive only)."""
+"""
+PURPOSE:  H07 post-hoc robustness: window sensitivity N=7..90, BTC vs BTC+ETH, 1x/2x costs, across DISC/VAL/HOLD.
+TAGS:     H07, robustness, window sensitivity, cost stress, post-hoc, Sharpe table
+PITFALLS: Post-hoc and descriptive only (run after the HOLDOUT look); N=90 fails in 2026; needs
+          /home/user/research/panel_*.parquet (built from Drive futures_metrics via data_tools; not in repo, see
+          RESUME.md)
+
+POST-HOC robustness for H07 (labelled: run after the single HOLDOUT look; descriptive only)."""
 import numpy as np, pandas as pd
 from lib import *; from tsbt import *
 P = load(); px, oiv = daily_panel(P)

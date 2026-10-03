@@ -1,4 +1,12 @@
-"""H22 (Addendum K): direction from the 4 envelope outputs (implied close identities) + entry-candle details."""
+"""
+PURPOSE:  H22: infer direction from the 4 envelope outputs (implied closes R1=Dn+CL, R2=U+CH) plus entry-candle
+          details, with stage-2 logistic and TP/SL trades.
+TAGS:     H22, implied close, envelope direction, stage-2 logistic, agreement filter, Addendum K
+PITFALLS: The two implied-close estimates are correlated 0.77 (same inputs); reuses 29_path_envelope.py via exec of
+          its source up to 'skill, trades = [], []': keep that marker in 29; needs ohlc_<SYMBOL>_5m.parquet in
+          /home/user/research (built from github Speirsy11/crypto-dataset via LFS; not in repo)
+
+H22 (Addendum K): direction from the 4 envelope outputs (implied close identities) + entry-candle details."""
 import numpy as np, pandas as pd
 src = open('29_path_envelope.py').read().split("skill, trades = [], []")[0]; exec(src)
 from sklearn.linear_model import LogisticRegression

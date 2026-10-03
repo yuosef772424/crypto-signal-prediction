@@ -1,4 +1,10 @@
-"""H14 (exploratory): do Hyperliquid top traders' visible positions predict returns? Copy with 1h delay.
+"""
+PURPOSE:  H14 (exploratory): copy Hyperliquid top-all-time-PnL traders' visible positions with 1/2/6/24h delay.
+TAGS:     H14, Hyperliquid, copy trading, top traders, hl_positions, delay, market-neutral tilt
+PITFALLS: Only ~4 months, 19 accounts, survivorship-selected sample, positions are mostly hedges; exploratory, cannot
+          be accepted. Needs hl_positions.parquet from github kushagra93/hl-top-traders (not in repo).
+
+H14 (exploratory): do Hyperliquid top traders' visible positions predict returns? Copy with 1h delay.
 Data: github.com/kushagra93/hl-top-traders hourly snapshots 2026-06-01 -> 2026-10-01 (19 top all-time-PnL accounts).
 No holdout exists (4 months) -> exploratory only; cannot be 'accepted'."""
 import numpy as np, pandas as pd, os

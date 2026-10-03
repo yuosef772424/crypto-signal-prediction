@@ -1,4 +1,11 @@
-"""H12 with stop-loss (Addendum A.2). Usage: python 13_listing_stops.py [--holdout]"""
+"""
+PURPOSE:  H12 with stop-loss levels (Addendum A.2): per-listing trades with S in {none, 0.5, 1.0}, H in {30, 60}, 0.3%
+          cost + slippage.
+TAGS:     H12, listing, stop loss, A.2, DISC VAL, listing_trades.csv, holdout flag
+PITFALLS: Best DISC config (H60/S0.5, t=2.74) failed VAL (t=-0.53) so H12 is rejected; --holdout reads HOLD and must
+          not be used for H12; needs metrics_new/ (Drive-derived).
+
+H12 with stop-loss (Addendum A.2). Usage: python 13_listing_stops.py [--holdout]"""
 import numpy as np, pandas as pd, glob, os, sys
 D = '/home/user/research'
 px = pd.read_parquet(f'{D}/panel_px.parquet'); btc = px['BTCUSDT'].ffill()

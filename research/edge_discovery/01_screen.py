@@ -1,3 +1,10 @@
+"""
+PURPOSE:  H01 screen: hourly cross-sectional rank IC of ~46 features x horizons on the 195-coin panel (DISC).
+TAGS:     H01, cross-sectional screen, rank IC, features, quarterly consistency, discovery
+PITFALLS: Rank IC is driven by the median (right-skewed returns): high IC did not give mean returns (see 04); writes
+          /tmp/fnames.npy as a side effect; needs /home/user/research/panel_*.parquet (built from Drive
+          futures_metrics via data_tools; not in repo, see RESUME.md)
+"""
 import numpy as np, pandas as pd, itertools, sys
 from lib import *
 P = load(); L = P['L']; U = P['univ']
