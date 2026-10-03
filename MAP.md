@@ -33,6 +33,6 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `docs/research/scripts/hourly_1h/` — (no README) | 14 scripts, 0 data files (0 B) → maps/docs_research.md
 
 ## Tests
-- `tests/` — test_audit_round2, test_cross_asset, test_disk_backed, test_entry_range, test_intraday_features, te… | 10 modules, 1 data files (30 KB) → maps/tests.md
+- `tests/` — test_audit_round2, test_cross_asset, test_disk_backed, test_entry_range, test_intraday_features, te… | 11 modules, 1 data files (30 KB) → maps/tests.md
 
 ## Where do I edit X? → `maps/tags.md` (TAGS → modules index)

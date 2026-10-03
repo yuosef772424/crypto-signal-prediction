@@ -81,7 +81,7 @@
 - day_pearson: cross_asset/train
 - decay: edge_discovery/20_onchain
 - decile long-short: edge_discovery/18_h13_pr7_signal
-- decode: edge_discovery/data_tools/dec
+- decode: edge_discovery/data_tools/dec, tests/test_real_price_modes
 - decode drive downloads: edge_discovery/data_tools/sweep
 - dedup: edge_discovery/events
 - deflated sharpe: edge_discovery/14_holdout, edge_discovery/17_h07_break
@@ -195,6 +195,7 @@
 - inside bar: edge_discovery/22_chart_rules
 - integrity checks: cross_asset/data
 - intraday features: tools/intraday_features
+- inverse: tests/test_real_price_modes
 - key mask: cross_asset/model
 - klines: tools/fetch_history_csv_concurrent, tools/fetch_history_vision_colab
 - lead-lag: edge_discovery/11_more
@@ -287,6 +288,7 @@
 - rank ic: edge_discovery/01_screen
 - rank_ic: edge_discovery/lib
 - ratchet: tools/build_map
+- real_price_predictions: tests/test_real_price_modes
 - rebound: edge_discovery/09_market_flush
 - recurrence plot: edge_discovery/27_repr_info
 - redundancy: edge_discovery/02_fmb
@@ -296,11 +298,15 @@
 - resume: cross_asset/train, tools/fetch_history_csv_concurrent, tools/fetch_history_vision_colab
 - retail long/short ratio: edge_discovery/02_fmb
 - retail positioning: edge_discovery/11_more
+- retarget_splits: tests/test_real_price_modes
+- return: tests/test_real_price_modes
+- return_close: tests/test_real_price_modes
 - robustness: edge_discovery/15_h07_robust
 - rqa: edge_discovery/27_repr_info
 - run_panel_experiment: cross_asset/__init__, cross_asset/experiment
 - run_panel_selftest: cross_asset/selftest
 - run_weights: edge_discovery/tsbt
+- scaled: tests/test_real_price_modes
 - scaling in: edge_discovery/24_pullback_maker
 - screen_disc_mean.csv: edge_discovery/04_screen_mean
 - seasonality: edge_discovery/06_seasonality
@@ -339,6 +345,7 @@
 - taker_z: edge_discovery/features
 - target scale: cross_asset/data
 - target-mode: tools/evaluate_trained_model
+- target_mode: tests/test_real_price_modes
 - test auc: edge_discovery/26_h19_generalization
 - tests/test_cross_asset: cross_asset/selftest
 - time-series screen: edge_discovery/08_ts_screen

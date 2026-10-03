@@ -269,7 +269,7 @@
   - `def build_chicks_test_dict(pipeline_test, model_tf, reg_target_mode=None)` cell 19 L17
   - `def latest_trading_report(n_display=5)` cell 23 L1
   - `def real_price_predictions(asset, target)` cell 23 L9
-  - `def classification_accuracy_report()` cell 23 L36
+  - `def classification_accuracy_report()` cell 23 L48
   - `def pool_test_dict(test_dict, model_tf, n_per_asset=None)` cell 24 L16
   - `def predict_pooled_batch_by_asset(model, pooled, model_tf, target_specs=None, n_display=5, y_true_pooled=None, timestamp_col=None, verbose=True)` cell 24 L50
   - `def collect_signals(model, split_or_dict, model_tf, batch_size=1024, outputs=None)` cell 26 L28
