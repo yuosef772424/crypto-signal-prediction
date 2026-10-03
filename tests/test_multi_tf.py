@@ -32,6 +32,15 @@ GOLDEN = json.load(open(os.path.join(ROOT, "tests", "golden_pre_multi_tf.json"),
 H_NS = 3600 * 10 ** 9
 
 
+def _data_golden(section):
+    """Byte-exact data digests depend on numpy's SIMD path (float64 exp/log differ in the last bits between AVX512 and
+    AVX2). Same values from the same old commit for both paths; see `_simd_note` in the golden file."""
+    from numpy._core._multiarray_umath import __cpu_features__ as cpu
+    if "X86_V4" in cpu and not cpu["X86_V4"]:
+        return {**GOLDEN[section], **GOLDEN["x86_v3"][section]}
+    return GOLDEN[section]
+
+
 def _versions_match():
     import importlib.metadata as md
     have = {k: md.version(k.replace("_", "-")) for k in GOLDEN["versions"]}
@@ -115,7 +124,7 @@ class PipelineMultiTFTests(unittest.TestCase):
         ns = self.ns
         single = self._build(ns["HOURLY_W32_S8_OVERRIDES"], ["1h"], {"1h": 32}, days=45)
         legacy = self._build(ns["HOURLY_W32_S8_OVERRIDES"], ["1h", "4h"], {"1h": 32, "4h": 6}, days=45)
-        want = GOLDEN["pipeline_digests"]
+        want = _data_golden("pipeline_digests")
         self.assertEqual(_digest(single), want["single_1h"], "1h_s8 أحادي الفريم لم يعد مطابقاً لما قبل التعديل")
         self.assertEqual(_digest(legacy), want["legacy_1h_4h"], "مسار 2-فريم legacy لم يعد مطابقاً لما قبل التعديل")
 
@@ -531,7 +540,7 @@ class PanelMultiTFTests(unittest.TestCase):
                                                tcfg | {"batch_samples": 256}, verbose=False)
         finally:
             shutil.rmtree(d, ignore_errors=True)
-        g = GOLDEN["panel"]
+        g = _data_golden("panel")
         self.assertEqual(state["fingerprint"], g["fingerprint"])
         self.assertEqual(state["data_fp"], g["data_fp"])
         self.assertEqual(s_tr.content_hash(), g["train_content_hash"])

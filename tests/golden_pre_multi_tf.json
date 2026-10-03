@@ -2761,5 +2761,16 @@
   "fingerprint": "85b7e3bd984d",
   "train_content_hash": "261e5b2b853d43da",
   "data_fp": "261e5b2b853d43da|afe3114b58308390|b7c4f9a2472e239f"
+ },
+ "_simd_note": "numpy float64 exp/log differ in the last bits between its AVX512 (X86_V4) and AVX2 (X86_V3) code paths, so byte-exact data digests depend on the CPU. Top-level values were taken on an AVX512 machine; 'x86_v3' holds the digests produced by the SAME old commit 4cb2d7b with numpy's X86_V4 path disabled (GitHub runners have no AVX512): NPY_DISABLE_CPU_FEATURES='AVX512_ICL AVX512_SPR X86_V4'.",
+ "x86_v3": {
+  "pipeline_digests": {
+   "single_1h": "3fcaaed9f6ebdd2f8517d94848bc990aca0fca50def2a38458c9093bebaf6bd6",
+   "legacy_1h_4h": "8d45b1a3c59e61c67ecb64f1ea93b5798ad936cb1e63708826b1dbebdbe0852b"
+  },
+  "panel": {
+   "train_content_hash": "d6630c63cc87a453",
+   "data_fp": "d6630c63cc87a453|568f387e1259ab85|22b40b74f20183b2"
+  }
  }
 }
