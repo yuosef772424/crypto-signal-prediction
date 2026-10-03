@@ -1,4 +1,11 @@
-"""Build a title->fileId index for a Drive folder from search_files results
+"""
+PURPOSE:  Builds a title->fileId index of a Drive folder from search_files results captured in session transcripts and
+          lists missing local files.
+TAGS:     drive index, fileId, missing_ids, futures_metrics folder, data rebuild
+PITFALLS: Reads /root/.claude/projects transcripts and hard-coded /home/user paths: only works inside the original
+          session environment.
+
+Build a title->fileId index for a Drive folder from search_files results
 (parentId = '<folder>') captured in the session transcripts, then list which
 pending symbols are still missing locally.
 

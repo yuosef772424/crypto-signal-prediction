@@ -1,4 +1,12 @@
-"""نموذج «اللوحة» عبر العملات (المرحلة ١): عيّنة التدريب = يوم UTC كامل بكل عملاته، وانتباه بين عملات اليوم نفسه.
+"""
+PURPOSE:  Package entry of the cross-asset 'panel' model (phase 1): one sample = a full UTC day with all coins,
+          attention across same-day coins; re-exports PanelSplit, panel_split_from, VARIANTS, run_panel_experiment.
+TAGS:     panel model, cross-asset attention, package exports, phase 1, anti-memorization, PanelSplit,
+          run_panel_experiment
+PITFALLS: Kept free of TensorFlow at import time (model/train import it) so data/report stay usable in light CPU
+          analysis scripts; do not add a top-level TF import here.
+
+نموذج «اللوحة» عبر العملات (المرحلة ١): عيّنة التدريب = يوم UTC كامل بكل عملاته، وانتباه بين عملات اليوم نفسه.
 
 الوحدات:
   data       : تجميع عيّنات split_data حسب اليوم (فهارس فقط — لا موتّر أيام×عملات×نافذة×ميزات)، ودفعات من عدّة أيام.

@@ -1,4 +1,10 @@
-"""اختبارات ذاتية سريعة لنموذج اللوحة على بيانات تركيبية (ثوانٍ، بلا Drive).
+"""
+PURPOSE:  Fast self-tests of the panel model on synthetic data (grouping, batching, masking, IC loss, short training
+          and export), no Drive needed.
+TAGS:     selftest, unit tests, synthetic data, masking test, grouping test, IC loss test, run_panel_selftest,
+          tests/test_cross_asset
+
+اختبارات ذاتية سريعة لنموذج اللوحة على بيانات تركيبية (ثوانٍ، بلا Drive).
 
     python -m cross_asset.selftest          # أو: python -m unittest tests.test_cross_asset
     run_panel_selftest(encoder_builder)     # من دفتر main: نفس الاختبارات بالمُرمِّز الحقيقي

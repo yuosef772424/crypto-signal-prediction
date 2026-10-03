@@ -1,4 +1,10 @@
-"""جسر Colab ↔ GitHub ↔ Claude (PR #7).
+"""
+PURPOSE:  Colab <-> GitHub <-> Claude bridge: copies data from Drive to local Colab disk once per session
+          (prepare_data).
+TAGS:     colab, drive copy, prepare_data, history_1d, local cache, am_data, data bridge
+PITFALLS: Colab/Drive paths (/content/...) only; Drive reads are slow, so run once per session.
+
+جسر Colab ↔ GitHub ↔ Claude (PR #7).
 
 الفكرة: البيانات تُنسخ من Drive إلى قرص Colab المحلي **مرّة واحدة لكل جلسة** (Drive بطيء في القراءة المتكرّرة)،
 والكود يُسحب من GitHub عند كل تجربة (git pull، ثوانٍ). Claude يرفع الكود وخطط التجارب إلى GitHub، وأنت تشغّل

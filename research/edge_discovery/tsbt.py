@@ -1,3 +1,10 @@
+"""
+PURPOSE:  Daily time-series backtest helpers: daily_panel() at 00:00 UTC, run_weights() net of costs, stats() (Sharpe,
+          maxDD, t, skew).
+TAGS:     backtest, daily panel, run_weights, stats, Sharpe, max drawdown, turnover cost, vol-target weights
+PITFALLS: Weights set at day d earn d -> d+1 close-to-close (approximates ~01:00 execution); cost_rt is round-trip,
+          charged half per side on turnover.
+"""
 import numpy as np, pandas as pd
 def daily_panel(P):
     """daily closes at 00:00 UTC (the hourly snapshot); universe = OI value >= 10M at that time."""

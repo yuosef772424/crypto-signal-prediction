@@ -1,3 +1,10 @@
+"""
+PURPOSE:  H07: daily trend rules (TSMOM 7-60d, Donchian ensemble), vol-scaled, long-only and long/short, universes BTC
+          / BTC+ETH / top20 / top50, DISC and VAL.
+TAGS:     H07, TSMOM, trend following, Donchian, vol targeting, long-only, trend_disc_val.csv, survivor
+PITFALLS: N=30 was selected on DISC/VAL (post-hoc window sensitivity in 15); needs /home/user/research/panel_*.parquet
+          (built from Drive futures_metrics via data_tools; not in repo, see RESUME.md)
+"""
 import numpy as np, pandas as pd
 from lib import *; from tsbt import *
 P = load(); px, oiv = daily_panel(P)

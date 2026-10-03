@@ -1,4 +1,11 @@
 """
+PURPOSE:  Phase-2 features from the full Binance archive (15m candles + funding + OI + metrics), aligned causally for
+          crypto_data_pipeline_v6.
+TAGS:     intraday features, phase 2, 15m, funding features, OI features, long/short ratio, taker ratio, availability
+          mask, max_age, causal alignment
+PITFALLS: Look-ahead: metrics/OI rows are known only at stamp + period (not at the stamp); funding event at tau is
+          available only after tau; values older than max_age become NaN + mask 0; delisted rows have zero OI -> NaN.
+
 intraday_features.py — ميزات المرحلة ٢ من أرشيف Binance الكامل (شموع 15m + تمويل + OI + metrics).
 
 وحدة مستقلّة (pandas/numpy فقط) يستوردها crypto_data_pipeline_v6.ipynb عبر

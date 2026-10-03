@@ -1,3 +1,10 @@
+"""
+PURPOSE:  Builds panel_*.parquet (px, oi, oiv, tt_acc, tt_pos, ls_acc, taker) from per-coin futures_metrics csv.gz
+          files.
+TAGS:     build panel, parquet, futures_metrics, hourly index, px proxy, data rebuild
+PITFALLS: Run from the dir holding metrics/; price proxy is OI value / OI (mark price at snapshot), not a traded
+          price; coins with <500 rows skipped; data lives on Drive, not in repo.
+"""
 import pandas as pd, numpy as np, glob, os
 fr={}
 for f in sorted(glob.glob('metrics/*.csv.gz')):

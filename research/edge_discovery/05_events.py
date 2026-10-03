@@ -1,3 +1,11 @@
+"""
+PURPOSE:  H04: per-coin event studies (crash/pump +- OI flush, retail/smart/taker extremes, 30d breakouts), 216 tests,
+          day-clustered.
+TAGS:     H04, event study, crash, pump, OI flush, breakout, taker extremes, events_disc.csv
+PITFALLS: Raw means are driven by a few market-wide days; only day-clustered t counts; needs
+          /home/user/research/panel_*.parquet (built from Drive futures_metrics via data_tools; not in repo, see
+          RESUME.md)
+"""
 import numpy as np, pandas as pd
 from lib import *; from features import build; from events import *
 P = load(); L = P['L']; U = P['univ']; F = build(P)

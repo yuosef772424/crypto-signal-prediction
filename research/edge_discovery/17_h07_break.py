@@ -1,4 +1,11 @@
-"""Attempts to break H07-OOS (post-hoc stress, descriptive): 1-day execution lag, 2x/4x costs, DSR, sub-periods."""
+"""
+PURPOSE:  Stress attempts on H07-OOS: 1-2 day execution lag, 2x/4x costs, Deflated Sharpe (N=1/44/750), sub-periods.
+TAGS:     H07-OOS, stress test, execution lag, cost stress, DSR, deflated Sharpe, break attempt
+PITFALLS: Reuses 16_h07_oos.py via exec of its source up to 'A, B = ': edit 16 carefully; post-hoc and descriptive;
+          needs CoinMetrics daily CSVs in /home/user/research/coinmetrics (downloaded from github coinmetrics/data;
+          not in repo)
+
+Attempts to break H07-OOS (post-hoc stress, descriptive): 1-day execution lag, 2x/4x costs, DSR, sub-periods."""
 import numpy as np, pandas as pd
 from scipy.stats import norm
 from tsbt import stats

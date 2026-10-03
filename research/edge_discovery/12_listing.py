@@ -1,4 +1,12 @@
-"""H12 post-listing drift (pre-registered: 00_PREREGISTRATION.md Addendum A / A.1)."""
+"""
+PURPOSE:  H12: post-listing drift of new perps vs BTC at 7/30/60d (event study clustered by listing month;
+          pre-registered Addendum A).
+TAGS:     H12, new listings, post-listing drift, short new perps, listing month clustering, metrics_new
+PITFALLS: Median is positive but the mean is ~0 (one coin +3400%); partial (alphabetical) data gave t=3.3 that
+          collapsed to 1.1 on full data; --holdout reads HOLD (H12's holdout is not spent). Needs metrics_new/ +
+          data_tools/tradfi_exclude.txt on Drive-derived data.
+
+H12 post-listing drift (pre-registered: 00_PREREGISTRATION.md Addendum A / A.1)."""
 import numpy as np, pandas as pd, glob, os, sys
 D = '/home/user/research'
 px = pd.read_parquet(f'{D}/panel_px.parquet'); btc = np.log(px['BTCUSDT'].ffill())

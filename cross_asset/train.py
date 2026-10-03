@@ -1,4 +1,12 @@
-"""تدريب نموذج اللوحة: خسائر لكل يوم، حلقة تدريب قابلة للاستئناف، تنبؤ، وتصدير إشارات بصيغة النموذج الحالي.
+"""
+PURPOSE:  Trains the panel model: per-day losses (BCE + Huber + optional daily IC term), resumable training loop,
+          prediction and signal export.
+TAGS:     panel training, PanelTrainer, panel_loss, IC loss, lr schedule, EMA weights, early stopping, resume,
+          export_signals, asym_score, day_pearson
+PITFALLS: Resuming from a run_dir with no data fingerprint cannot verify the data is the same (warns); defaults mirror
+          main's anti-memorization config, change them explicitly.
+
+تدريب نموذج اللوحة: خسائر لكل يوم، حلقة تدريب قابلة للاستئناف، تنبؤ، وتصدير إشارات بصيغة النموذج الحالي.
 
 الخسارة لكل دفعة (أيام كاملة؛ العيّنات مسطّحة فلا حشو يدخل الخسارة أصلاً):
     Σ_هدف [ w_cls · BCE(logit, تتفوّق على وسيط اليوم؛ تنعيم 0.1 كالنموذج الحالي)

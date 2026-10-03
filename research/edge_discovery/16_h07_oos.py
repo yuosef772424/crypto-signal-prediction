@@ -1,4 +1,11 @@
-"""H07-OOS: frozen TSMOM30 long-only BTC+ETH on untouched 2018-2023 (Addendum C). CoinMetrics daily PriceUSD."""
+"""
+PURPOSE:  H07-OOS: frozen TSMOM30 long-only BTC+ETH on the never-used 2018-2023 period (CoinMetrics daily PriceUSD,
+          Addendum C).
+TAGS:     H07-OOS, TSMOM30, out of sample, CoinMetrics, 2018-2023, buy and hold benchmark, vol targeting
+PITFALLS: Passed (Sharpe 1.30 vs 0.73) but uses a reference price, not an executable one; needs CoinMetrics daily CSVs
+          in /home/user/research/coinmetrics (downloaded from github coinmetrics/data; not in repo)
+
+H07-OOS: frozen TSMOM30 long-only BTC+ETH on untouched 2018-2023 (Addendum C). CoinMetrics daily PriceUSD."""
 import numpy as np, pandas as pd
 from tsbt import stats
 CM = '/home/user/research/coinmetrics'

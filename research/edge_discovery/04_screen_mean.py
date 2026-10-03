@@ -1,3 +1,10 @@
+"""
+PURPOSE:  H02/H01 follow-up: mean top/bottom-quintile spreads (not rank IC) for all features, with day-level t and
+          skew of the top leg.
+TAGS:     H02, H01, mean returns, quintile spread, t-stat, skew, 136 tests, screen_disc_mean.csv
+PITFALLS: Max |t| ~ 2.5 over 136 tests is noise level; needs /home/user/research/panel_*.parquet (built from Drive
+          futures_metrics via data_tools; not in repo, see RESUME.md)
+"""
 import numpy as np, pandas as pd
 from lib import *; from features import build
 P = load(); L = P['L']; U = P['univ']; F = build(P)

@@ -1,3 +1,10 @@
+"""
+PURPOSE:  H09/H10/H11: BTC->alt 1h lead-lag, failed-breakout short, aggregate retail-positioning extremes.
+TAGS:     H09, H10, H11, lead-lag, failed breakout, retail positioning, aggregate long/short
+PITFALLS: Failed-breakout short has 56-59% wins but mean ~0 (short the right tail); lead-lag sign flips DISC->VAL;
+          needs /home/user/research/panel_*.parquet (built from Drive futures_metrics via data_tools; not in repo, see
+          RESUME.md)
+"""
 import numpy as np, pandas as pd
 from lib import *; from features import build
 P = load(); L = P['L']; U = P['univ']; F = build(P)

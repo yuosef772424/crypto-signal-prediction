@@ -1,4 +1,13 @@
-"""H20 step 1 (Addendum I): do tokens / causal wavelet / recurrence (RQA) add information beyond returns & vol?"""
+"""
+PURPOSE:  H20 step 1: do symbolic tokens, causal Haar wavelet features or recurrence-plot RQA add information beyond
+          returns and vol (logistic, 10 coins, 1h/4h)?
+TAGS:     H20, tokens, wavelet, recurrence plot, RQA, representation information, Addendum I, train<=2021 val 2022
+          test 2023-26
+PITFALLS: Wavelet features must stay causal; tokens carry magnitude (vol clustering), not direction; numba RQA is
+          slow; needs ohlc_<SYMBOL>_5m.parquet in /home/user/research (built from github Speirsy11/crypto-dataset via
+          LFS; not in repo)
+
+H20 step 1 (Addendum I): do tokens / causal wavelet / recurrence (RQA) add information beyond returns & vol?"""
 import numpy as np, pandas as pd
 from numba import njit
 from sklearn.linear_model import LogisticRegression

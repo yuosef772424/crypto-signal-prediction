@@ -1,3 +1,10 @@
+"""
+PURPOSE:  H02 test: quintile long-short backtests on price/positioning features at H=24/72/168h, net of costs, with
+          turnover.
+TAGS:     H02, quintiles, long-short, turnover, cost_big cost_small, combo signal, discovery
+PITFALLS: needs /home/user/research/panel_*.parquet (built from Drive futures_metrics via data_tools; not in repo, see
+          RESUME.md)
+"""
 import numpy as np, pandas as pd, sys
 from lib import *
 P = load(); L = P['L']; U = P['univ']; r1 = L.diff()

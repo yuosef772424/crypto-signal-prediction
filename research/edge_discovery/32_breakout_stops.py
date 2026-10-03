@@ -1,4 +1,12 @@
-"""H23-R (Addendum L.1): BUY stop at predicted high, SELL stop at predicted low, exit at close (owner's reverse)."""
+"""
+PURPOSE:  H23-R: the reverse of H23 - BUY stop at predicted high, SELL stop at predicted low, exit at close, taker
+          stops with slippage.
+TAGS:     H23-R, breakout stops, taker stop orders, slippage, predicted high low, Addendum L.1,
+          breakout_stops_results.csv
+PITFALLS: Gross edge ~+1bp vs 9-14bp costs, 0/10 coins profitable; needs ohlc_<SYMBOL>_5m.parquet in
+          /home/user/research (built from github Speirsy11/crypto-dataset via LFS; not in repo)
+
+H23-R (Addendum L.1): BUY stop at predicted high, SELL stop at predicted low, exit at close (owner's reverse)."""
 import numpy as np, pandas as pd
 from sklearn.ensemble import HistGradientBoostingRegressor
 D = '/home/user/research'

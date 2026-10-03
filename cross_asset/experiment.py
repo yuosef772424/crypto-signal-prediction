@@ -1,4 +1,12 @@
-"""تجربة كاملة: بيانات اللوحة ← تدريب كل متغيّر/بذرة ← تنبؤ وتصدير إشارات ← مقارنة بالنموذج الحالي.
+"""
+PURPOSE:  Runs a full panel experiment from main-notebook variables: train each variant/seed, predict, export signals,
+          compare to the current model.
+TAGS:     panel experiment, run_panel_experiment, variants A/B/A_ic/B_ic/A_ic_k, evaluate_k_coins, main.ipynb section
+          7-h, baseline comparison, PANEL_MODE
+PITFALLS: Imports TensorFlow lazily inside functions; warns when groups mix timestamps (cross-asset look-ahead);
+          baseline rows must match the panel rows or the comparison is unfair.
+
+تجربة كاملة: بيانات اللوحة ← تدريب كل متغيّر/بذرة ← تنبؤ وتصدير إشارات ← مقارنة بالنموذج الحالي.
 
 يستدعيها القسم ٧-ح في main.ipynb (PANEL_MODE=True) بمتغيّرات الدفتر نفسها: نفس train/val/test بعد retarget_splits،
 نفس MODEL_TF، ونفس مُرمِّز build_model_fn(..., config=MODEL_OVERRIDES) — فالعيّنات والميزات والأهداف والتقسيم

@@ -1,4 +1,11 @@
-"""Diagnostic for H17 (post-hoc, descriptive): same grid at ZERO cost + cost expressed in R per timeframe."""
+"""
+PURPOSE:  Post-hoc diagnostic for H17: same rule grid at zero cost, plus round-trip cost expressed in R per timeframe.
+TAGS:     H17, gross edge, zero cost, cost in R, diagnostic, post-hoc
+PITFALLS: Rebuilds 22_chart_rules.py by exec of its source with TAKER/MAKER replaced by 0 (string replace): keep that
+          constants line in 22 unchanged; needs ohlc_<SYMBOL>_5m.parquet in /home/user/research (built from github
+          Speirsy11/crypto-dataset via LFS; not in repo)
+
+Diagnostic for H17 (post-hoc, descriptive): same grid at ZERO cost + cost expressed in R per timeframe."""
 import numpy as np, pandas as pd, importlib
 M = importlib.import_module('22_chart_rules'.replace('.py', '')) if False else None
 import runpy

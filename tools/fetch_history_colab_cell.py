@@ -1,3 +1,11 @@
+"""
+PURPOSE:  Single paste-and-run Colab cell: mount Drive, fetch fetch_history_vision_colab.py (GitHub or Drive) and run
+          it with the settings at the top.
+TAGS:     colab cell, download history, binance vision, drive mount, SOURCE github/drive, settings INTERVAL START
+          FUNDING OPEN_INTEREST
+PITFALLS: Private repo: the GitHub source needs a token from Colab secrets; the hard-coded GITHUB_RAW URL points at a
+          specific branch and goes stale.
+"""
 # ═══════════════════════════════════════════════════════════════════════════════
 # خلية Colab واحدة: تركيب Google Drive ← جلب سكربت التحميل (من GitHub أو من Drive) ← تشغيله.
 # الصقها كما هي في خلية Colab وشغّلها. المخرجات تُكتب في Drive مباشرة:

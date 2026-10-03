@@ -1,4 +1,12 @@
-"""تقييم نموذج مُدرَّب من main.ipynb بلا Drive وبلا تدريب — نفس دفتر main حرفياً، بخلايا مُرقَّعة فقط.
+"""
+PURPOSE:  Evaluates a model trained in main.ipynb without Drive or training, by running main's own cells with four
+          patches (CLI wrapper); also runs the panel model (--panel).
+TAGS:     evaluate trained model, eval CLI, main.ipynb patched cells, weights, target-mode, split-dates, panel
+          evaluation, gap report, market-neutral portfolio
+PITFALLS: Executes main.ipynb cells in order, so it breaks when main's cell layout or section numbering changes;
+          --target-mode must match the mode the weights were trained with.
+
+تقييم نموذج مُدرَّب من main.ipynb بلا Drive وبلا تدريب — نفس دفتر main حرفياً، بخلايا مُرقَّعة فقط.
 
     python tools/evaluate_trained_model.py --data preprocessing_output_latest.pkl.gz \
         --weights best.weights.h5 --target-mode relative --out eval_out

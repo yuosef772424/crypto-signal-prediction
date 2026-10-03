@@ -1,3 +1,10 @@
+"""
+PURPOSE:  Decodes saved Drive download tool-results (base64 gzip) into metrics/, metrics_new/, funding/ etc., removing
+          the source file.
+TAGS:     sweep, decode drive downloads, metrics_new, data rebuild, gzip
+PITFALLS: Deletes the tool-result files it decodes (os.remove); hard-coded session paths, so only works in the
+          original environment.
+"""
 import json,base64,gzip,io,glob,os
 D='/root/.claude/projects/-home-user/eb453cbe-317e-569f-b6d5-da8e67e4ab0d/tool-results/'
 n=0

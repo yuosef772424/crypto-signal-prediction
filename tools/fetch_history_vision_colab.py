@@ -1,4 +1,11 @@
 """
+PURPOSE:  Colab/Jupyter-ready downloader of Binance futures history from the data.binance.vision archive (candles,
+          funding, OI, metrics, premium index), resumable, gzip per coin.
+TAGS:     download history, data.binance.vision, klines, funding, open interest, futures_metrics, premium index, gaps
+          report, fix-gaps, resume, asset_registry, symbols.txt
+PITFALLS: Avoids the geo-block (451) but today's data is missing unless the live API is reachable; heavy network/disk
+          (--workers x --downloads); keep resume enabled on Colab disconnects.
+
 fetch_history_vision_colab.py
 تحميل شموع كل عملات Binance Futures (USDT الدائمة) من تاريخ محدد حتى الآن، بالشكل الذي
 يقرؤه خط الأنابيب (crypto_data_pipeline_v6) مباشرة — بلا أي تحويل يدوي بعده.

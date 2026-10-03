@@ -1,3 +1,10 @@
+"""
+PURPOSE:  H19 follow-up: val->test generalization gap of CNN vs logistic from the training log and recomputed logistic
+          AUCs.
+TAGS:     H19, generalization gap, val AUC, test AUC, seed spread, epoch range, h19_log.txt
+PITFALLS: Reads 25_image_cnn.py via exec of its source and /home/user/research/h19_log.txt (training log, not in
+          repo); expects image_cnn_results.csv in cwd.
+"""
 import re, numpy as np, pandas as pd, sys
 sys.argv = ['x']
 exec(open('25_image_cnn.py').read().split("if __name__ == '__main__':")[0])
