@@ -18,8 +18,8 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `trainer_framework_v2.ipynb` — 🧠 إطار عمل مدرّب عام (Generic Trainer Framework) (45 public defs)
 
 ## Code packages
-- `cross_asset/` — نموذج «اللوحة» عبر العملات (المرحلة ١): عيّنة التدريب = يوم UTC كامل بكل عملاته، وانتباه بين عملات اليوم نفسه. | 7 modules, 0 data files (0 B) → maps/cross_asset.md
-- `tools/` — build_map, check_deps, colab_bridge, evaluate_trained_model, fetch_history_colab_cell, fetch_histor… | 8 modules, 0 data files (0 B), 1 without card → maps/tools.md
+- `cross_asset/` — Package entry of the cross-asset 'panel' model (phase 1): one sample = a full UTC day with all coins, attention across same-day coins; re-exports PanelSplit, panel_split_from, VARIANTS, run_panel_experiment. | 7 modules, 0 data files (0 B) → maps/cross_asset.md
+- `tools/` — build_map, check_deps, colab_bridge, evaluate_trained_model, fetch_history_colab_cell, fetch_histor… | 8 modules, 0 data files (0 B) → maps/tools.md
 
 ## Research studies (research/)
 - `research/edge_discovery/` — التقرير النهائي — البحث عن Edge قابل للاستغلال (2024-01 → 2026-09) | 40 scripts, 32 data files (772 KB) → maps/research_edge_discovery.md
@@ -35,23 +35,4 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 ## Tests
 - `tests/` — test_audit_round2, test_cross_asset, test_disk_backed, test_entry_range, test_intraday_features, te… | 9 modules, 1 data files (30 KB) → maps/tests.md
 
-## TAGS → modules (only modules with a TAGS card)
-- architecture: tools/check_deps
-- ast: tools/build_map
-- cards: tools/build_map
-- ci: tools/build_map, tools/check_deps
-- dependencies: tools/check_deps
-- docstring: tools/build_map
-- import direction: tools/check_deps
-- imports: tools/check_deps
-- lint: tools/check_deps
-- map: tools/build_map
-- navigation: tools/build_map
-- notebooks: tools/build_map
-- ratchet: tools/build_map
-- signatures: tools/build_map
-- sys.path: tools/check_deps
-- tokens: tools/build_map
-- zones: tools/check_deps
-- اتجاه الاعتماد: tools/check_deps
-- الخريطة: tools/build_map
+## Where do I edit X? → `maps/tags.md` (TAGS → modules index)

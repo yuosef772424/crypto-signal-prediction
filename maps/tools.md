@@ -3,49 +3,50 @@
 ## `tools/`
 - build_map, check_deps, colab_bridge, evaluate_trained_model, fetch_history_colab_cell, fetch_histor… | 8 modules, 0 data files (0 B)
 
-### `tools/build_map.py` (547 lines)
+### `tools/build_map.py` (556 lines)
 - PURPOSE: Generate the layered repo map from the code with `ast` (modules are never imported): MAP.md (L0, small) and maps/<zone>.md (L1: cards, public signatures with line numbers, DEPENDS); enforces the card ratchet.
 - TAGS: map, navigation, cards, signatures, docstring, ast, notebooks, ratchet, ci, tokens, الخريطة
 - PITFALLS: Output must stay deterministic (sorted, no timestamps) or `--check` flaps. Never hand-edit MAP.md or maps/. Notebook "cell N" is the 0-based index into the notebook's cells (all types), the same index tests/_cell uses. tools/card_allowlist.txt is a ratchet: it may only shrink, refresh it with `--update-allowlist` after cards are added.
 - API:
-  - `def squash(s: str, limit: int) -> str` L44
-  - `def first_heading(text: str) -> str` L49
-  - `def fmt_size(nbytes: int) -> str` L63
-  - `def read_text(rel: str) -> str` L67
-  - `def parse_card(doc: str | None) -> dict[str, str]` L71
-  - `def split_tags(s: str) -> list[str]` L87
-  - `def signature(node: ast.FunctionDef | ast.AsyncFunctionDef) -> str` L108
-  - `class Sym` L119
-  - `def top_symbols(body: list[ast.stmt]) -> list[Sym]` L133
-  - `def sym_lines(syms: list[Sym], count_only_methods: bool=False) -> list[str]` L149
-  - `class Mod` L165
-    - `.has_card(self) -> bool` L177
-    - `.tags(self) -> list[str]` L181
-  - `def analyse_module(repo: Repo, rel: str) -> Mod` L185
-  - `class Notebook` L210
-  - `def analyse_notebook(repo: Repo, rel: str) -> Notebook` L221
-  - `class Entry` L247
-    - `.of(self, suffix: str) -> list[str]` L254
-    - `.py(self) -> list[str]` L258
-    - `.md(self) -> list[str]` L262
-    - `.data(self) -> list[str]` L266
-  - `def build_entries(repo: Repo) -> list[Entry]` L270
-  - `def entry_title(entry: Entry, mods: dict[str, Mod]) -> str` L303
-  - `def total_size(files: list[str]) -> int` L319
-  - `def counts_phrase(entry: Entry) -> str` L323
-  - `def short_ref(path: str) -> str` L332
-  - `def render_l0(repo: Repo, entries: list[Entry], mods: dict[str, Mod], nbs: list[Notebook]) -> str` L337
-  - `def render_module(m: Mod, tests: bool=False) -> list[str]` L373
-  - `def render_entry(e: Entry, mods: dict[str, Mod], title: str) -> list[str]` L391
-  - `def render_l1(entries_in_file: list[Entry], mods: dict[str, Mod], titles: dict[str, str], name: str) -> str` L420
-  - `def render_notebooks(nbs: list[Notebook]) -> str` L427
-  - `def generate(repo: Repo) -> tuple[dict[str, str], dict[str, Mod]]` L447
-  - `def read_allowlist() -> list[str]` L464
-  - `def uncarded(mods: dict[str, Mod]) -> list[str]` L471
-  - `def ratchet_problems(mods: dict[str, Mod]) -> list[str]` L475
-  - `def write_allowlist(mods: dict[str, Mod]) -> int` L488
-  - `def disk_state() -> dict[str, str]` L496
-  - `def main(argv: list[str] | None=None) -> int` L506
+  - `def squash(s: str, limit: int) -> str` L45
+  - `def first_heading(text: str) -> str` L50
+  - `def fmt_size(nbytes: int) -> str` L64
+  - `def read_text(rel: str) -> str` L68
+  - `def parse_card(doc: str | None) -> dict[str, str]` L72
+  - `def split_tags(s: str) -> list[str]` L88
+  - `def signature(node: ast.FunctionDef | ast.AsyncFunctionDef) -> str` L109
+  - `class Sym` L120
+  - `def top_symbols(body: list[ast.stmt]) -> list[Sym]` L134
+  - `def sym_lines(syms: list[Sym], count_only_methods: bool=False) -> list[str]` L150
+  - `class Mod` L166
+    - `.has_card(self) -> bool` L178
+    - `.tags(self) -> list[str]` L182
+  - `def analyse_module(repo: Repo, rel: str) -> Mod` L186
+  - `class Notebook` L211
+  - `def analyse_notebook(repo: Repo, rel: str) -> Notebook` L222
+  - `class Entry` L248
+    - `.of(self, suffix: str) -> list[str]` L255
+    - `.py(self) -> list[str]` L259
+    - `.md(self) -> list[str]` L263
+    - `.data(self) -> list[str]` L267
+  - `def build_entries(repo: Repo) -> list[Entry]` L271
+  - `def entry_title(entry: Entry, mods: dict[str, Mod]) -> str` L304
+  - `def total_size(files: list[str]) -> int` L320
+  - `def counts_phrase(entry: Entry) -> str` L324
+  - `def short_ref(path: str) -> str` L333
+  - `def render_l0(repo: Repo, entries: list[Entry], mods: dict[str, Mod], nbs: list[Notebook]) -> str` L338
+  - `def render_tags(mods: dict[str, Mod]) -> str` L364
+  - `def render_module(m: Mod, tests: bool=False) -> list[str]` L378
+  - `def render_entry(e: Entry, mods: dict[str, Mod], title: str) -> list[str]` L396
+  - `def render_l1(entries_in_file: list[Entry], mods: dict[str, Mod], titles: dict[str, str], name: str) -> str` L425
+  - `def render_notebooks(nbs: list[Notebook]) -> str` L432
+  - `def generate(repo: Repo) -> tuple[dict[str, str], dict[str, Mod]]` L452
+  - `def read_allowlist() -> list[str]` L470
+  - `def uncarded(mods: dict[str, Mod]) -> list[str]` L477
+  - `def ratchet_problems(mods: dict[str, Mod]) -> list[str]` L481
+  - `def write_allowlist(mods: dict[str, Mod]) -> int` L494
+  - `def disk_state() -> dict[str, str]` L502
+  - `def main(argv: list[str] | None=None) -> int` L512
 
 ### `tools/check_deps.py` (321 lines)
 - PURPOSE: Enforce the import direction of PHILOSOPHY.md section 2 with `ast` (modules are never imported): code packages must not import research/docs/tests, and a research study must not import another study; path-based coupling is reported as warn…
@@ -67,137 +68,149 @@
   - `def run(repo: Repo) -> tuple[list[str], int, int, int, int]` L281
   - `def main(argv: list[str] | None=None) -> int` L308
 
-### `tools/colab_bridge.py` (190 lines)
-- PURPOSE: جسر Colab ↔ GitHub ↔ Claude (PR #7). (from docstring)
+### `tools/colab_bridge.py` (196 lines)
+- PURPOSE: Colab <-> GitHub <-> Claude bridge: copies data from Drive to local Colab disk once per session (prepare_data).
+- TAGS: colab, drive copy, prepare_data, history_1d, local cache, am_data, data bridge
+- PITFALLS: Colab/Drive paths (/content/...) only; Drive reads are slow, so run once per session.
 - API:
-  - `def find_history_dir(name='history_1d', roots=None)` L26
-  - `def prepare_data(history_dir=None, local_root=LOCAL_ROOT, mount=True, force=False)` L42
-  - `def gpu_summary()` L80
-  - `def build_drive_registry(folder, out_csv=None, pattern='*.csv')` L99
-  - `def read_registry(registry, url_template=DOWNLOAD_URL)` L135
-  - `def download_from_registry(registry=DEFAULT_REGISTRY, dest='/content/am_data/history_1d', names=None, workers=8, force=False, url_template=DOWNLOAD_URL)` L156
+  - `def find_history_dir(name='history_1d', roots=None)` L32
+  - `def prepare_data(history_dir=None, local_root=LOCAL_ROOT, mount=True, force=False)` L48
+  - `def gpu_summary()` L86
+  - `def build_drive_registry(folder, out_csv=None, pattern='*.csv')` L105
+  - `def read_registry(registry, url_template=DOWNLOAD_URL)` L141
+  - `def download_from_registry(registry=DEFAULT_REGISTRY, dest='/content/am_data/history_1d', names=None, workers=8, force=False, url_template=DOWNLOAD_URL)` L162
 
-### `tools/evaluate_trained_model.py` (269 lines)
-- PURPOSE: تقييم نموذج مُدرَّب من main.ipynb بلا Drive وبلا تدريب — نفس دفتر main حرفياً، بخلايا مُرقَّعة فقط. (from docstring)
+### `tools/evaluate_trained_model.py` (277 lines)
+- PURPOSE: Evaluates a model trained in main.ipynb without Drive or training, by running main's own cells with four patches (CLI wrapper); also runs the panel model (--panel).
+- TAGS: evaluate trained model, eval cli, main.ipynb patched cells, weights, target-mode, split-dates, panel evaluation, gap report, market-neutral portfolio
+- PITFALLS: Executes main.ipynb cells in order, so it breaks when main's cell layout or section numbering changes; --target-mode must match the mode the weights were trained with.
 - API:
-  - `def load_notebook(path, ns, quiet=True)` L48
-  - `def run_cell(src, ns, name, quiet=False)` L60
-  - `def main()` L84
+  - `def load_notebook(path, ns, quiet=True)` L56
+  - `def run_cell(src, ns, name, quiet=False)` L68
+  - `def main()` L92
 
-### `tools/fetch_history_colab_cell.py` (69 lines)
-- PURPOSE: (no card)
+### `tools/fetch_history_colab_cell.py` (77 lines)
+- PURPOSE: Single paste-and-run Colab cell: mount Drive, fetch fetch_history_vision_colab.py (GitHub or Drive) and run it with the settings at the top.
+- TAGS: colab cell, download history, binance vision, drive mount, source github/drive, settings interval start funding open_interest
+- PITFALLS: Private repo: the GitHub source needs a token from Colab secrets; the hard-coded GITHUB_RAW URL points at a specific branch and goes stale.
 
-### `tools/fetch_history_csv_concurrent.py` (676 lines)
-- PURPOSE: fetch_history_csv_concurrent.py (from docstring)
+### `tools/fetch_history_csv_concurrent.py` (683 lines)
+- PURPOSE: Concurrent downloader of all Binance USDT-perp candles via the live API into the layout the pipeline reads (plus asset_registry, funding, OI).
+- TAGS: download history, klines, binance api, asset_registry, funding rate, open interest, drive-root, resume, include-delisted, csv
+- PITFALLS: Binance blocks US IPs (HTTP 451, typical for Colab): run locally; without --include-delisted delisted coins are missing (survivorship bias); OI history is only the last 30 days.
 - API:
-  - `def interval_to_ms(interval_str: str) -> int` L111
-  - `def parse_date_ms(text: str) -> int` L119
-  - `def fmt_dt(ms: int) -> str` L130
-  - `def date_label(ms: int) -> str` L134
-  - `def fmt_pandas_utc(ms: int) -> str` L141
-  - `def kline_weight(limit: int) -> int` L146
-  - `class BinanceHTTPError(RuntimeError)` L156
-    - `.__init__(self, code: int, body: str, retry_after: Optional[float])` L157
-  - `def http_get_json(base_url: str, path: str, params: Optional[dict]=None)` L162
-  - `def resolve_base_url(testnet: bool) -> str` L176
-  - `def list_symbols(base_url: str, include_delisted: bool=False, only_usdt_perp: bool=True) -> Dict[str, dict]` L195
-  - `class WeightLimiter` L213
-    - `.__init__(self, budget_per_min: int)` L216
-    - `.acquire(self, weight: int)` L221
-    - `.pause(self, seconds: float)` L237
-  - `async def request_with_retry(base_url, path, params, limiter: WeightLimiter, weight: int, req_sem)` L242
-  - `def read_header(path: Path) -> Optional[List[str]]` L263
-  - `def read_last_timestamp(path: Path) -> Optional[int]` L271
-  - `def kline_row(k: list) -> list` L285
-  - `def write_rows(path: Path, rows: List[list], append: bool)` L291
-  - `async def download_symbol(base_url, symbol, onboard_ms, start_ms, end_ms, interval, interval_ms, out_dir: Path, limiter, req_sem)` L305
-  - `async def download_funding(base_url, symbol, onboard_ms, start_ms, end_ms, funding_dir: Path, limiter, req_sem) -> int` L390
-  - `async def download_open_interest(base_url, symbol, oi_dir: Path, period: str, limiter, req_sem) -> int` L411
-  - `def file_stats(path: Path, interval_ms: int) -> dict` L433
-  - `def update_registry(registry_path: Path, out_dir: Path, interval: str, interval_ms: int, symbols_meta: Dict[str, dict]) -> int` L467
-  - `def parse_args()` L506
-  - `async def main()` L532
-  - `def run()` L651
+  - `def interval_to_ms(interval_str: str) -> int` L118
+  - `def parse_date_ms(text: str) -> int` L126
+  - `def fmt_dt(ms: int) -> str` L137
+  - `def date_label(ms: int) -> str` L141
+  - `def fmt_pandas_utc(ms: int) -> str` L148
+  - `def kline_weight(limit: int) -> int` L153
+  - `class BinanceHTTPError(RuntimeError)` L163
+    - `.__init__(self, code: int, body: str, retry_after: Optional[float])` L164
+  - `def http_get_json(base_url: str, path: str, params: Optional[dict]=None)` L169
+  - `def resolve_base_url(testnet: bool) -> str` L183
+  - `def list_symbols(base_url: str, include_delisted: bool=False, only_usdt_perp: bool=True) -> Dict[str, dict]` L202
+  - `class WeightLimiter` L220
+    - `.__init__(self, budget_per_min: int)` L223
+    - `.acquire(self, weight: int)` L228
+    - `.pause(self, seconds: float)` L244
+  - `async def request_with_retry(base_url, path, params, limiter: WeightLimiter, weight: int, req_sem)` L249
+  - `def read_header(path: Path) -> Optional[List[str]]` L270
+  - `def read_last_timestamp(path: Path) -> Optional[int]` L278
+  - `def kline_row(k: list) -> list` L292
+  - `def write_rows(path: Path, rows: List[list], append: bool)` L298
+  - `async def download_symbol(base_url, symbol, onboard_ms, start_ms, end_ms, interval, interval_ms, out_dir: Path, limiter, req_sem)` L312
+  - `async def download_funding(base_url, symbol, onboard_ms, start_ms, end_ms, funding_dir: Path, limiter, req_sem) -> int` L397
+  - `async def download_open_interest(base_url, symbol, oi_dir: Path, period: str, limiter, req_sem) -> int` L418
+  - `def file_stats(path: Path, interval_ms: int) -> dict` L440
+  - `def update_registry(registry_path: Path, out_dir: Path, interval: str, interval_ms: int, symbols_meta: Dict[str, dict]) -> int` L474
+  - `def parse_args()` L513
+  - `async def main()` L539
+  - `def run()` L658
 
-### `tools/fetch_history_vision_colab.py` (1353 lines)
-- PURPOSE: fetch_history_vision_colab.py (from docstring)
+### `tools/fetch_history_vision_colab.py` (1360 lines)
+- PURPOSE: Colab/Jupyter-ready downloader of Binance futures history from the data.binance.vision archive (candles, funding, OI, metrics, premium index), resumable, gzip per coin.
+- TAGS: download history, data.binance.vision, klines, funding, open interest, futures_metrics, premium index, gaps report, fix-gaps, resume, asset_registry, symbols.txt
+- PITFALLS: Avoids the geo-block (451) but today's data is missing unless the live API is reachable; heavy network/disk (--workers x --downloads); keep resume enabled on Colab disconnects.
 - API:
-  - `def interval_to_ms(interval_str: str) -> int` L149
-  - `def parse_date_ms(text: str) -> int` L157
-  - `def fmt_dt(ms: int) -> str` L167
-  - `def date_label(ms: int) -> str` L171
-  - `def fmt_pandas_utc(ms: int) -> str` L178
-  - `def kline_weight(limit: int) -> int` L182
-  - `def month_bounds(year: int, month: int) -> Tuple[int, int]` L197
-  - `def month_list(start_ms: int, end_ms: int) -> List[Tuple[int, int, int, int]]` L206
-  - `def days_between(lo_ms: int, hi_ms: int) -> List[Tuple[int, int, int, int]]` L223
-  - `class BinanceHTTPError(RuntimeError)` L236
-    - `.__init__(self, code: int, body: str, retry_after: Optional[float])` L237
-  - `def http_get_json(base_url: str, path: str, params: Optional[dict]=None)` L242
-  - `def resolve_base_url(testnet: bool) -> str` L255
-  - `async def probe_rest_access(base_url: str) -> Tuple[bool, str]` L272
-  - `class WeightLimiter` L288
-    - `.__init__(self, budget_per_min: int)` L289
-    - `.acquire(self, weight: int)` L294
-    - `.pause(self, seconds: float)` L310
-  - `async def request_with_retry(base_url, path, params, limiter: WeightLimiter, weight: int, req_sem)` L314
-  - `def list_symbols_rest(base_url: str, include_delisted: bool, only_usdt_perp: bool) -> Dict[str, dict]` L334
-  - `async def fetch_rest_klines(symbol: str, lo_ms: int, hi_ms: int, interval: str, interval_ms: int, rest_ctx: dict) -> List[list]` L346
-  - `def choose_vision_base() -> str` L364
-  - `def list_vision_keys(prefix: str) -> List[str]` L379
-  - `def vision_klines_url(symbol: str, interval: str, year: int, month: int, day: Optional[int]=None) -> str` L407
-  - `def download_zip_rows(url: str, transform=None)` L415
-  - `async def fetch_zip_rows_async(url: str, sem: asyncio.Semaphore, transform=None)` L448
-  - `def kline_line(k: list) -> str` L461
-  - `def premium_line(k: list) -> str` L467
-  - `def kline_row(k: list) -> list` L472
-  - `async def list_symbols_from_vision(sem: asyncio.Semaphore) -> Dict[str, dict]` L476
-  - `async def list_series_keys(symbol: str, kind: str, interval: str, first_ts: int, end_ms: int) -> List[str]` L514
-  - `async def download_series_vision(symbol: str, kind: str, header: List[str], line_fn, onboard_ms: int, start_ms: int, end_ms: int, interval: str, interval_ms: int, out_dir: Path, vision_sem: asyncio.Semaphore, rest_ctx: Optional[dic…` L560
-  - `async def download_symbol_vision(symbol: str, onboard_ms: int, start_ms: int, end_ms: int, interval: str, interval_ms: int, out_dir: Path, vision_sem: asyncio.Semaphore, rest_ctx: Optional[dict]) -> Tuple[str, int, str]` L632
-  - `async def download_premium_vision(symbol: str, start_ms: int, end_ms: int, interval: str, interval_ms: int, premium_dir: Path, vision_sem: asyncio.Semaphore) -> int` L640
-  - `async def download_funding_vision(symbol: str, start_ms: int, end_ms: int, funding_dir: Path, vision_sem: asyncio.Semaphore) -> int` L655
-  - `async def download_metrics_vision(symbol: str, start_ms: int, end_ms: int, oi_dir: Path, metrics_dir: Path, vision_sem: asyncio.Semaphore, period_ms: int=3600000) -> int` L707
-  - `async def download_funding_rest(symbol, onboard_ms, start_ms, end_ms, funding_dir: Path, rest_ctx: dict) -> int` L754
-  - `async def download_open_interest_rest(symbol, oi_dir: Path, period: str, rest_ctx: dict) -> int` L773
-  - `def data_ext() -> str` L795
-  - `def data_path(d: Path, symbol: str) -> Path` L799
-  - `def other_variant(path: Path) -> Path` L803
-  - `def symbol_of(path: Path) -> str` L808
-  - `def list_data_files(d: Path) -> Dict[str, Path]` L813
-  - `def open_text(path: Path)` L832
-  - `def read_header(path: Path) -> Optional[List[str]]` L837
-  - `def read_last_timestamp(path: Path) -> Optional[int]` L845
-  - `def write_lines(path: Path, lines: List[str], append: bool, header: List[str]=CSV_HEADER)` L866
-  - `def write_rows(path: Path, rows: List[list], append: bool)` L884
-  - `def detect_gaps(path: Path, interval_ms: int) -> List[dict]` L889
-  - `def write_gaps_report(report_path: Path, out_dir: Path, interval_ms: int) -> Tuple[int, int]` L912
-  - `async def fix_gaps_for_symbol(symbol: str, path: Path, gaps: List[dict], interval: str, interval_ms: int, rest_ctx: dict) -> int` L933
-  - `def write_archive_report(report_path: Path, dirs: Dict[str, Path]) -> Tuple[int, int]` L971
-  - `def file_stats(path: Path, interval_ms: int) -> dict` L1008
-  - `def update_registry(registry_path: Path, out_dir: Path, interval: str, interval_ms: int, symbols_meta: Dict[str, dict]) -> int` L1041
-  - `def parse_args()` L1077
-  - `async def main()` L1117
-  - `def run()` L1328
+  - `def interval_to_ms(interval_str: str) -> int` L156
+  - `def parse_date_ms(text: str) -> int` L164
+  - `def fmt_dt(ms: int) -> str` L174
+  - `def date_label(ms: int) -> str` L178
+  - `def fmt_pandas_utc(ms: int) -> str` L185
+  - `def kline_weight(limit: int) -> int` L189
+  - `def month_bounds(year: int, month: int) -> Tuple[int, int]` L204
+  - `def month_list(start_ms: int, end_ms: int) -> List[Tuple[int, int, int, int]]` L213
+  - `def days_between(lo_ms: int, hi_ms: int) -> List[Tuple[int, int, int, int]]` L230
+  - `class BinanceHTTPError(RuntimeError)` L243
+    - `.__init__(self, code: int, body: str, retry_after: Optional[float])` L244
+  - `def http_get_json(base_url: str, path: str, params: Optional[dict]=None)` L249
+  - `def resolve_base_url(testnet: bool) -> str` L262
+  - `async def probe_rest_access(base_url: str) -> Tuple[bool, str]` L279
+  - `class WeightLimiter` L295
+    - `.__init__(self, budget_per_min: int)` L296
+    - `.acquire(self, weight: int)` L301
+    - `.pause(self, seconds: float)` L317
+  - `async def request_with_retry(base_url, path, params, limiter: WeightLimiter, weight: int, req_sem)` L321
+  - `def list_symbols_rest(base_url: str, include_delisted: bool, only_usdt_perp: bool) -> Dict[str, dict]` L341
+  - `async def fetch_rest_klines(symbol: str, lo_ms: int, hi_ms: int, interval: str, interval_ms: int, rest_ctx: dict) -> List[list]` L353
+  - `def choose_vision_base() -> str` L371
+  - `def list_vision_keys(prefix: str) -> List[str]` L386
+  - `def vision_klines_url(symbol: str, interval: str, year: int, month: int, day: Optional[int]=None) -> str` L414
+  - `def download_zip_rows(url: str, transform=None)` L422
+  - `async def fetch_zip_rows_async(url: str, sem: asyncio.Semaphore, transform=None)` L455
+  - `def kline_line(k: list) -> str` L468
+  - `def premium_line(k: list) -> str` L474
+  - `def kline_row(k: list) -> list` L479
+  - `async def list_symbols_from_vision(sem: asyncio.Semaphore) -> Dict[str, dict]` L483
+  - `async def list_series_keys(symbol: str, kind: str, interval: str, first_ts: int, end_ms: int) -> List[str]` L521
+  - `async def download_series_vision(symbol: str, kind: str, header: List[str], line_fn, onboard_ms: int, start_ms: int, end_ms: int, interval: str, interval_ms: int, out_dir: Path, vision_sem: asyncio.Semaphore, rest_ctx: Optional[dic…` L567
+  - `async def download_symbol_vision(symbol: str, onboard_ms: int, start_ms: int, end_ms: int, interval: str, interval_ms: int, out_dir: Path, vision_sem: asyncio.Semaphore, rest_ctx: Optional[dict]) -> Tuple[str, int, str]` L639
+  - `async def download_premium_vision(symbol: str, start_ms: int, end_ms: int, interval: str, interval_ms: int, premium_dir: Path, vision_sem: asyncio.Semaphore) -> int` L647
+  - `async def download_funding_vision(symbol: str, start_ms: int, end_ms: int, funding_dir: Path, vision_sem: asyncio.Semaphore) -> int` L662
+  - `async def download_metrics_vision(symbol: str, start_ms: int, end_ms: int, oi_dir: Path, metrics_dir: Path, vision_sem: asyncio.Semaphore, period_ms: int=3600000) -> int` L714
+  - `async def download_funding_rest(symbol, onboard_ms, start_ms, end_ms, funding_dir: Path, rest_ctx: dict) -> int` L761
+  - `async def download_open_interest_rest(symbol, oi_dir: Path, period: str, rest_ctx: dict) -> int` L780
+  - `def data_ext() -> str` L802
+  - `def data_path(d: Path, symbol: str) -> Path` L806
+  - `def other_variant(path: Path) -> Path` L810
+  - `def symbol_of(path: Path) -> str` L815
+  - `def list_data_files(d: Path) -> Dict[str, Path]` L820
+  - `def open_text(path: Path)` L839
+  - `def read_header(path: Path) -> Optional[List[str]]` L844
+  - `def read_last_timestamp(path: Path) -> Optional[int]` L852
+  - `def write_lines(path: Path, lines: List[str], append: bool, header: List[str]=CSV_HEADER)` L873
+  - `def write_rows(path: Path, rows: List[list], append: bool)` L891
+  - `def detect_gaps(path: Path, interval_ms: int) -> List[dict]` L896
+  - `def write_gaps_report(report_path: Path, out_dir: Path, interval_ms: int) -> Tuple[int, int]` L919
+  - `async def fix_gaps_for_symbol(symbol: str, path: Path, gaps: List[dict], interval: str, interval_ms: int, rest_ctx: dict) -> int` L940
+  - `def write_archive_report(report_path: Path, dirs: Dict[str, Path]) -> Tuple[int, int]` L978
+  - `def file_stats(path: Path, interval_ms: int) -> dict` L1015
+  - `def update_registry(registry_path: Path, out_dir: Path, interval: str, interval_ms: int, symbols_meta: Dict[str, dict]) -> int` L1048
+  - `def parse_args()` L1084
+  - `async def main()` L1124
+  - `def run()` L1335
 
-### `tools/intraday_features.py` (435 lines)
-- PURPOSE: intraday_features.py — ميزات المرحلة ٢ من أرشيف Binance الكامل (شموع 15m + تمويل + OI + metrics). (from docstring)
+### `tools/intraday_features.py` (442 lines)
+- PURPOSE: Phase-2 features from the full Binance archive (15m candles + funding + OI + metrics), aligned causally for crypto_data_pipeline_v6.
+- TAGS: intraday features, phase 2, 15m, funding features, oi features, long/short ratio, taker ratio, availability mask, max_age, causal alignment
+- PITFALLS: Look-ahead: metrics/OI rows are known only at stamp + period (not at the stamp); funding event at tau is available only after tau; values older than max_age become NaN + mask 0; delisted rows have zero OI -> NaN.
 - API:
-  - `def epoch_unit(values: np.ndarray) -> str` L55
-  - `def to_utc_index(values) -> pd.DatetimeIndex` L71
-  - `def as_utc(index) -> pd.DatetimeIndex` L99
-  - `def tf_to_timedelta(tf: str) -> pd.Timedelta` L110
-  - `def find_file(directory: Union[str, Path, None], symbol: str, pattern: str='{name}.csv.gz') -> Optional[Path]` L119
-  - `def read_klines(path: Union[str, Path]) -> pd.DataFrame` L140
-  - `def read_archive(path: Union[str, Path], cols: Optional[Sequence[str]]=None) -> pd.DataFrame` L161
-  - `def infer_period(index, default: pd.Timedelta=pd.Timedelta('1h')) -> pd.Timedelta` L177
-  - `def asof_values(avail_ns: np.ndarray, values: np.ndarray, bar_close_ns: np.ndarray, max_age: Optional[pd.Timedelta]=None) -> np.ndarray` L191
-  - `def window_agg(avail_ns: np.ndarray, values: np.ndarray, bar_close_ns: np.ndarray, window: pd.Timedelta, how: str='sum') -> np.ndarray` L211
-  - `def bar_closes(bar_index, bar_len: Union[str, pd.Timedelta]) -> np.ndarray` L227
-  - `def align_daily_to_bars(daily: pd.DataFrame, bar_index, bar_len: Union[str, pd.Timedelta], max_age: pd.Timedelta=DAY) -> pd.DataFrame` L233
-  - `def daily_intraday_features(k: pd.DataFrame, bar: str='15min', min_coverage: float=0.75, trades_z_window: int=30, topk: int=4, hourly_for_eff_hhi: bool=True) -> pd.DataFrame` L244
-  - `def funding_bar_features(fr: Optional[pd.DataFrame], bar_index, bar_len: Union[str, pd.Timedelta], zscore_window: int=90, max_age: pd.Timedelta=DAY) -> pd.DataFrame` L337
-  - `def oi_bar_features(oi: Optional[pd.Series], bar_index, bar_len: Union[str, pd.Timedelta], change_bars: int=1, period: Optional[pd.Timedelta]=None, max_age: pd.Timedelta=DAY) -> pd.DataFrame` L368
-  - `def metrics_bar_features(met: Optional[pd.DataFrame], bar_index, bar_len: Union[str, pd.Timedelta], period: Optional[pd.Timedelta]=None, max_age: pd.Timedelta=DAY) -> pd.DataFrame` L388
-  - `def load_intraday_daily(root: Union[str, Path], symbol: str, subdir: str='history_15m', pattern: str='{name}.csv.gz', **kw) -> Optional[pd.DataFrame]` L420
-  - `def fill_neutral(frame: pd.DataFrame, flag_cols: Iterable[str]=()) -> pd.DataFrame` L429
+  - `def epoch_unit(values: np.ndarray) -> str` L62
+  - `def to_utc_index(values) -> pd.DatetimeIndex` L78
+  - `def as_utc(index) -> pd.DatetimeIndex` L106
+  - `def tf_to_timedelta(tf: str) -> pd.Timedelta` L117
+  - `def find_file(directory: Union[str, Path, None], symbol: str, pattern: str='{name}.csv.gz') -> Optional[Path]` L126
+  - `def read_klines(path: Union[str, Path]) -> pd.DataFrame` L147
+  - `def read_archive(path: Union[str, Path], cols: Optional[Sequence[str]]=None) -> pd.DataFrame` L168
+  - `def infer_period(index, default: pd.Timedelta=pd.Timedelta('1h')) -> pd.Timedelta` L184
+  - `def asof_values(avail_ns: np.ndarray, values: np.ndarray, bar_close_ns: np.ndarray, max_age: Optional[pd.Timedelta]=None) -> np.ndarray` L198
+  - `def window_agg(avail_ns: np.ndarray, values: np.ndarray, bar_close_ns: np.ndarray, window: pd.Timedelta, how: str='sum') -> np.ndarray` L218
+  - `def bar_closes(bar_index, bar_len: Union[str, pd.Timedelta]) -> np.ndarray` L234
+  - `def align_daily_to_bars(daily: pd.DataFrame, bar_index, bar_len: Union[str, pd.Timedelta], max_age: pd.Timedelta=DAY) -> pd.DataFrame` L240
+  - `def daily_intraday_features(k: pd.DataFrame, bar: str='15min', min_coverage: float=0.75, trades_z_window: int=30, topk: int=4, hourly_for_eff_hhi: bool=True) -> pd.DataFrame` L251
+  - `def funding_bar_features(fr: Optional[pd.DataFrame], bar_index, bar_len: Union[str, pd.Timedelta], zscore_window: int=90, max_age: pd.Timedelta=DAY) -> pd.DataFrame` L344
+  - `def oi_bar_features(oi: Optional[pd.Series], bar_index, bar_len: Union[str, pd.Timedelta], change_bars: int=1, period: Optional[pd.Timedelta]=None, max_age: pd.Timedelta=DAY) -> pd.DataFrame` L375
+  - `def metrics_bar_features(met: Optional[pd.DataFrame], bar_index, bar_len: Union[str, pd.Timedelta], period: Optional[pd.Timedelta]=None, max_age: pd.Timedelta=DAY) -> pd.DataFrame` L395
+  - `def load_intraday_daily(root: Union[str, Path], symbol: str, subdir: str='history_15m', pattern: str='{name}.csv.gz', **kw) -> Optional[pd.DataFrame]` L427
+  - `def fill_neutral(frame: pd.DataFrame, flag_cols: Iterable[str]=()) -> pd.DataFrame` L436
