@@ -1,0 +1,189 @@
+{
+  "_doc": "خطط تجارب anti_memorization_benchmark.py — كل عنصر kind:cfg:epochs[:shuf][:seed=N]. Claude يضيف خططاً جديدة هنا ويرفعها، وخلية Colab تشغّلها بالاسم. حقل parallel اختياري: عدد التشغيلات المتزامنة على نفس GPU (يتجاوزه --parallel N).",
+  "smoke": {
+    "why": "فحص سريع أن كل شيء يعمل على بياناتك (دقيقة أو اثنتان)",
+    "runs": [
+      "little:RL_tiny:2",
+      "little:RL_tiny:2:shuf"
+    ]
+  },
+  "drive_v1": {
+    "why": "إعادة إنتاج النتائج على بيانات Drive الحقيقية — الأهمّ أولاً (البيانات الكاملة) كي تكون النتائج الجزئية مفيدة إن انقطعت الجلسة",
+    "runs": [
+      "full:baseline:30",
+      "full:RL_gru:30",
+      "full:RL_gru:30:shuf",
+      "full:robust_level_bn_lr:30",
+      "full:RL_tcn:30",
+      "full:RL_tiny:30",
+      "full:baseline:30:shuf",
+      "little:baseline:60",
+      "little:baseline:60:shuf",
+      "little:RL_gru:60",
+      "little:RL_gru:60:shuf",
+      "little:RL_tcn:60",
+      "little:RL_tcn:60:shuf",
+      "little:RL_tiny:60",
+      "little:RL_tiny:60:shuf",
+      "little:robust_level_bn_lr:60",
+      "little:robust_level_bn_lr:60:shuf",
+      "full:RL_film:30",
+      "full:RL_tcn_tiny:30",
+      "full:RL_tiny_film:30"
+    ]
+  },
+  "drive_v2": {
+    "why": "(1) أوزان EMA: هل الإحماء + نافذة بحجم حقبة يُغلق فجوة «الأفضل» مقابل «الأخير» على بياناتك القليلة جداً (4 آلاف عيّنة: 0.555 مقابل 0.611)؟ — رخيصة (~3.5 دقيقة لكلٍّ) فتأتي أولاً. (2) هل يثبت xrank على بياناتك الكاملة أن GRU = الخطّي + الرتب المقطعية (كما محلياً)؟ (3) بذرتان لـRL_gru. (4) EMA على البيانات الكاملة.",
+    "runs": [
+      "little:RL_gru_emaw1:60",
+      "little:RL_tiny_emaw1:60",
+      "little:RL_gru_raw:60",
+      "little:RL_gru_emaw1:60:shuf",
+      "full_xrank:RL_gru:30",
+      "full:RL_gru_emaw1:30",
+      "full:RL_gru:30:seed=1",
+      "full:RL_gru:30:seed=2",
+      "little:RL_tiny_raw:60",
+      "full_xrank:RL_gru:30:shuf",
+      "full:RL_gru_emaw1:30:shuf"
+    ],
+    "parallel": 2
+  },
+  "smoke_tune": {
+    "why": "فحص سريع لمسار الضبط العادل (دقائق): جولة ضبط صغيرة ثم بذرة إضافية + مخلوط للفائز",
+    "tune": {
+      "extra_seeds": [
+        1
+      ],
+      "shuffle_winner": true
+    },
+    "runs": [
+      "little:RL_tiny:2:lr=1e-4:mon=cls",
+      "little:RL_tiny:2:lr=1e-3:mon=cls",
+      "little:RL_gru:2:lr=3e-4:mon=cls"
+    ]
+  },
+  "drive_v3_little": {
+    "why": "مقارنة عادلة على البيانات القليلة جداً (4 آلاف عيّنة): كل نوع (القديم، transformer+المستوى، GRU، TCN، الصغير) يحصل على نفس ميزانية الضبط — 3 معدّلات تعلّم × 2 تنظيم (wd 0.1 و1.0: AdamW في Keras يطبّق lr·wd لكل خطوة، و0.01/0.1 في drive_v3_full كانا شبه متطابقين — على ~1000 خطوة فقط يلزم wd أكبر ليكون للمحور أثر) — ويُختار أفضلها على val وحده؛ التدريب حتى يتوقّف التحسّن على val (سقف 200 حقبة، patience 15 على val_class_loss)؛ ثم بذرتان إضافيتان + تسميات مخلوطة للفائز تلقائياً. المرجع الخطّي يُضبط C على val أيضاً، ومعه مرجع xrank.",
+    "parallel": 2,
+    "tune": {
+      "extra_seeds": [
+        1,
+        2
+      ],
+      "shuffle_winner": true
+    },
+    "runs": [
+      "little_xrank:linear:0",
+      "little:baseline:200:lr=1e-4:wd=0.1:mon=cls",
+      "little:baseline:200:lr=1e-4:wd=1.0:mon=cls",
+      "little:baseline:200:lr=3e-4:wd=0.1:mon=cls",
+      "little:baseline:200:lr=3e-4:wd=1.0:mon=cls",
+      "little:baseline:200:lr=1e-3:wd=0.1:mon=cls",
+      "little:baseline:200:lr=1e-3:wd=1.0:mon=cls",
+      "little:robust_level_bn_lr:200:lr=1e-4:wd=0.1:mon=cls",
+      "little:robust_level_bn_lr:200:lr=1e-4:wd=1.0:mon=cls",
+      "little:robust_level_bn_lr:200:lr=3e-4:wd=0.1:mon=cls",
+      "little:robust_level_bn_lr:200:lr=3e-4:wd=1.0:mon=cls",
+      "little:robust_level_bn_lr:200:lr=1e-3:wd=0.1:mon=cls",
+      "little:robust_level_bn_lr:200:lr=1e-3:wd=1.0:mon=cls",
+      "little:RL_gru:200:lr=1e-4:wd=0.1:mon=cls",
+      "little:RL_gru:200:lr=1e-4:wd=1.0:mon=cls",
+      "little:RL_gru:200:lr=3e-4:wd=0.1:mon=cls",
+      "little:RL_gru:200:lr=3e-4:wd=1.0:mon=cls",
+      "little:RL_gru:200:lr=1e-3:wd=0.1:mon=cls",
+      "little:RL_gru:200:lr=1e-3:wd=1.0:mon=cls",
+      "little:RL_tcn:200:lr=1e-4:wd=0.1:mon=cls",
+      "little:RL_tcn:200:lr=1e-4:wd=1.0:mon=cls",
+      "little:RL_tcn:200:lr=3e-4:wd=0.1:mon=cls",
+      "little:RL_tcn:200:lr=3e-4:wd=1.0:mon=cls",
+      "little:RL_tcn:200:lr=1e-3:wd=0.1:mon=cls",
+      "little:RL_tcn:200:lr=1e-3:wd=1.0:mon=cls",
+      "little:RL_tiny:200:lr=1e-4:wd=0.1:mon=cls",
+      "little:RL_tiny:200:lr=1e-4:wd=1.0:mon=cls",
+      "little:RL_tiny:200:lr=3e-4:wd=0.1:mon=cls",
+      "little:RL_tiny:200:lr=3e-4:wd=1.0:mon=cls",
+      "little:RL_tiny:200:lr=1e-3:wd=0.1:mon=cls",
+      "little:RL_tiny:200:lr=1e-3:wd=1.0:mon=cls"
+    ]
+  },
+  "drive_v3_full": {
+    "why": "نفس بروتوكول drive_v3_little على البيانات الكاملة (89 ألف عيّنة) بدفعة تدريب 1024 للسرعة — لذلك شبكة معدّل التعلّم أعلى (3e-4، 1e-3، 3e-3) — سقف 100 حقبة.",
+    "parallel": 2,
+    "tune": {
+      "extra_seeds": [
+        1,
+        2
+      ],
+      "shuffle_winner": true
+    },
+    "runs": [
+      "full_xrank:linear:0",
+      "full:baseline:100:lr=3e-4:wd=0.01:mon=cls:bs=1024",
+      "full:baseline:100:lr=3e-4:wd=0.1:mon=cls:bs=1024",
+      "full:baseline:100:lr=1e-3:wd=0.01:mon=cls:bs=1024",
+      "full:baseline:100:lr=1e-3:wd=0.1:mon=cls:bs=1024",
+      "full:baseline:100:lr=3e-3:wd=0.01:mon=cls:bs=1024",
+      "full:baseline:100:lr=3e-3:wd=0.1:mon=cls:bs=1024",
+      "full:robust_level_bn_lr:100:lr=3e-4:wd=0.01:mon=cls:bs=1024",
+      "full:robust_level_bn_lr:100:lr=3e-4:wd=0.1:mon=cls:bs=1024",
+      "full:robust_level_bn_lr:100:lr=1e-3:wd=0.01:mon=cls:bs=1024",
+      "full:robust_level_bn_lr:100:lr=1e-3:wd=0.1:mon=cls:bs=1024",
+      "full:robust_level_bn_lr:100:lr=3e-3:wd=0.01:mon=cls:bs=1024",
+      "full:robust_level_bn_lr:100:lr=3e-3:wd=0.1:mon=cls:bs=1024",
+      "full:RL_gru:100:lr=3e-4:wd=0.01:mon=cls:bs=1024",
+      "full:RL_gru:100:lr=3e-4:wd=0.1:mon=cls:bs=1024",
+      "full:RL_gru:100:lr=1e-3:wd=0.01:mon=cls:bs=1024",
+      "full:RL_gru:100:lr=1e-3:wd=0.1:mon=cls:bs=1024",
+      "full:RL_gru:100:lr=3e-3:wd=0.01:mon=cls:bs=1024",
+      "full:RL_gru:100:lr=3e-3:wd=0.1:mon=cls:bs=1024",
+      "full:RL_tcn:100:lr=3e-4:wd=0.01:mon=cls:bs=1024",
+      "full:RL_tcn:100:lr=3e-4:wd=0.1:mon=cls:bs=1024",
+      "full:RL_tcn:100:lr=1e-3:wd=0.01:mon=cls:bs=1024",
+      "full:RL_tcn:100:lr=1e-3:wd=0.1:mon=cls:bs=1024",
+      "full:RL_tcn:100:lr=3e-3:wd=0.01:mon=cls:bs=1024",
+      "full:RL_tcn:100:lr=3e-3:wd=0.1:mon=cls:bs=1024",
+      "full:RL_tiny:100:lr=3e-4:wd=0.01:mon=cls:bs=1024",
+      "full:RL_tiny:100:lr=3e-4:wd=0.1:mon=cls:bs=1024",
+      "full:RL_tiny:100:lr=1e-3:wd=0.01:mon=cls:bs=1024",
+      "full:RL_tiny:100:lr=1e-3:wd=0.1:mon=cls:bs=1024",
+      "full:RL_tiny:100:lr=3e-3:wd=0.01:mon=cls:bs=1024",
+      "full:RL_tiny:100:lr=3e-3:wd=0.1:mon=cls:bs=1024"
+    ]
+  },
+  "screen": {
+    "why": "فحص سريع لاختيار الأفضل لا للمقارنة الدقيقة (~30-40 دقيقة): البيانات الكاملة (ترتيب الأنواع يتغيّر مع حجم البيانات، فلا يُفحص على جزء صغير منها)، لكن كل ما سواها مُختصَر — دفعة 1024، سقف 40 حقبة وpatience 5، تقييم على 40 ألف عيّنة ثابتة من test بدل 177 ألفاً، بلا مسار وسيط، بذرة واحدة، أفضل lr معروف من drive_v3_full. TCN والصغير لم يُضبطا في drive_v3_full قبل انقطاع الجلسة؛ GRU والقديم مرساتان للمقارنة.",
+    "eval_max": 40000,
+    "runs": [
+      "full:RL_gru:40:lr=1e-3:pat=5:mon=cls:bs=1024",
+      "full:RL_tcn:40:lr=1e-3:pat=5:mon=cls:bs=1024",
+      "full:RL_tiny:40:lr=1e-3:pat=5:mon=cls:bs=1024",
+      "full:RL_tcn:40:lr=3e-4:pat=5:mon=cls:bs=1024",
+      "full:RL_tiny:40:lr=3e-3:pat=5:mon=cls:bs=1024",
+      "full:baseline:40:lr=1e-3:pat=5:mon=cls:bs=1024"
+    ]
+  },
+  "capacity": {
+    "why": "هل السعة هي العائق؟ نفس نموذج GRU (بإصلاح المستوى) بأحجام مختلفة، وكل ما سواه ثابت. إن كانت السعة قليلة: test يرتفع مع الحجم. إن كانت المعلومة في الميزات هي الحدّ: test ثابت وtrain (والحفظ على المخلوط) يرتفع وحده. فحص سريع (~40 دقيقة).",
+    "eval_max": 40000,
+    "runs": [
+      "full:RL_gru:40:lr=1e-3:pat=5:mon=cls:bs=1024:dm=32",
+      "full:RL_gru:40:lr=1e-3:pat=5:mon=cls:bs=1024:dm=64",
+      "full:RL_gru:40:lr=1e-3:pat=5:mon=cls:bs=1024:dm=128",
+      "full:RL_gru:40:lr=1e-3:pat=5:mon=cls:bs=1024:dm=256",
+      "full:RL_gru:40:lr=1e-3:pat=5:mon=cls:bs=1024:dm=128:nl=4",
+      "full:RL_gru:40:lr=1e-3:pat=5:mon=cls:bs=1024:dm=256:shuf",
+      "full:RL_gru:40:lr=1e-3:pat=5:mon=cls:bs=1024:dm=64:shuf"
+    ]
+  },
+  "horizon": {
+    "why": "أين المعلومة؟ نفس GRU، والأفق وحده يتغيّر: 1 و3 و5 و10 أيام (مجموع العوائد التالية، فجوة تقسيم ≥ الأفق). المرجع الخطّي يُحسب لكل أفق تلقائياً. AUC أعلى في أفق أطول = إشارة أوضح، لا ربحاً أكبر بالضرورة (رهانات مستقلة أقل). فحص سريع (~15 دقيقة).",
+    "eval_max": 40000,
+    "runs": [
+      "full:RL_gru:40:lr=1e-3:pat=5:mon=cls:bs=1024",
+      "full_h3:RL_gru:40:lr=1e-3:pat=5:mon=cls:bs=1024",
+      "full_h5:RL_gru:40:lr=1e-3:pat=5:mon=cls:bs=1024",
+      "full_h10:RL_gru:40:lr=1e-3:pat=5:mon=cls:bs=1024"
+    ]
+  }
+}

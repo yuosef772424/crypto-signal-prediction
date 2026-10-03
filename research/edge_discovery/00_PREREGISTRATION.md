@@ -1,0 +1,311 @@
+# Edge Discovery — Pre-registration (written BEFORE any test was run)
+
+Date: 2026-10-01
+
+## Data actually available in this session
+- Binance USDT-M futures metrics (hourly, 2024-01-01 → 2026-09-26) for 195 perpetuals listed before
+  2023-10-01 **including later-delisted ones** (survivorship-safe):
+  `sum_open_interest`, `sum_open_interest_value`, top-trader account & position long/short ratios,
+  global account long/short ratio, taker buy/sell volume ratio.
+- Hourly price proxy: `px = sum_open_interest_value / sum_open_interest` (mark price at snapshot).
+  Verified against BTC (42.5k on 2024-01-01, 84.4k on 2026-09-26).
+- The 15m OHLCV database (2020→2026) could NOT be loaded: the Drive connector refuses files > ~2 MB
+  and Binance hosts are blocked by this environment's network policy. Results here are therefore
+  limited to 2024-01 → 2026-09 and to close-to-close prices (no intrabar high/low, no volume).
+
+## Time split (fixed now, never changed)
+| Segment | Period | Use |
+|---|---|---|
+| DISCOVERY | 2024-01-01 → 2025-03-31 | free exploration, all screening |
+| VALIDATION | 2025-04-01 → 2025-12-31 | confirm sign & size of candidates chosen on DISCOVERY; parameters frozen |
+| HOLDOUT | 2026-01-01 → 2026-09-26 | touched ONCE, only for candidates that pass VALIDATION |
+
+Walk-forward inside DISCOVERY+VALIDATION uses expanding windows, quarterly refits.
+
+## Execution / cost model
+- Signal computed from data stamped ≤ t; entry at px(t+1h) (one full hour of latency, conservative
+  vs. the ~5-min publication delay of Binance metrics). Exit at px of the exit hour.
+- Costs per round trip: base 0.12% (taker 0.05%×2 + 0.02% slippage) for coins in the top-50 by OI
+  value, 0.20% for others; stress test at 2× costs. Funding not modelled (flagged where holds > 1 day).
+- Tradable universe at time t: coins with OI value ≥ $10M at t−1h.
+
+## Acceptance criteria for a candidate edge
+1. DISCOVERY: rank-IC / event mean with |t| > 3 using non-overlapping observations, sign consistent
+   in ≥ 4 of 5 quarters.
+2. VALIDATION (frozen params): same sign, net-of-cost expectancy > 0, t > 2.
+3. HOLDOUT: same sign, net expectancy > 0. Deflated Sharpe computed with the TOTAL number of
+   configurations tried (logged in `hypothesis_log.csv`).
+4. Robustness: survives 2× costs, survives removal of best 5% of trades, survives large/small-cap split.
+
+Anything failing a step is recorded as rejected with the reason; no criterion is changed after
+seeing results.
+
+---
+## Addendum A (2026-10-01, written BEFORE downloading listing data): H-NL post-listing drift
+
+Motivation: hourly-panel screens (cross-sectional, time-series, events) produced no mean-return edge;
+the robust stylised fact found was extreme right-skew of individual coin returns. New-listing drift
+is a different mechanism (low float / high FDV / unlock supply) with many *independent* events.
+
+- Events: every USDT-M perpetual whose first metrics bar is ≥ 2024-01-15, with ≥ 30 days of data.
+- Entry: price 24h after the first metrics bar (avoid listing-hour chaos). Exits: +7, +30, +60 days.
+- Primary statistic: log return of coin minus log return of BTC over the same window; trade = SHORT coin
+  / LONG BTC (beta 1). Mean across events, t-stat with listing-month clustering.
+- Split by listing time: DISCOVERY 2024-01-15→2025-03-31, VALIDATION 2025-04-01→2025-12-31,
+  HOLDOUT 2026-01-01→(last date allowing the exit).
+- Cost: 0.30% round trip (thin new books). **Funding is NOT in the dataset** — the result is a price-only
+  edge and funding drag must be measured before any real use (new listings often carry negative funding,
+  which shorts pay).
+- Accept only if DISC and VAL both show the same sign with t > 2 and HOLDOUT sign agrees.
+
+### Addendum A.1 (before any listing return was looked at)
+Traditional-finance perps (stocks, ETFs, pre-IPO, metals, energy, gold tokens) are excluded from H12 because the
+hypothesis concerns token supply/unlock dynamics. Exclusion list fixed by name only: `data_tools/tradfi_exclude.txt`.
+
+### Addendum A.2 (after seeing DISC/VAL fixed-horizon results, BEFORE any stop-loss test or HOLDOUT look)
+Interim fact: median 30–60d short return is large (+25–42% vs BTC, win 71–83%) but the right tail is real
+(COAIUSDT +4600% in 30d). A naked short is not tradable. Pre-specified risk-controlled variant:
+- Short at entry (listing+24h), hedge long BTC same notional. Exit at day H ∈ {30, 60} or when coin price
+  ≥ entry × (1+S), S ∈ {none, 0.5, 1.0}; checked on hourly closes, stop fill = the breaching hourly price
+  + 2% adverse slippage. 6 combos total.
+- Selection on DISC only (max mean net return per trade with t_month > 2); VAL must agree in sign with t > 2;
+  then HOLDOUT once. Cost 0.3% RT. Funding still not modelled (to be estimated from a sample afterwards).
+
+---
+## Addendum B (2026-10-01, written BEFORE any HOLDOUT data is looked at)
+
+**H12 final (full data, 413 listings):** the A.2 rule selects H=60, S=0.5 on DISC (mean +17.3%/trade,
+t_month 2.74 — the only configs with t>2 are S=0.5). VAL for that config: mean −2.4%, t −0.53 → **fails**.
+H12 is REJECTED; per the rule, its HOLDOUT is **not** spent. (Interim DISC t=3.3 on the alphabetically
+partial sample was a sample-completeness artefact.)
+
+**H06 and H07 did not meet the formal acceptance criteria** (DISC |t|>3 and VAL t>2 were never reached).
+They can therefore NOT be accepted by any HOLDOUT outcome. The single HOLDOUT look below is
+**descriptive only**: it decides whether they deserve a longer-history test (2020→2026 15m data), nothing more.
+Specs frozen here:
+- **H06-BTC / H06-ETH:** every day, long at the 20:00 UTC hourly price, exit at the 22:00 UTC price
+  (= the two hourly returns stamped 21h and 22h). Report mean gross bp/trade, t (daily), win rate,
+  net at maker 0.04% RT and taker 0.12% RT. "Agrees" = gross mean > 0.
+- **H07:** `TSMOM30_LO_BTC+ETH` exactly as in `07_trend.py` (sign of 30d log return, long-only,
+  2% vol target per coin, 0.12% RT), compared with `BUYHOLD_BTC+ETH` on the same window.
+  "Agrees" = Sharpe > 0 AND Sharpe ≥ buy&hold Sharpe. Deflated Sharpe reported with N = 44 trend
+  configs (family) and N ≈ 750 (all configs tried in this project).
+
+---
+## Addendum C (2026-10-01, written BEFORE computing any of the results below)
+
+Motivation: PR #7 (anti-memorization) showed (a) a longer daily history is reachable (CoinMetrics community
+data, raw GitHub files; Drive `history_1d` 2019-09→2026-09), and (b) a relative-direction classifier with test
+AUC 0.538 (linear) – 0.555 (GRU). Our main lesson is that AUC ≠ mean return, so (b) must be checked in P&L terms.
+
+**H07-OOS (genuinely untouched period).** Data: CoinMetrics `PriceUSD` daily (00:00 UTC) for BTC and ETH.
+Period 2018-01-01 → 2023-12-31 (none of it was used by this project). Strategy frozen exactly as H07:
+long-only, sign of 30-day log return, 2% daily vol target per coin (30d realised vol, cap 3×), equal risk across
+the two coins, 0.12% RT on turnover. Benchmark: buy & hold with the same vol scaling.
+- PASS = Sharpe > 0 AND Sharpe ≥ benchmark Sharpe AND maxDD shallower than benchmark. Also reported by
+  calendar year and per coin. Lookbacks N ∈ {7,14,21,45,60,90} reported as descriptive only (selection was N=30).
+
+**H13 (PR #7 signal → money).** Universe: CoinMetrics assets with ≥ 700 daily prices since 2018 (stablecoins
+excluded). Features = the PR #7 `build_features` set (last-day values, causal). Target = next-day return above the
+cross-sectional median. Model = logistic regression (PR #7's linear reference; standardised features), fit once on
+data ≤ 2023-06-28, frozen. Test 2024-07-01 → last date. Each day: long the top decile of predicted probability,
+short the bottom decile, equal weight, 1-day hold, 0.12% RT on turnover (2× stress also reported).
+- PASS = AUC replicates (> 0.52) AND net mean daily return > 0 with t > 2 AND both halves of the test period > 0.
+- Caveat stated up front: the test window overlaps our VAL/HOLD calendar period (different data/hypothesis).
+
+---
+## Addendum D (2026-10-01, written BEFORE computing any result below): H15 on-chain & liquidity signals
+Rationale ("outside the box"): everything so far used price/positioning, which markets price fast. Slow-moving
+fundamental flows (on-chain, stablecoin liquidity) may be priced slowly. Data: CoinMetrics community daily.
+Asset traded: BTC (ETH reported as a secondary check). Horizon: 30 days. All signals use data ≤ t−1 (one extra day
+of publication lag), trade at t's close.
+
+Split (new, for H15 only): DISC ≤ 2019-12-31 (BTC from 2013; stablecoins from 2018), VAL 2020-01-01→2022-12-31,
+HOLD 2023-01-01→2026-05-24. (Overlap with H07's calendar is disclosed; these are different signals.)
+
+Six signals, direction fixed by theory (sign = expected effect on forward BTC return):
+- S1 MVRV: expanding-window percentile of log(CapMVRVCur) — high = overvalued → **negative**.
+- S2 Exchange net flow: 30d Σ(FlowInExNtv − FlowOutExNtv)/SplyCur — coins moving to exchanges → **negative**.
+- S3 Exchange supply trend: 90d change of SplyExNtv/SplyCur → **negative**.
+- S4 Hash-ribbon: HashRate 30d MA / 60d MA − 1 (miner capitulation when < 0) → **positive**.
+- S5 Stablecoin liquidity: 30d log growth of Σ SplyCur(usdt, usdc, dai, busd) → **positive**.
+- S6 Network activity: log(AdrActCnt 30d MA / 365d MA) → **positive**.
+
+Tests per signal: (a) Spearman corr(signal, fwd 30d log return) on non-overlapping month-end samples;
+(b) timing strategy: long BTC when the signal is on its favourable side of its expanding median, else cash (0.12% RT),
+vs buy & hold. ACCEPT = DISC corr sign as theorised with t>2, VAL same sign AND strategy Sharpe > buy&hold,
+HOLD same sign AND Sharpe > buy&hold. 6 signals → Bonferroni noted (t>2.64 for 5% family-wise).
+
+---
+## Addendum E (2026-10-01, written BEFORE any simulation): H16 owner's "previous-candle range fade"
+Rule (owner's spec): at the open of candle k place a SELL limit at high[k−1] and a BUY limit at low[k−1]
+(valid for candle k only). A filled short takes profit with a BUY limit at low[k−1]; a filled long takes profit
+with a SELL limit at high[k−1]. Positions can accumulate across candles. R = high[k−1] − low[k−1].
+Data: Binance spot OHLC (github Speirsy11/crypto-dataset) BTC/ETH/SOL; signal candles 1h/4h/1d; fills resolved
+on the 5-minute path. Conservative fill model: a limit fills only if price trades THROUGH it by 2 bp; no TP in
+the same 5m bar as its entry; if SL and TP are both reachable inside one 5m bar, SL is assumed first.
+Costs: limit (entry/TP) 0.02% per side (maker); market exits (SL/time/forced) 0.05% + 0.02% slippage.
+Funding not modelled (both sides held; noted).
+
+Risk variants (fixed now; nothing else will be tried):
+- V0 raw: no stop, no cap (owner's rule as-is; open positions marked to market).
+- V1 cap: at most 3 open positions per side; no stop.
+- V2 owner's trend-hedge: cap 5 per side; when open shorts − open longs ≥ 2 the longs' TP is suspended (they ride
+  the trend) and vice versa; TP re-armed when the imbalance falls below 2 (exit at market if already beyond TP).
+- V3 stop+time: cap 3 per side; stop at 1R beyond entry; time-exit at market after 3 candles.
+- V4 regime filter: V3, but orders only when Kaufman efficiency ratio ER(20) of closes < 0.3 (range-bound market).
+
+Split: DISC 2017-08→2021-12, VAL 2022-01→2023-12, HOLD 2024-01→2026-09 (calendar overlaps earlier HOLDs; new
+strategy, disclosed). Selection: best (variant, timeframe) by DISC net expectancy pooled over the 3 coins, among
+those with daily-PnL t > 2; VAL must have net expectancy > 0 and t > 2; then HOLD once (expectancy > 0, PF > 1.1).
+
+---
+## Addendum F (2026-10-01, written BEFORE any computation): H17 chart-reading rules, low timeframes + HTF filters
+Owner's request: derive conditional entry rules from the chart (not every move), focus on 15m / 1h, allow HTF
+conditions, scaling-in and hedging. Translated into a FIXED grid of classic chart-reading setups.
+
+Data: Binance spot OHLCV BTC/ETH/SOL 2017-08→2026-09 (5m path for exits). Signal TF ∈ {15m, 1h}.
+Setups (long version; short = mirror), evaluated at the signal bar close:
+- P1 engulfing: bar bullish, prior bar bearish, body engulfs prior body.
+- P2 pin-bar rejection: lower wick ≥ 2×body and ≥ 60% of the bar range.
+- P3 liquidity sweep & reclaim: low < min(low of prior 20 bars) and close > that min.
+- P4 Donchian breakout (momentum): close > max(high of prior 20 bars).
+- P5 compression breakout: ATR14/ATR100 in its lowest 20% (rolling 500 bars) and close > max(high prior 10).
+- P6 inside-bar breakout: prior bar is inside its predecessor; close > predecessor high.
+- P7 trend pullback: EMA20 > EMA50 and low ≤ EMA20 ≤ close.
+- P8 capitulation reversal: volume > 3× 20-bar mean, range > 2×ATR14, bar opened above close of prior bar and
+  closes in the upper half of its range after a drop (close < open of 3 bars ago).
+- P9 3-bar exhaustion (mean reversion): 3 consecutive lower closes totalling > 2×ATR14.
+- P10 London breakout: first close above the Asia range (00:00–07:00 UTC high) between 07:00–10:00 UTC.
+HTF filters (completed higher-TF bars only): F0 none; F1 with 4h trend (4h close vs EMA50(4h)); F2 against the 4h
+trend; F3 with daily trend (1d close vs EMA20(1d)); F4 range regime (daily ER(10) < 0.3).
+Execution: entry at next bar open (taker 0.05% + 0.02% slip); stop = 1×ATR14(signal TF) from entry (stop-market,
+taker + slip); target TP ∈ {1R, 2R, 3R} (limit, maker 0.02%); time exit 24h (15m) / 72h (1h) at market.
+SL/TP ordering resolved on 5m bars; if both inside one 5m bar → stop first. Trades may overlap (scaling allowed).
+Grid = 2 TF × 10 setups × 2 directions × 5 filters × 3 targets = 600 configs (pooled over 3 coins).
+Split: DISC 2017-08→2021-12, VAL 2022–2023, HOLD 2024-01→2026-09 (HOLD touched once).
+Acceptance: DISC net expectancy (R) > 0 with day-clustered t > 3.9 (Bonferroni 5% for 600) AND > 0 in each coin;
+VAL: expectancy > 0, t > 2; HOLD: expectancy > 0. Survivors then: 2× cost stress, pyramiding (add on repeated
+signal, cap 3) and hedge variant evaluated descriptively.
+
+---
+## Addendum G (2026-10-01, after H17 failed; written BEFORE fetching/computing H18 data)
+H17 result: 0 of 600 configs passed (best DISC t = 1.79). Post-hoc diagnostic (23_chart_rules_gross.py): at 15m a
+round trip costs 0.21–0.38 R (1-ATR stop), at 1h 0.10–0.18 R; the only setup with positive GROSS expectancy in
+all three periods is P7 trend pullback (+0.03…+0.05 R). Because the BTC/ETH/SOL HOLD numbers of P7 have now been
+seen, H18 is tested on UNTOUCHED coins only.
+
+**H18 maker-entry trend pullback.** Coins: ADA, XRP, BNB, DOGE, LTC, LINK, AVAX, DOT (Binance spot, never used
+in this project), full history to 2026-09. Rule: on signal TF bar close, if EMA20 > EMA50 (signal TF) place a BUY
+limit at that bar's EMA20 for the next bar (mirror SELL limit when EMA20 < EMA50). Fill only if price trades through
+by 2 bp. Max 3 concurrent positions per coin (scaling-in allowed). Stop = k×ATR14 below/above entry, target = m×k×ATR.
+Costs: entry & TP maker 0.02%; stop/time exit taker 0.05% + 0.02% slip. Time exit 24h (15m) / 72h (1h).
+Grid: TF {15m, 1h} × k {1, 2, 3} × m {2, 3} × HTF {none, 4h-aligned (4h close vs EMA50)} = 24 configs.
+ACCEPT: pooled net expectancy > 0 with day-clustered t > 3.0 (Bonferroni 24), > 0 in ≥ 6 of 8 coins, and > 0 in each
+of 2018–2021, 2022–2023, 2024–2026. BTC/ETH/SOL reported descriptively only.
+- Amendment G.1 (before any H18 data is fetched): the dataset only carries ADA, BCH, BNB, DOGE, TRX, XRP, ZEC as
+  untouched coins (LTC/LINK/AVAX/DOT absent). Coin set = these 7; coin criterion becomes > 0 in ≥ 5 of 7.
+- Clarification G.2 (implementation bug found after the first H18 run, before any acceptance decision): a BUY limit
+  at EMA20 is only a pullback order if it rests BELOW the market. The first run also placed it when close < EMA20
+  (a marketable limit that would fill at the lower market price, yet was booked at EMA20) — biased against the rule.
+  Fixed: long orders only when close > EMA20, short orders only when close < EMA20. Grid and acceptance unchanged;
+  the buggy run is kept in the log for transparency.
+
+---
+## Addendum H (2026-10-01, written BEFORE any image/model code is run): H19 chart-image CNN, 1h & 4h, filtered samples
+Owner's idea: feed the model chart IMAGES (Jiang–Kelly–Xiu 2023 style), high trade frequency with small size, and
+only train/trade on windows that satisfy entry conditions (same filter live).
+- Coins: BTC, ETH, SOL, ADA, BCH, BNB, DOGE, TRX, XRP, ZEC (Binance spot, built from 5m bars).
+- TF ∈ {1h, 4h}; window = 32 bars; horizon H = 8 bars (1h) / 6 bars (4h). Entry at next bar open, exit at the open
+  H bars later. Label = 1 if that return > 0.
+- Image (binary, 48×96 px price + 12 px volume): per bar 3 px columns (open tick | high–low bar | close tick),
+  EMA20 line, scaled to the window's [min low, max high]; volume scaled to window max. Causal only.
+- Sample filters, applied identically to train, validation, test and live: C0 none; C1 volatility expansion
+  ATR14/ATR100 > 1.2; C2 trending |EMA20 − EMA50| > 1.5×ATR14; C3 volume spike: last volume > 2× mean of prior 20.
+- Model: CNN, 3 blocks (conv 5×3 → BatchNorm → LeakyReLU → maxpool 2×2), channels 16/32/64, dropout 0.5, linear →
+  logit; Adam lr 1e-3, weight decay 1e-4, batch 256, early stop on validation loss (patience 2, ≤ 8 epochs);
+  ensemble of 2 seeds. Numeric baseline: logistic regression on the same normalised window values.
+- Split: train ≤ 2021-12-31 (train stride 2 bars for 1h, 1 for 4h), validation 2022, TEST 2023-01-01→2026-09 (once).
+- Trading rule (fixed): long if p ≥ 80th percentile of validation p, short if p ≤ 20th percentile; every signal is a
+  small independent trade held H bars; cost 0.07% per side (0.14% RT). Maker-cost (0.04% RT) shown descriptively.
+- Configs: 2 TF × 4 filters = 8. ACCEPT on TEST: net mean per trade > 0 with day-clustered t > 2.5, > 0 in ≥ 7 of 10
+  coins, and > 0 in both 2023–24 and 2025–26. CNN must also beat the logistic baseline's net mean.
+
+---
+## Addendum I (2026-10-01, written BEFORE computation): H20 "step 1" information test for alternative representations
+Question: do symbolic tokens, causal wavelet features or recurrence-plot (RQA) features carry predictive information
+BEYOND plain multi-horizon returns/volatility? Cheap test before any Transformer/CNN is built.
+Data/labels/splits identical to H19: 10 coins, TF {1h, 4h}, label = sign of return from next open over H = 8 (1h) /
+6 (4h) bars; train ≤ 2021, validation 2022, test 2023-01→2026-09. Everything causal (trailing windows only).
+- z_t = log return / trailing σ (100 bars, lagged one bar).
+- B (baseline): z_t; Σz over 4, 16, 32 bars; log(σ20/σ100); volume z-score (20 bars).
+- T (tokens): z_t binned into 9 levels by TRAINING-ONLY quantiles; trigram context (last 3 tokens, 729 contexts);
+  features = smoothed train-estimated P(up | context) (log-odds). Language test: cross-entropy of the next TOKEN
+  under the trigram model vs the unigram model, on test data.
+- W (wavelet, causal Haar à-trous on cumulative z): detail d_j(t) = mean of last 2^(j−1) bars − mean of the 2^(j−1)
+  before, j = 1..5; features = d_j(t) and mean d_j² over the last 16 bars.
+- R (recurrence, window 32, embedding m = 3, ε = 20th pct of in-window distances): DET, LAM, mean diagonal length,
+  diagonal-length entropy, recurrence of the current state, and the DIRECTIONAL analog feature = mean next-bar z
+  that followed past in-window states similar to the current one.
+Models: logistic regression (standardised) on B, B+T, B+W, B+R, B+T+W+R. Report test AUC, test log-loss, per-coin AUC
+gain, and net P&L with the H19 trading rule (top/bottom 20% of validation p, 0.14% RT).
+DECISION RULE ("worth step 2"): a representation qualifies if, in BOTH timeframes, it adds ≥ +0.005 test AUC over B,
+improves AUC in ≥ 7/10 coins and improves net P&L; tokens additionally qualify if next-token cross-entropy on test is
+≥ 0.5% below unigram.
+
+---
+## Addendum J (2026-10-01, written BEFORE computation): H21 owner's 4-output "path envelope" model
+Owner's idea: instead of up/down, predict four quantities of the next-H-bar path relative to the entry price E:
+U = (max high − E) ≥ 0, Dn = (min low − E) ≤ 0, CL = (close_H − min low) ≥ 0, CH = (close_H − max high) ≤ 0.
+All divided by ATR14 of the signal bar (otherwise the model just learns volatility levels). (CH is implied by the other
+three; kept as the owner specified.) Data/splits as H19/H20: 10 coins, TF {1h, 4h}, H = 8 / 6 bars, entry = next open;
+train ≤ 2021, validation 2022 (early stopping), test 2023-01→2026-09.
+Features: H20 baseline B + causal wavelet W. Model: HistGradientBoostingRegressor per target (squared error).
+Evaluation on TEST: (a) per-target Spearman vs realised and vs a symmetric-volatility baseline (training mean in ATR
+units); (b) DIRECTIONAL skill = Spearman(Û + D̂n, realised U + Dn) and vs realised close return.
+Trading rule (fixed): asymmetry Â = Û + D̂n; long if Â ≥ 90th pct of validation Â, short if ≤ 10th pct; entry next open
+(taker 0.07%), take-profit limit at E ± 0.8·Û (resp. D̂n) ATR (maker 0.02%), stop at E ∓ |D̂n| (resp. Û) ATR (taker 0.07%),
+time exit at H (taker); resolved on the 5m path, stop first if both inside one 5m bar.
+ACCEPT: net mean per trade > 0, day-clustered t > 2.5, > 0 in ≥ 7/10 coins and in both 2023–24 and 2025–26.
+
+---
+## Addendum K (2026-10-01, written BEFORE computation): H22 direction from the 4 outputs + entry-candle details
+Owner's idea: combine the four H21 outputs arithmetically with the last (entry) candle to infer direction.
+Identities (ATR units, relative to entry E): close return = Dn + CL = U + CH. Two independent implied forecasts:
+R1 = D̂n + ĈL, R2 = Û + ĈH (models fit separately). Direction signal S = (R1 + R2)/2; agreement = sign(R1) == sign(R2).
+Stage 2 (stacking): logistic regression on [Û, D̂n, ĈL, ĈH, R1, R2, Û + D̂n] + entry-candle details (body/ATR,
+upper wick/ATR, lower wick/ATR, close position in range, range/ATR, volume z). Stage-1 models trained ≤ 2021 (as H21);
+stage 2 FIT ON VALIDATION 2022 ONLY (out-of-sample stage-1 predictions); TEST 2023-01→2026-09.
+Evaluation on TEST: Spearman(S, realised return), AUC of stage 2 for sign(return), and trades: long if score ≥ 90th pct of
+its 2022 distribution, short if ≤ 10th; same TP/SL/cost/5m-path rules as H21; variants: (a) S, (b) S only when R1 and R2
+agree, (c) stage 2. ACCEPT (any variant, 3 tested): net mean > 0, day-clustered t > 2.5, ≥ 7/10 coins, both 2023–24 and
+2025–26 > 0 — in BOTH timeframes or in 4h alone (pre-declared: 4h was H21's near-break-even case).
+
+---
+## Addendum L (2026-10-01, written BEFORE computation): H23 owner's "wick capture" — limits at predicted high/low, exit at close
+Rule: at the OPEN of candle k place a SELL limit at the predicted high and a BUY limit at the predicted low of candle k;
+any filled position is closed at candle k's close. Both may fill (outside bar) → profit = predicted high − predicted low.
+Targets (ATR14 units, relative to the open O_k): h = (High_k − O_k)/ATR ≥ 0, l = (Low_k − O_k)/ATR ≤ 0.
+Features: H21's B + W set computed up to close k−1 (causal). Models: HistGradientBoosting QUANTILE regression for h and l
+at quantile q ∈ {0.3, 0.5, 0.7} (for l the mirrored quantile 1−q, i.e. equally "far"); baseline: constant-distance
+levels = unconditional training quantile of h / l (pure ATR bands) — the model must beat this.
+Fill: limit fills only if the candle trades THROUGH the level by 2 bp (High ≥ level×1.0002 for the sell). No path issue:
+exit is always the candle close. Costs: entry maker 0.02%, exit at close taker 0.05% + 0.02% slip (0.09% RT).
+Data: 10 coins Binance spot, TF ∈ {15m, 1h, 4h}; train ≤ 2021, validation 2022, TEST 2023-01→2026-09 (once).
+Configs: 3 TF × 3 q × 2 (model / ATR-band baseline) = 18. ACCEPT: net mean per filled trade > 0, day-clustered t > 3.0,
+> 0 in ≥ 7/10 coins and in both 2023–24 and 2025–26, AND the model beats its own ATR-band baseline.
+- Addendum L.1 (owner's reverse, written BEFORE computation): BUY STOP at the predicted high, SELL STOP at the predicted
+  low, exit at the candle close. Stop orders are taker: fill at level×(1+2 bp) for buys (level×(1−2 bp) for sells),
+  cost 0.07% entry + 0.07% exit (0.14% RT). Same models, quantiles, ATR-band baseline, test window and ACCEPT rule as L.
+
+---
+## Addendum M (2026-10-01, written BEFORE computation): H24 regime filters ADX / NATR / ATR on H23 & H23-R
+Owner's request: filter the wick-capture (fade, H23) and breakout (H23-R) trades with ADX, NATR and ATR.
+Indicators on the signal TF, known at close k−1: ADX(14) (Wilder); NATR = ATR14/close, expressed as its percentile within
+the coin's trailing 500 bars; ATR ratio = ATR14/ATR100 (raw ATR is price-scaled, so it is used as a ratio).
+Filters: F1 ADX<20, F2 ADX>25, F3 NATR pct>0.7, F4 NATR pct<0.3, F5 ATRratio>1.2, F6 ATRratio<0.8, plus the theory combos
+F7-fade = ADX<20 & ATRratio<1 (quiet range) and F7-breakout = ADX>25 & ATRratio>1.2 & NATR pct>0.5 (trend expansion).
+Strategies: fade (maker in / taker out, 0.09% RT) and breakout (stops, 0.14% RT), levels from the H23 quantile models,
+q ∈ {0.5, 0.7}; TF ∈ {15m, 1h, 4h}. Grid = 2 strategies × 3 TF × 2 q × 7 filters = 84.
+SELECTION on VALIDATION 2022 only (stage-1 models trained ≤ 2021): net mean > 0 and day-clustered t > 2.
+CONFIRMATION on TEST 2023-01→2026-09 for selected configs only: net > 0, t > 2.5, ≥ 7/10 coins, both 2023–24 and 2025–26 > 0.

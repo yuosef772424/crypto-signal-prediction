@@ -8,3 +8,9 @@ experiment_registry/
 pandas_ta_survey_results.json
 pandas_ta_survey_candidates.json
 pandas_ta_survey_candidates_robust.json
+analysis_outputs/
+
+# Claude Code: agent worktrees and personal settings
+.claude/worktrees/
+.claude/settings.local.json
+CLAUDE.local.md
