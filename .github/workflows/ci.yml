@@ -86,6 +86,10 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history: on a CPU/version without recorded goldens, tests/test_multi_tf.py builds the old commit
+          # (4cb2d7b) itself and compares byte for byte, which needs that commit in the clone.
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
