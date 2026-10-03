@@ -1,5 +1,25 @@
 # Working Instructions for This Project
 
+## Map
+@MAP.md
+
+Navigate MAP.md -> maps/<zone>.md -> read only the target symbol by line range (never whole large files). Full rules are in PHILOSOPHY.md (Arabic): read it on demand, do not import it.
+
+## Commands
+- `python tools/check_deps.py` - import direction between zones (fails on a violation).
+- `python tools/build_map.py` - regenerate MAP.md and maps/ after adding or renaming modules or cards.
+- `python tools/build_map.py --check` - fails if the maps are stale.
+- `python -m pytest tests/ -q` - full suite, CPU only, no Drive (needs `pip install -r requirements-ci.txt`).
+
+## Working rules
+- Zones and import direction: code packages (`cross_asset/`, `tools/`) never import `research/`, `docs/` or `tests/`; a study never imports another study (lift shared code into a package).
+- Add, don't modify: a new study is `research/<study>/` with a README; recorded results are never edited (add a corrected copy, keep the original marked).
+- A new option's default must reproduce the old behavior exactly (checkpoints and past results stay valid).
+- No silent defaults: unknown config keys or unregistered feature/head/loss names raise; pass config sections explicitly, not via a global.
+- One change type per commit (`merge`/`move`/`refactor`/`fix`/`feat`/`exp`/`docs`); never move and modify together; never commit on `master`.
+- Merge commits carry no content changes; any reorganization after a merge is a separate commit.
+- Regenerate the maps and run the checks above before committing.
+
 ## Language
 - **Reply to the user in Arabic.** Instructions, agent prompts and protocol documents may be in English (models follow English instructions more faithfully); translate on demand.
 
