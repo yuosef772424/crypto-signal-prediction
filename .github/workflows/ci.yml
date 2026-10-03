@@ -1,0 +1,97 @@
+# CI for crypto-signal-prediction (PHILOSOPHY.md §7: "every check on every push and PR").
+# structure + hygiene are fast and need no heavy deps; tests runs the full tests/ directory on CPU.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  structure:
+    name: structure (deps direction + maps up to date)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
+      # Both scripts are stdlib-only and exit 1 on failure.
+      - name: Import direction between zones
+        run: python tools/check_deps.py
+      - name: Maps match the code
+        run: python tools/build_map.py --check
+
+  hygiene:
+    name: hygiene (file size + secret scan)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: No tracked file larger than 1 MB
+        run: |
+          # PHILOSOPHY.md §6: small results (< ~1 MB) only; no raw data, no checkpoints.
+          # Explicit allowlist (one path per line) for files that are knowingly larger. Currently empty:
+          # the largest tracked file is crypto_data_pipeline_v6.ipynb (~0.8 MB).
+          ALLOW=$(cat <<'EOF'
+          EOF
+          )
+          limit=1048576
+          bad=0
+          while IFS= read -r -d '' f; do
+            [ -f "$f" ] || continue   # skip submodules / dangling entries
+            size=$(stat -c %s "$f")
+            if [ "$size" -gt "$limit" ] && ! printf '%s\n' "$ALLOW" | grep -Fxq -- "$f"; then
+              echo "::error file=$f::tracked file is $size bytes (> 1 MB). Remove it or add it to the allowlist in ci.yml with a reason."
+              bad=1
+            fi
+          done < <(git ls-files -z)
+          exit $bad
+      - name: Secret scan (regex over tracked files)
+        run: |
+          # Chosen over gitleaks-action: no third-party action, no license requirement (gitleaks-action needs a
+          # licence for organisation repos), no network. Trade-off: it scans the current tree only, not full history.
+          cat > "$RUNNER_TEMP/secret-patterns.txt" <<'EOF'
+          AKIA[0-9A-Z]{16}
+          -----BEGIN ([A-Z]+ )?PRIVATE KEY-----
+          ghp_[A-Za-z0-9]{36}
+          github_pat_[A-Za-z0-9_]{50,}
+          sk-ant-[A-Za-z0-9_-]{20,}
+          sk-[A-Za-z0-9]{40,}
+          xox[baprs]-[A-Za-z0-9-]{10,}
+          AIza[0-9A-Za-z_-]{35}
+          (api[_-]?key|api[_-]?secret|secret[_-]?key|token|password)["']?[[:space:]]*[=:][[:space:]]*["'][A-Za-z0-9/+_-]{32,}["']
+          EOF
+          # -o prints only the matched part, and the value is truncated, so the log does not leak the secret.
+          if git grep -nIE -o -f "$RUNNER_TEMP/secret-patterns.txt" | cut -c1-80 | sed 's/^/possible secret: /' | tee /dev/stderr | grep -q .; then
+            echo "::error::possible secret found in tracked files (see log); rotate it and remove it from the tree"
+            exit 1
+          fi
+
+  tests:
+    name: tests (pytest tests/)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-ci.txt
+      # Full tests/ directory, CPU only. No Google Drive and no real market data are used by any test.
+      - name: Run tests
+        run: python -m pytest tests/ -q
