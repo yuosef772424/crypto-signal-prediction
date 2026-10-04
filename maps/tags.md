@@ -37,8 +37,10 @@
 - batching: cross_asset/data
 - binance api: tools/fetch_history_csv_concurrent
 - binance vision: tools/fetch_history_colab_cell
+- bracket: tools/bracket_eval
 - bracket table: cross_asset/report
 - break attempt: edge_discovery/17_h07_break
+- break-even hit rate: tools/bracket_eval
 - breakout: edge_discovery/05_events
 - breakout stops: edge_discovery/32_breakout_stops
 - breakout_stops_results.csv: edge_discovery/32_breakout_stops
@@ -79,7 +81,7 @@
 - data.binance.vision: tools/fetch_history_vision_colab
 - day grouping: cross_asset/data
 - day of week: edge_discovery/06_seasonality
-- day-clustered t: edge_discovery/events
+- day-clustered t: edge_discovery/events, tools/bracket_eval
 - day_pearson: cross_asset/train
 - decay: edge_discovery/20_onchain
 - decile long-short: edge_discovery/18_h13_pr7_signal
@@ -120,7 +122,7 @@
 - eval cli: tools/evaluate_trained_model
 - evaluate trained model: tools/evaluate_trained_model
 - evaluate_k_coins: cross_asset/experiment
-- evaluation: cross_asset/report
+- evaluation: cross_asset/report, tools/bracket_eval
 - event list: edge_discovery/10_flush_curve
 - event study: edge_discovery/05_events, edge_discovery/events
 - event_stats: edge_discovery/events
@@ -137,6 +139,7 @@
 - feature panel: edge_discovery/features
 - features: edge_discovery/01_screen, edge_discovery/features
 - fileid: edge_discovery/data_tools/folder_index
+- filters: tools/bracket_eval
 - filters c0-c3: edge_discovery/25_image_cnn
 - fix-gaps: tools/fetch_history_vision_colab
 - flush curve: edge_discovery/10_flush_curve
@@ -287,7 +290,7 @@
 - post-hoc: edge_discovery/15_h07_robust, edge_discovery/23_chart_rules_gross
 - post-listing drift: edge_discovery/12_listing
 - pr #7: edge_discovery/18_h13_pr7_signal
-- predicted high low: edge_discovery/31_wick_capture, edge_discovery/32_breakout_stops
+- predicted high low: edge_discovery/31_wick_capture, edge_discovery/32_breakout_stops, tools/bracket_eval
 - premium index: tools/fetch_history_vision_colab
 - prepare_data: tools/colab_bridge
 - previous candle: edge_discovery/21_range_fade
@@ -299,6 +302,7 @@
 - quintile spread: edge_discovery/04_screen_mean
 - quintiles: edge_discovery/03_quintiles
 - r multiple: edge_discovery/22_chart_rules
+- random-direction null: tools/bracket_eval
 - range fade: edge_discovery/21_range_fade
 - range_fade csv: edge_discovery/21_range_fade
 - rank correlation: edge_discovery/02_fmb
@@ -332,6 +336,7 @@
 - screen_disc_mean.csv: edge_discovery/04_screen_mean
 - seasonality: edge_discovery/06_seasonality
 - seed spread: edge_discovery/26_h19_generalization
+- selective trading: tools/bracket_eval
 - selftest: cross_asset/selftest
 - settings interval start funding open_interest: tools/fetch_history_colab_cell
 - shared helpers: edge_discovery/lib
@@ -344,6 +349,7 @@
 - single touch: edge_discovery/14_holdout
 - size vs direction: edge_discovery/29_path_envelope
 - skew: edge_discovery/04_screen_mean
+- sl_room: tools/bracket_eval
 - slippage: edge_discovery/32_breakout_stops
 - smart-minus-retail: edge_discovery/features
 - source github/drive: tools/fetch_history_colab_cell
@@ -353,15 +359,17 @@
 - stablecoin: edge_discovery/20_onchain
 - stage-2 logistic: edge_discovery/30_envelope_direction
 - stats: edge_discovery/tsbt
-- stop loss: edge_discovery/13_listing_stops
+- stop loss: edge_discovery/13_listing_stops, tools/bracket_eval
 - stress test: edge_discovery/17_h07_break
 - summarize: cross_asset/report
 - survivor: edge_discovery/07_trend
 - sweep: edge_discovery/22_chart_rules, edge_discovery/data_tools/sweep
 - symbols.txt: tools/fetch_history_vision_colab
+- symmetric: tools/bracket_eval
 - synthetic data: cross_asset/selftest
 - sys.path: tools/check_deps
 - t-stat: edge_discovery/04_screen_mean, edge_discovery/lib
+- take profit: tools/bracket_eval
 - taker extremes: edge_discovery/05_events
 - taker ratio: tools/intraday_features
 - taker stop orders: edge_discovery/32_breakout_stops
@@ -379,6 +387,8 @@
 - top-50 big: edge_discovery/lib
 - torch: edge_discovery/25_image_cnn
 - tp sl: edge_discovery/29_path_envelope
+- tp_room: tools/bracket_eval
+- trades: tools/bracket_eval
 - train<=2021 val 2022 test 2023-26: edge_discovery/27_repr_info
 - train_labels: cross_asset/report
 - trend following: edge_discovery/07_trend

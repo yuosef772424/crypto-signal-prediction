@@ -140,6 +140,7 @@
   - `def prepare_single_asset(dfs: Dict[str, pd.DataFrame], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_horizon: Optional[int]=None, stride: Option…` cell 24 L138
   - `def invert_reg_predictions(preds: np.ndarray, head: str, last_candles: Optional[np.ndarray]=None, bases: Optional[np.ndarray]=None, config: Optional[dict]=None, scale: Optional[float]=None) -> np.ndarray` cell 24 L353
   - `def decode_price_window(data: Dict, column: str='close', tf: Optional[str]=None, anchor: Optional[np.ndarray]=None, feature_order: Optional[List[str]]=None, mode: Optional[str]=None) -> np.ndarray` cell 24 L399
+  - `def entry_feature_table(data: Dict, columns: List[str], load_asset_fn: Optional[Callable]=None, config: Optional[dict]=None) -> pd.DataFrame` cell 24 L430
   - `def check_missing_values(data: Dict[str, Dict], tf_order: Optional[List[str]]=None, config: Optional[dict]=None) -> Dict[str, dict]` cell 26 L9
   - `def diagnose_feature_availability(data: Dict[str, Dict], tf_order: Optional[List[str]]=None, desired_features: Optional[List[str]]=None, config: Optional[dict]=None) -> List[str]` cell 26 L33
   - `def diagnose_data_vs_configs(data: dict, configs: list, n_preview: int=15) -> dict` cell 26 L93
