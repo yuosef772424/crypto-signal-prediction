@@ -6,6 +6,7 @@
 - 21-23 utc: edge_discovery/06_seasonality
 - 4 outputs: edge_discovery/29_path_envelope
 - 4h context: tests/test_no_lookahead
+- 5m: tools/fetch_crypto_dataset
 - 5m path: edge_discovery/21_range_fade
 - a.2: edge_discovery/13_listing_stops
 - addendum b: edge_discovery/14_holdout
@@ -48,6 +49,7 @@
 - buy and hold benchmark: edge_discovery/16_h07_oos
 - cards: tools/build_map
 - causal alignment: tools/intraday_features
+- cells: tools/nb_cells
 - chart images: edge_discovery/25_image_cnn
 - chart patterns: edge_discovery/22_chart_rules
 - ci: tools/build_map, tools/check_deps
@@ -98,7 +100,7 @@
 - docstring: tools/build_map
 - donchian: edge_discovery/07_trend, edge_discovery/22_chart_rules
 - dose-response: edge_discovery/10_flush_curve
-- download history: tools/fetch_history_colab_cell, tools/fetch_history_csv_concurrent, tools/fetch_history_vision_colab
+- download history: tools/fetch_crypto_dataset, tools/fetch_history_colab_cell, tools/fetch_history_csv_concurrent, tools/fetch_history_vision_colab
 - drive copy: tools/colab_bridge
 - drive download: edge_discovery/data_tools/dec
 - drive index: edge_discovery/data_tools/folder_index
@@ -107,6 +109,7 @@
 - dsr: edge_discovery/17_h07_break
 - early stopping: cross_asset/train
 - edge_data: edge_discovery/lib
+- edit notebook: tools/nb_cells
 - ema weights: cross_asset/train
 - ema20: edge_discovery/24_pullback_maker
 - engulfing: edge_discovery/22_chart_rules
@@ -125,6 +128,7 @@
 - exchange supply: edge_discovery/20_onchain
 - execution lag: edge_discovery/17_h07_break
 - export_signals: cross_asset/train
+- extract: tools/nb_cells
 - extract_encoder: cross_asset/model
 - failed breakout: edge_discovery/11_more
 - fama-macbeth: edge_discovery/02_fmb
@@ -143,6 +147,7 @@
 - gap report: tools/evaluate_trained_model
 - gaps report: tools/fetch_history_vision_colab
 - generalization gap: edge_discovery/26_h19_generalization
+- github dataset: tools/fetch_crypto_dataset
 - grid: edge_discovery/21_range_fade
 - gross edge: edge_discovery/23_chart_rules_gross
 - grouping test: cross_asset/selftest
@@ -166,7 +171,7 @@
 - h16: edge_discovery/21_range_fade
 - h17: edge_discovery/22_chart_rules, edge_discovery/23_chart_rules_gross
 - h18: edge_discovery/24_pullback_maker
-- h19: edge_discovery/25_image_cnn, edge_discovery/26_h19_generalization
+- h19: edge_discovery/25_image_cnn, edge_discovery/26_h19_generalization, tools/fetch_crypto_dataset
 - h19_log.txt: edge_discovery/26_h19_generalization
 - h20: edge_discovery/27_repr_info, edge_discovery/28_token_decompose
 - h21: edge_discovery/29_path_envelope
@@ -192,14 +197,18 @@
 - import direction: tools/check_deps
 - imports: tools/check_deps
 - include-delisted: tools/fetch_history_csv_concurrent
+- inject: tools/nb_cells
 - inside bar: edge_discovery/22_chart_rules
 - integrity checks: cross_asset/data
 - intraday features: tools/intraday_features
 - inverse: tests/test_real_price_modes
+- ipynb: tools/nb_cells
+- json format: tools/nb_cells
 - key mask: cross_asset/model
 - klines: tools/fetch_history_csv_concurrent, tools/fetch_history_vision_colab
 - lead-lag: edge_discovery/11_more
 - leakage: tests/test_no_lookahead
+- lfs: tools/fetch_crypto_dataset
 - limit orders: edge_discovery/21_range_fade, edge_discovery/31_wick_capture
 - lint: tools/check_deps
 - listing: edge_discovery/13_listing_stops
@@ -228,6 +237,7 @@
 - max drawdown: edge_discovery/tsbt
 - max_age: tools/intraday_features
 - mean returns: edge_discovery/04_screen_mean
+- media.githubusercontent: tools/fetch_crypto_dataset
 - metrics: cross_asset/report
 - metrics_new: edge_discovery/12_listing, edge_discovery/data_tools/sweep
 - missing_ids: edge_discovery/data_tools/folder_index
@@ -238,8 +248,10 @@
 - navigation: tools/build_map
 - new listings: edge_discovery/12_listing
 - no future: tests/test_no_lookahead
+- notebook: tools/nb_cells
 - notebooks: tools/build_map
 - numba: edge_discovery/21_range_fade, edge_discovery/22_chart_rules
+- ohlc: tools/fetch_crypto_dataset
 - oi change: edge_discovery/features
 - oi features: tools/intraday_features
 - oi flush: edge_discovery/05_events, edge_discovery/09_market_flush, edge_discovery/10_flush_curve
@@ -294,6 +306,7 @@
 - redundancy: edge_discovery/02_fmb
 - relative direction: edge_discovery/18_h13_pr7_signal
 - representation information: edge_discovery/27_repr_info
+- research data: tools/fetch_crypto_dataset
 - resumable: edge_discovery/25_image_cnn
 - resume: cross_asset/train, tools/fetch_history_csv_concurrent, tools/fetch_history_vision_colab
 - retail long/short ratio: edge_discovery/02_fmb
@@ -302,6 +315,7 @@
 - return: tests/test_real_price_modes
 - return_close: tests/test_real_price_modes
 - robustness: edge_discovery/15_h07_robust
+- round-trip: tools/nb_cells
 - rqa: edge_discovery/27_repr_info
 - run_panel_experiment: cross_asset/__init__, cross_asset/experiment
 - run_panel_selftest: cross_asset/selftest
@@ -326,7 +340,9 @@
 - slippage: edge_discovery/32_breakout_stops
 - smart-minus-retail: edge_discovery/features
 - source github/drive: tools/fetch_history_colab_cell
+- speirsy11: tools/fetch_crypto_dataset
 - split-dates: tools/evaluate_trained_model
+- spot: tools/fetch_crypto_dataset
 - stablecoin: edge_discovery/20_onchain
 - stage-2 logistic: edge_discovery/30_envelope_direction
 - stats: edge_discovery/tsbt
