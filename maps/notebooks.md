@@ -219,8 +219,8 @@
   - `def save_dataset_dir(data: dict, dest, verbose: bool=True) -> Path` cell 48 L54
   - `def load_dataset_dir(path, mmap: bool=True, local_dir=None, small_bytes: Optional[int]=None, verbose: bool=True) -> dict` cell 48 L80
   - `def save_data_to_drive(data: Any, project_name: Optional[str]=None, data_type: str='preprocessed_data', filename_base: str='preprocessing_output', save_latest: bool=True, config: Optional[dict]=None, fmt: Optional[str]=No…` cell 48 L143
-  - `def load_data_from_drive(project_name: Optional[str]=None, data_type: str='preprocessed_data', filename_base: str='preprocessing_output', filename: Optional[str]=None, config: Optional[dict]=None, fmt: str='auto', mmap: boo…` cell 48 L208
-  - `def load_preprocessed_data_from_drive(file_id: str, output_filename: str='preprocessing_output.pkl.gz', download_dir: str='.', quiet: bool=False, cleanup: bool=False) -> Any` cell 48 L259
+  - `def load_data_from_drive(project_name: Optional[str]=None, data_type: str='preprocessed_data', filename_base: str='preprocessing_output', filename: Optional[str]=None, config: Optional[dict]=None, fmt: str='auto', mmap: boo…` cell 48 L232
+  - `def load_preprocessed_data_from_drive(file_id: str, output_filename: str='preprocessing_output.pkl.gz', download_dir: str='.', quiet: bool=False, cleanup: bool=False) -> Any` cell 48 L283
   - `def run_pipeline_selftests(verbose: bool=True) -> bool` cell 51 L32
   - `def default_workers(n_items: int=0) -> int` cell 54 L16
   - `def apply_hourly_preset(overrides: Optional[dict]=None) -> Dict[str, Any]` cell 59 L63
