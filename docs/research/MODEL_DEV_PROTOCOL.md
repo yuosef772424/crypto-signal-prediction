@@ -75,4 +75,6 @@ unexplained results are kept; recorded results are never edited (add a corrected
 Any script used more than once goes into a code package (`tools/` or a model notebook section) with a module card, a
 test, and a line in its doc page, so a later session calls it instead of rewriting it. Current reusable entry points:
 `tools/nb_cells.py` (edit notebook cells without reformatting), `tools/fetch_crypto_dataset.py` (research OHLCV from
-GitHub when Binance is blocked), the diagnostics toolkit (`docs/research/model_diagnostics.md`).
+GitHub when Binance is blocked), `tools/bracket_eval.py` + pipeline `entry_feature_table` (symmetric stop/target
+evaluation on all samples and on filtered subsets, with a random-direction null), `tools/experiment_registry.py`
+(failure registry), the diagnostics toolkit (`docs/research/model_diagnostics.md`).
