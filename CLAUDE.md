@@ -20,6 +20,8 @@ Navigate MAP.md -> maps/<zone>.md -> read only the target symbol by line range (
 - One change type per commit (`merge`/`move`/`refactor`/`fix`/`feat`/`exp`/`docs`); never move and modify together; never commit on `master`.
 - Merge commits carry no content changes; any reorganization after a merge is a separate commit.
 - Regenerate the maps and run the checks above before committing.
+- Model/training experiments follow `docs/research/MODEL_DEV_PROTOCOL.md`: an experiment card before the run (one change, predicted diagnostic movement, accept rule), the per-layer model health report after it, and no "architecture X is better" claim without beating seed noise AND the predicted diagnostic moving.
+- Any script used more than once goes into `tools/` (or a model notebook section) with a card and a test — call it in later sessions instead of rebuilding it (`tools/nb_cells.py`, `tools/fetch_crypto_dataset.py`).
 
 ## Language
 - **Reply to the user in Arabic.** Instructions, agent prompts and protocol documents may be in English (models follow English instructions more faithfully); translate on demand.

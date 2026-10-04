@@ -25,12 +25,13 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `research/edge_discovery/` — التقرير النهائي — البحث عن Edge قابل للاستغلال (2024-01 → 2026-09) | 41 scripts, 33 data files (786 KB) → maps/research_edge_discovery.md
 
 ## docs/research (legacy)
-- `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 39 md, 0 data files (0 B) → maps/docs_research.md
+- `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 40 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/audit/` — Audit / Improvement Protocol (Auditor ↔ Builder) | 26 scripts, 5 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/results/` — نتائج خطّة `capacity` على بيانات Drive (Colab T4، 2026-09-27) | 0 scripts, 6 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/scripts/` — سكربتات إعادة إنتاج تدقيق التطبيع | 9 scripts, 1 md, 1 data files (10 KB) → maps/docs_research.md
 - `docs/research/scripts/entry_range_eval/` — entry_range_eval — تقييم نموذج entry_range المُدرَّب (`crypto_model_v1_entry_range_s100_am`) | 5 scripts, 1 md, 7 data files (127 KB) → maps/docs_research.md
 - `docs/research/scripts/hourly_1h/` — (no README) | 14 scripts, 0 data files (0 B) → maps/docs_research.md
+- `docs/research/templates/` — Experiment card — <id>: <one-line title> | 0 scripts, 1 md, 0 data files (0 B) → maps/docs_research.md
 
 ## Tests
 - `tests/` — test_audit_round2, test_cross_asset, test_disk_backed, test_entry_range, test_intraday_features, te… | 16 modules, 1 data files (30 KB) → maps/tests.md
