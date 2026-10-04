@@ -135,9 +135,11 @@
   - `def audit_normalization(windows: np.ndarray, features: List[str], verbose: bool=True, config: Optional[dict]=None) -> pd.DataFrame` cell 20 L567
   - `def window_end_indices(index: pd.DatetimeIndex, win: int, stride: int, tf: str, config: Optional[dict]=None) -> np.ndarray` cell 22 L36
   - `def align_multi_timeframes_time_based(dfs: Dict[str, pd.DataFrame], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, stride: Optional[int]=None, config: Optional[dict]=None) -> Tuple[Dict[str, np.ndarray]…` cell 22 L81
-  - `def prepare_single_asset(dfs: Dict[str, pd.DataFrame], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_horizon: Optional[int]=None, stride: Option…` cell 24 L41
-  - `def invert_reg_predictions(preds: np.ndarray, head: str, last_candles: Optional[np.ndarray]=None, bases: Optional[np.ndarray]=None, config: Optional[dict]=None, scale: Optional[float]=None) -> np.ndarray` cell 24 L251
-  - `def decode_price_window(data: Dict, column: str='close', tf: Optional[str]=None, anchor: Optional[np.ndarray]=None, feature_order: Optional[List[str]]=None, mode: Optional[str]=None) -> np.ndarray` cell 24 L297
+  - `def register_sample_filter(name: str, fn: Callable[[pd.DataFrame], Any]) -> None` cell 24 L47
+  - `def sample_filter_mask(df: pd.DataFrame, filters: Optional[List[dict]]=None, config: Optional[dict]=None) -> np.ndarray` cell 24 L91
+  - `def prepare_single_asset(dfs: Dict[str, pd.DataFrame], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_horizon: Optional[int]=None, stride: Option…` cell 24 L138
+  - `def invert_reg_predictions(preds: np.ndarray, head: str, last_candles: Optional[np.ndarray]=None, bases: Optional[np.ndarray]=None, config: Optional[dict]=None, scale: Optional[float]=None) -> np.ndarray` cell 24 L353
+  - `def decode_price_window(data: Dict, column: str='close', tf: Optional[str]=None, anchor: Optional[np.ndarray]=None, feature_order: Optional[List[str]]=None, mode: Optional[str]=None) -> np.ndarray` cell 24 L399
   - `def check_missing_values(data: Dict[str, Dict], tf_order: Optional[List[str]]=None, config: Optional[dict]=None) -> Dict[str, dict]` cell 26 L9
   - `def diagnose_feature_availability(data: Dict[str, Dict], tf_order: Optional[List[str]]=None, desired_features: Optional[List[str]]=None, config: Optional[dict]=None) -> List[str]` cell 26 L33
   - `def diagnose_data_vs_configs(data: dict, configs: list, n_preview: int=15) -> dict` cell 26 L93
@@ -165,10 +167,10 @@
   - `def momentum_orth_natr_columns(config: Optional[dict]=None) -> List[str]` cell 34 L318
   - `def build_momentum_orth_natr(data: Optional[Dict]=None, config: Optional[dict]=None) -> Optional[Dict[str, Dict[str, pd.DataFrame]]]` cell 34 L349
   - `def add_momentum_orth_natr(dfs: Dict[str, pd.DataFrame], asset_dfs: Optional[Dict[str, pd.DataFrame]], config: Optional[dict]=None) -> Dict[str, pd.DataFrame]` cell 34 L396
-  - `def clear_checkpoint(checkpoint_dir, names: Optional[List[str]]=None) -> int` cell 35 L186
-  - `def build_dataset_from_loader(configs: List[Dict], load_asset_fn: Callable, resample_fn: Callable, tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_hori…` cell 36 L301
-  - `def build_dataset_from_preloaded(configs: List[Dict], data: Dict[str, Dict[str, pd.DataFrame]], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_horizon: O…` cell 36 L463
-  - `def build_dataset(configs: List[Dict], *, data: Optional[Dict]=None, load_asset_fn: Optional[Callable]=None, resample_fn: Optional[Callable]=None, **kwargs) -> Dict` cell 36 L561
+  - `def clear_checkpoint(checkpoint_dir, names: Optional[List[str]]=None) -> int` cell 35 L189
+  - `def build_dataset_from_loader(configs: List[Dict], load_asset_fn: Callable, resample_fn: Callable, tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_hori…` cell 36 L305
+  - `def build_dataset_from_preloaded(configs: List[Dict], data: Dict[str, Dict[str, pd.DataFrame]], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_horizon: O…` cell 36 L467
+  - `def build_dataset(configs: List[Dict], *, data: Optional[Dict]=None, load_asset_fn: Optional[Callable]=None, resample_fn: Optional[Callable]=None, **kwargs) -> Dict` cell 36 L565
   - `def cross_sectional_normalize(dataset: Dict, heads: Optional[List[str]]=None, method: Optional[str]=None, min_assets: Optional[int]=None, clip: Optional[float]=None, config: Optional[dict]=None, verbose: bool=True) -> Dict` cell 38 L20
   - `def invert_cross_sectional(preds: np.ndarray, timestamps: np.ndarray, head: str, dataset: Dict) -> np.ndarray` cell 38 L125
   - `def embargo_candles(data: Dict, config: Optional[dict]=None) -> int` cell 40 L45
