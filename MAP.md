@@ -19,13 +19,13 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 
 ## Code packages
 - `cross_asset/` — Package entry of the cross-asset 'panel' model (phase 1): one sample = a full UTC day with all coins, attention across same-day coins; re-exports PanelSplit, panel_split_from, VARIANTS, run_panel_experiment. | 7 modules, 0 data files (0 B) → maps/cross_asset.md
-- `tools/` — build_map, check_deps, colab_bridge, evaluate_trained_model, fetch_crypto_dataset, fetch_history_co… | 10 modules, 0 data files (0 B) → maps/tools.md
+- `tools/` — build_map, check_deps, colab_bridge, evaluate_trained_model, experiment_registry, fetch_crypto_data… | 11 modules, 0 data files (0 B) → maps/tools.md
 
 ## Research studies (research/)
 - `research/edge_discovery/` — التقرير النهائي — البحث عن Edge قابل للاستغلال (2024-01 → 2026-09) | 41 scripts, 33 data files (786 KB) → maps/research_edge_discovery.md
 
 ## docs/research (legacy)
-- `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 40 md, 0 data files (0 B) → maps/docs_research.md
+- `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 40 md, 1 data files (193 B) → maps/docs_research.md
 - `docs/research/audit/` — Audit / Improvement Protocol (Auditor ↔ Builder) | 26 scripts, 5 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/results/` — نتائج خطّة `capacity` على بيانات Drive (Colab T4، 2026-09-27) | 0 scripts, 6 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/scripts/` — سكربتات إعادة إنتاج تدقيق التطبيع | 9 scripts, 1 md, 1 data files (10 KB) → maps/docs_research.md
@@ -34,6 +34,6 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `docs/research/templates/` — Experiment card — <id>: <one-line title> | 0 scripts, 1 md, 0 data files (0 B) → maps/docs_research.md
 
 ## Tests
-- `tests/` — test_audit_round2, test_cross_asset, test_disk_backed, test_entry_range, test_intraday_features, te… | 16 modules, 1 data files (30 KB) → maps/tests.md
+- `tests/` — test_audit_round2, test_cross_asset, test_disk_backed, test_entry_range, test_experiment_registry,… | 17 modules, 1 data files (30 KB) → maps/tests.md
 
 ## Where do I edit X? → `maps/tags.md` (TAGS → modules index)

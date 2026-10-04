@@ -127,10 +127,12 @@
 - events_disc.csv: edge_discovery/05_events
 - exchange supply: edge_discovery/20_onchain
 - execution lag: edge_discovery/17_h07_break
+- experiment card: tools/experiment_registry
 - export_signals: cross_asset/train
 - extract: tools/nb_cells
 - extract_encoder: cross_asset/model
 - failed breakout: edge_discovery/11_more
+- failure registry: tools/experiment_registry
 - fama-macbeth: edge_discovery/02_fmb
 - feature panel: edge_discovery/features
 - features: edge_discovery/01_screen, edge_discovery/features
@@ -208,6 +210,7 @@
 - klines: tools/fetch_history_csv_concurrent, tools/fetch_history_vision_colab
 - lead-lag: edge_discovery/11_more
 - leakage: tests/test_no_lookahead
+- ledger: tools/experiment_registry
 - lfs: tools/fetch_crypto_dataset
 - limit orders: edge_discovery/21_range_fade, edge_discovery/31_wick_capture
 - lint: tools/check_deps
@@ -246,8 +249,10 @@
 - multivariate: edge_discovery/02_fmb
 - mvrv: edge_discovery/20_onchain
 - navigation: tools/build_map
+- negative results: tools/experiment_registry
 - new listings: edge_discovery/12_listing
 - no future: tests/test_no_lookahead
+- no-repeat: tools/experiment_registry
 - notebook: tools/nb_cells
 - notebooks: tools/build_map
 - numba: edge_discovery/21_range_fade, edge_discovery/22_chart_rules
@@ -305,8 +310,10 @@
 - recurrence plot: edge_discovery/27_repr_info
 - redundancy: edge_discovery/02_fmb
 - relative direction: edge_discovery/18_h13_pr7_signal
+- reopen conditions: tools/experiment_registry
 - representation information: edge_discovery/27_repr_info
 - research data: tools/fetch_crypto_dataset
+- research protocol: tools/experiment_registry
 - resumable: edge_discovery/25_image_cnn
 - resume: cross_asset/train, tools/fetch_history_csv_concurrent, tools/fetch_history_vision_colab
 - retail long/short ratio: edge_discovery/02_fmb
