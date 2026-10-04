@@ -43,6 +43,33 @@ Every rejected or abandoned experiment adds one row to `docs/research/failure_re
 
 Rows are never edited. A reopened experiment that fails again adds a new row that `supersedes` the old one.
 
+## 2.1 Failure of the idea vs failure of the setup (memorization is a setup failure until proven otherwise)
+
+A model that memorizes (train ≫ val, shuffled labels also fit, val→test drop) has **not** shown that the idea or the
+signal is absent. The usual cause is the ratio of free directions to *effective* samples: many features let the model
+find temporary, period-specific relations that fit train and vanish later, and the data needed to rule those out grows
+fast with the number of features. Here the effective sample count is much smaller than the row count — windows with
+`stride < window` overlap (31/32 shared bars at stride 1), and all coins of the same day move together
+(`anti_memorization_pr7.md`). Fewer features generalize better: the model may become weaker, but what it reports is
+honest.
+
+So a `generalization`-level failure may be closed as a failure **of the idea** only after these capacity controls, all on
+the same splits:
+
+1. **Effective sample size** reported: unique non-overlapping time steps × an estimate of independent assets per step
+   (e.g. via the average cross-coin correlation), and the ratio of that number to the feature count and to the parameter
+   count.
+2. **Feature-count sweep**: the same model on k = 1, 3, 5, 10, … features (ranked on train/val only — never test), with the
+   val–train gap and val skill for each k. The idea fails only if *no* k gives val skill above the null.
+3. **Learning curve**: val skill at 25 / 50 / 100 % of the training period; still rising at 100 % means "needs more
+   data", not "no signal".
+4. **Simple-model baseline** (logistic / ridge on the same features): if it beats the deep model, the failure is capacity,
+   not signal.
+
+Until these are done the row is `closed-unverified-cause`, with reopen conditions that name the setup, e.g.
+`R1: ≤ k features chosen on train/val | R2: effective samples per feature ≥ N | R3: capacity sweep not yet run`.
+The model diagnostics toolkit (`model_diagnostics.md`) provides the sweep and the learning curve so they are cheap to run.
+
 ## 3. No repeat without a reason (enforced)
 
 - Before writing a card: `python tools/experiment_registry.py search <words>`.
