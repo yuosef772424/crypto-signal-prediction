@@ -94,3 +94,22 @@ The model diagnostics toolkit (`model_diagnostics.md`) provides the sweep and th
 
 Scripts used more than once go into `tools/` (or a model notebook section) with a card and a test; later sessions call
 them instead of rebuilding (`CLAUDE.md`).
+
+## Tag vocabulary
+
+Spellings used by `failure_registry.csv` (reuse them; a new spelling silently escapes coverage — run
+`python tools/experiment_registry.py search <word>` first). Lower-case, `;`-separated, `any` only when the failure holds
+for every value.
+
+- **mechanism**: architecture; breakout; candle-structure; chart-pattern; classification-head; clustering; copy-trading;
+  cross-coin-attention; cross-sectional; cycle; drawdown-anchor; event-study; feature-interaction; grid-hedge;
+  indicator-signal; lead-lag; limit-order-entry; listing-drift; market-beta; market-breadth; mean-reversion;
+  microstructure; momentum; onchain; open-interest; path-envelope; pattern-matching; positioning; range-fade;
+  regime-filter; representation; seasonality; selective-direction; trend-following; volatility-estimator;
+  volatility-structure; volume-flow
+- **timeframe**: 15m; 1h; 4h; 1d (daily bars, including multi-day horizons)
+- **target**: direction (sign/return of the forward close); relative-direction (vs the same-time cross-sectional
+  median/mean); return (mean forward return); high-low (forward high/low extension or breach); magnitude (size of the
+  move/envelope, volatility); pnl (net trade/portfolio P&L)
+- **model_class**: decision-tree; event-study; gbm; ic-screen (single-feature marginal rank IC per rolling window);
+  logistic; nig-timenet; panel; regression; rule; unsupervised

@@ -25,7 +25,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `research/edge_discovery/` — التقرير النهائي — البحث عن Edge قابل للاستغلال (2024-01 → 2026-09) | 41 scripts, 33 data files (787 KB) → maps/research_edge_discovery.md
 
 ## docs/research (legacy)
-- `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 41 md, 1 data files (193 B) → maps/docs_research.md
+- `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 41 md, 1 data files (72 KB) → maps/docs_research.md
 - `docs/research/audit/` — Audit / Improvement Protocol (Auditor ↔ Builder) | 26 scripts, 5 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/results/` — نتائج خطّة `capacity` على بيانات Drive (Colab T4، 2026-09-27) | 0 scripts, 6 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/scripts/` — سكربتات إعادة إنتاج تدقيق التطبيع | 9 scripts, 1 md, 1 data files (10 KB) → maps/docs_research.md
