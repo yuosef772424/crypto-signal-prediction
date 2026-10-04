@@ -22,7 +22,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `tools/` — build_map, check_deps, colab_bridge, evaluate_trained_model, fetch_history_colab_cell, fetch_histor… | 8 modules, 0 data files (0 B) → maps/tools.md
 
 ## Research studies (research/)
-- `research/edge_discovery/` — التقرير النهائي — البحث عن Edge قابل للاستغلال (2024-01 → 2026-09) | 40 scripts, 32 data files (772 KB) → maps/research_edge_discovery.md
+- `research/edge_discovery/` — التقرير النهائي — البحث عن Edge قابل للاستغلال (2024-01 → 2026-09) | 41 scripts, 33 data files (786 KB) → maps/research_edge_discovery.md
 
 ## docs/research (legacy)
 - `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 39 md, 0 data files (0 B) → maps/docs_research.md
