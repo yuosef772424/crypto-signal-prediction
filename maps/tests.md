@@ -231,15 +231,15 @@
   - `class FetchDatasetTests(unittest.TestCase)` L45
     - (1 methods)
 
-### `tests/test_workflow_packages.py` (211 lines)
+### `tests/test_workflow_packages.py` (207 lines)
 - PURPOSE: The workflow/ package (ex main.ipynb code) and the discovery/ package (ex signal_discovery_lab.ipynb + pandas_ta_full_survey.ipynb (from docstring)
 - DEPENDS: discovery, docs, workflow
 - API:
   - `class PackageStructureTests(unittest.TestCase)` L52
     - (6 methods)
-  - `class RunnerNotebookTests(unittest.TestCase)` L126
+  - `class RunnerNotebookTests(unittest.TestCase)` L122
     - (5 methods)
-  - `class DiscoveryFromPackageTests(unittest.TestCase)` L185
+  - `class DiscoveryFromPackageTests(unittest.TestCase)` L181
     - (2 methods)
 
 Data / other files (counts only):

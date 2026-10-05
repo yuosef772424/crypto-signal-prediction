@@ -104,17 +104,13 @@ class PackageStructureTests(unittest.TestCase):
         """Loading workflow/ after the %run notebooks must not silently replace a name they define (the old notebook shadowed
         `_auc` the same way: main's cell 7-g came after the model_v2 %run)."""
         defined = {}
-        for nb in ("model_v2 (1).ipynb", "trainer_framework_v2.ipynb", "chicks_v4_5_input_output_patterns.ipynb"):
-            for c in _cells(nb):
-                if c["cell_type"] == "code":
-                    for n in ast.parse(_code(c)).body:
+        # the %run notebooks are runners now: their definitions live in these packages
+        for pkg in ("data", "model", "trainer", "evaluation"):
+            for f in sorted(os.listdir(os.path.join(ROOT, pkg))):
+                if f.endswith(".py") and not f.startswith("_"):
+                    for n in ast.parse(open(os.path.join(ROOT, pkg, f), encoding="utf-8").read()).body:
                         if isinstance(n, (ast.FunctionDef, ast.ClassDef)):
-                            defined.setdefault(n.name, nb)
-        for f in os.listdir(os.path.join(ROOT, "data")):
-            if f.endswith(".py") and not f.startswith("_"):
-                for n in ast.parse(open(os.path.join(ROOT, "data", f), encoding="utf-8").read()).body:
-                    if isinstance(n, (ast.FunctionDef, ast.ClassDef)):
-                        defined.setdefault(n.name, f"data/{f}")
+                            defined.setdefault(n.name, f"{pkg}/{f}")
         mine = {}
         for m in workflow_loader.MODULES:
             for n in ast.parse(workflow_loader.module_path(m).read_text(encoding="utf-8")).body:
@@ -189,7 +185,7 @@ class DiscoveryFromPackageTests(unittest.TestCase):
         ns.update(np=__import__("numpy"), pd=__import__("pandas"), __name__="lab")
         disc = _nbload.discovery_package()
         disc.load_into(ns, only=("axis_loader",))
-        exec(compile(ns["load_notebook_defs"](os.path.join(ROOT, "signal_evaluation_axis (3).ipynb")), "axis", "exec"), ns)
+        _nbload._repo_package("signal_eval").load_into(ns, exclude=("bootstrap",))         # the axis (as the lab runner loads it)
         disc.load_into(ns, exclude=("axis_loader", "survey"))
         import contextlib
         import io
