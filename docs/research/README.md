@@ -58,6 +58,50 @@
 
 للتعديل: غيّر ملف الوحدة (لا الدفتر)، وراجع `CLAUDE.md`. الاختبارات تحمّل الحزمتين عبر `docs/research/audit/_nbload.load_model()` و`load_trainer()`
 (بلا الاختبار الذاتي ولا Smoke Test ولا K-Fold)، وتفحص `tests/test_model_trainer_packages.py` البنية.
+## أين كود تقييم النموذج (`chicks_v4_5_input_output_patterns`) ومحور الإشارة (`signal_evaluation_axis`)
+
+كودا الدفترين نُقلا حرفياً إلى حزمتين: [`evaluation/`](../../evaluation/) (تقييم النموذج بعد التدريب؛ خريطتها [`maps/evaluation.md`](../../maps/evaluation.md))
+و[`signal_eval/`](../../signal_eval/) (محور الإشارة، المرحلة ٠؛ [`maps/signal_eval.md`](../../maps/signal_eval.md)). الدفتران صارا مُشغِّلَين رفيعَين
+(بلا أي `def`) يحمّلان حزمتيهما في نطاقهما بـ`evaluation.load_into(globals())` / `signal_eval.load_into(globals())`، فتبقى الأسماء نفسها لمن يستدعيهما بـ`%run`
+(`main.ipynb`، ودفاتر الفرضيات `hypothesis_h00*.ipynb`). كل حزمة وحداتها تعمل في **نطاق واحد مشترك** (`_loader.py`)، فلا `import evaluation.<module>`.
+الوثائق المسجَّلة قبل النقل تشير إلى «الخلية N» أو «القسم N»؛ هذان جدولا التحويل (أرقام الخلايا قبل النقل، 0-based):
+
+**`chicks_v4_5_input_output_patterns.ipynb` ← `evaluation/`**
+
+| الخلية (القسم) | الوحدة | الخلية (القسم) | الوحدة |
+|---|---|---|---|
+| 2 (١، `TargetSpec` + الاستيرادات) | `evaluation/targets.py` | 24 (١٠، الثقة والمعايرة) | `evaluation/trust_calibration.py` |
+| 4 (٢، `save_or_print`) | `evaluation/outputs.py` | 26 (١١، تحليل موجَّه للمخرجات) | `evaluation/output_conditioned.py` |
+| 6 (٣، التنبؤ) | `evaluation/predict.py` | 28 (١٢، اكتشاف الأنماط) | `evaluation/patterns.py` |
+| 8 (٤، فك التشفير) | `evaluation/decode.py` | 30 (١٣، مقاييس التداول) | `evaluation/tearsheet.py` |
+| 10 (٥، التحقق من فك التشفير) | `evaluation/verify.py` | 32 (١٤، الرسوم) | `evaluation/plots.py` |
+| 12 (٦، المقاييس) | `evaluation/metrics.py` | 34 (١٥، نزاهة النموذج) | `evaluation/integrity.py` |
+| 14 (٦.٥، جدول آخر العينات) | `evaluation/latest_table.py` | 36 (١٦، `run_full_analysis`) | `evaluation/full_analysis.py` |
+| 16 (٧، `predict_with_evaluation_v4`) | `evaluation/unified.py` | 38 (١٧، تقرير قديم) | `evaluation/legacy_uncertainty.py` |
+| 18 (٨، `test_all_assets_v4`) | `evaluation/all_assets.py` | 40 (١٨، محاكاة قديمة) | `evaluation/legacy_assets.py` |
+| 20 (التداول الحي) | `evaluation/live.py` | 42–44 (١٩، اختيار الصفقات) | `evaluation/trade_selection.py` |
+| 22 (٩، `build_flat_dataframe`) | `evaluation/flat.py` | 46–49 (٢٠، أنماط المدخلات ↔ المخرجات) | `evaluation/io_patterns.py` |
+
+**`signal_evaluation_axis (3).ipynb` ← `signal_eval/`**
+
+| الخلية (القسم) | الوحدة / الموضع الجديد |
+|---|---|
+| 2 (١، الاستيرادات) | `signal_eval/common.py` |
+| 4 + 6 + 8 (٢–٤، `compute_ic`/`decile_spread`/`permutation_baseline`) | `signal_eval/core.py` |
+| 10 (٥، `evaluate_windows`) | `signal_eval/windows.py` |
+| 12 (٦، طبقة التكامل مع `rolling_splits`) | `signal_eval/integration.py` |
+| 14 (٧، الاختبارات الذاتية) | التعريفات في `signal_eval/selftests.py`؛ **تشغيلها** (`PASS.clear()...`) خلية في الدفتر المُشغِّل |
+| 15 (تنزيل `dataprocess.ipynb` + `%run` + تحميل `dataset`) | `download_notebook_from_drive` في `signal_eval/bootstrap.py`؛ خط الأنابيب يُحمَّل من `data/` (خلية في الدفتر المُشغِّل)؛ تحميل `dataset` خلية في الدفتر المُشغِّل |
+| 16 (تحميل `dataset` من Drive) و18 (٨، بوّابة المرحلة ٠) | تبقيان خليتين في الدفتر المُشغِّل (دفاتر الفرضيات تعتمد على `dataset`/`windows`/`report` الناتجة عنهما) |
+| 20 (٩، سجلّ التجارب) | `signal_eval/registry.py` |
+| 22 (اختبارات السجلّ) | التعريف في `signal_eval/registry_selftests.py`؛ استدعاؤه خلية في الدفتر المُشغِّل |
+
+**قرار `dataprocess.ipynb`:** كان الدفتر الأصلي ينزّل `dataprocess.ipynb` (نسخة من دفتر خط الأنابيب على Drive، غير موجودة في المستودع) ثم يعمل `%run` له ليحصل على
+`rolling_splits` وCONFIG و`load_preprocessed_data_from_drive`. الدفتر المُشغِّل يحمّل الآن الحزمة `data/` (المصدر الحالي لخط الأنابيب نفسه) في نطاقه
+**فقط إن لم تكن هذه الأسماء موجودة** (مثلاً بعد `%run "crypto_data_pipeline_v6.ipynb"`)؛ فإن وُجدت لا يتغيّر شيء. لا تنزيل من Drive بعد الآن. اختبارات `dataprocess` الذاتية
+التي كانت تعمل عند ذلك `%run` (ونتائجها المحفوظة في مخرجات الدفتر القديم) لا تُشغَّل هنا؛ مكانها `run_pipeline_selftests` في `data/selftests.py`.
+
+للتعديل: غيّر ملف الوحدة (لا الدفتر)، وراجع `CLAUDE.md` (تعديل لا يغيّر السلوك الافتراضي، واختبارات `tests/`: `tests/test_evaluation_packages.py` يثبّت البنية).
 
 ## بنية دفاتر محور التقييم (`signal_evaluation_axis`)
 
@@ -65,7 +109,7 @@
 
 | الدفتر | الدور |
 |---|---|
-| [`signal_evaluation_axis (3).ipynb`](../../signal_evaluation_axis%20(3).ipynb) | **المحور الأساسي فقط**: `compute_ic`/`decile_spread`/`permutation_baseline`/`evaluate_windows`، طبقة ربط بخط الأنابيب، وسجلّ التجارب (`register_hypothesis`/`list_registry`) — بلا أي فرضية مُختبَرة. |
+| [`signal_evaluation_axis (3).ipynb`](../../signal_evaluation_axis%20(3).ipynb) | **المحور الأساسي فقط** (مُشغِّل رفيع؛ الكود في الحزمة `signal_eval/`): `compute_ic`/`decile_spread`/`permutation_baseline`/`evaluate_windows`، طبقة ربط بخط الأنابيب، وسجلّ التجارب (`register_hypothesis`/`list_registry`) — بلا أي فرضية مُختبَرة. |
 | [`hypothesis_h001_short_term_reversal.ipynb`](../../hypothesis_h001_short_term_reversal.ipynb) | تسجيل واستقصاء [H001](h001_short_term_reversal.md) (مقبولة). |
 | [`hypothesis_h002_classification_head.ipynb`](../../hypothesis_h002_classification_head.ipynb) | تسجيل [H002](h002_classification_head.md) (مرفوضة). |
 | [`hypothesis_h003_volatility_reversal.ipynb`](../../hypothesis_h003_volatility_reversal.ipynb) | تسجيل [H003](h003_volatility_reversal.md) (مقبولة). |

@@ -12,10 +12,11 @@ Navigate MAP.md -> maps/<zone>.md -> read only the target symbol by line range (
 - `git config core.hooksPath .githooks` - once per clone (Claude Code sessions do it on SessionStart): the pre-commit hook regenerates and stages the maps and runs the structure checks, so a commit can't leave them stale.
 - `data/` holds ALL data-preparation code (formerly the cells of `crypto_data_pipeline_v6.ipynb`, now a thin runner): edit the module, not the notebook. The modules run in ONE shared namespace (`data/_loader.py`: `data.load_into(ns)`), never `import data.<module>`; tests get it via `docs/research/audit/_nbload.load_pipeline()`.
 - `model/` (ex `model_v2 (1).ipynb`) and `trainer/` (ex `trainer_framework_v2.ipynb`) hold the NIG-TimeNet model and the generic trainer, same pattern as `data/` (notebooks are thin runners): edit the module, not the notebook; tests get them via `_nbload.load_model()` / `load_trainer()`.
+- `evaluation/` (model evaluation, formerly `chicks_v4_5_input_output_patterns.ipynb`) and `signal_eval/` (signal evaluation axis, formerly `signal_evaluation_axis (3).ipynb`) follow the same pattern as `data/`: edit the module, not the thin runner notebook; one shared namespace per package (`<pkg>/_loader.py`: `<pkg>.load_into(ns)`); tests get them via `_nbload.load_evaluation()` / `signal_eval.load_into(ns)`.
 - `python -m pytest tests/ -q` - full suite, CPU only, no Drive (needs `pip install -r requirements-ci.txt`).
 
 ## Working rules
-- Zones and import direction: code packages (`cross_asset/`, `tools/`, `data/`, `model/`, `trainer/`) never import `research/`, `docs/` or `tests/`; a study never imports another study (lift shared code into a package).
+- Zones and import direction: code packages (`cross_asset/`, `tools/`, `data/`, `model/`, `trainer/`, `evaluation/`, `signal_eval/`) never import `research/`, `docs/` or `tests/`; a study never imports another study (lift shared code into a package).
 - Add, don't modify: a new study is `research/<study>/` with a README; recorded results are never edited (add a corrected copy, keep the original marked).
 - A new option's default must reproduce the old behavior exactly (checkpoints and past results stay valid).
 - No silent defaults: unknown config keys or unregistered feature/head/loss names raise; pass config sections explicitly, not via a global.

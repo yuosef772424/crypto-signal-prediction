@@ -60,7 +60,7 @@ Documents:
 - `round2.md` — Audit round 2 — pinned at b14b9bb (branch claude/charming-sagan-kswo2r)
 - `round3.md` — Audit round 3: two-timeframe path (1h base + closed 4h context), commit f2442be
 
-### `docs/research/audit/_nbload.py` (89 lines)
+### `docs/research/audit/_nbload.py` (105 lines)
 - PURPOSE: Audit helper: execute the code cells of a notebook into a namespace, without Colab. (from docstring)
 - DEPENDS: data
 - API:
@@ -68,6 +68,8 @@ Documents:
   - `def load_pipeline(quiet=True)` L47
   - `def load_model(ns=None, quiet=True, selftests=False)` L69
   - `def load_trainer(ns=None, quiet=True, smoke_test=False, kfold=False)` L80
+  - `def load_evaluation(ns=None, exclude=(), quiet=True)` L92
+  - `def exec_evaluation_module(name, ns, quiet=True)` L101
 
 ### `docs/research/audit/_r2_synth.py` (113 lines)
 - PURPOSE: Round-2 audit helper: a synthetic 'Drive' (1h + 15m klines, funding, OI, futures_metrics) and a (from docstring)
@@ -274,56 +276,62 @@ Documents:
   - `def stats(x)` L43
   - `def perm_p(d, q, kind, amb, model_mean)` L47
 
-### `docs/research/scripts/causal_decomposition.py` (155 lines)
+### `docs/research/scripts/causal_decomposition.py` (156 lines)
 - PURPOSE: Causal per-day cross-sectional residualization + control decomposition. (from docstring)
+- DEPENDS: signal_eval
 - API:
   - `def log(m)` L12
   - `def load_notebook_defs(path)` L23
-  - `def get(fl, f)` L79
-  - `def rel(i, tg)` L82
-  - `def momentum_agreement(fl)` L87
-  - `def per_day_residual(x, controls, ts)` L95
+  - `def get(fl, f)` L80
+  - `def rel(i, tg)` L83
+  - `def momentum_agreement(fl)` L88
+  - `def per_day_residual(x, controls, ts)` L96
 
-### `docs/research/scripts/corrected_retest.py` (185 lines)
+### `docs/research/scripts/corrected_retest.py` (186 lines)
 - PURPOSE: (no card)
+- DEPENDS: signal_eval
 - API:
   - `def log(m)` L4
   - `def load_notebook_defs(path)` L17
   - `def by_asset(pkl, col)` L48
-  - `def get(flat, f)` L108
-  - `def actuals(flat, target)` L140
+  - `def get(flat, f)` L109
+  - `def actuals(flat, target)` L141
 
-### `docs/research/scripts/feature_screen.py` (116 lines)
+### `docs/research/scripts/feature_screen.py` (117 lines)
 - PURPOSE: Screen every pipeline feature (defaults + optional + commented-out indicators) (from docstring)
+- DEPENDS: signal_eval
 - API:
   - `def log(m)` L7
   - `def load_notebook_defs(path)` L16
   - `def by_asset(pkl, col)` L34
 
-### `docs/research/scripts/feature_screen_eval.py` (75 lines)
+### `docs/research/scripts/feature_screen_eval.py` (76 lines)
 - PURPOSE: (no card)
+- DEPENDS: signal_eval
 - API:
   - `def log(m)` L9
   - `def load_notebook_defs(path)` L11
-  - `def per_day_residual(x, controls, ts)` L27
-  - `def job(args)` L45
-  - `def summarize(pw)` L52
+  - `def per_day_residual(x, controls, ts)` L28
+  - `def job(args)` L46
+  - `def summarize(pw)` L53
 
-### `docs/research/scripts/holdout_momentum_orth_natr.py` (180 lines)
+### `docs/research/scripts/holdout_momentum_orth_natr.py` (181 lines)
 - PURPOSE: Pre-registered out-of-sample test (docs/research/preregistration_momentum_orth_natr_holdout.md). (from docstring)
+- DEPENDS: signal_eval
 - API:
   - `def log(m)` L10
   - `def load_notebook_defs(path)` L21
   - `def blocks(start, end_limit, direction)` L67
   - `def take_block(lo, hi)` L85
-  - `def get(fl, f)` L99
-  - `def momentum_agreement(fl)` L102
-  - `def per_day_residual(x, controls, ts)` L110
-  - `def prepare(block_list)` L126
-  - `def run(P, tag, specs)` L144
+  - `def get(fl, f)` L100
+  - `def momentum_agreement(fl)` L103
+  - `def per_day_residual(x, controls, ts)` L111
+  - `def prepare(block_list)` L127
+  - `def run(P, tag, specs)` L145
 
-### `docs/research/scripts/mom_orth_fidelity.py` (76 lines)
+### `docs/research/scripts/mom_orth_fidelity.py` (77 lines)
 - PURPOSE: Does the pipeline's MOM_ORTH_NATR column reproduce the pre-registered feature? (from docstring)
+- DEPENDS: signal_eval
 - API:
   - `def log(m)` L5
   - `def load_notebook_defs(path)` L10
@@ -459,11 +467,11 @@ Data / other files (counts only):
 - PURPOSE: Maker entry offset sweep (long and short, all coins, no direction model): fill rate, adverse-selection gap (from docstring)
 - DEPENDS: cross_asset
 
-### `docs/research/scripts/hourly_1h/selective.py` (82 lines)
+### `docs/research/scripts/hourly_1h/selective.py` (83 lines)
 - PURPOSE: Selective direction (next-bar close up/down). Discover on VAL (chicks detect_success_failure_patterns + simple (from docstring)
-- DEPENDS: cross_asset
+- DEPENDS: cross_asset, evaluation
 - API:
-  - `def trade(sub, cost)` L50
+  - `def trade(sub, cost)` L51
 
 ## `docs/research/templates/`
 - Experiment card — <id>: <one-line title> | 0 scripts, 1 md, 0 data files (0 B)

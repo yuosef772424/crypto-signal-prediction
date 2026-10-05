@@ -28,7 +28,7 @@ from check_deps import (  # noqa: E402  (shared repo helpers)
 )
 
 ALLOWLIST_PATH = "tools/card_allowlist.txt"
-RATCHET_PREFIXES = ("cross_asset/", "tools/", "data/", "model/", "trainer/", "research/")
+RATCHET_PREFIXES = ("cross_asset/", "tools/", "data/", "model/", "trainer/", "evaluation/", "signal_eval/", "research/")
 DATA_EXTS = ("csv", "json", "log", "txt")
 FIELDS = ("PURPOSE", "TAGS", "PITFALLS")
 FIELD_RE = re.compile(r"^(PURPOSE|TAGS|PITFALLS)\s*:\s*(.*)$")

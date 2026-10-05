@@ -19,7 +19,7 @@ import pandas as pd
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
-from tests.test_reg_target_scale import _cell, _ns  # noqa: E402 — نطاق خط الأنابيب وchicks المشترك (يُحمَّل مرّة)
+from tests.test_reg_target_scale import _cell, _ns, _nbload  # noqa: E402 — نطاق خط الأنابيب وchicks المشترك (يُحمَّل مرّة)
 
 # صفوف الحالات الحدّية في كل قسم: فجوة صعود (L > P)، فجوة هبوط (H < P)، مدى صفر (فوق P)، حركة أكبر من القصّ (+200%)
 UP_GAP, DOWN_GAP, ZERO, HUGE = 0, 1, 2, 3
@@ -403,7 +403,7 @@ class EntryRangeChicksCloseTests(unittest.TestCase):
             src = _cell("main.ipynb", idx)
             exec(compile(src[src.index("import dataclasses"):] if idx == 20 else src, f"main#cell{idx}", "exec"), ns)
         # test_all_assets_v4 (chicks ٨): تحميل الدفتر العام يتخطّاها (تحوي نصّ الاستدعاء)، وهنا هي المسار المختبَر
-        exec(compile(_cell("chicks_v4_5_input_output_patterns.ipynb", 18), "chicks#cell18", "exec"), ns)
+        _nbload.exec_evaluation_module("all_assets", ns, quiet=False)      # chicks cell 18
         return ns
 
     @staticmethod

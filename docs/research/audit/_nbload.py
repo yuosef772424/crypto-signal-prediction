@@ -55,7 +55,7 @@ def load_pipeline(quiet=True):
 
 
 def _repo_package(name):
-    """The repo's package ``name`` ('model' | 'trainer'), imported from ROOT (same guard as _data_package)."""
+    """The repo's code package ``name`` (data, model, trainer, evaluation, signal_eval, ...), imported from ROOT (never a same-named installed one)."""
     import importlib
     import sys
     if ROOT not in sys.path:
@@ -86,4 +86,20 @@ def load_trainer(ns=None, quiet=True, smoke_test=False, kfold=False):
     exclude = tuple(m for m, keep in (("smoke_test", smoke_test), ("kfold", kfold)) if not keep)
     with (contextlib.redirect_stdout(io.StringIO()) if quiet else contextlib.nullcontext()):
         _repo_package("trainer").load_into(ns, exclude=exclude)
+    return ns
+
+
+def load_evaluation(ns=None, exclude=(), quiet=True):
+    """Package evaluation/ (ex chicks_v4_5_input_output_patterns.ipynb) executed into ``ns`` (a fresh dict by default):
+    same code path as the runner notebook, evaluation.load_into(ns). ``exclude`` = module names to skip."""
+    ns = {"__name__": "audit_nb"} if ns is None else ns
+    with (contextlib.redirect_stdout(io.StringIO()) if quiet else contextlib.nullcontext()):
+        _repo_package("evaluation").load_into(ns, exclude=exclude)
+    return ns
+
+
+def exec_evaluation_module(name, ns, quiet=True):
+    """Execute ONE evaluation/ module into ``ns`` (what exec'ing a single chicks cell used to do)."""
+    with (contextlib.redirect_stdout(io.StringIO()) if quiet else contextlib.nullcontext()):
+        _repo_package("evaluation").exec_module(name, ns)
     return ns

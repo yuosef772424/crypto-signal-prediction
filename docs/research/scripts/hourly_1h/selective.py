@@ -8,7 +8,8 @@ from cross_asset.report import _t
 from sklearn.tree import DecisionTreeClassifier
 REPO = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..', '..')
 ns = {'np': np, 'pd': pd}
-exec('from typing import Dict, List, Optional\n' + ''.join(json.load(open(f'{REPO}/chicks_v4_5_input_output_patterns.ipynb'))['cells'][28]['source']), ns)
+exec('from typing import Dict, List, Optional', ns)
+import evaluation; evaluation.exec_module('patterns', ns)    # the old chicks cell 28 (package evaluation/, module patterns)
 detect = ns['detect_success_failure_patterns']
 e = pd.read_pickle('exc_preds.pkl')
 from base_data import load

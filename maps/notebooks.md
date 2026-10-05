@@ -4,79 +4,9 @@
 
 ## `chicks_v4_5_input_output_patterns.ipynb`
 - title: 📓 دفتر تقييم النموذج — نسخة مُحسّنة (v4.1)
-- cells: 50 (27 code)
-- headings: 📓 دفتر تقييم النموذج — نسخة مُحسّنة (v4.1) · 1️⃣ الإعداد الأساسي: TargetSpec (وصف الأهداف المستمرة/الفئوية) · 2️⃣ 💾 إدارة المخرجات: `save_or_print` و `save_figure` · 3️⃣ المرحلة 1: التنبؤ على الدفعات (مرن) · 4️⃣ المرحلة 2: فك التشفير المرن (مستمر + فئوي) · 5️⃣ المرحلة 2.5: التحقق من صحة فك التشفير · 6️⃣ المرحلة 3: التقييم المرن (Metrics مستمرة + فئوية) · 6️⃣.٥ جدول آخر العينات (التاريخ · التوقع · الثقة · عدم اليقين) — يعمل بلا أهداف حقيقية · 7️⃣ المرحلة 4: الدالة الموحّدة predict_with_evaluation_v4 · 8️⃣ اختبار كل الأصول (Assets) دفعة واحدة — test_all_assets_v4 · 🔴 التداول الحي: تقرير آخر N عينات — `predict_latest_v4` / `predict_latest_all_assets` · 9️⃣ دالة مساعدة مشتركة: تسطيح النتائج إلى DataFrame واحد · 🔟 🧠 تقرير: الثقة والفهم (Trust & Calibration Report) · 1️⃣1️⃣ 🎯 تقرير: تحليل موجَّه للمخرجات (Output-Conditioned Analysis) · 1️⃣2️⃣ 🔬 تقرير: اكتشاف الأنماط آلياً (Pattern Discovery) · 1️⃣3️⃣ 📈 مقاييس أداء تداول إضافية (Tearsheet-style Metrics) · 1️⃣4️⃣ 📊 الرسوم البيانية (Visual Reports) · 1️⃣5️⃣ 🩺 تشخيص نزاهة النموذج (Naive Baseline × Lag Scan × الانحياز) · 1️⃣6️⃣ 🚀 الدالة الرئيسية الموحّدة v2: كل التحليلات + الرسوم + إدارة المخرجات · 1️⃣7️⃣ 📚 التقارير القديمة (محفوظة ومحدَّثة لاستخدام save_or_print)
-- API:
-  - `class TargetSpec` cell 2 L29
-  - `def make_categorical_spec(name: str, class_names: List[str], has_uncertainty: bool=False) -> TargetSpec` cell 2 L118
-  - `def nig_uncertainty_bounded(nu, alpha, beta, unc_max=None, alpha_den_min=NIG_ALPHA_DEN_MIN)` cell 2 L182
-  - `def wilson_ci(k, n, z: float=1.96)` cell 2 L196
-  - `def resolve_targets(targets=None, available: Optional[Iterable[str]]=None) -> List[TargetSpec]` cell 2 L254
-  - `def get_model_target_names(model, X_inputs=None) -> Optional[List[str]]` cell 2 L316
-  - `def ensure_output_dir(out_dir: str=DEFAULT_OUTPUT_DIR) -> str` cell 4 L19
-  - `def save_or_print(data: Union[pd.DataFrame, str], name: str, out_dir: str=DEFAULT_OUTPUT_DIR, max_rows: int=DEFAULT_MAX_ROWS, max_chars: int=DEFAULT_MAX_CHARS, verbose: bool=True, timestamp: bool=False) -> Optional[s…` cell 4 L24
-  - `def save_figure(fig, name: str, out_dir: str=DEFAULT_OUTPUT_DIR, dpi: int=130) -> str` cell 4 L87
-  - `def predict_batch_v4(model, X_inputs: Tuple[np.ndarray, ...], target_specs: List['TargetSpec'], batch_size: int=256, verbose: bool=False, unc_max: Optional[float]=None) -> Dict[str, np.ndarray]` cell 6 L5
-  - `def predict_batch(model, X_inputs, batch_size: int=256, verbose: bool=False) -> Dict[str, np.ndarray]` cell 6 L99
-  - `def decode_predictions_v4(raw_preds: Dict[str, np.ndarray], target_specs: List['TargetSpec'], base_params: Optional[np.ndarray]=None, last_candles: Optional[np.ndarray]=None, limit: Optional[int]=None) -> Dict[str, Dict[str,…` cell 8 L11
-  - `def decode_predictions(raw_preds, base_params, last_candles=None, limit=None)` cell 8 L182
-  - `def verify_decoding(raw_preds: Dict[str, np.ndarray], decoded: Dict[str, Dict[str, np.ndarray]], target_specs: List['TargetSpec'], base_params: Optional[np.ndarray]=None, y_true: Optional[Dict[str, np.ndarray]]=None, l…` cell 10 L5
-  - `def evaluate_predictions_v4(decoded_preds: Dict[str, Dict[str, np.ndarray]], target_specs: List['TargetSpec'], y_true: Optional[Dict[str, np.ndarray]]=None, base_params: Optional[np.ndarray]=None, direction_tolerance: float=0.…` cell 12 L5
-  - `def evaluate_predictions(decoded_preds, y_true=None, base_params=None, last_candles=None, direction_tolerance=0.2, price_tolerance=None)` cell 12 L158
-  - `def build_latest_table(decoded: Dict[str, Dict[str, np.ndarray]], target_specs, n_display: int=5, timestamps=None, asset: Optional[str]=None) -> pd.DataFrame` cell 14 L79
-  - `def format_latest_table(df: pd.DataFrame) -> pd.DataFrame` cell 14 L182
-  - `def print_latest_table(df: pd.DataFrame, title: Optional[str]=None, legend: bool=True, indent: str=' ')` cell 14 L221
-  - `def predict_with_evaluation_v4(model, X_inputs: Tuple[np.ndarray, ...], target_specs, base_params: Optional[np.ndarray]=None, last_candles: Optional[np.ndarray]=None, y_true: Optional[Dict[str, np.ndarray]]=None, verbose: bool=Fa…` cell 16 L5
-  - `def predict_with_evaluation_v3(model, X_inputs, base_params, last_candles=None, y_true=None, verbose=False, n_display=5, batch_size=256, direction_tolerance=0.2, price_tolerance=None, min_samples=1)` cell 16 L116
-  - `def summarize_verification(verification_df: pd.DataFrame) -> pd.DataFrame` cell 18 L13
-  - `def print_verification_summary(verification_df: pd.DataFrame)` cell 18 L55
-  - `def per_asset_ci_table(all_results: List[Dict], specs: List['TargetSpec']) -> pd.DataFrame` cell 18 L103
-  - `def test_all_assets_v4(model, test_dict: Dict, timeframes: List[str], target_specs, verbose: bool=True, n_display: int=1, batch_size: int=256, range_frac: float=0.2, min_samples_per_asset: int=20, run_verification: bool=T…` cell 18 L125
-  - `def calculate_aggregated_metrics_v4(results_df: pd.DataFrame, target_specs) -> Dict` cell 18 L307
-  - `def test_all_assets(model, test_dict, timeframes, targets, verbose=True, n_display=1, batch_size=256, range_frac=0.2)` cell 18 L342
-  - `def predict_latest_v4(model, X_inputs: Tuple[np.ndarray, ...], base_params: np.ndarray, last_candles: Optional[np.ndarray]=None, target_specs=None, n_display: int=5, timestamps=None, timestamp_col: Optional[int]=None, y_…` cell 20 L11
-  - `def predict_latest_all_assets(model, test_dict: Dict, timeframes: List[str], target_specs=None, n_display: int=5, latest_only: bool=False, timestamp_col: Optional[int]=None, timestamp_key: Optional[str]=None, batch_size: int=256…` cell 20 L71
-  - `def build_flat_dataframe(per_asset_results: pd.DataFrame, target_specs: List['TargetSpec'], continuous_only: bool=False) -> pd.DataFrame` cell 22 L5
-  - `def generate_trust_report(df: pd.DataFrame, group_by: Optional[str]='target', n_bins: int=10, verbose: bool=True, calibrators: Optional[Dict]=None) -> Dict` cell 24 L10
-  - `def diagnose_confidence(conf, correct) -> Dict` cell 24 L260
-  - `def fit_confidence_calibrators(val_df: pd.DataFrame, method: str='isotonic', group_by: str='target', min_n: int=50, verbose: bool=True) -> Dict` cell 24 L278
-  - `def apply_confidence_calibration(df: pd.DataFrame, calibrators: Dict, group_by: str='target') -> pd.DataFrame` cell 24 L311
-  - `def calibration_report(cal_df: pd.DataFrame, n_bins: int=10, group_by: str='target', verbose: bool=True) -> pd.DataFrame` cell 24 L340
-  - `def print_calibration_report(res: pd.DataFrame)` cell 24 L355
-  - `def analyze_by_predicted_movement(df: pd.DataFrame, magnitude_col: str='predicted_change_pct', bins: Optional[List[float]]=None, verbose: bool=True) -> pd.DataFrame` cell 26 L11
-  - `def analyze_by_confidence_bucket(df: pd.DataFrame, n_buckets: int=5, verbose: bool=True) -> pd.DataFrame` cell 26 L59
-  - `def analyze_by_batch(df: pd.DataFrame, batch_size: int=100, target: Optional[str]=None, z_threshold: float=1.5, verbose: bool=True) -> pd.DataFrame` cell 26 L80
-  - `def detect_success_failure_patterns(df: pd.DataFrame, feature_cols: Optional[List[str]]=None, max_tree_depth: int=4, n_clusters: int=4, top_n_assets_onehot: int=8, verbose: bool=True, per_head: bool=True, head_col: str='target') -> Di…` cell 28 L197
-  - `def compute_trading_performance_metrics(returns_pct: np.ndarray, risk_free_pct: float=0.0, risk_per_trade: float=0.1, periods_per_year: Optional[float]=None) -> Dict[str, float]` cell 30 L10
-  - `def print_performance_verdict(metrics: Dict[str, float]) -> None` cell 30 L95
-  - `def simulate_equity_curve(returns_pct: np.ndarray, initial_capital: float=10000.0, risk_per_trade: float=0.1) -> Dict[str, np.ndarray]` cell 30 L117
-  - `def signal_significance_report(close_df: pd.DataFrame, trade_cost_pct: float=0.08, market_neutral: bool=True, periods_per_year: Optional[float]=None, n_perm: int=1000, seed: int=0, verbose: bool=True) -> Dict[str, object]` cell 30 L233
-  - `def plot_calibration_curve(reliability_df: pd.DataFrame, group_val=None, group_col: str='target', title: Optional[str]=None, save_dir: str=DEFAULT_OUTPUT_DIR) -> Optional[str]` cell 32 L17
-  - `def plot_confidence_vs_error(df: pd.DataFrame, target: Optional[str]=None, error_col: str='abs_error', save_dir: str=DEFAULT_OUTPUT_DIR) -> Optional[str]` cell 32 L43
-  - `def plot_error_distribution(df: pd.DataFrame, target: Optional[str]=None, error_col: str='pct_error', save_dir: str=DEFAULT_OUTPUT_DIR) -> Optional[str]` cell 32 L73
-  - `def plot_actual_vs_predicted(y_actual: np.ndarray, y_pred: np.ndarray, y_naive: Optional[np.ndarray]=None, title: str='Actual vs Predicted', save_dir: str=DEFAULT_OUTPUT_DIR, filename: Optional[str]=None) -> str` cell 32 L97
-  - `def plot_lag_correlation(lags: List[int], corrs: List[float], best_lag: int, title: str='Cross-Correlation vs Lag', save_dir: str=DEFAULT_OUTPUT_DIR, filename: Optional[str]=None) -> str` cell 32 L118
-  - `def plot_confusion_matrix_heatmap(cm: np.ndarray, class_names: List[str], title: str='Confusion Matrix', save_dir: str=DEFAULT_OUTPUT_DIR, filename: Optional[str]=None) -> str` cell 32 L137
-  - `def plot_feature_importance(importance_df: pd.DataFrame, top_n: int=15, save_dir: str=DEFAULT_OUTPUT_DIR, filename: str='feature_importance') -> str` cell 32 L162
-  - `def plot_clusters_2d(clustered_df: pd.DataFrame, feature_cols: List[str], save_dir: str=DEFAULT_OUTPUT_DIR, filename: str='clusters_pca') -> str` cell 32 L178
-  - `def plot_equity_curve(equity: np.ndarray, drawdown_pct: np.ndarray, title: str='Equity Curve', save_dir: str=DEFAULT_OUTPUT_DIR, filename: Optional[str]=None) -> str` cell 32 L203
-  - `def plot_batch_performance(batch_stats: pd.DataFrame, z_threshold: float=1.5, title: str='Performance Across Batches', save_dir: str=DEFAULT_OUTPUT_DIR) -> str` cell 32 L224
-  - `def compute_point_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, float]` cell 34 L11
-  - `def cross_correlation_lag_scan(y_actual: np.ndarray, y_pred: np.ndarray, max_lag: int=5)` cell 34 L18
-  - `def momentum_direction_accuracy(y_actual: np.ndarray, entry_price: np.ndarray) -> float` cell 34 L35
-  - `def directional_bias(y_actual: np.ndarray, y_pred: np.ndarray) -> Dict` cell 34 L52
-  - `def run_integrity_diagnostics(per_asset_results: pd.DataFrame, target_specs: List['TargetSpec'], max_lag: int=5, plot_worst_n: int=2, plot_best_n: int=1, out_dir: str=DEFAULT_OUTPUT_DIR, verbose: bool=True) -> pd.DataFrame` cell 34 L63
-  - `def run_full_analysis(model, test_dict: Dict, timeframes: List[str], target_specs: List['TargetSpec'], batch_size: int=256, range_frac: float=0.2, batch_analysis_size: int=100, out_dir: str=DEFAULT_OUTPUT_DIR, make_plots…` cell 36 L5
-  - `def comprehensive_uncertainty_analysis(per_asset_results)` cell 38 L6
-  - `def comprehensive_asset_analysis(per_asset_results, model_name='النموذج', market_neutral=None)` cell 40 L5
-  - `def compare_multiple_models(models_data, model_names)` cell 40 L246
-  - `def generate_detailed_report(analysis_results)` cell 40 L338
-  - `def select_and_rank_trades(df: pd.DataFrame, move_col: Optional[str]=None, uncertainty_col: Optional[str]=None, confidence_col: Optional[str]=None, min_edge_ratio: float=1.0, sort_by: str='both', ascending: bool=False, top_n:…` cell 42 L38
-  - `def print_trade_selection(result: pd.DataFrame, original: Optional[pd.DataFrame]=None, title: Optional[str]=None, max_rows: Optional[int]=20, indent: str=' ') -> None` cell 43 L13
-  - `def extract_input_snapshot_features(X_inputs: Tuple[np.ndarray, ...], timeframe_names: List[str], feature_names: Optional[List[Optional[List[str]]]]=None, agg: Tuple[str, ...]=('last', 'mean', 'std'), max_features_per_tf: Optional[int…` cell 46 L5
-  - `def analyze_input_output_validated_patterns(input_features: pd.DataFrame, outcome: Union[pd.Series, np.ndarray], timestamps: Optional[Union[pd.Series, np.ndarray]]=None, validation_frac: float=0.3, max_tree_depth: int=3, min_leaf_samples: int…` cell 47 L12
-  - `def plot_pattern_validation(rules_df: pd.DataFrame, save_dir: str=DEFAULT_OUTPUT_DIR) -> Optional[str]` cell 47 L242
-  - `def run_input_output_pattern_discovery(model, test_dict: Dict, asset: str, timeframes: List[str], target_specs, feature_names: Optional[List[Optional[List[str]]]]=None, agg: Tuple[str, ...]=('last', 'mean', 'std'), validation_frac: float…` cell 48 L5
+- cells: 3 (1 code)
+- DEPENDS: evaluation
+- headings: 📓 دفتر تقييم النموذج — نسخة مُحسّنة (v4.1) · تحميل الحزمة `evaluation/` — كل كود التقييم
 
 ## `crypto_data_pipeline_v6.ipynb`
 - title: خط أنابيب تجهيز بيانات العملات الرقمية — دفتر موحّد (تاريخي + حيّ)
@@ -203,60 +133,9 @@
 
 ## `signal_evaluation_axis (3).ipynb`
 - title: محور التقييم — المرحلة ٠ من مشروع اكتشاف الإشارة
-- cells: 23 (12 code)
-- headings: محور التقييم — المرحلة ٠ من مشروع اكتشاف الإشارة · البنية · بوّابة الخروج (قبل الوثوق بأي نتيجة لاحقة) · ١) استيرادات · ٢) معامل الارتباط (Information Coefficient) · ٣) فحص العُشر (Decile Spread) · ٤) خطّ أساس عشوائي (Permutation Baseline) · ٥) تجميع التقييم عبر عدّة نوافذ زمنية · ٦) طبقة التكامل مع دفتر التحضير · ٧) اختبارات ذاتية · ٨) بوّابة المرحلة ٠ — التشغيل الفعلي على بياناتك · ٩) سجلّ التجارب (Experiment Registry)
-- API:
-  - `def compute_ic(predictions: np.ndarray, actuals: np.ndarray, method: str='spearman', min_samples: int=10) -> float` cell 4 L1
-  - `def decile_spread(predictions: np.ndarray, actuals: np.ndarray, n_deciles: int=10, min_per_decile: int=5) -> Dict[str, Any]` cell 6 L1
-  - `def permutation_baseline(predictions: np.ndarray, actuals: np.ndarray, n_shuffles: int=1000, method: str='spearman', seed: Optional[int]=None) -> Dict[str, Any]` cell 8 L1
-  - `def evaluate_windows(window_results: List[Tuple[str, np.ndarray, np.ndarray]], ic_method: str='spearman', n_shuffles: int=1000, min_samples: int=10, seed: Optional[int]=None, verbose: bool=True) -> Dict[str, Any]` cell 10 L12
-  - `def concat_splits(split: Any) -> Dict[str, Any]` cell 12 L30
-  - `def extract_actuals(split: Dict[str, Any], target_key: str='y_close_reg') -> np.ndarray` cell 12 L72
-  - `def extract_feature_last_diff(split: Dict[str, Any], feature: str='close', tf: Optional[str]=None, feature_order: Optional[List[str]]=None) -> np.ndarray` cell 12 L93
-  - `def momentum_predict_fn(train: Dict, val: Dict, test: Dict, feature: str='close', tf: Optional[str]=None, feature_order: Optional[List[str]]=None) -> np.ndarray` cell 12 L131
-  - `def evaluate_hypothesis_over_rolling_windows(windows: List[Tuple[Dict, Dict, Any]], predict_fn: Callable[[Dict, Dict, Dict], np.ndarray], target_key: str='y_close_reg', window_names: Optional[List[str]]=None, ic_method: str='spearman', n_shuff…` cell 12 L145
-  - `def check(name, fn)` cell 14 L9
-  - `def t_ic_recovers_known_correlation()` cell 14 L23
-  - `def t_ic_near_zero_on_independent_random_data()` cell 14 L33
-  - `def t_ic_ignores_nan_not_zeros_them()` cell 14 L43
-  - `def t_ic_raises_below_min_samples()` cell 14 L50
-  - `def t_ic_spearman_robust_to_monotonic_nonlinear_transform()` cell 14 L60
-  - `def t_ic_zero_when_one_array_constant()` cell 14 L71
-  - `def t_ic_rejects_mismatched_shapes()` cell 14 L77
-  - `def t_ic_rejects_unknown_method()` cell 14 L85
-  - `def t_decile_detects_monotonic_relationship()` cell 14 L98
-  - `def t_decile_near_zero_spread_on_random_data()` cell 14 L110
-  - `def t_decile_raises_on_insufficient_samples()` cell 14 L118
-  - `def t_decile_t_stat_large_for_strong_signal_small_for_none()` cell 14 L127
-  - `def t_permutation_flags_real_signal_as_significant()` cell 14 L145
-  - `def t_permutation_null_on_pure_random_data()` cell 14 L156
-  - `def t_permutation_reproducible_with_seed()` cell 14 L164
-  - `def t_evaluate_windows_aggregates_consistent_signal()` cell 14 L176
-  - `def t_evaluate_windows_skips_failed_window_not_whole_run()` cell 14 L191
-  - `def t_evaluate_windows_no_signal_gives_low_frac_significant()` cell 14 L200
-  - `def t_concat_splits_passthrough_on_flat_dict()` cell 14 L229
-  - `def t_concat_splits_nested_y_key_not_mistaken_for_asset_dict()` cell 14 L235
-  - `def t_concat_splits_merges_dict_of_assets()` cell 14 L244
-  - `def t_concat_splits_not_fooled_by_asset_names_starting_with_x()` cell 14 L254
-  - `def t_concat_splits_raises_clear_error_when_asset_split_malformed()` cell 14 L263
-  - `def t_extract_actuals_reads_target_key()` cell 14 L273
-  - `def t_extract_actuals_matches_with_or_without_y_prefix()` cell 14 L279
-  - `def t_extract_actuals_raises_on_missing_key()` cell 14 L291
-  - `def t_extract_actuals_raises_clear_error_without_y_key()` cell 14 L301
-  - `def t_extract_feature_last_diff_matches_manual()` cell 14 L312
-  - `def t_extract_feature_last_diff_requires_explicit_feature_order()` cell 14 L322
-  - `def t_momentum_predict_fn_requires_explicit_feature_order()` cell 14 L339
-  - `def t_extract_feature_last_diff_raises_on_unknown_feature()` cell 14 L345
-  - `def t_momentum_predict_fn_end_to_end_no_signal()` cell 14 L354
-  - `def t_evaluate_hypothesis_over_rolling_windows_detects_injected_signal()` cell 14 L360
-  - `def t_evaluate_hypothesis_over_rolling_windows_no_signal_case()` cell 14 L380
-  - `def t_evaluate_hypothesis_handles_asset_separated_test()` cell 14 L396
-  - `def t_evaluate_hypothesis_raises_on_length_mismatch()` cell 14 L407
-  - `def download_notebook_from_drive(file_id: str, notebook_name: str='dataprocess.ipynb', download_dir: str='.', quiet: bool=False) -> str` cell 15 L5
-  - `def register_hypothesis(hyp_id: str, hypothesis: str, source: str, status: str, report: Optional[Dict[str, Any]]=None, notes: str='', registry_path: Optional[Path]=None, config: Optional[dict]=None) -> Dict[str, Any]` cell 20 L61
-  - `def list_registry(registry_path: Optional[Path]=None, config: Optional[dict]=None)` cell 20 L87
-  - `def get_hypothesis(hyp_id: str, registry_path: Optional[Path]=None, config: Optional[dict]=None) -> Dict[str, Any]` cell 20 L104
-  - `def run_registry_selftests() -> None` cell 22 L2
+- cells: 12 (6 code)
+- DEPENDS: data, signal_eval
+- headings: محور التقييم — المرحلة ٠ من مشروع اكتشاف الإشارة · البنية · بوّابة الخروج (قبل الوثوق بأي نتيجة لاحقة) · تحميل الحزمة `signal_eval/` — كل كود المحور · ٧) اختبارات ذاتية · تحميل خط الأنابيب (بديل `dataprocess.ipynb`) · ٨) بوّابة المرحلة ٠ — التشغيل الفعلي على بياناتك
 
 ## `trainer_framework_v2.ipynb`
 - title: 🧠 إطار عمل مدرّب عام (Generic Trainer Framework)
