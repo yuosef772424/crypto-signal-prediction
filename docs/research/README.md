@@ -26,6 +26,39 @@
 
 للتعديل: غيّر ملف الوحدة في `data/` (لا الدفتر)، وراجع `CLAUDE.md` (تعديل لا يغيّر السلوك الافتراضي، واختبارات `tests/`).
 
+## أين كود النموذج والمدرّب (`model_v2` و`trainer_framework_v2`)
+
+كود النموذج نُقل حرفياً من خلايا `model_v2 (1).ipynb` إلى الحزمة [`model/`](../../model/)، وكود المدرّب العام من خلايا `trainer_framework_v2.ipynb`
+إلى الحزمة [`trainer/`](../../trainer/) (الدفتران صارا مُشغِّلَين رفيعين يحمّلان حزمتيهما في نطاقهما بـ`model.load_into(globals())` /
+`trainer.load_into(globals())`؛ الأسماء المتاحة بعد `%run` هي نفسها، وكل ما كان يعمل عند التحميل — الاختبار الذاتي للنموذج، واختبارات المدرّب
+الذاتية واختبار الدخان (Smoke Test) — يعمل كما كان). الوثائق المسجَّلة قبل النقل تشير إلى «الخلية N» أو «§N» من الدفتر القديم؛ هذا جدول
+التحويل (أرقام الخلايا 0-based في الدفتر قبل النقل → الوحدة؛ الخريطة الحالية في [`maps/model.md`](../../maps/model.md) و[`maps/trainer.md`](../../maps/trainer.md)):
+
+| `model_v2 (1).ipynb` الخلية | الوحدة | `trainer_framework_v2.ipynb` الخلية | الوحدة |
+|---|---|---|---|
+| 1 (استيرادات، `register`) | `model/common.py` | 3 (§1 استيرادات، `IN_COLAB`، `atomic_write_json`) | `trainer/env.py` |
+| 3 (§1 `InstanceNorm`، `SymLog`) | `model/input_norm.py` | 5 (§1.1 GPU وmixed precision) | `trainer/perf.py` |
+| 5 (§2 تفكيك سببي) | `model/decomposition.py` | 7 (§2 `DEFAULT_CONFIG`، `build_config`) | `trainer/config.py` |
+| 7 (§3 رُقَع) | `model/patches.py` | 10 (§3 سجلّ الخسائر) | `trainer/tasks.py` |
+| 9 (§4 كتلة المحوّل) | `model/transformer.py` | 12 (§4 `UncertaintyWeightedLoss`) | `trainer/task_weighting.py` |
+| 11 (§5 القراءة) | `model/readout.py` | 14 (§5 `GenericTrainer`) | `trainer/trainer.py` |
+| 13 (§6 طبقات NIG) | `model/nig_layers.py` | 16 (§6.1 جدولة) | `trainer/schedules.py` |
+| 15 (§7 `HEAD_REGISTRY`) | `model/heads.py` | 17 (§6.2 `BestModelTracker`) | `trainer/best_tracker.py` |
+| 17 (§8 `build_nig_timenet_v2`) | `model/builder.py` | 18 (§6.3 `MetricsLogger`...) | `trainer/metrics.py` |
+| 19 (§9 `MODEL_CONFIG`، `build_model_fn`) | `model/config.py` | 19 (§6.4 `SnapshotEnsemble`) | `trainer/snapshot.py` |
+| 21 (§9-ب `diagnose_model`...) | `model/diagnostics.py` | 21 (§6.5 `TrainingDiagnostics`) | `trainer/training_diagnostics.py` |
+| 23 (§9-ج تقرير الطبقات) | `model/layer_report.py` | 23 (§7.1 `CheckpointManager`) | `trainer/checkpoints.py` |
+| 25 (§10 الاختبار الذاتي) | `model/selftests.py` | 24 (§7.2 `DriveMirror`، `EpochGuard`) | `trainer/epoch_callbacks.py` |
+| | | 26 (§8 `build_training_system`) | `trainer/system.py` |
+| | | 28 (§9 Smoke Test) | `trainer/smoke_test.py` |
+| | | 30 + 31 (§10.1/10.2 مثال النموذج والإعداد) | `trainer/example.py` |
+| | | 32 (§10.3 مثال التدريب، أسطر مُعلَّقة) | يبقى في دفتر `trainer_framework_v2.ipynb` |
+| | | 35 (§12 K-Fold) | `trainer/kfold.py` |
+| | | 37 (§13 Ensemble) | `trainer/ensemble.py` |
+
+للتعديل: غيّر ملف الوحدة (لا الدفتر)، وراجع `CLAUDE.md`. الاختبارات تحمّل الحزمتين عبر `docs/research/audit/_nbload.load_model()` و`load_trainer()`
+(بلا الاختبار الذاتي ولا Smoke Test ولا K-Fold)، وتفحص `tests/test_model_trainer_packages.py` البنية.
+
 ## بنية دفاتر محور التقييم (`signal_evaluation_axis`)
 
 كان `signal_evaluation_axis (3).ipynb` يضمّ المحور القياسي وكل الفرضيات المُختبَرة عبره في ملف واحد كبير. أُفرِد الآن إلى دفتر أساسي + دفتر مستقلّ لكل فرضية، كلٌّ منها يعتمد على الأساسي عبر `%run` (نفس أسلوب `main.ipynb` في تجميع الدفاتر):
