@@ -14,3 +14,6 @@ tensorflow-cpu~=2.21.0
 scikit-learn~=1.9.1
 matplotlib~=3.11.2
 pytest~=9.1.1
+
+# tools/fetch_crypto_dataset.py (research data download) reads/writes parquet.
+pyarrow~=25.0.1

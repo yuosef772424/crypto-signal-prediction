@@ -140,6 +140,7 @@
   - `def prepare_single_asset(dfs: Dict[str, pd.DataFrame], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_horizon: Optional[int]=None, stride: Option…` cell 24 L138
   - `def invert_reg_predictions(preds: np.ndarray, head: str, last_candles: Optional[np.ndarray]=None, bases: Optional[np.ndarray]=None, config: Optional[dict]=None, scale: Optional[float]=None) -> np.ndarray` cell 24 L353
   - `def decode_price_window(data: Dict, column: str='close', tf: Optional[str]=None, anchor: Optional[np.ndarray]=None, feature_order: Optional[List[str]]=None, mode: Optional[str]=None) -> np.ndarray` cell 24 L399
+  - `def entry_feature_table(data: Dict, columns: List[str], load_asset_fn: Optional[Callable]=None, config: Optional[dict]=None) -> pd.DataFrame` cell 24 L430
   - `def check_missing_values(data: Dict[str, Dict], tf_order: Optional[List[str]]=None, config: Optional[dict]=None) -> Dict[str, dict]` cell 26 L9
   - `def diagnose_feature_availability(data: Dict[str, Dict], tf_order: Optional[List[str]]=None, desired_features: Optional[List[str]]=None, config: Optional[dict]=None) -> List[str]` cell 26 L33
   - `def diagnose_data_vs_configs(data: dict, configs: list, n_preview: int=15) -> dict` cell 26 L93
@@ -259,9 +260,9 @@
 
 ## `main.ipynb`
 - title: 🚀 دفتر `main` — تجميع المشروع (البيانات ← النموذج ← التدريب ← التقييم)
-- cells: 41 (24 code)
+- cells: 45 (26 code)
 - DEPENDS: cross_asset
-- headings: 🚀 دفتر `main` — تجميع المشروع (البيانات ← النموذج ← التدريب ← التقييم) · لماذا احتاج الأمر طبقة "ربط" صريحة (لا استيراد مباشر فحسب) · ١) تحميل وتشغيل خط الأنابيب · ٢) إعدادات هذا المشروع · ٣) تحميل البيانات الجاهزة (من Drive) وتحديد الفريم الزمني الفعلي · ٣-ب) تغيير الهدف — تجارب سريعة على نفس البيانات · ٤) النموذج — `build_nig_timenet_v2` من دفتر `model_v2` · ٥) التدريب — ربط مخرجات النموذج بمفاتيح بيانات خط الأنابيب · ٦) الاختبار — تحويل تقسيم خط الأنابيب إلى شكل `chicks` · ٧) دوال فحص وتحقّق إضافية (تُستدعى عند الحاجة، لا تلقائياً) · ٧-ب) تقييم انتقائي: دقة ≥ 65% على شريحة واثقة، أو صفقات 2:1 · ٧-ج) هل يضيف النموذج شيئاً فوق شكل الشمعة؟ (رأسا high/low) · ٧-د) تحقق متكامل — استدعاء واحد، جدول حكم واحد · ٧-هـ) تجربة التحكّم بالتسميات المخلوطة (permutation control) · ٧-و) محفظة محايدة للسوق — هل تتحوّل إشارة التفوّق النسبي إلى ربح بعد التكلفة؟ · ٧-ز) مقاومة الحفظ — تدقيق التطبيع قبل التدريب، وفجوة التعميم بعده (PR #7) · ٧-ح) نموذج اللوحة عبر العملات (المرحلة ١) — اختياري، معطَّل افتراضياً · ٨) اختبار ذاتي للتوصيل بين الدفاتر (بيانات تركيبية — بلا Drive ولا تدريب حقيقي)
+- headings: 🚀 دفتر `main` — تجميع المشروع (البيانات ← النموذج ← التدريب ← التقييم) · لماذا احتاج الأمر طبقة "ربط" صريحة (لا استيراد مباشر فحسب) · ١) تحميل وتشغيل خط الأنابيب · ٢) إعدادات هذا المشروع · ٣) تحميل البيانات الجاهزة (من Drive) وتحديد الفريم الزمني الفعلي · ٣-ب) تغيير الهدف — تجارب سريعة على نفس البيانات · ٤) النموذج — `build_nig_timenet_v2` من دفتر `model_v2` · ٥) التدريب — ربط مخرجات النموذج بمفاتيح بيانات خط الأنابيب · ٦) الاختبار — تحويل تقسيم خط الأنابيب إلى شكل `chicks` · ٧) دوال فحص وتحقّق إضافية (تُستدعى عند الحاجة، لا تلقائياً) · ٧-ب) تقييم انتقائي: دقة ≥ 65% على شريحة واثقة، أو صفقات 2:1 · ٧-ج) هل يضيف النموذج شيئاً فوق شكل الشمعة؟ (رأسا high/low) · ٧-د) تحقق متكامل — استدعاء واحد، جدول حكم واحد · ٧-هـ) تجربة التحكّم بالتسميات المخلوطة (permutation control) · ٧-و) محفظة محايدة للسوق — هل تتحوّل إشارة التفوّق النسبي إلى ربح بعد التكلفة؟ · ٧-ز) مقاومة الحفظ — تدقيق التطبيع قبل التدريب، وفجوة التعميم بعده (PR #7) · ٧-ح) نموذج اللوحة عبر العملات (المرحلة ١) — اختياري، معطَّل افتراضياً · ٧-ط) تشخيص النموذج — تقرير صحّة وتقرير طبقات ومسجّل تدريب (اختياري، لا شيء تلقائي) · ٧-ي) سعة النموذج مقابل العيّنات الفعّالة — «إخفاق إعداد» أم «لا إشارة»؟ (RESEARCH_RULES §2.1) · ٨) اختبار ذاتي للتوصيل بين الدفاتر (بيانات تركيبية — بلا Drive ولا تدريب حقيقي)
 - API:
   - `def github_token()` cell 2 L22
   - `def git_auth(*args)` cell 2 L46
@@ -297,12 +298,21 @@
   - `def market_neutral_report(model, train_split, val_split, test_split, model_tf=None, score='p_up_close', quantiles=(0.05, 0.1, 0.2, 0.3), sides=_MN_SIDES, cost_pct=0.08, universe=None, min_assets=20, min_per_leg=5, cost_model…` cell 34 L244
   - `def normalization_audit(train_split, val_split=None, test_split=None, feature_names=None, model_tf=None, max_windows=20000, level_ratio_max=20.0, near_const_frac_max=0.2, extreme_max=50.0, shift_ks_max=0.25, verbose=True)` cell 36 L22
   - `def generalization_gap_report(model, train_split, val_split, test_split, model_tf=None, max_n=20000, auc_gap_max=0.03, linear_reference=True, verbose=True)` cell 36 L155
-  - `def run_wiring_selftest(verbose=True)` cell 40 L1
+  - `def make_training_diagnostics(train_split, val_split, batch_size=None, seed=0, probe_size=256, cartography_size=2000, with_timestamps=True, **kw)` cell 40 L35
+  - `def model_health_report(model, train_split, val_split, recorder=None, model_tf=None, max_n=512, sections=None, sensitivity='grad_x_input', thresholds=None, capacity=None, with_capacity=True, verbose=True)` cell 40 L51
+  - `def model_layer_report(model, train_split, val_split, test_split=None, recorder=None, model_tf=None, max_train=2000, max_val=2000, max_eval=1500, n_rand=3, n_perm=30, ridge=10.0, seed=0, capacity=None, with_capacity=True,…` cell 40 L76
+  - `def effective_sample_size(split, window=None, stride=None, horizon=1, target=None, n_features=None, n_params=None, model=None, max_assets=80, seed=0, model_tf=None)` cell 42 L24
+  - `def simple_baseline(train_split, val_split, model_tf=None, max_train=20000, max_val=20000, ridge=10.0, seed=0)` cell 42 L119
+  - `def feature_count_sweep(build_fn, train_split, val_split, feature_names, ks=(1, 3, 5, 10), rank_by='train', epochs=6, seed=0, max_train=4096, max_val=4096, config=None, model_tf=None, ridge=10.0, with_null=True, verbose=Tr…` cell 42 L187
+  - `def learning_curve(build_fn, train_split, val_split, fractions=(0.25, 0.5, 1.0), anchor='recent', epochs=6, seed=0, max_train=4096, max_val=4096, config=None, model_tf=None, verbose=True)` cell 42 L236
+  - `def capacity_verdict(ess=None, baseline=None, sweep=None, curve=None, model_skill=None, model_metric='auc', thresholds=None)` cell 42 L279
+  - `def capacity_report(build_fn, train_split, val_split, feature_names=None, ks=(1, 3, 5, 10), fractions=(0.25, 0.5, 1.0), window=None, model=None, rank_by='train', epochs=6, seed=0, config=None, model_tf=None, verbose=Tr…` cell 42 L344
+  - `def run_wiring_selftest(verbose=True)` cell 44 L1
 
 ## `model_v2 (1).ipynb`
 - title: 🧠 دفتر النموذج — `NIG-TimeNet v2` (نسخة مُنظَّفة)
-- cells: 22 (11 code)
-- headings: 🧠 دفتر النموذج — `NIG-TimeNet v2` (نسخة مُنظَّفة) · سجلّ التنظيف (لماذا أُزيل كل شيء آخر) · رؤوس مُوصَّفة (pluggable heads) · تحديث: رؤوس التصنيف مُفعَّلة الآن افتراضياً · تعطيل التصنيف تماماً، انحدار NIG فقط (سلوك النسخة السابقة): · إضافة رأس تصنيف متعدّد الفئات (مثلاً نظام سوق) فوق ما هو مُفعَّل أصلاً: · تحديث PR #7: مقاومة الحفظ (`ANTI_MEMORIZATION_CONFIG`) · 1) تطبيع المدخل (RevIN-style, نصف المدخل فقط) · 2) تفكيك مقاييس زمنية سببي (يمنع تسرّب المستقبل + بقايا وهمية) · 3) تضمين رُقَع (patches) + مواضع مطلقة مُتعلَّمة · 4) كتلة محوّل (RMSNorm ما قبل الطبقة، GQA + انحياز نسبي، SwiGLU) · 5) مساعدات القراءة (readout) · 6) رؤوس NIG (بلا انتباه طول-1 منحطّ، أوساط مُرتَّبة، ثقة صادقة) · 7) سجلّ الرؤوس (`HEAD_REGISTRY`) — نقطة التعديل الوحيدة لإضافة/تسمية مخرجات جديدة · 8) بناء النموذج · 9) `MODEL_CONFIG` + `build_model_fn` — نقطة الدخول من دفتر `main` · 10) اختبار ذاتي (بلا بيانات حقيقية) — يثبت أن السجلّ والتوسعة والحفظ الكامل تعمل
+- cells: 26 (13 code)
+- headings: 🧠 دفتر النموذج — `NIG-TimeNet v2` (نسخة مُنظَّفة) · سجلّ التنظيف (لماذا أُزيل كل شيء آخر) · رؤوس مُوصَّفة (pluggable heads) · تحديث: رؤوس التصنيف مُفعَّلة الآن افتراضياً · تعطيل التصنيف تماماً، انحدار NIG فقط (سلوك النسخة السابقة): · إضافة رأس تصنيف متعدّد الفئات (مثلاً نظام سوق) فوق ما هو مُفعَّل أصلاً: · تحديث PR #7: مقاومة الحفظ (`ANTI_MEMORIZATION_CONFIG`) · 1) تطبيع المدخل (RevIN-style, نصف المدخل فقط) · 2) تفكيك مقاييس زمنية سببي (يمنع تسرّب المستقبل + بقايا وهمية) · 3) تضمين رُقَع (patches) + مواضع مطلقة مُتعلَّمة · 4) كتلة محوّل (RMSNorm ما قبل الطبقة، GQA + انحياز نسبي، SwiGLU) · 5) مساعدات القراءة (readout) · 6) رؤوس NIG (بلا انتباه طول-1 منحطّ، أوساط مُرتَّبة، ثقة صادقة) · 7) سجلّ الرؤوس (`HEAD_REGISTRY`) — نقطة التعديل الوحيدة لإضافة/تسمية مخرجات جديدة · 8) بناء النموذج · 9) `MODEL_CONFIG` + `build_model_fn` — نقطة الدخول من دفتر `main` · 9-ب) تشخيص النموذج عند الطلب — `diagnose_model` / `model_health_verdicts` · 9-ج) تقرير الطبقات — `layer_probe_report` / `layer_compare_report` · 10) اختبار ذاتي (بلا بيانات حقيقية) — يثبت أن السجلّ والتوسعة والحفظ الكامل تعمل
 - API:
   - `class InstanceNorm(layers.Layer)` cell 3 L2
     - `.__init__(self, eps=0.0001, affine=True, clip=None, stats_mode='full', stats_clip=8.0, **kw)` L22
@@ -388,7 +398,14 @@
   - `def build_multiclass_classification_head(h, target, cfg)` cell 15 L37
   - `def build_nig_timenet_v2(seq_len, n_features, d_model=128, num_layers=4, num_heads=4, num_kv_heads=2, patch_len=4, stride=2, kernel_sizes=(3, 5, 9, 17), max_rel_pos=16, dropout=0.1, attn_dropout=0.0, causal=False, window=No…` cell 17 L6
   - `def build_model_fn(seq_len, n_features, config=None)` cell 19 L68
-  - `def run_model_selftests(verbose: bool=True) -> bool` cell 21 L1
+  - `def diagnose_model(model, X, y=None, sections=DIAG_SECTIONS, max_n=512, batch_size=256, seed=0, feature_names=None, sensitivity='grad_x_input', top_k=10, floor_tol=0.1, verbose=False)` cell 21 L299
+  - `def model_health_verdicts(rep, recorder_stats=None, thresholds=None)` cell 21 L532
+  - `def print_verdicts(v, title='🩺 تقرير صحّة النموذج')` cell 21 L664
+  - `def random_init_copy(model, seed=0)` cell 23 L10
+  - `def layer_probe_report(model, X_train, y_train, X_val, y_val, max_train=2000, max_val=2000, ridge=10.0, n_null=5, n_rand=1, seed=0, batch_size=256, z_min=3.0, rand_margin=0.02)` cell 23 L59
+  - `def layer_probe_verdict(df)` cell 23 L125
+  - `def layer_compare_report(model, X, y, heads=None, max_n=1500, n_perm=30, n_rand=3, min_group=30, margin_auc=0.03, margin_d=0.0, margin_feat=0.25, rand_mult=1.5, seed=0, batch_size=256, verbose=False)` cell 23 L189
+  - `def run_model_selftests(verbose: bool=True) -> bool` cell 25 L1
 
 ## `pandas_ta_full_survey.ipynb`
 - title: مسح شامل لكل مؤشرات `pandas_ta_classic` — كود اختبار + فرضيات مُولَّدة آلياً
@@ -489,7 +506,7 @@
 
 ## `trainer_framework_v2.ipynb`
 - title: 🧠 إطار عمل مدرّب عام (Generic Trainer Framework)
-- cells: 37 (19 code)
+- cells: 39 (20 code)
 - headings: 🧠 إطار عمل مدرّب عام (Generic Trainer Framework) · ما يدعمه الإطار · المشكلة الأساسية التي يحلّها هذا الإطار (نظام الحفظ/الاستئناف) · بنية الدفتر · 🆕 إضافات هذه النسخة (طلب تحسين محدّد) · 1) الاستيرادات وإعداد البيئة · 1.1) إعداد الأداء وGPU — استغلال كامل الطاقة الحاسوبية المتاحة · 2) قاموس الإعدادات (Config) — المصدر الوحيد للحقيقة · 3) سجلّ دوال الخسارة (Loss Registry) — قابل للتوسعة بالكامل · 3) سجلّ دوال الخسارة (Loss Registry) — قابل للتوسعة بالكامل · 4) الموازنة التلقائية بين المهام (Kendall et al., CVPR 2018) · 5) `GenericTrainer` — قلب الإطار · 6) الكولباكس العامة (Callbacks) · 7) نظام الحفظ والاستئناف — حلّ المشكلة المطلوبة تحديدًا · 8) `build_training_system` — نقطة الدخول الوحيدة · 9) اختبار تحقّق فعلي (Smoke Test) · 10) قالب استخدام كامل على مشروعك الحقيقي · 11) الاستئناف بعد انقطاع Colab — التعليمات العملية · 11.1) 🆕 إكمال تدريب نموذج مُنجَز مسبقًا (خارج هذا الإطار) — `warm_start` · initial_epoch = 60 تلقائيًا، وlambda_reg/lambda_calib تُضبَط فورًا على قيمتها عند الحقبة 60 — لا ال…
 - API:
   - `def mount_drive_if_needed(path: str)` cell 3 L25
@@ -546,36 +563,60 @@
   - `class SnapshotEnsemble(tf.keras.callbacks.Callback)` cell 19 L2
     - `.__init__(self, save_epochs: List[int], save_dir: str, base_model: tf.keras.Model, verbose=1)` L6
     - `.on_epoch_end(self, epoch, logs=None)` L15
-  - `def has_saved_state(directory: Optional[str]) -> bool` cell 21 L8
-  - `def archive_state(directory: str, tag: str) -> str` cell 21 L15
-  - `class CheckpointManager` cell 21 L26
+  - `def with_sample_index(y_dict, indices=None)` cell 21 L7
+  - `class TrainingDiagnostics(tf.keras.callbacks.Callback)` cell 21 L23
+    - `.__init__(self, probe=None, *, grad_every=25, influence_every=50, influence_scope='heads', probe_size=256, top_k=10, cartography=None, cartography_size=2000, cartography_batch_size=512, sample_meta=None, grou…` L56
+    - `.tap(self, ds)` L131
+    - `.on_train_begin(self, logs=None)` L207
+    - `.on_epoch_begin(self, epoch, logs=None)` L229
+    - `.on_train_batch_begin(self, batch, logs=None)` L233
+    - `.on_train_batch_end(self, batch, logs=None)` L237
+    - `.on_epoch_end(self, epoch, logs=None)` L385
+    - `.on_train_end(self, logs=None)` L393
+    - `.batch_losses(self)` L406
+    - `.grad_table(self)` L412
+    - `.group_table(self)` L416
+    - `.group_summary(self)` L420
+    - `.group_trend(self, parts=3)` L431
+    - `.influence_table(self)` L449
+    - `.top_batches(self, kind='harmful', k=None, target=None, by='influence')` L475
+    - `.sample_influence(self, target=None, by='influence', min_count=1)` L500
+    - `.cartography_table(self)` L522
+    - `.hardest_samples(self, target, k=20)` L541
+    - `.cartography_summary(self)` L550
+    - `.epoch_table(self)` L561
+    - `.summary(self)` L565
+    - `.stats(self)` L573
+  - `def has_saved_state(directory: Optional[str]) -> bool` cell 23 L8
+  - `def archive_state(directory: str, tag: str) -> str` cell 23 L15
+  - `class CheckpointManager` cell 23 L26
     - `.__init__(self, trainer: 'GenericTrainer', run_dir: str, max_to_keep: int=3)` L29
     - `.has_checkpoint(self) -> bool` L44
     - `.restore(self) -> Tuple[int, dict]` L47
     - `.save(self, epoch: int, callback_states: Optional[dict]=None)` L66
-  - `def build_trainer_variables(trainer: 'GenericTrainer', sample_batch: Tuple[Any, ...])` cell 21 L76
-  - `def stage_warm_start_weights(config: dict) -> Tuple[str, int, int]` cell 21 L88
-  - `class DriveMirror(tf.keras.callbacks.Callback)` cell 22 L2
+  - `def build_trainer_variables(trainer: 'GenericTrainer', sample_batch: Tuple[Any, ...])` cell 23 L76
+  - `def stage_warm_start_weights(config: dict) -> Tuple[str, int, int]` cell 23 L88
+  - `class DriveMirror(tf.keras.callbacks.Callback)` cell 24 L2
     - `.__init__(self, source_dir: str, mirror_dir: str, every: int=1, verbose: int=1)` L6
     - `.on_epoch_end(self, epoch, logs=None)` L19
     - `.on_train_end(self, logs=None)` L23
-  - `class EpochCheckpointCallback(tf.keras.callbacks.Callback)` cell 22 L27
+  - `class EpochCheckpointCallback(tf.keras.callbacks.Callback)` cell 24 L27
     - `.__init__(self, checkpoint_manager: CheckpointManager, stateful_callbacks: Optional[list]=None, save_every: int=1, verbose: int=1)` L36
     - `.on_epoch_end(self, epoch, logs=None)` L47
     - `.on_train_end(self, logs=None)` L55
-  - `class EpochGuard(tf.keras.callbacks.Callback)` cell 22 L63
+  - `class EpochGuard(tf.keras.callbacks.Callback)` cell 24 L63
     - `.__init__(self)` L68
     - `.on_train_begin(self, logs=None)` L72
     - `.on_epoch_begin(self, epoch, logs=None)` L75
-  - `def enable_ema_warmup(opt)` cell 24 L2
-  - `class EmaWindow(tf.keras.callbacks.Callback)` cell 24 L27
+  - `def enable_ema_warmup(opt)` cell 26 L2
+  - `class EmaWindow(tf.keras.callbacks.Callback)` cell 26 L27
     - `.__init__(self, window_epochs: float)` L32
     - `.on_train_begin(self, logs=None)` L36
-  - `def build_optimizer(opt_cfg: dict) -> tf.keras.optimizers.Optimizer` cell 24 L73
-  - `def build_training_system(model_builder_fn: Callable[[], tf.keras.Model], config: dict, sample_batch: Tuple[Any, Any])` cell 24 L104
-  - `def real_model_builder()` cell 28 L2
-  - `def high_low_close_order_penalty(outputs)` cell 28 L34
-  - `def purged_walk_forward_splits(n_samples: int, n_splits: int=5, purge: int=50, embargo: int=50)` cell 33 L2
-  - `def run_kfold_training(n_samples: int, model_builder_fn: Callable[[], tf.keras.Model], config_template: dict, dataset_builder_fn: Callable[[np.ndarray, np.ndarray], Tuple[tf.data.Dataset, tf.data.Dataset, Tuple[Any, Any]]…` cell 33 L13
-  - `def ensemble_predict_evidential(models: List[tf.keras.Model], x, output_keys: dict) -> Dict[str, np.ndarray]` cell 35 L2
-  - `def ensemble_predict_evidential_meinert(models: List[tf.keras.Model], x, output_keys: dict) -> Dict[str, np.ndarray]` cell 35 L28
+  - `def build_optimizer(opt_cfg: dict) -> tf.keras.optimizers.Optimizer` cell 26 L73
+  - `def build_training_system(model_builder_fn: Callable[[], tf.keras.Model], config: dict, sample_batch: Tuple[Any, Any])` cell 26 L104
+  - `def real_model_builder()` cell 30 L2
+  - `def high_low_close_order_penalty(outputs)` cell 30 L34
+  - `def purged_walk_forward_splits(n_samples: int, n_splits: int=5, purge: int=50, embargo: int=50)` cell 35 L2
+  - `def run_kfold_training(n_samples: int, model_builder_fn: Callable[[], tf.keras.Model], config_template: dict, dataset_builder_fn: Callable[[np.ndarray, np.ndarray], Tuple[tf.data.Dataset, tf.data.Dataset, Tuple[Any, Any]]…` cell 35 L13
+  - `def ensemble_predict_evidential(models: List[tf.keras.Model], x, output_keys: dict) -> Dict[str, np.ndarray]` cell 37 L2
+  - `def ensemble_predict_evidential_meinert(models: List[tf.keras.Model], x, output_keys: dict) -> Dict[str, np.ndarray]` cell 37 L28
