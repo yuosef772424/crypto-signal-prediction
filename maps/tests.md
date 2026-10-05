@@ -76,12 +76,14 @@
   - `class RegistryTests(unittest.TestCase)` L37
     - (7 methods)
 
-### `tests/test_h07_forward.py` (62 lines)
+### `tests/test_h07_forward.py` (88 lines)
 - PURPOSE: tools/h07_forward.py: قاعدة H07 المجمّدة، والسجلّ لا يُعاد كتابته (يُضاف فقط)، بلا شبكة. (from docstring)
 - DEPENDS: tools
 - API:
   - `class H07ForwardTests(unittest.TestCase)` L23
     - (4 methods)
+  - `class ShadowVariantTests(unittest.TestCase)` L65
+    - (2 methods)
 
 ### `tests/test_intraday_features.py` (234 lines)
 - PURPOSE: اختبارات tools/intraday_features.py — بيانات تركيبية صغيرة (15m + تمويل + metrics)، بلا Drive ولا شبكة. (from docstring)

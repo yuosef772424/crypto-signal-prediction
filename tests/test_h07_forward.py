@@ -60,3 +60,29 @@ class H07ForwardTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ShadowVariantTests(unittest.TestCase):
+    def _px10(self):
+        rng = np.random.default_rng(1)
+        idx = pd.date_range(end="2026-10-10", periods=150, freq="D")
+        return pd.DataFrame(100 * np.exp(np.cumsum(rng.normal(0, 0.03, (150, 10)), axis=0)), index=idx,
+                            columns=hf.ALL_COINS)
+
+    def test_shadow_ledgers_and_ensemble_signal(self):
+        px = self._px10()
+        v4 = hf.build_ledger(px, "v4_ens_10coins")
+        self.assertEqual(list(v4.columns), hf.columns_for(hf.ALL_COINS))
+        lp = np.log(px)
+        d = px.index[-1]
+        frac = np.mean([(lp.iloc[-1] - lp.iloc[-1 - n] > 0).astype(float) for n in (10, 20, 30, 60)], axis=0)
+        vol = lp.diff().iloc[-30:].std()
+        want = frac * (0.02 / vol).clip(upper=3) / 10
+        np.testing.assert_allclose(v4.iloc[-1][[f"{c}_w" for c in hf.ALL_COINS]].astype(float).values, want.values)
+        self.assertEqual(hf.ledger_path("v3_10coins", "/x/ledger.csv"), "/x/ledger_v3_10coins.csv")
+        self.assertEqual(hf.ledger_path("h07", "/x/ledger.csv"), "/x/ledger.csv")
+
+    def test_column_mismatch_refused(self):
+        px = self._px10()
+        with self.assertRaises(ValueError):
+            hf.merge_ledger(hf.build_ledger(px, "h07"), hf.build_ledger(px, "v3_10coins"))

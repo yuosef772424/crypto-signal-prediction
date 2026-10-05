@@ -227,17 +227,19 @@
   - `async def main()` L1124
   - `def run()` L1335
 
-### `tools/h07_forward.py` (127 lines)
+### `tools/h07_forward.py` (158 lines)
 - PURPOSE: Forward paper trading of the frozen H07 rule (TSMOM30 long-only BTC+ETH, weight 0.02/std30 capped at 3, split equally, 0.06%/side) on data after 2026-09-30, the only data no study has touched. Rebuilds the ledger deterministically from dai…
 - TAGS: h07, tsmom30, paper trading, forward test, out of sample, ledger, btc, eth, trend filter, daily
 - PITFALLS: The rule is FROZEN (research/edge_discovery 16_h07_oos.py, re-confirmed in research/h07_volsizing): never tune it on the forward ledger. Weights decided at day d's close earn d -> d+1; the first decision is 2026-09-30, so P&L starts on 2026-10-01. Data: github Speirsy11/crypto-dataset (updated daily ~23:30 UTC through the previous day) or a CSV with date,BTC,ETH closes (e.g. exported from Binance…
 - API:
-  - `def h07_weights(px: pd.DataFrame) -> pd.DataFrame` L33
-  - `def build_ledger(px: pd.DataFrame) -> pd.DataFrame` L41
-  - `def merge_ledger(old: pd.DataFrame, new: pd.DataFrame, atol=1e-09) -> pd.DataFrame` L56
-  - `def summary(ledger: pd.DataFrame) -> dict` L76
-  - `def fetch_closes_github(start='2026-06-01') -> pd.DataFrame` L87
-  - `def main(argv=None)` L104
+  - `def ledger_path(variant: str, base: str=LEDGER) -> str` L40
+  - `def columns_for(coins) -> list` L44
+  - `def h07_weights(px: pd.DataFrame, lookbacks=(30,)) -> pd.DataFrame` L48
+  - `def build_ledger(px: pd.DataFrame, variant: str='h07') -> pd.DataFrame` L59
+  - `def merge_ledger(old: pd.DataFrame, new: pd.DataFrame, atol=1e-09) -> pd.DataFrame` L79
+  - `def summary(ledger: pd.DataFrame) -> dict` L101
+  - `def fetch_closes_github(start='2026-06-01', coins=('BTC', 'ETH')) -> pd.DataFrame` L113
+  - `def main(argv=None)` L131
 
 ### `tools/intraday_features.py` (442 lines)
 - PURPOSE: Phase-2 features from the full Binance archive (15m candles + funding + OI + metrics), aligned causally for crypto_data_pipeline_v6.
