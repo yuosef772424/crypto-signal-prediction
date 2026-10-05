@@ -71,3 +71,16 @@ return rises with volatility: with gbm sizing, the lowest-weight (highest predic
 **Verdict: rejected for sizing** (failure level: economics — the forecast skill is real, its P&L use is negative).
 Registry row F-0064. Side result: H07 itself re-confirmed on executable Binance spot closes (VAL Sharpe 0.91 vs 0.10 for
 buy & hold; TEST 0.87 vs 0.57, max drawdown −31% vs −60%).
+
+**Robustness (owner's request, 2026-10-05): realized variance from 1h and 4h bars instead of 5m** (`RV_BAR=1h|4h`,
+`volsizing_results_rv1h.csv`, `volsizing_results_rv4h.csv`; 2 more variants for multiple testing, decision unchanged).
+
+| RV bars | QLIKE val BTC / ETH (gbm · har · trail30) | Sharpe val (trail30 · har · gbm) | Sharpe test (trail30 · har · gbm) |
+|---|---|---|---|
+| 5m (pre-registered) | 0.41 / 0.31 · 0.45 / 0.33 · 0.62 / 0.62 | 0.91 · 0.72 · 0.63 | 0.87 · 0.86 · 0.76 |
+| 1h | 0.63 / 0.45 · 0.63 / 0.49 · 0.65 / 0.64 | 0.91 · 0.77 · 0.70 | 0.87 · 0.84 · 0.64 |
+| 4h | 1.03 / 0.82 · 1.00 / 0.73 · 0.85 / 0.76 | 0.91 · 0.82 · 0.88 | 0.87 · 0.79 · 0.59 |
+
+Coarser bars make the forecast worse (with 4h bars, 6 per day, it no longer beats the trailing 30-day std), but the
+sizing result does not depend on the bar size: in every case the trailing 30-day std gives the best Sharpe and the
+smallest drawdown.

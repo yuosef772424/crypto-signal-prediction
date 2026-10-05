@@ -19,7 +19,9 @@ from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.linear_model import LinearRegression
 
 D = os.environ.get('DATA_DIR', '/home/user/research')
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'volsizing_results.csv')
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                   'volsizing_results.csv' if os.environ.get('RV_BAR', '5min') == '5min'
+                   else f"volsizing_results_rv{os.environ['RV_BAR']}.csv")
 COINS = {'BTC': 'BTCUSDT', 'ETH': 'ETHUSDT'}
 TRAIN = ('2018-01-01', '2021-12-31')
 VAL = ('2022-01-01', '2023-12-31')
@@ -27,8 +29,15 @@ TEST = ('2024-01-01', '2026-09-30')
 COST_RT, TARGET, CAP, N = 0.0012, 0.02, 3.0, 30
 
 
+#: Bar size for the realized variance (env RV_BAR): '5min' (default, the pre-registered run), '1h' or '4h' (robustness).
+RV_BAR = os.environ.get('RV_BAR', '5min')
+
+
 def daily(sym):
     m = pd.read_parquet(f'{D}/ohlc_{sym}_5m.parquet')
+    if RV_BAR != '5min':
+        m = m.resample(RV_BAR).agg({'open': 'first', 'high': 'max', 'low': 'min', 'close': 'last',
+                                    'volume': 'sum'}).dropna()
     lr = np.log(m['close']).diff()
     day = m.index.floor('1D')
     out = pd.DataFrame({
@@ -36,7 +45,8 @@ def daily(sym):
         'high': m['high'].groupby(day).max(), 'low': m['low'].groupby(day).min(),
         'rv': (lr ** 2).groupby(day).sum(), 'nbars': m['close'].groupby(day).size()})
     out.index = out.index.tz_localize(None) if out.index.tz is not None else out.index
-    return out[out.nbars >= 250]                       # >= ~87% of the 288 bars of a day
+    full = int(pd.Timedelta('1D') / pd.Timedelta(RV_BAR))
+    return out[out.nbars >= int(np.ceil(0.87 * full))]   # >= ~87% of the day's bars
 
 
 def features(d, other):
