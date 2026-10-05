@@ -10,12 +10,12 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `hypothesis_h001_short_term_reversal.ipynb` — H001 — الانعكاس قصير المدى (Short-Term Reversal) (2 public defs)
 - `hypothesis_h002_classification_head.ipynb` — H002 — رأس التصنيف الثنائي في `NIG-TimeNet v2` (1 public defs)
 - `hypothesis_h003_volatility_reversal.ipynb` — H003 — انعكاس/انكماش التقلّب المدفوع بـ`NATR_14` (Volatility Reversal) (0 public defs)
-- `main.ipynb` — 🚀 دفتر `main` — تجميع المشروع (البيانات ← النموذج ← التدريب ← التقييم) (35 public defs)
-- `model_v2 (1).ipynb` — 🧠 دفتر النموذج — `NIG-TimeNet v2` (نسخة مُنظَّفة) (24 public defs)
+- `main.ipynb` — 🚀 دفتر `main` — تجميع المشروع (البيانات ← النموذج ← التدريب ← التقييم) (44 public defs)
+- `model_v2 (1).ipynb` — 🧠 دفتر النموذج — `NIG-TimeNet v2` (نسخة مُنظَّفة) (31 public defs)
 - `pandas_ta_full_survey.ipynb` — مسح شامل لكل مؤشرات `pandas_ta_classic` — كود اختبار + فرضيات مُولَّدة آلياً (4 public defs)
 - `signal_discovery_lab.ipynb` — مختبر بحث الإشارات (Signal Discovery Lab) (24 public defs)
 - `signal_evaluation_axis (3).ipynb` — محور التقييم — المرحلة ٠ من مشروع اكتشاف الإشارة (51 public defs)
-- `trainer_framework_v2.ipynb` — 🧠 إطار عمل مدرّب عام (Generic Trainer Framework) (45 public defs)
+- `trainer_framework_v2.ipynb` — 🧠 إطار عمل مدرّب عام (Generic Trainer Framework) (47 public defs)
 
 ## Code packages
 - `cross_asset/` — Package entry of the cross-asset 'panel' model (phase 1): one sample = a full UTC day with all coins, attention across same-day coins; re-exports PanelSplit, panel_split_from, VARIANTS, run_panel_experiment. | 7 modules, 0 data files (0 B) → maps/cross_asset.md
@@ -25,7 +25,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `research/edge_discovery/` — التقرير النهائي — البحث عن Edge قابل للاستغلال (2024-01 → 2026-09) | 41 scripts, 33 data files (788 KB) → maps/research_edge_discovery.md
 
 ## docs/research (legacy)
-- `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 41 md, 1 data files (74 KB) → maps/docs_research.md
+- `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 42 md, 1 data files (74 KB) → maps/docs_research.md
 - `docs/research/audit/` — Audit / Improvement Protocol (Auditor ↔ Builder) | 26 scripts, 5 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/results/` — نتائج خطّة `capacity` على بيانات Drive (Colab T4، 2026-09-27) | 0 scripts, 6 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/scripts/` — سكربتات إعادة إنتاج تدقيق التطبيع | 9 scripts, 1 md, 1 data files (10 KB) → maps/docs_research.md
@@ -34,6 +34,6 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `docs/research/templates/` — Experiment card — <id>: <one-line title> | 0 scripts, 1 md, 0 data files (0 B) → maps/docs_research.md
 
 ## Tests
-- `tests/` — test_audit_round2, test_bracket_eval, test_cross_asset, test_disk_backed, test_entry_range, test_ex… | 18 modules, 1 data files (30 KB) → maps/tests.md
+- `tests/` — test_audit_round2, test_bracket_eval, test_cross_asset, test_disk_backed, test_entry_range, test_ex… | 19 modules, 1 data files (30 KB) → maps/tests.md
 
 ## Where do I edit X? → `maps/tags.md` (TAGS → modules index)
