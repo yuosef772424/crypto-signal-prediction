@@ -11,10 +11,11 @@ Navigate MAP.md -> maps/<zone>.md -> read only the target symbol by line range (
 - `python tools/build_map.py --check` - fails if the maps are stale.
 - `git config core.hooksPath .githooks` - once per clone (Claude Code sessions do it on SessionStart): the pre-commit hook regenerates and stages the maps and runs the structure checks, so a commit can't leave them stale.
 - `data/` holds ALL data-preparation code (formerly the cells of `crypto_data_pipeline_v6.ipynb`, now a thin runner): edit the module, not the notebook. The modules run in ONE shared namespace (`data/_loader.py`: `data.load_into(ns)`), never `import data.<module>`; tests get it via `docs/research/audit/_nbload.load_pipeline()`.
+- `workflow/` (code of `main.ipynb`) and `discovery/` (code of `signal_discovery_lab.ipynb` + `pandas_ta_full_survey.ipynb`) follow the same pattern: edit the module, not the notebook; `<pkg>.load_into(globals(), only=...)` loads modules into the notebook namespace at the cell where the old code was defined; tests get functions via `docs/research/audit/_nbload.workflow_package()` / `discovery_package()`. Old cell -> module table: `docs/research/main_lab_code_layout.md`.
 - `python -m pytest tests/ -q` - full suite, CPU only, no Drive (needs `pip install -r requirements-ci.txt`).
 
 ## Working rules
-- Zones and import direction: code packages (`cross_asset/`, `tools/`, `data/`) never import `research/`, `docs/` or `tests/`; a study never imports another study (lift shared code into a package).
+- Zones and import direction: code packages (`cross_asset/`, `tools/`, `data/`, `workflow/`, `discovery/`) never import `research/`, `docs/` or `tests/`; a study never imports another study (lift shared code into a package).
 - Add, don't modify: a new study is `research/<study>/` with a README; recorded results are never edited (add a corrected copy, keep the original marked).
 - A new option's default must reproduce the old behavior exactly (checkpoints and past results stay valid).
 - No silent defaults: unknown config keys or unregistered feature/head/loss names raise; pass config sections explicitly, not via a global.

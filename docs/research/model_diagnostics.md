@@ -8,8 +8,8 @@
 | `trainer_framework_v2.ipynb` §6.5 | `TrainingDiagnostics` (callback) + `with_sample_index` |
 | `model_v2 (1).ipynb` §9-ب | `diagnose_model` · `model_health_verdicts` · `print_verdicts` |
 | `model_v2 (1).ipynb` §9-ج | `layer_probe_report` · `layer_probe_verdict` · `layer_compare_report` · `random_init_copy` |
-| `main.ipynb` §٧-ط | `make_training_diagnostics` · `model_health_report` · `model_layer_report` |
-| `main.ipynb` §٧-ي | `effective_sample_size` · `simple_baseline` · `feature_count_sweep` · `learning_curve` · `capacity_verdict` · `capacity_report` |
+| `main.ipynb` §٧-ط (`workflow/diagnostics.py`) | `make_training_diagnostics` · `model_health_report` · `model_layer_report` |
+| `main.ipynb` §٧-ي (`workflow/capacity.py`) | `effective_sample_size` · `simple_baseline` · `feature_count_sweep` · `learning_curve` · `capacity_verdict` · `capacity_report` |
 
 الاختبارات: `tests/test_model_diagnostics.py` (بيانات تركيبية صغيرة، CPU).
 
