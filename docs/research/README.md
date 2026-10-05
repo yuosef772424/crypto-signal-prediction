@@ -2,6 +2,30 @@
 
 توثيق مسار اكتشاف الإشارات، مقسَّم بحسب الموضوع بدل ملف واحد متضخّم — كل ملف يقابل مرحلة أو فرضية محدَّدة، وأي واحد منها قد يعتمد على الذي قبله. راجع أيضاً [خطة المشروع البحثي الكاملة](../../خطة%20نظام%20اكتشاف%20الإشارة%20—%20مشروع%20توقع%20اتجاه%20العملات.md) للمنهجية والدوافع.
 
+## أين كود خط الأنابيب (`crypto_data_pipeline_v6`)
+
+كل كود تجهيز البيانات نُقل حرفياً من خلايا `crypto_data_pipeline_v6.ipynb` إلى الحزمة [`data/`](../../data/) (الدفتر صار مُشغِّلاً رفيعاً
+يحمّلها في نطاقه بـ`data.load_into(globals())`؛ الأسماء المتاحة بعد `%run` هي نفسها). الوثائق المسجَّلة قبل النقل تشير إلى «الخلية N» أو
+«القسم N» من الدفتر القديم؛ هذا جدول التحويل (أرقام الخلايا في الدفتر قبل النقل → الوحدة؛ الخريطة الحالية في [`maps/data.md`](../../maps/data.md)):
+
+| الخلية (قبل النقل) | الوحدة | الخلية | الوحدة |
+|---|---|---|---|
+| 4 (استيرادات) | `data/common.py` | 36 (القسم 15، `build_dataset`) | `data/pipeline.py` |
+| 7 (Drive) | `data/drive.py` | 38 (15-ب، تطبيع مقطعي) | `data/cross_sectional_norm.py` |
+| 9 (`DEFAULT_CONFIG`) | `data/defaults.py` | 40 (التقسيم) | `data/split.py` |
+| 11 (`CONFIG`) | `data/runtime.py` | 42 (Binance) | `data/binance_client.py` |
+| 14 (الرؤوس) | `data/heads.py` | 44 (التمويل/OI + المرحلة ٢) | `data/funding_oi.py`، `data/phase2.py` |
+| 16 (مخصّصة) | `data/custom.py` | 46 (الحيّ) | `data/live.py` |
+| 18 (الميزات) | `data/features.py` | 48 (الحفظ/التحميل) | `data/storage.py` |
+| 20 (التطبيع، `FEATURE_KINDS`) | `data/normalize.py` | 51 (19-ب، الاختبارات الذاتية) | `data/selftests.py` |
+| 22 (المحاذاة) | `data/align.py` | 54 (`default_workers` مكرَّرة) | `data/parallel.py` |
+| 24 (النوافذ) | `data/windows.py` | 59 / 61 / 63 / 65 (20-ب / 20-ج / اختبارها / 20-د) | `data/presets.py` |
+| 26 (التشخيص) | `data/diagnostics.py` | 33 (السياق السوقي) | `data/market_context.py` |
+| 28 (التوازي) | `data/parallel.py` | 34 (رتبة الزخم المقطعية) | `data/cross_sectional_features.py` |
+| 30 (المصادر) | `data/sources.py` | 35 (نقاط الاستئناف + بناء مدعوم بالقرص) | `data/checkpoints.py`، `data/disk_backed.py` |
+
+للتعديل: غيّر ملف الوحدة في `data/` (لا الدفتر)، وراجع `CLAUDE.md` (تعديل لا يغيّر السلوك الافتراضي، واختبارات `tests/`).
+
 ## بنية دفاتر محور التقييم (`signal_evaluation_axis`)
 
 كان `signal_evaluation_axis (3).ipynb` يضمّ المحور القياسي وكل الفرضيات المُختبَرة عبره في ملف واحد كبير. أُفرِد الآن إلى دفتر أساسي + دفتر مستقلّ لكل فرضية، كلٌّ منها يعتمد على الأساسي عبر `%run` (نفس أسلوب `main.ipynb` في تجميع الدفاتر):

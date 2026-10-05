@@ -10,10 +10,11 @@ Navigate MAP.md -> maps/<zone>.md -> read only the target symbol by line range (
 - `python tools/build_map.py` - regenerate MAP.md and maps/ after adding or renaming modules or cards.
 - `python tools/build_map.py --check` - fails if the maps are stale.
 - `git config core.hooksPath .githooks` - once per clone (Claude Code sessions do it on SessionStart): the pre-commit hook regenerates and stages the maps and runs the structure checks, so a commit can't leave them stale.
+- `data/` holds ALL data-preparation code (formerly the cells of `crypto_data_pipeline_v6.ipynb`, now a thin runner): edit the module, not the notebook. The modules run in ONE shared namespace (`data/_loader.py`: `data.load_into(ns)`), never `import data.<module>`; tests get it via `docs/research/audit/_nbload.load_pipeline()`.
 - `python -m pytest tests/ -q` - full suite, CPU only, no Drive (needs `pip install -r requirements-ci.txt`).
 
 ## Working rules
-- Zones and import direction: code packages (`cross_asset/`, `tools/`) never import `research/`, `docs/` or `tests/`; a study never imports another study (lift shared code into a package).
+- Zones and import direction: code packages (`cross_asset/`, `tools/`, `data/`) never import `research/`, `docs/` or `tests/`; a study never imports another study (lift shared code into a package).
 - Add, don't modify: a new study is `research/<study>/` with a README; recorded results are never edited (add a corrected copy, keep the original marked).
 - A new option's default must reproduce the old behavior exactly (checkpoints and past results stay valid).
 - No silent defaults: unknown config keys or unregistered feature/head/loss names raise; pass config sections explicitly, not via a global.
