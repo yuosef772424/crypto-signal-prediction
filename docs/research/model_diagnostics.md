@@ -5,9 +5,9 @@
 
 | أين | ماذا |
 |---|---|
-| `trainer_framework_v2.ipynb` §6.5 | `TrainingDiagnostics` (callback) + `with_sample_index` |
-| `model_v2 (1).ipynb` §9-ب | `diagnose_model` · `model_health_verdicts` · `print_verdicts` |
-| `model_v2 (1).ipynb` §9-ج | `layer_probe_report` · `layer_probe_verdict` · `layer_compare_report` · `random_init_copy` |
+| `trainer/training_diagnostics.py` (ex `trainer_framework_v2.ipynb` §6.5) | `TrainingDiagnostics` (callback) + `with_sample_index` |
+| `model/diagnostics.py` (ex `model_v2 (1).ipynb` §9-ب) | `diagnose_model` · `model_health_verdicts` · `print_verdicts` |
+| `model/layer_report.py` (ex `model_v2 (1).ipynb` §9-ج) | `layer_probe_report` · `layer_probe_verdict` · `layer_compare_report` · `random_init_copy` |
 | `main.ipynb` §٧-ط | `make_training_diagnostics` · `model_health_report` · `model_layer_report` |
 | `main.ipynb` §٧-ي | `effective_sample_size` · `simple_baseline` · `feature_count_sweep` · `learning_curve` · `capacity_verdict` · `capacity_report` |
 
@@ -97,6 +97,6 @@ diag.hardest_samples("high_class")                                   # أصعب 
 ## ٦) حدود ومخاطر
 * `tap` يُغلِّف dataset التدريب بدالة `tf.numpy_function` تنسخ الدفعات المقاسة فقط؛ الترتيب والقيم لا تتغيّر، لكن المطابقة بين الدفعة والخطوة تعتمد على رقم الخطوة (`missed_measures` في `stats()` يُنبّه إن لم تتطابق، مثلاً استئناف غير متّسق).
 * `with_sample_index` يخزّن فهرس العيّنة float32 (دقيق حتى 2²⁴ ≈ 16.7 مليون صفّ؛ فوقه يُرفض صراحةً).
-* التقارير الطبقية تقرأ بنية النموذج بأسماء طبقات `model_v2` (`block_*`, `readout_fc`, `trunk_norm`, `class_fc_*`, `nig_*`)؛ طبقة جديدة بأسماء أخرى تظهر في جدول التنشيطات (وضع `all`) لكن لا في «المجموعات» حتى تُضاف قاعدتها في `_STAGE_RULES`.
+* التقارير الطبقية تقرأ بنية النموذج بأسماء طبقات `model/` (ex `model_v2`) (`block_*`, `readout_fc`, `trunk_norm`, `class_fc_*`, `nig_*`)؛ طبقة جديدة بأسماء أخرى تظهر في جدول التنشيطات (وضع `all`) لكن لا في «المجموعات» حتى تُضاف قاعدتها في `_STAGE_RULES`.
 * مسبار الانتباه يعيد حساب softmax من أوزان `RelativeGQAttention`؛ `sync_err` يتحقّق من تطابقه مع الطبقة، وانحرافه ⚠️ يعني أن الطبقة تغيّرت فيجب تحديث `_attn_probs`.
 * مرجع الفجوة بين train وval وtest يبقى `generalization_gap_report` (main ٧-ز) — لا تكرار هنا.

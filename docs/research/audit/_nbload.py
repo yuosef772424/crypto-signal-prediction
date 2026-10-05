@@ -52,3 +52,38 @@ def load_pipeline(quiet=True):
     with (contextlib.redirect_stdout(io.StringIO()) if quiet else contextlib.nullcontext()):
         _data_package().load_into(ns, exclude=("selftests",))
     return ns
+
+
+def _repo_package(name):
+    """The repo's package ``name`` ('model' | 'trainer'), imported from ROOT (same guard as _data_package)."""
+    import importlib
+    import sys
+    if ROOT not in sys.path:
+        sys.path.insert(0, ROOT)
+    pkg = importlib.import_module(name)
+    if os.path.dirname(os.path.abspath(pkg.__file__)) != os.path.join(ROOT, name):
+        raise ImportError(f"'{name}' resolves to {pkg.__file__}, not this repo's package ({ROOT}/{name})")
+    return pkg
+
+
+def load_model(ns=None, quiet=True, selftests=False):
+    """The model (package model/, ex model_v2 (1).ipynb) in a shared namespace; its import-time self-test module
+    (``selftests``: defines and runs run_model_selftests) is left out unless ``selftests=True``.
+    Same code path as the runner notebook: model.load_into(namespace)."""
+    ns = {"__name__": "audit_nb"} if ns is None else ns
+    ns.setdefault("__name__", "audit_nb")
+    with (contextlib.redirect_stdout(io.StringIO()) if quiet else contextlib.nullcontext()):
+        _repo_package("model").load_into(ns, exclude=() if selftests else ("selftests",))
+    return ns
+
+
+def load_trainer(ns=None, quiet=True, smoke_test=False, kfold=False):
+    """The generic trainer (package trainer/, ex trainer_framework_v2.ipynb) in a shared namespace, without its
+    load-time smoke test (a real tiny training) and without the optional K-Fold module unless asked for. Same code path
+    as the runner notebook: trainer.load_into(namespace)."""
+    ns = {"__name__": "audit_nb"} if ns is None else ns
+    ns.setdefault("__name__", "audit_nb")
+    exclude = tuple(m for m, keep in (("smoke_test", smoke_test), ("kfold", kfold)) if not keep)
+    with (contextlib.redirect_stdout(io.StringIO()) if quiet else contextlib.nullcontext()):
+        _repo_package("trainer").load_into(ns, exclude=exclude)
+    return ns

@@ -94,15 +94,8 @@ print(f"PanelSplit (train shuffled+k-coin sampling, val/test order, chunk_groups
 bad += nbad
 
 # ── model side ──
-mv = {"__name__": "mv"}
-cells = []
-for c in json.load(open(os.path.join(ROOT, "model_v2 (1).ipynb"), encoding="utf-8"))["cells"]:
-    if c["cell_type"] == "code":
-        s = "\n".join(l for l in "".join(c["source"]).splitlines() if not l.lstrip().startswith(("!", "%")))
-        if s.strip() != "run_model_selftests()":            # skip the import-time self test only
-            cells.append(s)
-with contextlib.redirect_stdout(io.StringIO()):
-    exec(compile("\n".join(cells), "model_v2", "exec"), mv)
+import _nbload  # noqa: E402
+mv = _nbload.load_model({"__name__": "mv"})        # package model/ (ex model_v2) without its import-time self test
 model = mv["build_model_fn"]({"1h": 32, "4h": 32}, {"1h": 43, "4h": 43}, config=dict(mv["ANTI_MEMORIZATION_CONFIG"]))
 rng = np.random.default_rng(0)
 x1 = rng.normal(0, 1, (64, 32, 43)).clip(-5, 5).astype("float16")

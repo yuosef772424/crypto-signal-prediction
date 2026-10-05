@@ -295,17 +295,10 @@ _MODEL_NS = {}
 
 
 def _model_ns():
-    """model_v2 (خلاياه كلها عدا الاختبار الذاتي الذي يعمل عند الاستيراد) + المدرّب وbuild_target_configs من main."""
+    """model (package model/, ex model_v2: كل وحداته عدا الاختبار الذاتي الذي يعمل عند التحميل) + المدرّب وbuild_target_configs من main."""
     if not _MODEL_NS:
         import tensorflow as tf  # noqa: F401
-        mv = {"__name__": "audit_nb"}
-        for cell in json.load(open(os.path.join(ROOT, "model_v2 (1).ipynb")))["cells"]:
-            if cell["cell_type"] != "code":
-                continue
-            src = "".join(cell["source"])
-            lines = [ln for ln in src.splitlines() if not ln.lstrip().startswith(("!", "%"))
-                     and ln.strip() != "run_model_selftests()"]
-            _quiet(exec, compile("\n".join(lines), "model_v2", "exec"), mv)
+        mv = _quiet(_nbload.load_model, {"__name__": "audit_nb"})
         _MODEL_NS.update(mv)
     return _MODEL_NS
 
@@ -315,15 +308,7 @@ _TRAINER_NS = {}
 
 def _trainer_ns():
     if not _TRAINER_NS:
-        ns = {"__name__": "audit_nb"}
-        for cell in json.load(open(os.path.join(ROOT, "trainer_framework_v2.ipynb")))["cells"]:
-            if cell["cell_type"] != "code":
-                continue
-            src = "".join(cell["source"])
-            if any(s in src for s in ("Smoke Test", "10.3) مثال", "12) K-Fold")):
-                continue
-            lines = [ln for ln in src.splitlines() if not ln.lstrip().startswith(("!", "%"))]
-            _quiet(exec, compile("\n".join(lines), "trainer", "exec"), ns)
+        ns = _quiet(_nbload.load_trainer, {"__name__": "audit_nb"})     # بلا Smoke Test ولا K-Fold كما كان
         main = json.load(open(os.path.join(ROOT, "main.ipynb")))["cells"]
         _quiet(exec, compile("".join(main[15]["source"]), "main#cell15", "exec"), ns)       # build_target_configs
         _TRAINER_NS.update(ns)

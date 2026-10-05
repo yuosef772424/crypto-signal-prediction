@@ -11,16 +11,18 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `hypothesis_h002_classification_head.ipynb` — H002 — رأس التصنيف الثنائي في `NIG-TimeNet v2` (1 public defs)
 - `hypothesis_h003_volatility_reversal.ipynb` — H003 — انعكاس/انكماش التقلّب المدفوع بـ`NATR_14` (Volatility Reversal) (0 public defs)
 - `main.ipynb` — 🚀 دفتر `main` — تجميع المشروع (البيانات ← النموذج ← التدريب ← التقييم) (44 public defs)
-- `model_v2 (1).ipynb` — 🧠 دفتر النموذج — `NIG-TimeNet v2` (نسخة مُنظَّفة) (31 public defs)
+- `model_v2 (1).ipynb` — 🧠 دفتر النموذج — `NIG-TimeNet v2` (نسخة مُنظَّفة) (0 public defs)
 - `pandas_ta_full_survey.ipynb` — مسح شامل لكل مؤشرات `pandas_ta_classic` — كود اختبار + فرضيات مُولَّدة آلياً (4 public defs)
 - `signal_discovery_lab.ipynb` — مختبر بحث الإشارات (Signal Discovery Lab) (24 public defs)
 - `signal_evaluation_axis (3).ipynb` — محور التقييم — المرحلة ٠ من مشروع اكتشاف الإشارة (51 public defs)
-- `trainer_framework_v2.ipynb` — 🧠 إطار عمل مدرّب عام (Generic Trainer Framework) (47 public defs)
+- `trainer_framework_v2.ipynb` — 🧠 إطار عمل مدرّب عام (Generic Trainer Framework) (0 public defs)
 
 ## Code packages
 - `cross_asset/` — Package entry of the cross-asset 'panel' model (phase 1): one sample = a full UTC day with all coins, attention across same-day coins; re-exports PanelSplit, panel_split_from, VARIANTS, run_panel_experiment. | 7 modules, 0 data files (0 B) → maps/cross_asset.md
 - `tools/` — bracket_eval, build_map, check_deps, colab_bridge, evaluate_trained_model, experiment_registry, fet… | 13 modules, 0 data files (0 B) → maps/tools.md
 - `data/` — Package holding ALL data-preparation code of the project (formerly the cells of crypto_data_pipeline_v6.ipynb): `import data` gives the whole pipeline (data.CONFIG, data.build_dataset, data.split_data, ...) in this package's namespace, loa… | 29 modules, 1 data files (289 B) → maps/data.md
+- `model/` — Package holding the NIG-TimeNet v2 model code (formerly the cells of model_v2 (1).ipynb): `import model` gives the whole model (model.build_model_fn, model.MODEL_CONFIG, model.diagnose_model, ...) in this package's namespace, loaded lazily… | 15 modules, 0 data files (0 B) → maps/model.md
+- `trainer/` — Package holding the generic training framework (formerly the cells of trainer_framework_v2.ipynb): `import trainer` gives the whole framework (trainer.build_training_system, trainer.build_config, trainer.GenericTrainer, ...) in this packag… | 20 modules, 0 data files (0 B) → maps/trainer.md
 
 ## Research studies (research/)
 - `research/edge_discovery/` — التقرير النهائي — البحث عن Edge قابل للاستغلال (2024-01 → 2026-09) | 41 scripts, 33 data files (788 KB) → maps/research_edge_discovery.md
@@ -38,6 +40,6 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `docs/research/templates/` — Experiment card — <id>: <one-line title> | 0 scripts, 1 md, 0 data files (0 B) → maps/docs_research.md
 
 ## Tests
-- `tests/` — test_audit_round2, test_bracket_eval, test_cross_asset, test_data_package, test_disk_backed, test_e… | 21 modules, 1 data files (30 KB) → maps/tests.md
+- `tests/` — test_audit_round2, test_bracket_eval, test_cross_asset, test_data_package, test_disk_backed, test_e… | 22 modules, 1 data files (30 KB) → maps/tests.md
 
 ## Where do I edit X? → `maps/tags.md` (TAGS → modules index)
