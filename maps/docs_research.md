@@ -60,11 +60,12 @@ Documents:
 - `round2.md` — Audit round 2 — pinned at b14b9bb (branch claude/charming-sagan-kswo2r)
 - `round3.md` — Audit round 3: two-timeframe path (1h base + closed 4h context), commit f2442be
 
-### `docs/research/audit/_nbload.py` (41 lines)
+### `docs/research/audit/_nbload.py` (54 lines)
 - PURPOSE: Audit helper: execute the code cells of a notebook into a namespace, without Colab. (from docstring)
+- DEPENDS: data
 - API:
   - `def load_notebook(name, skip_contains=(), quiet=True, ns=None)` L15
-  - `def load_pipeline(quiet=True)` L36
+  - `def load_pipeline(quiet=True)` L47
 
 ### `docs/research/audit/_r2_synth.py` (113 lines)
 - PURPOSE: Round-2 audit helper: a synthetic 'Drive' (1h + 15m klines, funding, OI, futures_metrics) and a (from docstring)

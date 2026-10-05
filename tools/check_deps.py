@@ -19,7 +19,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-CODE_PACKAGES = ("cross_asset", "tools")
+CODE_PACKAGES = ("cross_asset", "tools", "data")
 CODE_FORBIDDEN = ("research", "docs", "tests")  # code packages must not import these
 SKIP_DIRS = {".git", "__pycache__", ".ipynb_checkpoints", ".claude"}
 ZONE_HEADS = CODE_PACKAGES + ("tests", "docs", "research")
@@ -61,12 +61,12 @@ def list_repo_files(root: Path = ROOT) -> list[str]:
 
 
 def zone_of(rel: str) -> str:
-    """root | cross_asset | tools | tests | docs | research/<study> | research | other."""
+    """root | cross_asset | tools | data | tests | docs | research/<study> | research | other."""
     parts = rel.split("/")
     if len(parts) == 1:
         return "root"
     head = parts[0]
-    if head in ("cross_asset", "tools", "tests", "docs"):
+    if head in CODE_PACKAGES or head in ("tests", "docs"):
         return head
     if head == "research":
         return f"research/{parts[1]}" if len(parts) >= 3 else "research"
