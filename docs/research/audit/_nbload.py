@@ -52,3 +52,31 @@ def load_pipeline(quiet=True):
     with (contextlib.redirect_stdout(io.StringIO()) if quiet else contextlib.nullcontext()):
         _data_package().load_into(ns, exclude=("selftests",))
     return ns
+
+
+def _repo_package(name):
+    """The repo's code package ``name`` (evaluation, signal_eval, ...), imported from ROOT (never a same-named installed one)."""
+    import importlib
+    import sys
+    if ROOT not in sys.path:
+        sys.path.insert(0, ROOT)
+    pkg = importlib.import_module(name)
+    if os.path.dirname(os.path.abspath(pkg.__file__)) != os.path.join(ROOT, name):
+        raise ImportError(f"'{name}' resolves to {pkg.__file__}, not this repo's package ({ROOT}/{name})")
+    return pkg
+
+
+def load_evaluation(ns=None, exclude=(), quiet=True):
+    """Package evaluation/ (ex chicks_v4_5_input_output_patterns.ipynb) executed into ``ns`` (a fresh dict by default):
+    same code path as the runner notebook, evaluation.load_into(ns). ``exclude`` = module names to skip."""
+    ns = {"__name__": "audit_nb"} if ns is None else ns
+    with (contextlib.redirect_stdout(io.StringIO()) if quiet else contextlib.nullcontext()):
+        _repo_package("evaluation").load_into(ns, exclude=exclude)
+    return ns
+
+
+def exec_evaluation_module(name, ns, quiet=True):
+    """Execute ONE evaluation/ module into ``ns`` (what exec'ing a single chicks cell used to do)."""
+    with (contextlib.redirect_stdout(io.StringIO()) if quiet else contextlib.nullcontext()):
+        _repo_package("evaluation").exec_module(name, ns)
+    return ns

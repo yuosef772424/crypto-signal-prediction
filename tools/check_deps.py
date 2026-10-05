@@ -19,7 +19,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-CODE_PACKAGES = ("cross_asset", "tools", "data")
+CODE_PACKAGES = ("cross_asset", "tools", "data", "evaluation", "signal_eval")
 CODE_FORBIDDEN = ("research", "docs", "tests")  # code packages must not import these
 SKIP_DIRS = {".git", "__pycache__", ".ipynb_checkpoints", ".claude"}
 ZONE_HEADS = CODE_PACKAGES + ("tests", "docs", "research")

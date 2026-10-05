@@ -52,8 +52,7 @@ def _ns():
     global _NS
     if _NS is None:
         ns = _nbload.load_pipeline()
-        _nbload.load_notebook("chicks_v4_5_input_output_patterns.ipynb", ns=ns,
-                              skip_contains=("run_full_analysis(", "test_all_assets_v4(model"))
+        _nbload.load_evaluation(ns=ns, exclude=("all_assets", "live", "full_analysis"))   # = chicks cells 18, 20, 36 (skipped as before)
         _NS = ns
     return _NS
 

@@ -169,11 +169,11 @@
   - `class RealPricePredictionsModes(unittest.TestCase)` L40
     - (3 methods)
 
-### `tests/test_reg_target_scale.py` (149 lines)
+### `tests/test_reg_target_scale.py` (148 lines)
 - PURPOSE: reg_target_scale في دفتر main وchicks: y_*_reg = عائد × المقياس، وكل تحويل إلى سعر يقسم عليه أولاً. (from docstring)
 - DEPENDS: docs
 - API:
-  - `class MainRegScaleTests(unittest.TestCase)` L78
+  - `class MainRegScaleTests(unittest.TestCase)` L77
     - (6 methods)
 
 ### `tests/test_sample_filters.py` (106 lines)

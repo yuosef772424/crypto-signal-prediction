@@ -5,7 +5,7 @@ Cards: every module docstring may carry `PURPOSE:` / `TAGS:` / `PITFALLS:`; DEPE
 Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check`; imports: `python tools/check_deps.py`.
 
 ## Root notebooks → maps/notebooks.md
-- `chicks_v4_5_input_output_patterns.ipynb` — 📓 دفتر تقييم النموذج — نسخة مُحسّنة (v4.1) (70 public defs)
+- `chicks_v4_5_input_output_patterns.ipynb` — 📓 دفتر تقييم النموذج — نسخة مُحسّنة (v4.1) (0 public defs)
 - `crypto_data_pipeline_v6.ipynb` — خط أنابيب تجهيز بيانات العملات الرقمية — دفتر موحّد (تاريخي + حيّ) (0 public defs)
 - `hypothesis_h001_short_term_reversal.ipynb` — H001 — الانعكاس قصير المدى (Short-Term Reversal) (2 public defs)
 - `hypothesis_h002_classification_head.ipynb` — H002 — رأس التصنيف الثنائي في `NIG-TimeNet v2` (1 public defs)
@@ -21,6 +21,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `cross_asset/` — Package entry of the cross-asset 'panel' model (phase 1): one sample = a full UTC day with all coins, attention across same-day coins; re-exports PanelSplit, panel_split_from, VARIANTS, run_panel_experiment. | 7 modules, 0 data files (0 B) → maps/cross_asset.md
 - `tools/` — bracket_eval, build_map, check_deps, colab_bridge, evaluate_trained_model, experiment_registry, fet… | 13 modules, 0 data files (0 B) → maps/tools.md
 - `data/` — Package holding ALL data-preparation code of the project (formerly the cells of crypto_data_pipeline_v6.ipynb): `import data` gives the whole pipeline (data.CONFIG, data.build_dataset, data.split_data, ...) in this package's namespace, loa… | 29 modules, 1 data files (289 B) → maps/data.md
+- `evaluation/` — Package holding ALL model-evaluation code of the project (formerly the cells of chicks_v4_5_input_output_patterns.ipynb): `import evaluation` gives predict_with_evaluation_v4, test_all_assets_v4, run_full_analysis, ... in this package's na… | 24 modules, 0 data files (0 B) → maps/evaluation.md
 
 ## Research studies (research/)
 - `research/edge_discovery/` — التقرير النهائي — البحث عن Edge قابل للاستغلال (2024-01 → 2026-09) | 41 scripts, 33 data files (788 KB) → maps/research_edge_discovery.md

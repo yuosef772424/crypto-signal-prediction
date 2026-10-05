@@ -15,7 +15,7 @@ import pandas as pd
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
-from tests.test_reg_target_scale import _cell, _ns, _split  # noqa: E402
+from tests.test_reg_target_scale import _cell, _ns, _split, _nbload  # noqa: E402
 
 _MV = {}
 
@@ -45,8 +45,8 @@ def _chicks():
     """نطاق chicks مع خليتَي test_all_assets_v4 وrun_full_analysis (يتخطّاهما التحميل العام لنصّ الاستدعاء فيهما)."""
     if not _CH:
         ns = dict(_ns())
-        for idx in (18, 36):
-            exec(compile(_cell("chicks_v4_5_input_output_patterns.ipynb", idx), f"chicks#cell{idx}", "exec"), ns)
+        for mod in ("all_assets", "full_analysis"):                 # chicks cells 18 and 36
+            _nbload.exec_evaluation_module(mod, ns, quiet=False)
         _CH.update(ns)
     return dict(_CH)
 
