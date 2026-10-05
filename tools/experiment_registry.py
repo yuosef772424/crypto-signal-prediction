@@ -29,7 +29,7 @@ COLUMNS = ["id", "source", "date", "claim", "mechanism", "timeframe", "target", 
            "cost_model", "failure_level", "failure_location", "evidence", "verified_cause", "cause_test", "invariants",
            "reopen_if", "status", "supersedes"]
 TAG_FIELDS = ("mechanism", "timeframe", "target", "model_class")
-LEVELS = {"data", "representation", "optimization", "head", "generalization", "economics", "implementation"}
+LEVELS = {"data", "representation", "optimization", "head", "generalization", "economics", "implementation", "power"}
 STATUSES = {"closed", "closed-unverified-cause", "reopened"}
 ID_RE = re.compile(r"^F-\d{4}$")
 REOPEN_RE = re.compile(r"^(R\d+):\s*\S")
