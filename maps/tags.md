@@ -810,6 +810,7 @@
 - pin bar: edge_discovery/22_chart_rules
 - pipeline: data/pipeline
 - pipeline package: data/_loader
+- pipeline_default_config: data/defaults
 - pkl.gz: data/storage
 - platt: evaluation/trust_calibration
 - plot_calibration_curve: evaluation/plots
@@ -1116,6 +1117,7 @@
 - trainer framework: trainer/__init__
 - trainer package: trainer/_loader
 - trainer targets: workflow/training_config
+- trainer_default_config: trainer/config
 - trainer_framework_v2: trainer/__init__
 - trainer_registry: trainer/checkpoints, trainer/smoke_test
 - trainingdiagnostics: trainer/training_diagnostics

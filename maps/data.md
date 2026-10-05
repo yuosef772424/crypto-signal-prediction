@@ -98,10 +98,10 @@
   - `def add_custom_features(data: pd.DataFrame, settings: Optional[dict]=None, config: Optional[dict]=None) -> pd.DataFrame` L177
   - `def custom_feature_names(settings: Optional[dict]=None, config: Optional[dict]=None) -> List[str]` L546
 
-### `data/defaults.py` (571 lines)
-- PURPOSE: DEFAULT_CONFIG — the single source of truth for every pipeline/model/training setting — plus COINS_BY_CATEGORY, STATIC_INDICATORS_FULL and DEFAULT_ENABLED_CATEGORIES.
-- TAGS: default_config, defaults, settings, config keys, coins_by_category, coin categories, indicator_settings, phase2_data, module_dirs, split_dates, holdout_start, الإعدادات
-- PITFALLS: A new key's default must reproduce the old behaviour exactly (checkpoints and recorded results stay valid). Never edit DEFAULT_CONFIG at run time: use update_config() on CONFIG. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+### `data/defaults.py` (575 lines)
+- PURPOSE: PIPELINE_DEFAULT_CONFIG (alias DEFAULT_CONFIG) — the single source of truth for every pipeline/model/training setting — plus COINS_BY_CATEGORY, STATIC_INDICATORS_FULL and DEFAULT_ENABLED_CATEGORIES.
+- TAGS: pipeline_default_config, default_config, defaults, settings, config keys, coins_by_category, coin categories, indicator_settings, phase2_data, module_dirs, split_dates, holdout_start, الإعدادات
+- PITFALLS: A new key's default must reproduce the old behaviour exactly (checkpoints and recorded results stay valid). Never edit PIPELINE_DEFAULT_CONFIG at run time: use update_config() on CONFIG. Pipeline code must use PIPELINE_DEFAULT_CONFIG, never the bare DEFAULT_CONFIG: trainer/config.py binds a different DEFAULT_CONFIG (6 sections) and the two meet in main.ipynb's namespace. Executed into the one sha…
 - USED BY: presets, runtime, selftests, sources
 
 ### `data/diagnostics.py` (215 lines)
@@ -287,7 +287,7 @@
   - `def pct_decode_consistency(dataset: Dict, column: str='close') -> Dict[str, float]` L391
   - `def build_hourly_pct_dataset(checkpoint_dir: Optional[str]=None, save: bool=True, max_workers: Optional[int]=None, estimate: bool=True, require_phase2: bool=True) -> Dict` L416
 
-### `data/runtime.py` (162 lines)
+### `data/runtime.py` (180 lines)
 - PURPOSE: The live CONFIG dict and its helpers: update_config/reset_config (in place), save/load_config, refresh_features, feature_order, seq_len, describe.
 - TAGS: config, update_config, reset_config, refresh_features, feature_order, save_config, load_config, describe, deep update
 - PITFALLS: CONFIG is mutated in place and never rebound: every function (and every %run caller) holds the same dict object. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
@@ -295,15 +295,15 @@
 - USED BY: align, binance_client, cross_sectional_features, cross_sectional_norm, custom, diagnostics, drive, features, funding_oi, heads +16
 - API:
   - `def get_config() -> Dict[str, Any]` L34
-  - `def update_config(overrides: Optional[dict]=None, **kwargs) -> Dict[str, Any]` L39
-  - `def reset_config() -> Dict[str, Any]` L51
-  - `def save_config(path, config: Optional[dict]=None) -> Path` L80
-  - `def load_config(path, merge: bool=True) -> Dict[str, Any]` L93
-  - `def refresh_features(config: Optional[dict]=None, force: bool=True) -> List[str]` L108
-  - `def feature_order(config: Optional[dict]=None) -> List[str]` L122
-  - `def n_features(config: Optional[dict]=None) -> int` L130
-  - `def seq_len(config: Optional[dict]=None) -> int` L134
-  - `def describe(config: Optional[dict]=None) -> None` L140
+  - `def update_config(overrides: Optional[dict]=None, **kwargs) -> Dict[str, Any]` L55
+  - `def reset_config() -> Dict[str, Any]` L69
+  - `def save_config(path, config: Optional[dict]=None) -> Path` L98
+  - `def load_config(path, merge: bool=True) -> Dict[str, Any]` L111
+  - `def refresh_features(config: Optional[dict]=None, force: bool=True) -> List[str]` L126
+  - `def feature_order(config: Optional[dict]=None) -> List[str]` L140
+  - `def n_features(config: Optional[dict]=None) -> int` L148
+  - `def seq_len(config: Optional[dict]=None) -> int` L152
+  - `def describe(config: Optional[dict]=None) -> None` L158
 
 ### `data/selftests.py` (2426 lines)
 - PURPOSE: run_pipeline_selftests(): the notebook's self-tests on small synthetic data (no Drive, no network).

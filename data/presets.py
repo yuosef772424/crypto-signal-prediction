@@ -348,7 +348,7 @@ def run_hourly_4h_selftests(verbose: bool = True) -> bool:
         # الإعدادات القائمة لم تُلمَس: 1h_s8 فريم واحد بلا الوضعين
         assert "tf_order" not in HOURLY_W32_S8_OVERRIDES and "higher_tf_mode" not in HOURLY_W32_S8_OVERRIDES
         assert HOURLY_W32_S8_OVERRIDES["window_sizes"] == {"1h": 32}
-        assert DEFAULT_CONFIG["higher_tf_mode"] == "legacy" and DEFAULT_CONFIG["x_storage_dtype"] is None
+        assert PIPELINE_DEFAULT_CONFIG["higher_tf_mode"] == "legacy" and PIPELINE_DEFAULT_CONFIG["x_storage_dtype"] is None
 
     def t_memory_estimate_matches_documented_numbers():
         # ~450k عيّنة، فريمان بنافذة 32 و43 ميزة: 4.95 GB بـfloat32 (ذروة 2.1× = 10.4 GB)، ونصفها بـfloat16

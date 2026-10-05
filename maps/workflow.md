@@ -4,7 +4,7 @@
 - Package holding the project-assembly code of main.ipynb (target-mode switching, split helpers, training batches, model/trainer bridges, section-7 evaluation reports, diagnostics, capacity controls, wiring self-test); main.ipynb stays the s… | 21 modules, 0 data files (0 B)
 - implicit deps (shared namespace, tools/implicit_deps.py): USES / USED BY list module names; `*` = defined in a LATER module, `pkg/mod` = another package; shared imports (np, pd, ...) omitted; NOTEBOOK-GLOBALS = names no module defines
 
-### `workflow/__init__.py` (70 lines)
+### `workflow/__init__.py` (73 lines)
 - PURPOSE: Package holding the project-assembly code of main.ipynb (target-mode switching, split helpers, training batches, model/trainer bridges, section-7 evaluation reports, diagnostics, capacity controls, wiring self-test); main.ipynb stays the s…
 - TAGS: workflow, main notebook, assembly, retarget_splits, make_shuffled_dataset, model_health_report, capacity_report, section 7 reports, shared namespace, lazy load
 - PITFALLS: The modules run in ONE shared namespace (see workflow/_loader.py), so never `import workflow.<module>`; use `import workflow` (namespace = this package, loaded lazily on first attribute access) or `workflow.load_into(ns, only=...)` (namespace = your dict, what the runner notebook does with globals()). Patch names on the namespace that loaded them. The package-level namespace is seeded with the da…
