@@ -659,10 +659,10 @@ class EntryRangeConsumerTests(unittest.TestCase):
 
     def test_tool_target_modes_match_notebook(self):
         from tools.evaluate_trained_model import ENTRY_CLOSE_REG_CHOICES, TARGET_MODE_CHOICES
-        with open(os.path.join(ROOT, "workflow", "retarget.py"), encoding="utf-8") as f:     # TARGET_MODES lives in workflow/retarget.py
-            src = f.read()
-        bases = eval(re.search(r"^TARGET_MODES = (\(.*?\))", src, re.M).group(1))
-        no_rel = eval(re.search(r"^_NO_RELATIVE_BASES = (\(.*?\))", src, re.M).group(1))
+        ns = {"__name__": "t"}                                       # TARGET_MODES now comes from core/schema.py via workflow/retarget.py
+        _nbload.workflow_package().load_into(ns, only=("retarget",))
+        bases, no_rel = ns["TARGET_MODES"], ns["_NO_RELATIVE_BASES"]
+        self.assertEqual(tuple(ns["ENTRY_CLOSE_REGS"]), tuple(ENTRY_CLOSE_REG_CHOICES))
         want = set(bases) | {"relative"} | {f"{b}+relative" for b in bases if b not in no_rel}
         self.assertEqual(set(TARGET_MODE_CHOICES), want)
         self.assertEqual(set(ENTRY_CLOSE_REG_CHOICES), set(REGS))

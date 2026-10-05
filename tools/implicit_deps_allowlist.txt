@@ -133,6 +133,5 @@ notebook workflow/verification.py PRICE_TARGETS
 notebook workflow/wiring_selftest.py EVAL_TARGET_SPECS
 notebook workflow/wiring_selftest.py LAST_CLOSE_COL
 dup DEFAULT_CONFIG : data/defaults.py, trainer/config.py
-dup NIG_ALPHA_DEN_MIN : evaluation/targets.py, model/nig_layers.py
 dup SMALL_ARRAY_BYTES : data/disk_backed.py, data/selftests.py
 dup _auc : model/diagnostics.py, workflow/generalization.py

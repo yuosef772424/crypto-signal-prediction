@@ -38,14 +38,18 @@ import time
 import numpy as np
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if REPO not in sys.path:
+    sys.path.insert(0, REPO)    # core/ (المصدر الوحيد لأسماء أوضاع الهدف) بجانب tools/ — السكربت يُشغَّل من tools/
+from core.schema import ENTRY_CLOSE_REGS, NO_RELATIVE_BASES, TARGET_MODES  # noqa: E402
+
 REPORTS = ("gap", "verification", "market_neutral", "candle", "chicks", "signals")
-# أوضاع الهدف المقبولة = TARGET_MODES في main القسم ٣-ب (+ "+relative" لكل وضع يقبله؛ entry_range لا يقبله) —
-# tests/test_entry_range.py يثبّت التطابق، فوضع جديد في الدفتر بلا إضافته هنا يُفشل الاختبار لا التقييم بصمت.
-_BASE_MODES = ("return", "return_close", "scaled", "magnitude", "volnorm")
+# أوضاع الهدف المقبولة = TARGET_MODES في core/schema.py (+ "+relative" لكل وضع يقبله؛ NO_RELATIVE_BASES لا تقبله) —
+# tests/test_entry_range.py يثبّت التطابق مع workflow/retarget.py.
+_BASE_MODES = tuple(m for m in TARGET_MODES if m not in NO_RELATIVE_BASES)
 TARGET_MODE_CHOICES = (_BASE_MODES + ("relative",) + tuple(f"{b}+relative" for b in _BASE_MODES)
-                       + ("entry_range",))
-# تعريف انحدار close في entry_range = ENTRY_CLOSE_REGS في main القسم ٣-ب (يثبّته tests/test_entry_range.py)
-ENTRY_CLOSE_REG_CHOICES = ("abs_return", "range_pos")
+                       + tuple(NO_RELATIVE_BASES))
+# تعريف انحدار close في entry_range = ENTRY_CLOSE_REGS في core/schema.py
+ENTRY_CLOSE_REG_CHOICES = ENTRY_CLOSE_REGS
 INVOKE_CWD = os.getcwd()
 
 

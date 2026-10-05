@@ -6,8 +6,8 @@ PITFALLS: retarget_splits reads REG_TARGET_SCALE, PRICE_TARGETS, ENTRY_CLOSE_REG
 import numpy as np
 import pandas as pd
 
-TARGET_MODES = ("return", "return_close", "scaled", "magnitude", "volnorm", "entry_range")   # + اختيارياً "+relative"
-_NO_RELATIVE_BASES = ("entry_range",)   # انظر الشرح أعلاه: لا تركيب "+relative" معها
+# أسماء أوضاع الهدف (+ اختيارياً "+relative") والأوضاع التي لا تقبل "+relative" وتعريفات انحدار close في entry_range: core/schema.py
+from core.schema import ENTRY_CLOSE_REGS, NO_RELATIVE_BASES as _NO_RELATIVE_BASES, TARGET_MODES   # noqa: F401
 _FUTURE_COL = {"high": "future_high_max", "low": "future_low_min", "close": "future_close"}
 _DEFAULT_CLIP = {"scaled": 10.0, "volnorm": 10.0}   # نفس قصّ خط الأنابيب لوضعه القديم المقاس بـ IQR؛ الباقي ±1
 # أوضاع بوحدة العائد: تُضرب في REG_TARGET_SCALE (من البيانات) بعد القصّ كخط الأنابيب، فيبقى مقياس أهداف النموذج
@@ -16,7 +16,6 @@ _RETURN_UNIT_BASES = ("return", "return_close", "magnitude", "entry_range")
 # تعريفات انحدار close في entry_range: "abs_return" = |عائد الإغلاق من P| (يُضرب في المقياس كغيره)،
 # "range_pos" = موقع الإغلاق في المدى [0,1] (لا يُضرب: وحدته O(1) أصلاً). كل قسم يُختم بمقياس كل هدف
 # (reg_target_scales) وبالتعريف (entry_close_reg) فلا يخمّن المستهلك (reg_scale_of(split, target) في القسم ٣).
-ENTRY_CLOSE_REGS = ("abs_return", "range_pos")
 
 
 def _parse_mode(mode):

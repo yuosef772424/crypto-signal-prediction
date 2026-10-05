@@ -195,6 +195,7 @@
 - PURPOSE: Shared imports of the evaluation package plus TargetSpec/resolve_targets (which targets a model outputs: continuous or categorical), NIG uncertainty bounding and the Wilson CI.
 - TAGS: targetspec, resolve_targets, make_categorical_spec, get_model_target_names, nig_uncertainty_bounded, wilson_ci, imports, shared namespace
 - PITFALLS: Loaded first: later modules use its imports (re, warnings, np, tf, pd, dataclass, typing names) without importing them. Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: core
 - USED BY: all_assets, decode, flat, full_analysis, integrity, io_patterns, latest_table, live, metrics, predict +4
 - API:
   - `class TargetSpec` L36

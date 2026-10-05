@@ -150,15 +150,16 @@
   - `def real_price_predictions(asset, target)` L14
   - `def classification_accuracy_report()` L53
 
-### `workflow/retarget.py` (254 lines)
+### `workflow/retarget.py` (253 lines)
 - PURPOSE: Target-mode switching on already-built splits (return, return_close, scaled, magnitude, volnorm, entry_range, +relative): retarget_splits recomputes y_*_reg / y_*_class from raw last_candles; entry_range_to_prices inverts entry_range.
 - TAGS: target_mode, retarget_splits, target modes, relative, entry_range, entry_range_to_prices, entry_close_reg, magnitude, volnorm, scaled
 - PITFALLS: retarget_splits reads REG_TARGET_SCALE, PRICE_TARGETS, ENTRY_CLOSE_REG and CONFIG from the notebook namespace (globals()); LAST_COLUMNS comes from the pipeline. tools/evaluate_trained_model.py pins TARGET_MODES/ENTRY_CLOSE_REGS (tests/test_entry_range.py). Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebo…
+- DEPENDS: core
 - USES: data/runtime, data/windows
 - USED BY: capacity, diagnostics, generalization, reports, selective_eval, wiring_selftest
 - API:
-  - `def retarget_splits(train_split, val_split, test_split, mode='return', targets=None, clip=None, center='median', group_freq=None, min_group=5, drop_small_groups=False, close_reg=None, verbose=True)` L147
-  - `def entry_range_to_prices(last_close, high=None, low=None, close=None, close_reg='abs_return', p_close_up=None)` L229
+  - `def retarget_splits(train_split, val_split, test_split, mode='return', targets=None, clip=None, center='median', group_freq=None, min_group=5, drop_small_groups=False, close_reg=None, verbose=True)` L146
+  - `def entry_range_to_prices(last_close, high=None, low=None, close=None, close_reg='abs_return', p_close_up=None)` L228
 
 ### `workflow/selective_eval.py` (296 lines)
 - PURPOSE: Section 7-b: selective evaluation (accuracy at confident slices, 2:1 trades): collect_signals, thresholds picked on val only, Wilson intervals, rr_trading_report.

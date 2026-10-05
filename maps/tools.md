@@ -3,17 +3,18 @@
 ## `tools/`
 - bracket_eval, build_map, check_deps, colab_bridge, evaluate_trained_model, experiment_registry, fet… | 14 modules, 1 data files (9 KB)
 
-### `tools/bracket_eval.py` (164 lines)
+### `tools/bracket_eval.py` (168 lines)
 - PURPOSE: Evaluate a model's trades with a symmetric bracket (stop distance = take-profit distance) on all samples and then on filtered subsets (ATR/NATR, ADX, SuperTrend, predicted high/low room, any pandas expression), each against a random-direct…
 - TAGS: bracket, stop loss, take profit, symmetric, filters, selective trading, predicted high low, tp_room, sl_room, break-even hit rate, random-direction null, day-clustered t, evaluation, trades
 - PITFALLS: With only the horizon's max high / min low the order of touches is unknown: 'stop_first' (default) is the honest lower bound, 'tp_first' the upper bound — trust a filter only if the LB is positive. Entry is the signal candle's close (last_close); costs are round-trip. Choosing the best of many filters on test is data snooping: pick filters on val, confirm once on test (docs/research/RESEARCH_RULE…
+- DEPENDS: core
 - API:
-  - `def breakeven_hit_rate(bracket: float, cost_rt: float=COST_RT) -> float` L31
-  - `def frame_from_split(split, preds: Optional[Dict[str, np.ndarray]]=None, reg_scale: float=1.0, extra: Optional[pd.DataFrame]=None, class_head: str='close') -> pd.DataFrame` L41
-  - `def add_rooms(df: pd.DataFrame, direction: np.ndarray) -> pd.DataFrame` L76
-  - `def bracket_returns(df: pd.DataFrame, direction: np.ndarray, bracket, cost_rt: float=COST_RT, ambiguous: str='stop_first') -> np.ndarray` L90
-  - `def day_clustered_t(x: np.ndarray, ts) -> float` L115
-  - `def evaluate_filters(df: pd.DataFrame, filters: Dict[str, Optional[str]], bracket=0.01, direction=None, cost_rt: float=COST_RT, null_reps: int=200, seed: int=0, min_trades: int=30) -> pd.DataFrame` L124
+  - `def breakeven_hit_rate(bracket: float, cost_rt: float=COST_RT) -> float` L35
+  - `def frame_from_split(split, preds: Optional[Dict[str, np.ndarray]]=None, reg_scale: float=1.0, extra: Optional[pd.DataFrame]=None, class_head: str='close') -> pd.DataFrame` L45
+  - `def add_rooms(df: pd.DataFrame, direction: np.ndarray) -> pd.DataFrame` L80
+  - `def bracket_returns(df: pd.DataFrame, direction: np.ndarray, bracket, cost_rt: float=COST_RT, ambiguous: str='stop_first') -> np.ndarray` L94
+  - `def day_clustered_t(x: np.ndarray, ts) -> float` L119
+  - `def evaluate_filters(df: pd.DataFrame, filters: Dict[str, Optional[str]], bracket=0.01, direction=None, cost_rt: float=COST_RT, null_reps: int=200, seed: int=0, min_trades: int=30) -> pd.DataFrame` L128
 
 ### `tools/build_map.py` (565 lines)
 - PURPOSE: Generate the layered repo map from the code with `ast` (modules are never imported): MAP.md (L0, small) and maps/<zone>.md (L1: cards, public signatures with line numbers, DEPENDS, and for the shared-namespace packages the implicit USES /…
@@ -93,14 +94,15 @@
   - `def read_registry(registry, url_template=DOWNLOAD_URL)` L141
   - `def download_from_registry(registry=DEFAULT_REGISTRY, dest='/content/am_data/history_1d', names=None, workers=8, force=False, url_template=DOWNLOAD_URL)` L162
 
-### `tools/evaluate_trained_model.py` (278 lines)
+### `tools/evaluate_trained_model.py` (282 lines)
 - PURPOSE: Evaluates a model trained in main.ipynb without Drive or training, by running main's own cells with four patches (CLI wrapper); also runs the panel model (--panel).
 - TAGS: evaluate trained model, eval cli, main.ipynb patched cells, weights, target-mode, split-dates, panel evaluation, gap report, market-neutral portfolio
 - PITFALLS: Executes main.ipynb cells in order, so it breaks when main's cell layout or section numbering changes; --target-mode must match the mode the weights were trained with.
+- DEPENDS: core
 - API:
-  - `def load_notebook(path, ns, quiet=True)` L56
-  - `def run_cell(src, ns, name, quiet=False)` L68
-  - `def main()` L92
+  - `def load_notebook(path, ns, quiet=True)` L60
+  - `def run_cell(src, ns, name, quiet=False)` L72
+  - `def main()` L96
 
 ### `tools/experiment_registry.py` (214 lines)
 - PURPOSE: Failure registry and no-repeat check for every experiment in the project. A failed experiment is closed with its scope (mechanism, timeframe, target, model class...), the level/location where it failed, the verified cause and the explicit…

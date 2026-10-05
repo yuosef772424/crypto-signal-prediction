@@ -111,6 +111,7 @@
 - PURPOSE: Raw NIG head layers: NIGHead, OrderedMeans, NIGUncertainty, ConfidenceHead (+ NIG_ALPHA_DEN_MIN).
 - TAGS: nighead, orderedmeans, niguncertainty, confidencehead, nig_alpha_den_min, nu, alpha, beta, evidential
 - PITFALLS: NIG outputs must stay float32 under mixed precision (lgamma/log are numerically fragile in float16). Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: core
 - USES: common
 - USED BY: builder
 - API:

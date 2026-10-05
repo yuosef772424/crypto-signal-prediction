@@ -1,7 +1,7 @@
 """
 PURPOSE:  Windows and targets for one asset (prepare_single_asset), LAST_COLUMNS/last_candles, sample filters, invert_reg_predictions and decode_price_window.
 TAGS:     windows, targets, prepare_single_asset, last_candles, LAST_COLUMNS, TS_COL, sample_filters, register_sample_filter, invert_reg_predictions, decode_price_window, entry_feature_table, reg_target_mode
-PITFALLS: last_candles is float64 (ns timestamps lose ~12 s in float32). Sample filters must be causal. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+PITFALLS: LAST_COLUMNS, TS_COL, LAST_DTYPE and TARGET_COLUMNS are defined once in core/schema.py and only re-bound here. last_candles is float64 (ns timestamps lose ~12 s in float32). Sample filters must be causal. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
 
 ## 11) بناء النوافذ والأهداف لأصل واحد (`windows.py` سابقاً)
 """
@@ -16,22 +16,10 @@ PITFALLS: last_candles is float64 (ns timestamps lose ~12 s in float32). Sample 
 الرؤوس المُعطَّلة في ``CONFIG['enabled_heads']`` **لا تُحسب أصلاً**.
 """
 
-#: أعمدة مصفوفة ``last_candles``
-LAST_COLUMNS = ['last_high', 'last_low', 'last_close', 'timestamp',
-                'future_close', 'future_low_min', 'future_high_max']
-
-#: أعمدة الأسعار اللازمة لحساب الأهداف — تُبقى في البيانات دائماً حتى لو
-#: استُبعدت من مدخلات النموذج عبر ``exclude_from_features``.
-TARGET_COLUMNS = ('high', 'low', 'close')
-
-#: فهرس عمود الطابع الزمني داخل ``last_candles``.
-TS_COL = LAST_COLUMNS.index('timestamp')
-
-#: ✅ ``last_candles`` تُخزَّن ``float64`` لا ``float32``: الطابع الزمني بالنانوثانية
-#: يبلغ ~1.7e18، وهو يفقد ~12 ثانية من الدقة في ``float32``. هذا لا يضرّ على فريم
-#: 4h لكنه يكسر أي تقسيم أو ربط زمني دقيق (وفريمات الدقائق تماماً). التكلفة
-#: مهملة: المصفوفة (N, 7) مقابل مصفوفات X بحجم (N, T, F).
-LAST_DTYPE = 'float64'
+# أعمدة ``last_candles`` (LAST_COLUMNS) وفهرس الطابع الزمني (TS_COL) وdtype الصفيف (LAST_DTYPE: float64 لأن الطابع بالنانوثانية
+# ~1.7e18 يفقد ~12 ثانية في float32) وأعمدة أسعار الأهداف (TARGET_COLUMNS: تبقى في البيانات حتى لو استُبعدت من مدخلات النموذج)
+# مصدرها الوحيد core/schema.py؛ تُربط هنا بالاسم نفسه فيبقى نطاق خط الأنابيب (والدفاتر والاختبارات) يراها كما كانت.
+from core.schema import LAST_COLUMNS, LAST_DTYPE, TARGET_COLUMNS, TS_COL
 
 
 # ══════════════════════════════════════════════════════════════════════════
