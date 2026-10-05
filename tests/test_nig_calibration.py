@@ -5,7 +5,6 @@
 """
 import io
 import contextlib
-import json
 import os
 import sys
 import unittest
@@ -15,26 +14,18 @@ import pandas as pd
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
+sys.path.insert(0, os.path.join(ROOT, "docs", "research", "audit"))
+import _nbload  # noqa: E402
 from tests.test_reg_target_scale import _cell, _ns, _split  # noqa: E402
 
 _MV = {}
 
 
 def _model_ns():
-    """model_v2 (كل خلاياه عدا الاختبار الذاتي الذي يعمل عند الاستيراد)."""
+    """model (package model/, ex model_v2: كل وحداته عدا الاختبار الذاتي الذي يعمل عند التحميل)."""
     if not _MV:
         import tensorflow as tf  # noqa: F401
-        mv = {"__name__": "audit_nb"}
-        with open(os.path.join(ROOT, "model_v2 (1).ipynb"), encoding="utf-8") as f:
-            cells = json.load(f)["cells"]
-        for cell in cells:
-            if cell["cell_type"] != "code":
-                continue
-            lines = [ln for ln in "".join(cell["source"]).splitlines()
-                     if not ln.lstrip().startswith(("!", "%")) and ln.strip() != "run_model_selftests()"]
-            with contextlib.redirect_stdout(io.StringIO()):
-                exec(compile("\n".join(lines), "model_v2", "exec"), mv)
-        _MV.update(mv)
+        _MV.update(_nbload.load_model({"__name__": "audit_nb"}))
     return _MV
 
 

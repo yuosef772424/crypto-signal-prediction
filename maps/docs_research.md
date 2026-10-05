@@ -60,12 +60,14 @@ Documents:
 - `round2.md` — Audit round 2 — pinned at b14b9bb (branch claude/charming-sagan-kswo2r)
 - `round3.md` — Audit round 3: two-timeframe path (1h base + closed 4h context), commit f2442be
 
-### `docs/research/audit/_nbload.py` (54 lines)
+### `docs/research/audit/_nbload.py` (89 lines)
 - PURPOSE: Audit helper: execute the code cells of a notebook into a namespace, without Colab. (from docstring)
 - DEPENDS: data
 - API:
   - `def load_notebook(name, skip_contains=(), quiet=True, ns=None)` L15
   - `def load_pipeline(quiet=True)` L47
+  - `def load_model(ns=None, quiet=True, selftests=False)` L69
+  - `def load_trainer(ns=None, quiet=True, smoke_test=False, kfold=False)` L80
 
 ### `docs/research/audit/_r2_synth.py` (113 lines)
 - PURPOSE: Round-2 audit helper: a synthetic 'Drive' (1h + 15m klines, funding, OI, futures_metrics) and a (from docstring)
@@ -126,7 +128,7 @@ Documents:
 ### `docs/research/audit/r2_07_docs_panel_dir_mismatch.py` (32 lines)
 - PURPOSE: Repro R2-07: the Colab instructions name a results folder that the notebook never creates. (from docstring)
 
-### `docs/research/audit/r2_08_panel_integration_smoke.py` (78 lines)
+### `docs/research/audit/r2_08_panel_integration_smoke.py` (70 lines)
 - PURPOSE: Round-2 integration smoke (expected: PASS): pipeline dataset with the 43 features -> split_data -> main-style stamping -> (from docstring)
 - DEPENDS: cross_asset
 
@@ -146,7 +148,7 @@ Documents:
 - API:
   - `def probe(ns, label, offsets, extra_T=())` L26
 
-### `docs/research/audit/r3_00c_gather_alignment.py` (121 lines)
+### `docs/research/audit/r3_00c_gather_alignment.py` (114 lines)
 - PURPOSE: R3-00c (clean check): the 1h and 4h arrays are gathered with the SAME sample indices everywhere, and float16 X is upcast (from docstring)
 - DEPENDS: cross_asset
 - API:
@@ -219,7 +221,7 @@ Documents:
 
 ### `docs/research/scripts/anti_memorization_benchmark.py` (880 lines)
 - PURPOSE: Anti-memorization benchmark (PR #7) — docs/research/anti_memorization_pr7.md. (from docstring)
-- DEPENDS: tools
+- DEPENDS: model, tools, trainer
 - API:
   - `def load_notebook(path, ns, stop_at=None)` L49
   - `def project()` L65
@@ -376,12 +378,13 @@ Documents:
   - `def collapse_report(df)` L303
   - `def rule_report(df, s, invert=False, sel=None)` L321
 
-### `docs/research/scripts/entry_range_eval/predict.py` (104 lines)
+### `docs/research/scripts/entry_range_eval/predict.py` (101 lines)
 - PURPOSE: Step 1 of the entry_range evaluation: build the main.ipynb single-coin architecture, load the trained (from docstring)
+- DEPENDS: model
 - API:
-  - `def load_model_v2()` L26
-  - `def split_masks(ts, train_end, val_end, hold_start, gap)` L40
-  - `def main()` L47
+  - `def load_model_v2()` L27
+  - `def split_masks(ts, train_end, val_end, hold_start, gap)` L37
+  - `def main()` L44
 
 Data / other files (counts only):
 - `results/`: csv×1, json×4, log×2 — 127 KB

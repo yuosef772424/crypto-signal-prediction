@@ -1,7 +1,7 @@
 """أدوات تشخيص النموذج (اختيارية، معطَّلة افتراضياً) على بيانات تركيبية صغيرة بلا Drive:  python -m pytest tests/test_model_diagnostics.py -q
 
 تُنفَّذ خلايا الدفاتر نفسها (لا نسخاً):
-  model_v2      — diagnose_model / model_health_verdicts / layer_probe_report / layer_compare_report / random_init_copy
+  model (ex model_v2) — diagnose_model / model_health_verdicts / layer_probe_report / layer_compare_report / random_init_copy
   trainer       — TrainingDiagnostics (+ with_sample_index) فوق GenericTrainer الحقيقي
   main          — make_training_diagnostics / model_health_report / model_layer_report (مع تعريفات main الصغيرة المستخرَجة بـ ast)
 
@@ -22,6 +22,8 @@ import unittest
 os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL", "3")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
+sys.path.insert(0, os.path.join(ROOT, "docs", "research", "audit"))
+import _nbload  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
@@ -58,8 +60,8 @@ def _ns():
     if not _NS:
         import tensorflow as tf  # noqa: F401
         ns = {"__name__": "audit_nb"}
-        _run_cells("model_v2 (1).ipynb", ns)
-        _run_cells("trainer_framework_v2.ipynb", ns, skip=("Smoke Test", "10.3) مثال", "12) K-Fold"))
+        _quiet(_nbload.load_model, ns)
+        _quiet(_nbload.load_trainer, ns)                # بلا Smoke Test ولا K-Fold كما كان
         _quiet(exec, compile("".join(_cells("main.ipynb")[15]["source"]), "main#15", "exec"), ns)
         _NS.update(ns)
     return _NS

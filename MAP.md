@@ -40,6 +40,6 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `docs/research/templates/` — Experiment card — <id>: <one-line title> | 0 scripts, 1 md, 0 data files (0 B) → maps/docs_research.md
 
 ## Tests
-- `tests/` — test_audit_round2, test_bracket_eval, test_cross_asset, test_data_package, test_disk_backed, test_e… | 21 modules, 1 data files (30 KB) → maps/tests.md
+- `tests/` — test_audit_round2, test_bracket_eval, test_cross_asset, test_data_package, test_disk_backed, test_e… | 22 modules, 1 data files (30 KB) → maps/tests.md
 
 ## Where do I edit X? → `maps/tags.md` (TAGS → modules index)
