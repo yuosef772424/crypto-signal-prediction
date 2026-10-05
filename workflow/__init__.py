@@ -42,8 +42,11 @@ def _ensure_loaded() -> None:
         return
     with _LOCK:
         if not _STATE["loaded"]:
-            import data    # the modules use pipeline names (CONFIG, LAST_COLUMNS, split_data...) at load or call time: seed them first
-            globals().update({k: getattr(data, k) for k in dir(data) if not k.startswith("__") and k not in globals()})
+            # the modules use pipeline names (CONFIG, LAST_COLUMNS, split_data...) at load or call time: seed them first, without
+            # the pipeline's self-test module (`import data` would run it at load; its fetch tests need the Binance client mocks)
+            import data
+            seed = data.load_into({"__name__": "data"}, exclude=("selftests",))
+            globals().update({k: v for k, v in seed.items() if not k.startswith("__") and k not in globals()})
             load_into(globals())
             _STATE["loaded"] = True
 
