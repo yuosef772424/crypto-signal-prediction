@@ -225,60 +225,9 @@
 
 ## `signal_evaluation_axis (3).ipynb`
 - title: محور التقييم — المرحلة ٠ من مشروع اكتشاف الإشارة
-- cells: 23 (12 code)
-- headings: محور التقييم — المرحلة ٠ من مشروع اكتشاف الإشارة · البنية · بوّابة الخروج (قبل الوثوق بأي نتيجة لاحقة) · ١) استيرادات · ٢) معامل الارتباط (Information Coefficient) · ٣) فحص العُشر (Decile Spread) · ٤) خطّ أساس عشوائي (Permutation Baseline) · ٥) تجميع التقييم عبر عدّة نوافذ زمنية · ٦) طبقة التكامل مع دفتر التحضير · ٧) اختبارات ذاتية · ٨) بوّابة المرحلة ٠ — التشغيل الفعلي على بياناتك · ٩) سجلّ التجارب (Experiment Registry)
-- API:
-  - `def compute_ic(predictions: np.ndarray, actuals: np.ndarray, method: str='spearman', min_samples: int=10) -> float` cell 4 L1
-  - `def decile_spread(predictions: np.ndarray, actuals: np.ndarray, n_deciles: int=10, min_per_decile: int=5) -> Dict[str, Any]` cell 6 L1
-  - `def permutation_baseline(predictions: np.ndarray, actuals: np.ndarray, n_shuffles: int=1000, method: str='spearman', seed: Optional[int]=None) -> Dict[str, Any]` cell 8 L1
-  - `def evaluate_windows(window_results: List[Tuple[str, np.ndarray, np.ndarray]], ic_method: str='spearman', n_shuffles: int=1000, min_samples: int=10, seed: Optional[int]=None, verbose: bool=True) -> Dict[str, Any]` cell 10 L12
-  - `def concat_splits(split: Any) -> Dict[str, Any]` cell 12 L30
-  - `def extract_actuals(split: Dict[str, Any], target_key: str='y_close_reg') -> np.ndarray` cell 12 L72
-  - `def extract_feature_last_diff(split: Dict[str, Any], feature: str='close', tf: Optional[str]=None, feature_order: Optional[List[str]]=None) -> np.ndarray` cell 12 L93
-  - `def momentum_predict_fn(train: Dict, val: Dict, test: Dict, feature: str='close', tf: Optional[str]=None, feature_order: Optional[List[str]]=None) -> np.ndarray` cell 12 L131
-  - `def evaluate_hypothesis_over_rolling_windows(windows: List[Tuple[Dict, Dict, Any]], predict_fn: Callable[[Dict, Dict, Dict], np.ndarray], target_key: str='y_close_reg', window_names: Optional[List[str]]=None, ic_method: str='spearman', n_shuff…` cell 12 L145
-  - `def check(name, fn)` cell 14 L9
-  - `def t_ic_recovers_known_correlation()` cell 14 L23
-  - `def t_ic_near_zero_on_independent_random_data()` cell 14 L33
-  - `def t_ic_ignores_nan_not_zeros_them()` cell 14 L43
-  - `def t_ic_raises_below_min_samples()` cell 14 L50
-  - `def t_ic_spearman_robust_to_monotonic_nonlinear_transform()` cell 14 L60
-  - `def t_ic_zero_when_one_array_constant()` cell 14 L71
-  - `def t_ic_rejects_mismatched_shapes()` cell 14 L77
-  - `def t_ic_rejects_unknown_method()` cell 14 L85
-  - `def t_decile_detects_monotonic_relationship()` cell 14 L98
-  - `def t_decile_near_zero_spread_on_random_data()` cell 14 L110
-  - `def t_decile_raises_on_insufficient_samples()` cell 14 L118
-  - `def t_decile_t_stat_large_for_strong_signal_small_for_none()` cell 14 L127
-  - `def t_permutation_flags_real_signal_as_significant()` cell 14 L145
-  - `def t_permutation_null_on_pure_random_data()` cell 14 L156
-  - `def t_permutation_reproducible_with_seed()` cell 14 L164
-  - `def t_evaluate_windows_aggregates_consistent_signal()` cell 14 L176
-  - `def t_evaluate_windows_skips_failed_window_not_whole_run()` cell 14 L191
-  - `def t_evaluate_windows_no_signal_gives_low_frac_significant()` cell 14 L200
-  - `def t_concat_splits_passthrough_on_flat_dict()` cell 14 L229
-  - `def t_concat_splits_nested_y_key_not_mistaken_for_asset_dict()` cell 14 L235
-  - `def t_concat_splits_merges_dict_of_assets()` cell 14 L244
-  - `def t_concat_splits_not_fooled_by_asset_names_starting_with_x()` cell 14 L254
-  - `def t_concat_splits_raises_clear_error_when_asset_split_malformed()` cell 14 L263
-  - `def t_extract_actuals_reads_target_key()` cell 14 L273
-  - `def t_extract_actuals_matches_with_or_without_y_prefix()` cell 14 L279
-  - `def t_extract_actuals_raises_on_missing_key()` cell 14 L291
-  - `def t_extract_actuals_raises_clear_error_without_y_key()` cell 14 L301
-  - `def t_extract_feature_last_diff_matches_manual()` cell 14 L312
-  - `def t_extract_feature_last_diff_requires_explicit_feature_order()` cell 14 L322
-  - `def t_momentum_predict_fn_requires_explicit_feature_order()` cell 14 L339
-  - `def t_extract_feature_last_diff_raises_on_unknown_feature()` cell 14 L345
-  - `def t_momentum_predict_fn_end_to_end_no_signal()` cell 14 L354
-  - `def t_evaluate_hypothesis_over_rolling_windows_detects_injected_signal()` cell 14 L360
-  - `def t_evaluate_hypothesis_over_rolling_windows_no_signal_case()` cell 14 L380
-  - `def t_evaluate_hypothesis_handles_asset_separated_test()` cell 14 L396
-  - `def t_evaluate_hypothesis_raises_on_length_mismatch()` cell 14 L407
-  - `def download_notebook_from_drive(file_id: str, notebook_name: str='dataprocess.ipynb', download_dir: str='.', quiet: bool=False) -> str` cell 15 L5
-  - `def register_hypothesis(hyp_id: str, hypothesis: str, source: str, status: str, report: Optional[Dict[str, Any]]=None, notes: str='', registry_path: Optional[Path]=None, config: Optional[dict]=None) -> Dict[str, Any]` cell 20 L61
-  - `def list_registry(registry_path: Optional[Path]=None, config: Optional[dict]=None)` cell 20 L87
-  - `def get_hypothesis(hyp_id: str, registry_path: Optional[Path]=None, config: Optional[dict]=None) -> Dict[str, Any]` cell 20 L104
-  - `def run_registry_selftests() -> None` cell 22 L2
+- cells: 12 (6 code)
+- DEPENDS: data, signal_eval
+- headings: محور التقييم — المرحلة ٠ من مشروع اكتشاف الإشارة · البنية · بوّابة الخروج (قبل الوثوق بأي نتيجة لاحقة) · تحميل الحزمة `signal_eval/` — كل كود المحور · ٧) اختبارات ذاتية · تحميل خط الأنابيب (بديل `dataprocess.ipynb`) · ٨) بوّابة المرحلة ٠ — التشغيل الفعلي على بياناتك
 
 ## `trainer_framework_v2.ipynb`
 - title: 🧠 إطار عمل مدرّب عام (Generic Trainer Framework)

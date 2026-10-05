@@ -14,7 +14,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `model_v2 (1).ipynb` — 🧠 دفتر النموذج — `NIG-TimeNet v2` (نسخة مُنظَّفة) (31 public defs)
 - `pandas_ta_full_survey.ipynb` — مسح شامل لكل مؤشرات `pandas_ta_classic` — كود اختبار + فرضيات مُولَّدة آلياً (4 public defs)
 - `signal_discovery_lab.ipynb` — مختبر بحث الإشارات (Signal Discovery Lab) (24 public defs)
-- `signal_evaluation_axis (3).ipynb` — محور التقييم — المرحلة ٠ من مشروع اكتشاف الإشارة (51 public defs)
+- `signal_evaluation_axis (3).ipynb` — محور التقييم — المرحلة ٠ من مشروع اكتشاف الإشارة (0 public defs)
 - `trainer_framework_v2.ipynb` — 🧠 إطار عمل مدرّب عام (Generic Trainer Framework) (47 public defs)
 
 ## Code packages
@@ -22,6 +22,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `tools/` — bracket_eval, build_map, check_deps, colab_bridge, evaluate_trained_model, experiment_registry, fet… | 13 modules, 0 data files (0 B) → maps/tools.md
 - `data/` — Package holding ALL data-preparation code of the project (formerly the cells of crypto_data_pipeline_v6.ipynb): `import data` gives the whole pipeline (data.CONFIG, data.build_dataset, data.split_data, ...) in this package's namespace, loa… | 29 modules, 1 data files (289 B) → maps/data.md
 - `evaluation/` — Package holding ALL model-evaluation code of the project (formerly the cells of chicks_v4_5_input_output_patterns.ipynb): `import evaluation` gives predict_with_evaluation_v4, test_all_assets_v4, run_full_analysis, ... in this package's na… | 24 modules, 0 data files (0 B) → maps/evaluation.md
+- `signal_eval/` — Package holding ALL code of the signal evaluation axis, phase 0 of the signal-discovery project (formerly the cells of "signal_evaluation_axis (3).ipynb"): `import signal_eval` gives compute_ic, decile_spread, permutation_baseline, evaluat… | 10 modules, 0 data files (0 B) → maps/signal_eval.md
 
 ## Research studies (research/)
 - `research/edge_discovery/` — التقرير النهائي — البحث عن Edge قابل للاستغلال (2024-01 → 2026-09) | 41 scripts, 33 data files (788 KB) → maps/research_edge_discovery.md
