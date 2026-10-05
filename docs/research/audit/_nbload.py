@@ -44,6 +44,28 @@ def _data_package():
     return data
 
 
+def _repo_package(name):
+    """The repo's code package ``name`` (workflow/ = ex main.ipynb defs, discovery/ = ex lab + survey defs), imported from ROOT."""
+    import importlib
+    import sys
+    if ROOT not in sys.path:
+        sys.path.insert(0, ROOT)
+    pkg = importlib.import_module(name)
+    if os.path.dirname(os.path.abspath(pkg.__file__)) != os.path.join(ROOT, name):
+        raise ImportError(f"'{name}' resolves to {pkg.__file__}, not this repo's package ({ROOT}/{name})")
+    return pkg
+
+
+def workflow_package():
+    """Package workflow/ (main.ipynb's function definitions): ``workflow.load_into(ns, only=...)`` as the main cells call it."""
+    return _repo_package("workflow")
+
+
+def discovery_package():
+    """Package discovery/ (signal_discovery_lab + pandas_ta_full_survey definitions)."""
+    return _repo_package("discovery")
+
+
 def load_pipeline(quiet=True):
     """The pipeline (package data/, ex crypto_data_pipeline_v6.ipynb) in a fresh shared namespace, without its big
     self-test module. Same code path as the runner notebook: data.load_into(namespace)."""

@@ -146,7 +146,8 @@ def main():
     matplotlib.use("Agg")
     import builtins
     builtins.display = print
-    ns = {"__name__": "__main__", "display": print}
+    ns = {"__name__": "__main__", "display": print,
+          "__file__": os.path.join(REPO, "main.ipynb")}     # الدفاتر المُشغِّلة (data/، workflow/) تجد جذر المستودع منه رغم os.chdir أدناه
     if a.model_tfs:
         ns["MODEL_TFS"] = [t.strip() for t in a.model_tfs.split(",") if t.strip()]     # يقرؤه القسم ٣ من main
     nb = json.load(open(os.path.join(REPO, "main.ipynb"), encoding="utf-8"))
@@ -155,7 +156,7 @@ def main():
         if c["cell_type"] != "code":
             continue
         src = _cell_src(c)
-        if re.search(r"^drive\.mount\(", src, re.M) or "def run_wiring_selftest" in src:
+        if re.search(r"^drive\.mount\(", src, re.M) or "run_wiring_selftest(" in src:
             continue
         if "PANEL_MODE = False" in src:
             if not a.panel:
@@ -216,7 +217,7 @@ def main():
                                   "RUN_MAIN_TRAINING = True")
             if a.batch_size:
                 src = re.sub(r'"batch_size": \d+,', f'"batch_size": {a.batch_size},', src, count=1)
-        if a.split_dates and re.match(r"\s*train, val, test = split_data\(", src):
+        if a.split_dates and re.search(r"^train, val, test = split_data\(", src, re.M):
             tr_end, va_end = a.split_dates.split(",")
             ns["update_config"]({"split_dates": {"train_end": tr_end, "val_end": va_end}})
             print(f"📅 تقسيم زمني صريح: train ≤ {tr_end} | val ≤ {va_end} | test بعده (مع فجوة العزل)", flush=True)

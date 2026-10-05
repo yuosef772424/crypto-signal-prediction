@@ -60,12 +60,14 @@ Documents:
 - `round2.md` — Audit round 2 — pinned at b14b9bb (branch claude/charming-sagan-kswo2r)
 - `round3.md` — Audit round 3: two-timeframe path (1h base + closed 4h context), commit f2442be
 
-### `docs/research/audit/_nbload.py` (54 lines)
+### `docs/research/audit/_nbload.py` (76 lines)
 - PURPOSE: Audit helper: execute the code cells of a notebook into a namespace, without Colab. (from docstring)
 - DEPENDS: data
 - API:
   - `def load_notebook(name, skip_contains=(), quiet=True, ns=None)` L15
-  - `def load_pipeline(quiet=True)` L47
+  - `def workflow_package()` L59
+  - `def discovery_package()` L64
+  - `def load_pipeline(quiet=True)` L69
 
 ### `docs/research/audit/_r2_synth.py` (113 lines)
 - PURPOSE: Round-2 audit helper: a synthetic 'Drive' (1h + 15m klines, funding, OI, futures_metrics) and a (from docstring)
@@ -146,12 +148,12 @@ Documents:
 - API:
   - `def probe(ns, label, offsets, extra_T=())` L26
 
-### `docs/research/audit/r3_00c_gather_alignment.py` (121 lines)
+### `docs/research/audit/r3_00c_gather_alignment.py` (120 lines)
 - PURPOSE: R3-00c (clean check): the 1h and 4h arrays are gathered with the SAME sample indices everywhere, and float16 X is upcast (from docstring)
 - DEPENDS: cross_asset
 - API:
-  - `def split(off, n)` L38
-  - `def chk(b)` L76
+  - `def split(off, n)` L37
+  - `def chk(b)` L75
 
 ### `docs/research/audit/r3_00d_single_tf_unchanged.py` (100 lines)
 - PURPOSE: R3-00d (clean check): single-timeframe (and legacy 2-timeframe) pipeline output is byte-identical to the commit before the (from docstring)

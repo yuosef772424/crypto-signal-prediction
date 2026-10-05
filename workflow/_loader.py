@@ -33,6 +33,7 @@ MODULES = (
     "permutation_control",
     "market_neutral",
     "generalization",
+    "panel_bridge",
     "diagnostics",
     "capacity",
     "wiring_selftest",

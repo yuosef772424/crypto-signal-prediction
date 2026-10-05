@@ -88,12 +88,14 @@
 - API:
   - `def run_discovery_lab_selftest()` L10
 
-### `discovery/survey.py` (105 lines)
+### `discovery/survey.py` (137 lines)
 - PURPOSE: Full pandas_ta_classic survey: dummy OHLCV, parameter sweeps, run_survey classifier (ok / constant / all_nan / error) and generation of candidate dicts for the lab.
-- TAGS: run_survey, make_dummy_ohlcv, param_variants, build_candidate_dicts, length_sweep, fast_slow_sweep, pandas_ta_classic, survey, indicators
-- PITFALLS: `ta` (pandas_ta_classic) and CATEGORY_HYPOTHESES come from the survey notebook's namespace at call time; the dummy data is random, so this checks that indicators run, not that they predict. Executed into the notebook's shared namespace by discovery/_loader.py (never imported on its own): names from the axis/pipeline notebooks resolve at call time. Extracted verbatim from pandas_ta_full_survey.ipy…
+- TAGS: robustness_agg, build_robust_candidate_dicts, run_survey, make_dummy_ohlcv, param_variants, build_candidate_dicts, length_sweep, fast_slow_sweep, pandas_ta_classic, survey, indicators
+- PITFALLS: robustness_agg / build_robust_candidate_dicts (sections 9-10) were nested in the cells' if-blocks and are lifted verbatim (robustness_agg was _agg). `ta` (pandas_ta_classic) and CATEGORY_HYPOTHESES come from the survey notebook's namespace at call time; the dummy data is random, so this checks that indicators run, not that they predict. Executed into the notebook's shared namespace by discovery/_…
 - API:
   - `def make_dummy_ohlcv(n=300, seed=0)` L11
   - `def param_variants(sig_params)` L28
   - `def run_survey(df=None, indicators=None)` L43
   - `def build_candidate_dicts(results_df)` L90
+  - `def robustness_agg(g)` L108
+  - `def build_robust_candidate_dicts(robustness_df)` L121

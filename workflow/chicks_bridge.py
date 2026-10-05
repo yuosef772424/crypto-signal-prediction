@@ -1,8 +1,10 @@
 """
 PURPOSE:  Converts the pipeline's test split into the shape chicks expects (build_chicks_test_dict) and defines which target modes chicks supports.
-TAGS:     build_chicks_test_dict, CHICKS_TARGET_MODES, chicks, test_dict, relative modes, base_params last_close
-PITFALLS: Reads LAST_CLOSE_COL, CHICKS_TARGETS, CONFIG, reg_scale_of from the notebook namespace. base_params is replaced by [last_close, last_close] only for reg_target_mode='return'. Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 19 (section 6).
+TAGS:     build_chicks_test_dict, entry_range_target_spec, EVAL_TARGET_SPECS, CHICKS_TARGET_MODES, chicks, test_dict, relative modes, base_params last_close
+PITFALLS: Reads LAST_CLOSE_COL, CHICKS_TARGETS, CONFIG, reg_scale_of, entry_close_reg_of from the notebook namespace. base_params is replaced by [last_close, last_close] only for reg_target_mode='return'. Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 19 (section 6).
 """
+import dataclasses
+
 import numpy as np
 # أوضاع القسم ٣-ب التي تبقى «عائداً نسبة لآخر سعر من نفس النوع» — وهو ما تفكّه EVAL_TARGET_SPECS. في relative يُطرح
 # وسيط السوق، فتُمرَّر لـ chicks أسعار مستقبلية مكافئة للهدف (آخر_سعر × (1 + الهدف)) كي يتطابق الفضاءان.
@@ -43,3 +45,20 @@ def build_chicks_test_dict(pipeline_test, model_tf, reg_target_mode=None):
             "y": {t: split["y"][f"y_{t}_reg"] for t in CHICKS_TARGETS},
         }
     return out
+
+
+def entry_range_target_spec(s, test):
+    """TargetSpec (chicks) of target ``s`` for an entry_range ``test``: high/low من سعر الدخول last_close (العمود 2): high = P·(1 + raw/s)،
+    low = P·(1 − raw/s) ⇐ reg_scale سالب؛ close مع range_pos = pred_low + clip(raw, 0, 1)·(pred_high − pred_low) ⇐ range_of — نفس
+    entry_range_to_prices في القسم ٣-ب؛ close مع abs_return = P·(1 + s·raw/scale)، s = +1 إن كان p_up_close ≥ 0.5 وإلا −1 ⇐ signed_by_class:
+    chicks يقرأ P(صعود) من مخرَج رأس التصنيف. class_key لكل رأس = 'y_{هدف}_class_logits' (احتمال بعد sigmoid رغم الاسم): يُقرأ كخاصية p_up
+    لتحليل الأنماط إن وُجد في النموذج، ويُلزَم فقط لاتجاه close."""
+    _range_pos = entry_close_reg_of(test) == "range_pos"
+    _cls = dict(class_key=f"y_{s.name}_class_logits")
+    if s.name == "close" and _range_pos:
+        return dataclasses.replace(s, price_index=2, entry_col=2, range_of=("high", "low"), **_cls)
+    if s.name == "close":
+        return dataclasses.replace(s, relative_to_entry=True, price_index=2, entry_col=2,
+                                   reg_scale=reg_scale_of(test, "close"), signed_by_class=True, **_cls)
+    return dataclasses.replace(s, relative_to_entry=True, price_index=2, entry_col=2,
+                               reg_scale=(-1.0 if s.name == "low" else 1.0) * reg_scale_of(test, s.name), **_cls)

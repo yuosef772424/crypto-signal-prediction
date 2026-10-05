@@ -324,8 +324,7 @@ def _trainer_ns():
                 continue
             lines = [ln for ln in src.splitlines() if not ln.lstrip().startswith(("!", "%"))]
             _quiet(exec, compile("\n".join(lines), "trainer", "exec"), ns)
-        main = json.load(open(os.path.join(ROOT, "main.ipynb")))["cells"]
-        _quiet(exec, compile("".join(main[15]["source"]), "main#cell15", "exec"), ns)       # build_target_configs
+        _nbload.workflow_package().load_into(ns, only=("training_config",))                 # build_target_configs
         _TRAINER_NS.update(ns)
     return _TRAINER_NS
 

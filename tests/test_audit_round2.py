@@ -232,8 +232,10 @@ class SealedHoldoutTests(unittest.TestCase):
 
         ns = dict(_nbload.load_pipeline())                           # CONFIG مستقلّ عن بقية الاختبارات
         ns["load_data_from_drive"] = lambda **k: ds
-        src = "".join(json.loads(_read("main.ipynb"))["cells"][7]["source"])
-        _quiet(exec, compile(src, "main#cell7", "exec"), ns)
+        src = next("".join(c["source"]) for c in json.loads(_read("main.ipynb"))["cells"]
+                   if c["cell_type"] == "code" and 'only=("dataset_io",)' in "".join(c["source"]))     # قسم ٣: تحميل البيانات
+        ns["workflow"] = _nbload.workflow_package()                 # الخلية تبدأ بـ workflow.load_into(globals(), only=...)
+        _quiet(exec, compile(src, "main#dataset_io", "exec"), ns)
         self.assertEqual(ns["CONFIG"]["split_dates"], ov["split_dates"])
         self.assertEqual(ns["CONFIG"]["holdout_start"], ov["holdout_start"])
 

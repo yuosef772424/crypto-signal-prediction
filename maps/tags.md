@@ -69,6 +69,7 @@
 - base64: edge_discovery/data_tools/dec
 - base_params last_close: workflow/chicks_bridge
 - baseline comparison: cross_asset/experiment
+- baseline signals: workflow/panel_bridge
 - batch runner: discovery/batch_runner
 - batch shape: cross_asset/data
 - batches: workflow/batches
@@ -101,6 +102,7 @@
 - build_market_context: data/market_context
 - build_model_fn: workflow/model_build
 - build_panel_model: cross_asset/model
+- build_robust_candidate_dicts: discovery/survey
 - build_target_configs: workflow/training_config
 - buy and hold: edge_discovery/14_holdout
 - buy and hold benchmark: edge_discovery/16_h07_oos
@@ -160,6 +162,7 @@
 - cross-sectional features: data/cross_sectional_features
 - cross-sectional normalization: data/cross_sectional_norm
 - cross-sectional screen: edge_discovery/01_screen
+- cross_asset: workflow/panel_bridge
 - cross_attention: cross_asset/model
 - cross_sectional_normalize: data/cross_sectional_norm
 - crossassetblock: cross_asset/model
@@ -244,12 +247,14 @@
 - entry_close_reg_of: workflow/splits
 - entry_feature_table: data/windows
 - entry_range: workflow/retarget
+- entry_range_target_spec: workflow/chicks_bridge
 - entry_range_to_prices: cross_asset/data, workflow/retarget
 - envelope direction: edge_discovery/30_envelope_direction
 - epoch range: edge_discovery/26_h19_generalization
 - era split: edge_discovery/24_pullback_maker
 - eth: tools/h07_forward
 - eval cli: tools/evaluate_trained_model
+- eval_target_specs: workflow/chicks_bridge
 - evaluate trained model: tools/evaluate_trained_model
 - evaluate_candidate: discovery/__init__, discovery/evaluation
 - evaluate_k_coins: cross_asset/experiment
@@ -535,10 +540,12 @@
 - panel data: cross_asset/data
 - panel evaluation: tools/evaluate_trained_model
 - panel experiment: cross_asset/experiment
-- panel model: cross_asset/__init__, cross_asset/model
+- panel model: cross_asset/__init__, cross_asset/model, workflow/panel_bridge
 - panel training: cross_asset/train
+- panel_baseline: workflow/panel_bridge
 - panel_loss: cross_asset/train
 - panel_mode: cross_asset/experiment
+- panel_names: workflow/panel_bridge
 - panel_split_from: cross_asset/data
 - panelmodel: cross_asset/model
 - panelsplit: cross_asset/__init__, cross_asset/data
@@ -641,6 +648,7 @@
 - returns: data/custom
 - ridge baseline: workflow/capacity
 - robustness: edge_discovery/15_h07_robust
+- robustness_agg: discovery/survey
 - rolling_splits: data/split
 - round-trip: tools/nb_cells
 - rqa: edge_discovery/27_repr_info
@@ -651,7 +659,7 @@
 - run_full_verification: workflow/verification
 - run_hourly_4h_selftests: data/presets
 - run_label_permutation_control: workflow/permutation_control
-- run_panel_experiment: cross_asset/__init__, cross_asset/experiment
+- run_panel_experiment: cross_asset/__init__, cross_asset/experiment, workflow/panel_bridge
 - run_panel_selftest: cross_asset/selftest
 - run_pipeline_selftests: data/selftests
 - run_survey: discovery/__init__, discovery/survey

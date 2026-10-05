@@ -3,7 +3,9 @@ PURPOSE:  Package holding the project-assembly code of main.ipynb (target-mode s
 TAGS:     workflow, main notebook, assembly, retarget_splits, make_shuffled_dataset, model_health_report, capacity_report, section 7 reports, shared namespace, lazy load
 PITFALLS: The modules run in ONE shared namespace (see workflow/_loader.py), so never `import workflow.<module>`; use `import workflow`
           (namespace = this package, loaded lazily on first attribute access) or `workflow.load_into(ns, only=...)` (namespace =
-          your dict, what the runner notebook does with globals()). Patch names on the namespace that loaded them.
+          your dict, what the runner notebook does with globals()). Patch names on the namespace that loaded them. The package-level
+          namespace is seeded with the data pipeline's names only; names of the model_v2 / trainer / chicks notebooks (build_model_fn,
+          build_training_system, TargetSpec...) exist only in the runner's namespace.
 
 Modules (load order) and the old main.ipynb cell each was extracted from:
   dataset_io          cell 7 (section 3)
@@ -21,6 +23,7 @@ Modules (load order) and the old main.ipynb cell each was extracted from:
   permutation_control cell 32 (section 7-e)
   market_neutral      cell 34 (section 7-f)
   generalization      cell 36 (section 7-g)
+  panel_bridge        cell 39 (section 7-h; lifted from nested defs)
   diagnostics         cell 40 (section 7-i)
   capacity            cell 42 (section 7-j)
   wiring_selftest     cell 44 (section 8)
@@ -39,6 +42,8 @@ def _ensure_loaded() -> None:
         return
     with _LOCK:
         if not _STATE["loaded"]:
+            import data    # the modules use pipeline names (CONFIG, LAST_COLUMNS, split_data...) at load or call time: seed them first
+            globals().update({k: getattr(data, k) for k in dir(data) if not k.startswith("__") and k not in globals()})
             load_into(globals())
             _STATE["loaded"] = True
 

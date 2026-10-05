@@ -1,7 +1,7 @@
 """
 PURPOSE:  Full pandas_ta_classic survey: dummy OHLCV, parameter sweeps, run_survey classifier (ok / constant / all_nan / error) and generation of candidate dicts for the lab.
-TAGS:     run_survey, make_dummy_ohlcv, param_variants, build_candidate_dicts, LENGTH_SWEEP, FAST_SLOW_SWEEP, pandas_ta_classic, survey, indicators
-PITFALLS: `ta` (pandas_ta_classic) and CATEGORY_HYPOTHESES come from the survey notebook's namespace at call time; the dummy data is random, so this checks that indicators run, not that they predict. Executed into the notebook's shared namespace by discovery/_loader.py (never imported on its own): names from the axis/pipeline notebooks resolve at call time. Extracted verbatim from pandas_ta_full_survey.ipynb cells 4, 6 and 14 (sections 2, 3, 6).
+TAGS:     robustness_agg, build_robust_candidate_dicts, run_survey, make_dummy_ohlcv, param_variants, build_candidate_dicts, LENGTH_SWEEP, FAST_SLOW_SWEEP, pandas_ta_classic, survey, indicators
+PITFALLS: robustness_agg / build_robust_candidate_dicts (sections 9-10) were nested in the cells' if-blocks and are lifted verbatim (robustness_agg was _agg). `ta` (pandas_ta_classic) and CATEGORY_HYPOTHESES come from the survey notebook's namespace at call time; the dummy data is random, so this checks that indicators run, not that they predict. Executed into the notebook's shared namespace by discovery/_loader.py (never imported on its own): names from the axis/pipeline notebooks resolve at call time. Extracted verbatim from pandas_ta_full_survey.ipynb cells 4, 6 and 14 (sections 2, 3, 6).
 """
 import inspect
 import numpy as np
@@ -100,6 +100,38 @@ def build_candidate_dicts(results_df):
             'params': row['params'],
             'primary_column': row['columns'][0] if row['columns'] else None,
             'all_columns': row['columns'],
+            'hypothesis': CATEGORY_HYPOTHESES.get(row['category'], 'بلا فرضية فئة محدَّدة.'),
+        })
+    return candidates
+
+
+def robustness_agg(g):
+    n = len(g)
+    n_ok = int((g['status'] == 'ok').sum())
+    ok_cols = g.loc[g['status'] == 'ok', 'columns']
+    return pd.Series({
+        'n_assets_tested': n,
+        'n_assets_ok': n_ok,
+        'frac_ok': n_ok / n,
+        'statuses_seen': sorted(g['status'].unique().tolist()),
+        'columns': ok_cols.iloc[0] if len(ok_cols) else [],
+    })
+
+
+def build_robust_candidate_dicts(robustness_df):
+    candidates = []
+    for _, row in robustness_df.iterrows():
+        params = dict(row['params_key'])
+        param_suffix = '_'.join(f'{k}{v}' for k, v in params.items()) or 'default'
+        candidates.append({
+            'name': f"{row['indicator'].upper()}_{param_suffix}",
+            'track': 'literature_mining',
+            'source_indicator': row['indicator'],
+            'category': row['category'],
+            'params': params,
+            'primary_column': row['columns'][0] if row['columns'] else None,
+            'all_columns': row['columns'],
+            'n_assets_validated': int(row['n_assets_tested']),
             'hypothesis': CATEGORY_HYPOTHESES.get(row['category'], 'بلا فرضية فئة محدَّدة.'),
         })
     return candidates

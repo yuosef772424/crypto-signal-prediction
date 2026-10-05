@@ -92,7 +92,7 @@
   - `def read_registry(registry, url_template=DOWNLOAD_URL)` L141
   - `def download_from_registry(registry=DEFAULT_REGISTRY, dest='/content/am_data/history_1d', names=None, workers=8, force=False, url_template=DOWNLOAD_URL)` L162
 
-### `tools/evaluate_trained_model.py` (277 lines)
+### `tools/evaluate_trained_model.py` (278 lines)
 - PURPOSE: Evaluates a model trained in main.ipynb without Drive or training, by running main's own cells with four patches (CLI wrapper); also runs the panel model (--panel).
 - TAGS: evaluate trained model, eval cli, main.ipynb patched cells, weights, target-mode, split-dates, panel evaluation, gap report, market-neutral portfolio
 - PITFALLS: Executes main.ipynb cells in order, so it breaks when main's cell layout or section numbering changes; --target-mode must match the mode the weights were trained with.
