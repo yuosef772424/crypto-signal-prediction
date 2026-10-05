@@ -43,7 +43,7 @@ while CUT + pd.Timedelta(days=30 * (k + 1)) <= ts_all.max():
 g = {'__name__': '__main__', 'np': np, 'pd': pd}
 import sys; sys.path.insert(0, REPO)    # the axis is the package signal_eval/ (was the notebook's defs)
 import signal_eval; signal_eval.load_into(g, exclude=('selftests', 'bootstrap', 'registry_selftests'))
-exec(compile(load_notebook_defs(f'{REPO}/signal_discovery_lab.ipynb'), 'lab', 'exec'), g)
+__import__('sys').path.insert(0, REPO); __import__('discovery').load_into(g, exclude=('survey',))   # lab defs now live in discovery/ (the notebook is a runner)
 LC = ['last_high', 'last_low', 'last_close', 'timestamp', 'future_close', 'future_low_min', 'future_high_max']
 g['LAST_COLUMNS'] = LC
 P, REF, TG, TS = [], [], {}, []

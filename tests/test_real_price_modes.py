@@ -30,7 +30,7 @@ def _with_mode(scale, mode):
     ns = _main_ns(scale)
     ns["train"], ns["val"], ns["test"] = ns["retarget_splits"](ns["train"], ns["val"], ns["test"], mode=mode,
                                                                verbose=False)
-    exec(compile(_cell("main.ipynb", 23), "main#cell23", "exec"), ns)
+    exec(compile(_cell("main.ipynb", "reports"), "main#reports", "exec"), ns)
     split = ns["test"]["AAA"]
     out = {f"y_{t}": _T(split["y"][f"y_{t}_reg"].reshape(-1, 1)) for t in FUTURE}   # a perfect model
     ns["model"] = lambda x, training=False: out

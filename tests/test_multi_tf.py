@@ -309,8 +309,7 @@ _TRAINER_NS = {}
 def _trainer_ns():
     if not _TRAINER_NS:
         ns = _quiet(_nbload.load_trainer, {"__name__": "audit_nb"})     # بلا Smoke Test ولا K-Fold كما كان
-        main = json.load(open(os.path.join(ROOT, "main.ipynb")))["cells"]
-        _quiet(exec, compile("".join(main[15]["source"]), "main#cell15", "exec"), ns)       # build_target_configs
+        _nbload.workflow_package().load_into(ns, only=("training_config",))                 # build_target_configs
         _TRAINER_NS.update(ns)
     return _TRAINER_NS
 

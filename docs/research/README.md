@@ -102,6 +102,10 @@
 التي كانت تعمل عند ذلك `%run` (ونتائجها المحفوظة في مخرجات الدفتر القديم) لا تُشغَّل هنا؛ مكانها `run_pipeline_selftests` في `data/selftests.py`.
 
 للتعديل: غيّر ملف الوحدة (لا الدفتر)، وراجع `CLAUDE.md` (تعديل لا يغيّر السلوك الافتراضي، واختبارات `tests/`: `tests/test_evaluation_packages.py` يثبّت البنية).
+## أين كود `main` ومختبر الإشارات ومسح pandas_ta
+
+نُقل حرفياً إلى الحزمتين [`workflow/`](../../workflow/) و[`discovery/`](../../discovery/) (الدفاتر مُشغِّلات)؛ جدول «الخلية القديمة ← الوحدة» في
+[`main_lab_code_layout.md`](main_lab_code_layout.md).
 
 ## بنية دفاتر محور التقييم (`signal_evaluation_axis`)
 

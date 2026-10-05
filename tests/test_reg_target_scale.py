@@ -19,8 +19,21 @@ _NS = None
 
 
 def _cell(nb_name, idx):
+    """Source of a notebook code cell (magics dropped). ``idx``: 0-based cell index, or for notebooks whose code moved to a package
+    (main.ipynb) a section key: a workflow module name (the cell whose ``workflow.load_into(...)`` line loads it) or
+    ``"text:<substring>"`` (the first code cell containing it). Keys survive cell insertions/removals, unlike indices."""
     with open(os.path.join(ROOT, nb_name), encoding="utf-8") as f:
-        src = "".join(json.load(f)["cells"][idx]["source"])
+        cells = json.load(f)["cells"]
+    if isinstance(idx, str):
+        marker = idx[5:] if idx.startswith("text:") else f'"{idx}"'
+        hits = [c for c in cells if c["cell_type"] == "code" and (
+            marker in "".join(c["source"]) if idx.startswith("text:") else
+            any(ln.startswith("workflow.load_into(") and marker in ln for ln in "".join(c["source"]).splitlines()))]
+        assert hits, f"no code cell of {nb_name} matches {idx!r}"
+        cell = hits[0]
+    else:
+        cell = cells[idx]
+    src = "".join(cell["source"])
     return "\n".join(ln for ln in src.splitlines() if not ln.lstrip().startswith(("!", "%")))
 
 
@@ -53,6 +66,7 @@ def _ns():
     if _NS is None:
         ns = _nbload.load_pipeline()
         _nbload.load_evaluation(ns=ns, exclude=("all_assets", "live", "full_analysis"))   # = chicks cells 18, 20, 36 (skipped as before)
+        ns["workflow"] = _nbload.workflow_package()      # main's cells start with workflow.load_into(globals(), only=...)
         _NS = ns
     return _NS
 
@@ -69,8 +83,8 @@ def _main_ns(scale):
                 s["y"][k] = s["y"][k] * scale
     ns.update(REG_TARGET_SCALE=scale, MODEL_TF="1h", PRICE_TARGETS=["high", "low", "close"],
               split_data=lambda dataset, config=None: (tr, va, te), dataset={})
-    for idx in (8, 10, 19, 26):   # ختم الأقسام، retarget_splits، build_chicks_test_dict، collect_signals
-        exec(compile(_cell("main.ipynb", idx), f"main#cell{idx}", "exec"), ns)
+    for idx in ("splits", "retarget", "chicks_bridge", "selective_eval"):   # ختم الأقسام، retarget_splits، build_chicks_test_dict، collect_signals
+        exec(compile(_cell("main.ipynb", idx), f"main#{idx}", "exec"), ns)
     return ns
 
 
@@ -111,8 +125,8 @@ class MainRegScaleTests(unittest.TestCase):
         """سعر ← هدف ← فكّ chicks == السعر المستقبلي، بمقياس 1 و100 (نفس specs التي يبنيها main)."""
         for scale in (1.0, 100.0):
             ns = _main_ns(scale)
-            src = _cell("main.ipynb", 20)
-            exec(compile(src[src.index("import dataclasses"):], "main#cell20", "exec"), ns)   # بلا %run chicks
+            src = _cell("main.ipynb", "text:RETURN_PRICE_TARGETS")
+            exec(compile(src[src.index("import dataclasses"):], "main#specs", "exec"), ns)   # بلا %run chicks
             split = ns["test"]["AAA"]
             raw = {t: split["y"][f"y_{t}_reg"] for t in ns["PRICE_TARGETS"]}
             lc = split["last_candles"].copy()

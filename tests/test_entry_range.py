@@ -59,8 +59,8 @@ def _main_ns(scale, price_targets=("high", "low", "close")):
     te = {"AAA": _split(ns, 24, 2, scale), "BBB": _split(ns, 24, 3, scale)}
     ns.update(REG_TARGET_SCALE=scale, MODEL_TF="1h", PRICE_TARGETS=list(price_targets),
               split_data=lambda dataset, config=None: (tr, va, te), dataset={})
-    for idx in (8, 10):
-        exec(compile(_cell("main.ipynb", idx), f"main#cell{idx}", "exec"), ns)
+    for idx in ("splits", "retarget"):
+        exec(compile(_cell("main.ipynb", idx), f"main#{idx}", "exec"), ns)
     return ns
 
 
@@ -156,6 +156,12 @@ class EntryRangeTargetTests(unittest.TestCase):
             for i, c in enumerate(json.load(f)["cells"]):
                 self.assertNotIn("ENTRY_RANGE_CLASS_THRESHOLD", "".join(c["source"]), f"main cell {i}")
                 self.assertNotIn("class_threshold", "".join(c["source"]), f"main cell {i}")
+        for fn in sorted(os.listdir(os.path.join(ROOT, "workflow"))):          # main's code now lives in workflow/
+            if fn.endswith(".py"):
+                with open(os.path.join(ROOT, "workflow", fn), encoding="utf-8") as f:
+                    text = f.read()
+                self.assertNotIn("ENTRY_RANGE_CLASS_THRESHOLD", text, f"workflow/{fn}")
+                self.assertNotIn("class_threshold", text, f"workflow/{fn}")
         import cross_asset.report as report
         self.assertFalse(hasattr(report, "ENTRY_RANGE_CLASS_THRESHOLD"))
 
@@ -244,7 +250,7 @@ class EntryRangeTargetTests(unittest.TestCase):
             for scale in (1.0, 100.0):
                 ns = _main_ns(scale)
                 ns["train"], ns["val"], ns["test"] = _retarget(ns, close_reg=close_reg)
-                exec(compile(_cell("main.ipynb", 23), "main#cell23", "exec"), ns)
+                exec(compile(_cell("main.ipynb", "reports"), "main#reports", "exec"), ns)
                 split = ns["test"]["AAA"]
                 p = _prices(split)
                 out = {f"y_{t}": _T(split["y"][f"y_{t}_reg"].reshape(-1, 1)) for t in ("high", "low", "close")}
@@ -266,8 +272,8 @@ class EntryRangeTargetTests(unittest.TestCase):
             for scale in (1.0, 100.0):
                 ns = _main_ns(scale)
                 ns["train"], ns["val"], ns["test"] = _retarget(ns, close_reg=close_reg)
-                for idx in (19, 26):
-                    exec(compile(_cell("main.ipynb", idx), f"main#cell{idx}", "exec"), ns)
+                for idx in ("chicks_bridge", "selective_eval"):
+                    exec(compile(_cell("main.ipynb", idx), f"main#{idx}", "exec"), ns)
                 te = ns["test"]
                 y = {t: np.concatenate([s["y"][f"y_{t}_reg"] for s in te.values()]) for t in ("high", "low", "close")}
                 cls = np.concatenate([s["y"]["y_close_class"] for s in te.values()])
@@ -310,10 +316,10 @@ class EntryRangeTargetTests(unittest.TestCase):
             for scale in (1.0, 100.0):
                 ns = _main_ns(scale)
                 ns["train"], ns["val"], ns["test"] = _retarget(ns, close_reg=close_reg)
-                for idx in (19, 20):
+                for idx in ("chicks_bridge", "text:RETURN_PRICE_TARGETS"):
                     src = _cell("main.ipynb", idx)
-                    src = src[src.index("import dataclasses"):] if idx == 20 else src
-                    exec(compile(src, f"main#cell{idx}", "exec"), ns)
+                    src = src[src.index("import dataclasses"):] if idx.startswith("text:") else src
+                    exec(compile(src, f"main#{idx}", "exec"), ns)
                 self.assertEqual(ns["CHICKS_TARGETS"], names)
                 self.assertEqual([s.name for s in ns["EVAL_TARGET_SPECS"]], names)
                 split = ns["test"]["AAA"]
@@ -399,9 +405,9 @@ class EntryRangeChicksCloseTests(unittest.TestCase):
     def _chicks_ns(scale, close_reg="abs_return"):
         ns = _main_ns(scale)
         ns["train"], ns["val"], ns["test"] = _retarget(ns, close_reg=close_reg)
-        for idx in (19, 20):
+        for idx in ("chicks_bridge", "text:RETURN_PRICE_TARGETS"):
             src = _cell("main.ipynb", idx)
-            exec(compile(src[src.index("import dataclasses"):] if idx == 20 else src, f"main#cell{idx}", "exec"), ns)
+            exec(compile(src[src.index("import dataclasses"):] if idx.startswith("text:") else src, f"main#{idx}", "exec"), ns)
         # test_all_assets_v4 (chicks ٨): تحميل الدفتر العام يتخطّاها (تحوي نصّ الاستدعاء)، وهنا هي المسار المختبَر
         _nbload.exec_evaluation_module("all_assets", ns, quiet=False)      # chicks cell 18
         return ns
@@ -539,9 +545,9 @@ class EntryRangeChicksCloseTests(unittest.TestCase):
 
     def test_other_modes_unchanged(self):
         ns = _main_ns(100.0)                                        # target_mode = None (return)
-        for idx in (19, 20):
+        for idx in ("chicks_bridge", "text:RETURN_PRICE_TARGETS"):
             src = _cell("main.ipynb", idx)
-            exec(compile(src[src.index("import dataclasses"):] if idx == 20 else src, f"main#cell{idx}", "exec"), ns)
+            exec(compile(src[src.index("import dataclasses"):] if idx.startswith("text:") else src, f"main#{idx}", "exec"), ns)
         self.assertEqual(ns["CHICKS_TARGETS"], ["high", "low", "close"])
         for s in ns["EVAL_TARGET_SPECS"]:
             self.assertIsNone(s.class_key, s.name)
@@ -653,7 +659,8 @@ class EntryRangeConsumerTests(unittest.TestCase):
 
     def test_tool_target_modes_match_notebook(self):
         from tools.evaluate_trained_model import ENTRY_CLOSE_REG_CHOICES, TARGET_MODE_CHOICES
-        src = _cell("main.ipynb", 10)
+        with open(os.path.join(ROOT, "workflow", "retarget.py"), encoding="utf-8") as f:     # TARGET_MODES lives in workflow/retarget.py
+            src = f.read()
         bases = eval(re.search(r"^TARGET_MODES = (\(.*?\))", src, re.M).group(1))
         no_rel = eval(re.search(r"^_NO_RELATIVE_BASES = (\(.*?\))", src, re.M).group(1))
         want = set(bases) | {"relative"} | {f"{b}+relative" for b in bases if b not in no_rel}
@@ -662,13 +669,14 @@ class EntryRangeConsumerTests(unittest.TestCase):
 
     def test_suspended_targets_follow_mode(self):
         """القسم ٤: close مُفعَّل في entry_range (مقدار|موقع)، ومعلّق في غيره (اتجاه)."""
-        src = _cell("main.ipynb", 13)
+        src = _cell("main.ipynb", "model_build")
         src = src[:src.index("# ⚠️ OrderedMeans")]
         for mode, want in ((None, ["high", "low"]), ("return", ["high", "low"]),
                            ("entry_range", ["high", "low", "close"])):
             ns = {"dataset": {"window_sizes": {"1h": 32}, "feature_order": ["a"]}, "MODEL_TF": "1h",
-                  "CONFIG": {"targets": ["high", "low", "close"]}, "TARGET_MODE": mode}
-            exec(compile(src, "main#cell13", "exec"), ns)
+                  "CONFIG": {"targets": ["high", "low", "close"]}, "TARGET_MODE": mode,
+                  "workflow": _nbload.workflow_package()}
+            exec(compile(src, "main#model_build", "exec"), ns)
             self.assertEqual(ns["PRICE_TARGETS"], want, mode)
 
 

@@ -15,70 +15,70 @@
   - `def day_clustered_t(x: np.ndarray, ts) -> float` L115
   - `def evaluate_filters(df: pd.DataFrame, filters: Dict[str, Optional[str]], bracket=0.01, direction=None, cost_rt: float=COST_RT, null_reps: int=200, seed: int=0, min_trades: int=30) -> pd.DataFrame` L124
 
-### `tools/build_map.py` (556 lines)
+### `tools/build_map.py` (557 lines)
 - PURPOSE: Generate the layered repo map from the code with `ast` (modules are never imported): MAP.md (L0, small) and maps/<zone>.md (L1: cards, public signatures with line numbers, DEPENDS); enforces the card ratchet.
 - TAGS: map, navigation, cards, signatures, docstring, ast, notebooks, ratchet, ci, tokens, الخريطة
 - PITFALLS: Output must stay deterministic (sorted, no timestamps) or `--check` flaps. Never hand-edit MAP.md or maps/. Notebook "cell N" is the 0-based index into the notebook's cells (all types), the same index tests/_cell uses. tools/card_allowlist.txt is a ratchet: it may only shrink, refresh it with `--update-allowlist` after cards are added.
 - API:
-  - `def squash(s: str, limit: int) -> str` L45
-  - `def first_heading(text: str) -> str` L50
-  - `def fmt_size(nbytes: int) -> str` L64
-  - `def read_text(rel: str) -> str` L68
-  - `def parse_card(doc: str | None) -> dict[str, str]` L72
-  - `def split_tags(s: str) -> list[str]` L88
-  - `def signature(node: ast.FunctionDef | ast.AsyncFunctionDef) -> str` L109
-  - `class Sym` L120
-  - `def top_symbols(body: list[ast.stmt]) -> list[Sym]` L134
-  - `def sym_lines(syms: list[Sym], count_only_methods: bool=False) -> list[str]` L150
-  - `class Mod` L166
-    - `.has_card(self) -> bool` L178
-    - `.tags(self) -> list[str]` L182
-  - `def analyse_module(repo: Repo, rel: str) -> Mod` L186
-  - `class Notebook` L211
-  - `def analyse_notebook(repo: Repo, rel: str) -> Notebook` L222
-  - `class Entry` L248
-    - `.of(self, suffix: str) -> list[str]` L255
-    - `.py(self) -> list[str]` L259
-    - `.md(self) -> list[str]` L263
-    - `.data(self) -> list[str]` L267
-  - `def build_entries(repo: Repo) -> list[Entry]` L271
-  - `def entry_title(entry: Entry, mods: dict[str, Mod]) -> str` L304
-  - `def total_size(files: list[str]) -> int` L320
-  - `def counts_phrase(entry: Entry) -> str` L324
-  - `def short_ref(path: str) -> str` L333
-  - `def render_l0(repo: Repo, entries: list[Entry], mods: dict[str, Mod], nbs: list[Notebook]) -> str` L338
-  - `def render_tags(mods: dict[str, Mod]) -> str` L364
-  - `def render_module(m: Mod, tests: bool=False) -> list[str]` L378
-  - `def render_entry(e: Entry, mods: dict[str, Mod], title: str) -> list[str]` L396
-  - `def render_l1(entries_in_file: list[Entry], mods: dict[str, Mod], titles: dict[str, str], name: str) -> str` L425
-  - `def render_notebooks(nbs: list[Notebook]) -> str` L432
-  - `def generate(repo: Repo) -> tuple[dict[str, str], dict[str, Mod]]` L452
-  - `def read_allowlist() -> list[str]` L470
-  - `def uncarded(mods: dict[str, Mod]) -> list[str]` L477
-  - `def ratchet_problems(mods: dict[str, Mod]) -> list[str]` L481
-  - `def write_allowlist(mods: dict[str, Mod]) -> int` L494
-  - `def disk_state() -> dict[str, str]` L502
-  - `def main(argv: list[str] | None=None) -> int` L512
+  - `def squash(s: str, limit: int) -> str` L46
+  - `def first_heading(text: str) -> str` L51
+  - `def fmt_size(nbytes: int) -> str` L65
+  - `def read_text(rel: str) -> str` L69
+  - `def parse_card(doc: str | None) -> dict[str, str]` L73
+  - `def split_tags(s: str) -> list[str]` L89
+  - `def signature(node: ast.FunctionDef | ast.AsyncFunctionDef) -> str` L110
+  - `class Sym` L121
+  - `def top_symbols(body: list[ast.stmt]) -> list[Sym]` L135
+  - `def sym_lines(syms: list[Sym], count_only_methods: bool=False) -> list[str]` L151
+  - `class Mod` L167
+    - `.has_card(self) -> bool` L179
+    - `.tags(self) -> list[str]` L183
+  - `def analyse_module(repo: Repo, rel: str) -> Mod` L187
+  - `class Notebook` L212
+  - `def analyse_notebook(repo: Repo, rel: str) -> Notebook` L223
+  - `class Entry` L249
+    - `.of(self, suffix: str) -> list[str]` L256
+    - `.py(self) -> list[str]` L260
+    - `.md(self) -> list[str]` L264
+    - `.data(self) -> list[str]` L268
+  - `def build_entries(repo: Repo) -> list[Entry]` L272
+  - `def entry_title(entry: Entry, mods: dict[str, Mod]) -> str` L305
+  - `def total_size(files: list[str]) -> int` L321
+  - `def counts_phrase(entry: Entry) -> str` L325
+  - `def short_ref(path: str) -> str` L334
+  - `def render_l0(repo: Repo, entries: list[Entry], mods: dict[str, Mod], nbs: list[Notebook]) -> str` L339
+  - `def render_tags(mods: dict[str, Mod]) -> str` L365
+  - `def render_module(m: Mod, tests: bool=False) -> list[str]` L379
+  - `def render_entry(e: Entry, mods: dict[str, Mod], title: str) -> list[str]` L397
+  - `def render_l1(entries_in_file: list[Entry], mods: dict[str, Mod], titles: dict[str, str], name: str) -> str` L426
+  - `def render_notebooks(nbs: list[Notebook]) -> str` L433
+  - `def generate(repo: Repo) -> tuple[dict[str, str], dict[str, Mod]]` L453
+  - `def read_allowlist() -> list[str]` L471
+  - `def uncarded(mods: dict[str, Mod]) -> list[str]` L478
+  - `def ratchet_problems(mods: dict[str, Mod]) -> list[str]` L482
+  - `def write_allowlist(mods: dict[str, Mod]) -> int` L495
+  - `def disk_state() -> dict[str, str]` L503
+  - `def main(argv: list[str] | None=None) -> int` L513
 
-### `tools/check_deps.py` (323 lines)
+### `tools/check_deps.py` (324 lines)
 - PURPOSE: Enforce the import direction of PHILOSOPHY.md section 2 with `ast` (modules are never imported): code packages must not import research/docs/tests, and a research study must not import another study; path-based coupling is reported as warn…
 - TAGS: dependencies, imports, import direction, zones, architecture, lint, ci, sys.path, اتجاه الاعتماد
 - PITFALLS: Also hosts the shared repo helpers (Repo, zone_of, file_imports, classify) that tools/build_map.py reuses for DEPENDS. Bare imports (`import lib`) are resolved by a repo-wide module-name index, so only unambiguous names (one zone) are classified. Existing violations are never fixed here: they go in ALLOWLIST below, with a reason.
 - API:
-  - `def list_repo_files(root: Path=ROOT) -> list[str]` L39
-  - `def zone_of(rel: str) -> str` L63
-  - `class Repo` L76
-    - `.__init__(self, root: Path=ROOT, files: list[str] | None=None)` L79
-    - `.own_dir_names(self, rel: str) -> set[str]` L102
-    - `.classify(self, dotted: str, rel: str) -> str | None` L105
-  - `def file_imports(tree: ast.AST, rel: str) -> list[tuple[int, str, str]]` L128
-  - `def dotted_name(node: ast.AST) -> str` L157
-  - `def notebook_cells(path: Path) -> tuple[list[tuple[int, str, ast.AST]], list[str], int, int, int]` L187
-  - `def violation_for(own: str, target: str | None) -> str | None` L217
-  - `def check_file(repo: Repo, rel: str) -> list[tuple[int, str, str, str]]` L228
-  - `def check_notebook(repo: Repo, rel: str) -> list[tuple[str, int, str, str, str]]` L268
-  - `def run(repo: Repo) -> tuple[list[str], int, int, int, int]` L283
-  - `def main(argv: list[str] | None=None) -> int` L310
+  - `def list_repo_files(root: Path=ROOT) -> list[str]` L40
+  - `def zone_of(rel: str) -> str` L64
+  - `class Repo` L77
+    - `.__init__(self, root: Path=ROOT, files: list[str] | None=None)` L80
+    - `.own_dir_names(self, rel: str) -> set[str]` L103
+    - `.classify(self, dotted: str, rel: str) -> str | None` L106
+  - `def file_imports(tree: ast.AST, rel: str) -> list[tuple[int, str, str]]` L129
+  - `def dotted_name(node: ast.AST) -> str` L158
+  - `def notebook_cells(path: Path) -> tuple[list[tuple[int, str, ast.AST]], list[str], int, int, int]` L188
+  - `def violation_for(own: str, target: str | None) -> str | None` L218
+  - `def check_file(repo: Repo, rel: str) -> list[tuple[int, str, str, str]]` L229
+  - `def check_notebook(repo: Repo, rel: str) -> list[tuple[str, int, str, str, str]]` L269
+  - `def run(repo: Repo) -> tuple[list[str], int, int, int, int]` L284
+  - `def main(argv: list[str] | None=None) -> int` L311
 
 ### `tools/colab_bridge.py` (196 lines)
 - PURPOSE: Colab <-> GitHub <-> Claude bridge: copies data from Drive to local Colab disk once per session (prepare_data).
@@ -92,7 +92,7 @@
   - `def read_registry(registry, url_template=DOWNLOAD_URL)` L141
   - `def download_from_registry(registry=DEFAULT_REGISTRY, dest='/content/am_data/history_1d', names=None, workers=8, force=False, url_template=DOWNLOAD_URL)` L162
 
-### `tools/evaluate_trained_model.py` (277 lines)
+### `tools/evaluate_trained_model.py` (278 lines)
 - PURPOSE: Evaluates a model trained in main.ipynb without Drive or training, by running main's own cells with four patches (CLI wrapper); also runs the panel model (--panel).
 - TAGS: evaluate trained model, eval cli, main.ipynb patched cells, weights, target-mode, split-dates, panel evaluation, gap report, market-neutral portfolio
 - PITFALLS: Executes main.ipynb cells in order, so it breaks when main's cell layout or section numbering changes; --target-mode must match the mode the weights were trained with.

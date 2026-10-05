@@ -10,10 +10,10 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `hypothesis_h001_short_term_reversal.ipynb` — H001 — الانعكاس قصير المدى (Short-Term Reversal) (2 public defs)
 - `hypothesis_h002_classification_head.ipynb` — H002 — رأس التصنيف الثنائي في `NIG-TimeNet v2` (1 public defs)
 - `hypothesis_h003_volatility_reversal.ipynb` — H003 — انعكاس/انكماش التقلّب المدفوع بـ`NATR_14` (Volatility Reversal) (0 public defs)
-- `main.ipynb` — 🚀 دفتر `main` — تجميع المشروع (البيانات ← النموذج ← التدريب ← التقييم) (44 public defs)
+- `main.ipynb` — 🚀 دفتر `main` — تجميع المشروع (البيانات ← النموذج ← التدريب ← التقييم) (2 public defs)
 - `model_v2 (1).ipynb` — 🧠 دفتر النموذج — `NIG-TimeNet v2` (نسخة مُنظَّفة) (0 public defs)
-- `pandas_ta_full_survey.ipynb` — مسح شامل لكل مؤشرات `pandas_ta_classic` — كود اختبار + فرضيات مُولَّدة آلياً (4 public defs)
-- `signal_discovery_lab.ipynb` — مختبر بحث الإشارات (Signal Discovery Lab) (24 public defs)
+- `pandas_ta_full_survey.ipynb` — مسح شامل لكل مؤشرات `pandas_ta_classic` — كود اختبار + فرضيات مُولَّدة آلياً (0 public defs)
+- `signal_discovery_lab.ipynb` — مختبر بحث الإشارات (Signal Discovery Lab) (0 public defs)
 - `signal_evaluation_axis (3).ipynb` — محور التقييم — المرحلة ٠ من مشروع اكتشاف الإشارة (0 public defs)
 - `trainer_framework_v2.ipynb` — 🧠 إطار عمل مدرّب عام (Generic Trainer Framework) (0 public defs)
 
@@ -25,6 +25,8 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `trainer/` — Package holding the generic training framework (formerly the cells of trainer_framework_v2.ipynb): `import trainer` gives the whole framework (trainer.build_training_system, trainer.build_config, trainer.GenericTrainer, ...) in this packag… | 20 modules, 0 data files (0 B) → maps/trainer.md
 - `evaluation/` — Package holding ALL model-evaluation code of the project (formerly the cells of chicks_v4_5_input_output_patterns.ipynb): `import evaluation` gives predict_with_evaluation_v4, test_all_assets_v4, run_full_analysis, ... in this package's na… | 24 modules, 0 data files (0 B) → maps/evaluation.md
 - `signal_eval/` — Package holding ALL code of the signal evaluation axis, phase 0 of the signal-discovery project (formerly the cells of "signal_evaluation_axis (3).ipynb"): `import signal_eval` gives compute_ic, decile_spread, permutation_baseline, evaluat… | 10 modules, 0 data files (0 B) → maps/signal_eval.md
+- `workflow/` — Package holding the project-assembly code of main.ipynb (target-mode switching, split helpers, training batches, model/trainer bridges, section-7 evaluation reports, diagnostics, capacity controls, wiring self-test); main.ipynb stays the s… | 21 modules, 0 data files (0 B) → maps/workflow.md
+- `discovery/` — Package holding the code of the signal discovery lab (candidate predictors, evaluation core, scanner, batch runner, phase-3 tools, self-test) and of the pandas_ta full survey; the notebooks stay the runners of the lab steps. | 11 modules, 0 data files (0 B) → maps/discovery.md
 
 ## Research studies (research/)
 - `research/edge_discovery/` — التقرير النهائي — البحث عن Edge قابل للاستغلال (2024-01 → 2026-09) | 41 scripts, 33 data files (788 KB) → maps/research_edge_discovery.md
@@ -33,7 +35,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `research/h07_volsizing/` — H07 + تحجيم بالتقلّب المتوقَّع (تعلّم آلي للمقدار لا للاتجاه) | 1 scripts, 3 data files (7 KB) → maps/research_h07_volsizing.md
 
 ## docs/research (legacy)
-- `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 42 md, 1 data files (77 KB) → maps/docs_research.md
+- `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 43 md, 1 data files (77 KB) → maps/docs_research.md
 - `docs/research/audit/` — Audit / Improvement Protocol (Auditor ↔ Builder) | 26 scripts, 5 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/results/` — نتائج خطّة `capacity` على بيانات Drive (Colab T4، 2026-09-27) | 0 scripts, 6 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/scripts/` — سكربتات إعادة إنتاج تدقيق التطبيع | 9 scripts, 1 md, 1 data files (10 KB) → maps/docs_research.md
@@ -42,6 +44,6 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `docs/research/templates/` — Experiment card — <id>: <one-line title> | 0 scripts, 1 md, 0 data files (0 B) → maps/docs_research.md
 
 ## Tests
-- `tests/` — test_audit_round2, test_bracket_eval, test_cross_asset, test_data_package, test_disk_backed, test_e… | 23 modules, 1 data files (30 KB) → maps/tests.md
+- `tests/` — test_audit_round2, test_bracket_eval, test_cross_asset, test_data_package, test_disk_backed, test_e… | 24 modules, 1 data files (30 KB) → maps/tests.md
 
 ## Where do I edit X? → `maps/tags.md` (TAGS → modules index)

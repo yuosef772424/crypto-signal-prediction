@@ -62,7 +62,7 @@ def _ns():
         ns = {"__name__": "audit_nb"}
         _quiet(_nbload.load_model, ns)
         _quiet(_nbload.load_trainer, ns)                # بلا Smoke Test ولا K-Fold كما كان
-        _quiet(exec, compile("".join(_cells("main.ipynb")[15]["source"]), "main#15", "exec"), ns)
+        _module_into("training_config", ns)                                                  # build_target_configs
         _NS.update(ns)
     return _NS
 
@@ -387,13 +387,24 @@ class LayerEvidenceTests(unittest.TestCase):
 
 
 # ══════════════════════════════════════════════════════════════════════════════════════════════════
-def _extract_defs(nb_name, idx, names, ns):
-    """يعرّف دوال main الصغيرة (من الخلية idx) في ns بالاستخراج عبر ast — الكود الحقيقي لا نسخة."""
-    src = "".join(_cells(nb_name)[idx]["source"])
-    tree = ast.parse(src)
+def _module_src(module):
+    """نص وحدة من حزمة workflow/ (كود main.ipynb سابقاً)."""
+    with open(os.path.join(ROOT, "workflow", f"{module}.py"), encoding="utf-8") as f:
+        return f.read()
+
+
+def _module_into(module, ns):
+    """يشغّل وحدة workflow/ كاملة في ns (ما تفعله workflow.load_into لوحدة واحدة)."""
+    _quiet(exec, compile(_module_src(module), f"workflow/{module}.py", "exec", dont_inherit=True), ns)
+    return ns
+
+
+def _extract_defs(module, names, ns):
+    """يعرّف دوال main الصغيرة (من وحدة workflow/) في ns بالاستخراج عبر ast — الكود الحقيقي لا نسخة."""
+    tree = ast.parse(_module_src(module))
     for node in tree.body:
         if isinstance(node, ast.FunctionDef) and node.name in names:
-            _quiet(exec, compile(ast.Module([node], []), nb_name, "exec"), ns)
+            _quiet(exec, compile(ast.Module([node], []), f"workflow/{module}.py", "exec"), ns)
     return ns
 
 
@@ -401,20 +412,17 @@ class MainWrapperTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         import tensorflow as tf  # noqa: F401
-        cells = _cells("main.ipynb")
-        cls.idx = next(i for i, c in enumerate(cells) if c["cell_type"] == "code" and "def model_layer_report" in "".join(c["source"]))
         ns = dict(_ns())
         ns.update(MODEL_TF="1h", LAST_COLUMNS=["timestamp"], main_config={"run": {"batch_size": BS}, "targets": {}})
-        _extract_defs("main.ipynb", 8, {"_tfs_of", "model_x"}, ns)
-        _extract_defs("main.ipynb", 10, {"_split_parts"}, ns)
-        _extract_defs("main.ipynb", 17, {"make_shuffled_dataset", "_to_unit_label", "make_eval_dataset", "_to_float32_inputs"}, ns)
+        _extract_defs("splits", {"_tfs_of", "model_x"}, ns)
+        _extract_defs("retarget", {"_split_parts"}, ns)
+        _extract_defs("batches", {"make_shuffled_dataset", "_to_unit_label", "make_eval_dataset", "_to_float32_inputs"}, ns)
         ns["main_config"] = ns["build_config"]({"run": {"run_dir": tempfile.mkdtemp(), "epochs": 1, "batch_size": BS, "verbose": 0,
                                                         "train_mode": "new"},
                                                 "optimizer": {"lr_initial": 1e-2}, "targets": ns["build_target_configs"](("high", "low"))})
         ns["_y_for"] = lambda sp: dict(sp["y"])
-        _quiet(exec, compile("".join(cells[cls.idx]["source"]), "main#diag", "exec"), ns)
-        cap_idx = next(i for i, c in enumerate(cells) if c["cell_type"] == "code" and "def feature_count_sweep" in "".join(c["source"]))
-        _quiet(exec, compile("".join(cells[cap_idx]["source"]), "main#capacity", "exec"), ns)
+        _module_into("diagnostics", ns)
+        _module_into("capacity", ns)
         cls.ns = ns
         x, y = _data(256, 0)
         xv, yv = _data(200, 3)

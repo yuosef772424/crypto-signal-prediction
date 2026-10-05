@@ -96,7 +96,7 @@ log(f'{len(windows)} windows')
 g = {'__name__': '__main__', 'np': np, 'pd': pd}
 import sys; sys.path.insert(0, REPO)    # the axis is the package signal_eval/ (was the notebook's defs)
 import signal_eval; signal_eval.load_into(g, exclude=('selftests', 'bootstrap', 'registry_selftests'))
-exec(compile(load_notebook_defs(f'{REPO}/signal_discovery_lab.ipynb'), 'lab', 'exec'), g)
+__import__('sys').path.insert(0, REPO); __import__('discovery').load_into(g, exclude=('survey',))   # lab defs now live in discovery/ (the notebook is a runner)
 LAST_COLUMNS = ['last_high', 'last_low', 'last_close', 'timestamp', 'future_close', 'future_low_min', 'future_high_max']
 g['LAST_COLUMNS'] = LAST_COLUMNS
 evaluate_windows = g['evaluate_windows']; extract = g['extract_feature_last_value']
