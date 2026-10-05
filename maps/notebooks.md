@@ -106,54 +106,12 @@
 
 ## `main.ipynb`
 - title: 🚀 دفتر `main` — تجميع المشروع (البيانات ← النموذج ← التدريب ← التقييم)
-- cells: 45 (26 code)
-- DEPENDS: cross_asset
+- cells: 46 (27 code)
+- DEPENDS: cross_asset, workflow
 - headings: 🚀 دفتر `main` — تجميع المشروع (البيانات ← النموذج ← التدريب ← التقييم) · لماذا احتاج الأمر طبقة "ربط" صريحة (لا استيراد مباشر فحسب) · ١) تحميل وتشغيل خط الأنابيب · ٢) إعدادات هذا المشروع · ٣) تحميل البيانات الجاهزة (من Drive) وتحديد الفريم الزمني الفعلي · ٣-ب) تغيير الهدف — تجارب سريعة على نفس البيانات · ٤) النموذج — `build_nig_timenet_v2` من دفتر `model_v2` · ٥) التدريب — ربط مخرجات النموذج بمفاتيح بيانات خط الأنابيب · ٦) الاختبار — تحويل تقسيم خط الأنابيب إلى شكل `chicks` · ٧) دوال فحص وتحقّق إضافية (تُستدعى عند الحاجة، لا تلقائياً) · ٧-ب) تقييم انتقائي: دقة ≥ 65% على شريحة واثقة، أو صفقات 2:1 · ٧-ج) هل يضيف النموذج شيئاً فوق شكل الشمعة؟ (رأسا high/low) · ٧-د) تحقق متكامل — استدعاء واحد، جدول حكم واحد · ٧-هـ) تجربة التحكّم بالتسميات المخلوطة (permutation control) · ٧-و) محفظة محايدة للسوق — هل تتحوّل إشارة التفوّق النسبي إلى ربح بعد التكلفة؟ · ٧-ز) مقاومة الحفظ — تدقيق التطبيع قبل التدريب، وفجوة التعميم بعده (PR #7) · ٧-ح) نموذج اللوحة عبر العملات (المرحلة ١) — اختياري، معطَّل افتراضياً · ٧-ط) تشخيص النموذج — تقرير صحّة وتقرير طبقات ومسجّل تدريب (اختياري، لا شيء تلقائي) · ٧-ي) سعة النموذج مقابل العيّنات الفعّالة — «إخفاق إعداد» أم «لا إشارة»؟ (RESEARCH_RULES §2.1) · ٨) اختبار ذاتي للتوصيل بين الدفاتر (بيانات تركيبية — بلا Drive ولا تدريب حقيقي)
 - API:
   - `def github_token()` cell 2 L22
   - `def git_auth(*args)` cell 2 L46
-  - `def model_x(split, model_tf=None)` cell 8 L11
-  - `def reg_scale_of(split_or_dict, target=None)` cell 8 L24
-  - `def target_mode_of(split_or_dict)` cell 8 L37
-  - `def entry_close_reg_of(split_or_dict)` cell 8 L43
-  - `def retarget_splits(train_split, val_split, test_split, mode='return', targets=None, clip=None, center='median', group_freq=None, min_group=5, drop_small_groups=False, close_reg=None, verbose=True)` cell 10 L176
-  - `def entry_range_to_prices(last_close, high=None, low=None, close=None, close_reg='abs_return', p_close_up=None)` cell 10 L258
-  - `def model_builder()` cell 13 L45
-  - `def build_target_configs(price_targets, label_smoothing=0.0)` cell 15 L1
-  - `def make_shuffled_dataset(X, y_dict, batch_size, seed=None, shuffle=True)` cell 17 L99
-  - `def make_eval_dataset(X, y_dict, batch_size)` cell 17 L136
-  - `def build_chicks_test_dict(pipeline_test, model_tf, reg_target_mode=None)` cell 19 L17
-  - `def latest_trading_report(n_display=5)` cell 23 L1
-  - `def real_price_predictions(asset, target)` cell 23 L9
-  - `def classification_accuracy_report()` cell 23 L48
-  - `def pool_test_dict(test_dict, model_tf, n_per_asset=None)` cell 24 L16
-  - `def predict_pooled_batch_by_asset(model, pooled, model_tf, target_specs=None, n_display=5, y_true_pooled=None, timestamp_col=None, verbose=True)` cell 24 L50
-  - `def collect_signals(model, split_or_dict, model_tf, batch_size=1024, outputs=None)` cell 26 L28
-  - `def direction_scores(df, target='close')` cell 26 L81
-  - `def wilson_interval(k, n, z=1.96)` cell 26 L99
-  - `def selective_curve(score, correct, n_bins=10)` cell 26 L109
-  - `def pick_threshold(score, correct, target_acc=0.65, min_n=200)` cell 26 L124
-  - `def selective_direction_report(val_df, test_df, target_acc=0.65, min_n=200, target='close', verbose=True)` cell 26 L143
-  - `def simulate_rr_trades(df, side, rr=2.0, stop_mode='nig', stop_k=1.0, cost_pct=0.08)` cell 26 L180
-  - `def rr_trading_report(val_df, test_df, rr=2.0, stop_mode='nig', stop_k=1.0, cost_pct=0.08, min_trades=200, quantiles=(0.5, 0.7, 0.8, 0.9, 0.95), target='close', seed=0, verbose=True)` cell 26 L226
-  - `def selective_evaluation(model=None, val_split=None, test_split=None, model_tf=None, target_acc=0.65, rr=2.0, stop_mode='nig', min_n=200, val_df=None, test_df=None, verbose=True)` cell 26 L276
-  - `def candle_baseline_report(model, train_split, val_split, test_split, model_tf=None, targets=('high', 'low'), max_train=300000, n_boot=300, seed=0, batch_size=1024, min_auc_gain=0.005, verbose=True)` cell 28 L67
-  - `def run_full_verification(model, train_split, val_split, test_split, model_tf=None, target_acc=0.65, rr=2.0, stop_mode='nig', n_boot=500, out_dir=None, run_candle=True, verbose=True)` cell 30 L61
-  - `def run_label_permutation_control(train_split, val_split, test_split, epochs=6, mode='global', max_train_samples=None, seed=0, n_boot=500, run_root=..., run_tag=None, leak_min_acc=0.01, verbose=1)` cell 32 L80
-  - `def split_asset_names(dataset, split='val', config=None)` cell 34 L40
-  - `def market_neutral_report(model, train_split, val_split, test_split, model_tf=None, score='p_up_close', quantiles=(0.05, 0.1, 0.2, 0.3), sides=_MN_SIDES, cost_pct=0.08, universe=None, min_assets=20, min_per_leg=5, cost_model…` cell 34 L244
-  - `def normalization_audit(train_split, val_split=None, test_split=None, feature_names=None, model_tf=None, max_windows=20000, level_ratio_max=20.0, near_const_frac_max=0.2, extreme_max=50.0, shift_ks_max=0.25, verbose=True)` cell 36 L22
-  - `def generalization_gap_report(model, train_split, val_split, test_split, model_tf=None, max_n=20000, auc_gap_max=0.03, linear_reference=True, verbose=True)` cell 36 L155
-  - `def make_training_diagnostics(train_split, val_split, batch_size=None, seed=0, probe_size=256, cartography_size=2000, with_timestamps=True, **kw)` cell 40 L35
-  - `def model_health_report(model, train_split, val_split, recorder=None, model_tf=None, max_n=512, sections=None, sensitivity='grad_x_input', thresholds=None, capacity=None, with_capacity=True, verbose=True)` cell 40 L51
-  - `def model_layer_report(model, train_split, val_split, test_split=None, recorder=None, model_tf=None, max_train=2000, max_val=2000, max_eval=1500, n_rand=3, n_perm=30, ridge=10.0, seed=0, capacity=None, with_capacity=True,…` cell 40 L76
-  - `def effective_sample_size(split, window=None, stride=None, horizon=1, target=None, n_features=None, n_params=None, model=None, max_assets=80, seed=0, model_tf=None)` cell 42 L24
-  - `def simple_baseline(train_split, val_split, model_tf=None, max_train=20000, max_val=20000, ridge=10.0, seed=0)` cell 42 L119
-  - `def feature_count_sweep(build_fn, train_split, val_split, feature_names, ks=(1, 3, 5, 10), rank_by='train', epochs=6, seed=0, max_train=4096, max_val=4096, config=None, model_tf=None, ridge=10.0, with_null=True, verbose=Tr…` cell 42 L187
-  - `def learning_curve(build_fn, train_split, val_split, fractions=(0.25, 0.5, 1.0), anchor='recent', epochs=6, seed=0, max_train=4096, max_val=4096, config=None, model_tf=None, verbose=True)` cell 42 L236
-  - `def capacity_verdict(ess=None, baseline=None, sweep=None, curve=None, model_skill=None, model_metric='auc', thresholds=None)` cell 42 L279
-  - `def capacity_report(build_fn, train_split, val_split, feature_names=None, ks=(1, 3, 5, 10), fractions=(0.25, 0.5, 1.0), window=None, model=None, rank_by='train', epochs=6, seed=0, config=None, model_tf=None, verbose=Tr…` cell 42 L344
-  - `def run_wiring_selftest(verbose=True)` cell 44 L1
 
 ## `model_v2 (1).ipynb`
 - title: 🧠 دفتر النموذج — `NIG-TimeNet v2` (نسخة مُنظَّفة)
