@@ -44,3 +44,30 @@ Forecast → daily σ̂ = sqrt(exp(pred)) for the weight.
 
 ---
 ## Result (added after the run)
+Run 2026-10-05 (`01_volsizing.py`, `volsizing_results.csv`). The script computed VAL and TEST rows in one run; the
+decision below uses VAL only, and TEST is reported for transparency (it agrees).
+
+**(a) Forecast diagnostic — holds.** Next-day log-RV QLIKE on VAL (lower is better): BTC gbm 0.411 / har 0.448 /
+trail30 0.617; ETH gbm 0.311 / har 0.326 / trail30 0.615. Risk-targeting error 0.333 (trail30) → 0.289 (gbm) / 0.270 (har).
+
+**(b) Sharpe — fails (wrong sign).**
+
+| VAL 2022–23 | Sharpe | maxDD | ΔSharpe vs trail30, 95% block-bootstrap |
+|---|---|---|---|
+| trail30 (H07 as is) | **0.908** | −24.4% | — |
+| har | 0.720 | −28.7% | [−0.44, +0.09] |
+| gbm | 0.627 | −27.4% | [−0.57, +0.05] |
+| buy & hold 50/50 | 0.101 | −68.3% | |
+
+TEST 2024-01..2026-09 (not used for the decision): trail30 0.873 (maxDD −30.6%), har 0.860, gbm 0.764; buy & hold 0.567
+(maxDD −59.9%).
+
+**Cause test (VAL, after the decision, descriptive).** Gross Sharpe (no costs) is also lower (trail30 0.96, har 0.82,
+gbm 0.74) although turnover doubles (0.074 → 0.138/day), so costs are not the main cause. On held days the trend's
+return rises with volatility: with gbm sizing, the lowest-weight (highest predicted vol) tercile earns +38 bp/day vs
++15 bp in the highest-weight tercile; with trail30 the weight keeps a positive correlation with the next day's return
+(+0.049 vs −0.006 for gbm). Accurate next-day vol targeting cuts exposure on exactly the days that pay.
+
+**Verdict: rejected for sizing** (failure level: economics — the forecast skill is real, its P&L use is negative).
+Registry row F-0064. Side result: H07 itself re-confirmed on executable Binance spot closes (VAL Sharpe 0.91 vs 0.10 for
+buy & hold; TEST 0.87 vs 0.57, max drawdown −31% vs −60%).

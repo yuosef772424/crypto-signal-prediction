@@ -37,6 +37,7 @@
 - batching: cross_asset/data
 - binance api: tools/fetch_history_csv_concurrent
 - binance vision: tools/fetch_history_colab_cell
+- block bootstrap: h07_volsizing/01_volsizing
 - bracket: tools/bracket_eval
 - bracket table: cross_asset/report
 - break attempt: edge_discovery/17_h07_break
@@ -109,6 +110,7 @@
 - drive mount: tools/fetch_history_colab_cell
 - drive-root: tools/fetch_history_csv_concurrent
 - dsr: edge_discovery/17_h07_break
+- e-h07vs-1: h07_volsizing/01_volsizing
 - early stopping: cross_asset/train
 - edge_data: edge_discovery/lib
 - edit notebook: tools/nb_cells
@@ -153,6 +155,7 @@
 - gaps report: tools/fetch_history_vision_colab
 - generalization gap: edge_discovery/26_h19_generalization
 - github dataset: tools/fetch_crypto_dataset
+- gradient boosting: h07_volsizing/01_volsizing
 - grid: edge_discovery/21_range_fade
 - gross edge: edge_discovery/23_chart_rules_gross
 - grouping test: cross_asset/selftest
@@ -163,7 +166,7 @@
 - h04: edge_discovery/05_events
 - h05: edge_discovery/09_market_flush, edge_discovery/10_flush_curve
 - h06: edge_discovery/06_seasonality, edge_discovery/14_holdout
-- h07: edge_discovery/07_trend, edge_discovery/14_holdout, edge_discovery/15_h07_robust
+- h07: edge_discovery/07_trend, edge_discovery/14_holdout, edge_discovery/15_h07_robust, h07_volsizing/01_volsizing
 - h07-oos: edge_discovery/16_h07_oos, edge_discovery/17_h07_break
 - h08: edge_discovery/08_ts_screen
 - h09: edge_discovery/11_more
@@ -183,6 +186,7 @@
 - h22: edge_discovery/30_envelope_direction
 - h23: edge_discovery/31_wick_capture
 - h23-r: edge_discovery/32_breakout_stops
+- har-rv: h07_volsizing/01_volsizing
 - hash ribbon: edge_discovery/20_onchain
 - histgradientboosting: edge_discovery/29_path_envelope
 - history_1d: tools/colab_bridge
@@ -287,6 +291,7 @@
 - phase 2: tools/intraday_features
 - pin bar: edge_discovery/22_chart_rules
 - pooled z*y: edge_discovery/08_ts_screen
+- position sizing: h07_volsizing/01_volsizing
 - post-hoc: edge_discovery/15_h07_robust, edge_discovery/23_chart_rules_gross
 - post-listing drift: edge_discovery/12_listing
 - pr #7: edge_discovery/18_h13_pr7_signal
@@ -297,6 +302,7 @@
 - pullback: edge_discovery/24_pullback_maker
 - pump: edge_discovery/05_events
 - px proxy: edge_discovery/data_tools/build_panel
+- qlike: h07_volsizing/01_volsizing
 - quantile regression: edge_discovery/31_wick_capture
 - quarterly consistency: edge_discovery/01_screen
 - quintile spread: edge_discovery/04_screen_mean
@@ -310,6 +316,7 @@
 - rank_ic: edge_discovery/lib
 - ratchet: tools/build_map
 - real_price_predictions: tests/test_real_price_modes
+- realized variance: h07_volsizing/01_volsizing
 - rebound: edge_discovery/09_market_flush
 - recurrence plot: edge_discovery/27_repr_info
 - redundancy: edge_discovery/02_fmb
@@ -396,7 +403,7 @@
 - trunk_drop: cross_asset/model
 - ts_screen_disc.csv: edge_discovery/08_ts_screen
 - tsmom: edge_discovery/07_trend
-- tsmom30: edge_discovery/16_h07_oos
+- tsmom30: edge_discovery/16_h07_oos, h07_volsizing/01_volsizing
 - tt_pos: edge_discovery/features
 - turnover: edge_discovery/03_quintiles, edge_discovery/18_h13_pr7_signal
 - turnover cost: edge_discovery/tsbt
@@ -409,10 +416,11 @@
 - variant b (no attention): cross_asset/model
 - variants a/b/a_ic/b_ic/a_ic_k: cross_asset/experiment
 - vol clustering: edge_discovery/28_token_decompose
-- vol targeting: edge_discovery/07_trend, edge_discovery/16_h07_oos
+- vol targeting: edge_discovery/07_trend, edge_discovery/16_h07_oos, h07_volsizing/01_volsizing
 - vol-quintile ic: cross_asset/report
 - vol-target weights: edge_discovery/tsbt
 - volatility: edge_discovery/features
+- volatility forecast: h07_volsizing/01_volsizing
 - wavelet: edge_discovery/27_repr_info
 - weights: tools/evaluate_trained_model
 - wick capture: edge_discovery/31_wick_capture
