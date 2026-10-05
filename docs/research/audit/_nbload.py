@@ -45,7 +45,7 @@ def _data_package():
 
 
 def _repo_package(name):
-    """The repo's code package ``name`` (workflow/ = ex main.ipynb defs, discovery/ = ex lab + survey defs), imported from ROOT."""
+    """The repo's code package ``name`` (data, model, trainer, evaluation, signal_eval, workflow, discovery), imported from ROOT."""
     import importlib
     import sys
     if ROOT not in sys.path:
@@ -74,18 +74,6 @@ def load_pipeline(quiet=True):
     with (contextlib.redirect_stdout(io.StringIO()) if quiet else contextlib.nullcontext()):
         _data_package().load_into(ns, exclude=("selftests",))
     return ns
-
-
-def _repo_package(name):
-    """The repo's code package ``name`` (data, model, trainer, evaluation, signal_eval, ...), imported from ROOT (never a same-named installed one)."""
-    import importlib
-    import sys
-    if ROOT not in sys.path:
-        sys.path.insert(0, ROOT)
-    pkg = importlib.import_module(name)
-    if os.path.dirname(os.path.abspath(pkg.__file__)) != os.path.join(ROOT, name):
-        raise ImportError(f"'{name}' resolves to {pkg.__file__}, not this repo's package ({ROOT}/{name})")
-    return pkg
 
 
 def load_model(ns=None, quiet=True, selftests=False):
