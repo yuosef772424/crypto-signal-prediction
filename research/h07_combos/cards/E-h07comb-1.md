@@ -43,3 +43,21 @@ Pre-registered 2026-10-05, BEFORE any variant is computed (rules: `docs/research
 
 ---
 ## Result (added after the run)
+Run 2026-10-05 (`01_combos.py`, `combos_results.csv`). VAL decides; TEST was computed in the same run and is shown for
+transparency only (no variant was accepted on VAL, so TEST is not a confirmation of anything).
+
+| Variant | VAL 2018–23 Sharpe | ΔSharpe [98.75% CI] | maxDD (vol-matched) | TEST 2024–26/09 Sharpe | TEST maxDD |
+|---|---|---|---|---|---|
+| V0 H07 | 1.39 | — | −40% (−40%) | 0.89 | −31% |
+| V1 ensemble 10/20/30/60 | 1.38 | −0.01 [−0.33, +0.29] | −37% (−39%) | 0.94 | −31% |
+| V2 fast exit 30d∧10d | 1.43 | +0.04 [−0.34, +0.43] | −28% (−32%) | 0.86 | −29% |
+| V3 10 coins | 1.51 | +0.12 [−0.56, +0.86] | −30% (−38%) | 1.23 | −19% |
+| V4 ensemble on 10 coins | 1.40 | +0.01 [−0.63, +0.77] | −29% (−38%) | 1.44 | −17% |
+
+**Mechanism checks — both moved as predicted.** Give-back in the 10 days before a V0 exit: V0 −16.9 bp/day, V1
+−11.3, V2 −12.1 (less lag). Mean pairwise correlation of per-coin trend returns: 0.35 (real diversification).
+
+**Verdict: not accepted (failure level: power).** No variant's VAL interval excludes 0: with daily data the Sharpe
+difference of two highly correlated trend strategies has a ±0.3–0.8 uncertainty even over 6 years. The direction is
+consistent for V3/V4 (higher Sharpe and smaller raw drawdown in VAL and in TEST), so they are tracked as **shadow
+variants** in the forward paper trading instead of adopted. Registry row F-0065.
