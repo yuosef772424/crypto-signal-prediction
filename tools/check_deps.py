@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PURPOSE:  Enforce the import direction of PHILOSOPHY.md section 2 with `ast` (modules are never imported): code packages must not import research/docs/tests, and a research study must not import another study; path-based coupling is reported as warnings. Also gates the IMPLICIT dependencies of the shared-namespace packages (new cross-package / forward / notebook-global references and new duplicate top-level definitions, via tools/implicit_deps.py) against tools/implicit_deps_allowlist.txt.
+PURPOSE:  Enforce the import direction of PHILOSOPHY.md section 2 with `ast` (modules are never imported): code packages must not import research/docs/tests, `core/` (tier 0) imports nothing from the repo, and a research study must not import another study; path-based coupling is reported as warnings. Also gates the IMPLICIT dependencies of the shared-namespace packages (new cross-package / forward / notebook-global references and new duplicate top-level definitions, via tools/implicit_deps.py) against tools/implicit_deps_allowlist.txt.
 TAGS:     dependencies, imports, import direction, zones, architecture, lint, ci, sys.path, implicit dependencies, duplicate definitions, allowlist, اتجاه الاعتماد
 PITFALLS: Also hosts the shared repo helpers (Repo, zone_of, file_imports, classify) that tools/build_map.py reuses for DEPENDS. Bare imports (`import lib`) are resolved by a repo-wide module-name index, so only unambiguous names (one zone) are classified. Existing violations are never fixed here: they go in ALLOWLIST below, with a reason. The implicit-dependency allowlist may only shrink (a stale entry fails, see tools/implicit_deps.py --prune-allowlist).
 
@@ -19,7 +19,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-CODE_PACKAGES = ("cross_asset", "tools", "data", "model", "trainer", "evaluation", "signal_eval", "workflow",
+CODE_PACKAGES = ("core", "cross_asset", "tools", "data", "model", "trainer", "evaluation", "signal_eval", "workflow",
                  "discovery")
 CODE_FORBIDDEN = ("research", "docs", "tests")  # code packages must not import these
 SKIP_DIRS = {".git", "__pycache__", ".ipynb_checkpoints", ".claude"}
@@ -219,6 +219,8 @@ def violation_for(own: str, target: str | None) -> str | None:
     """Rule id broken by `own` zone importing `target` zone, else None."""
     if not target or target == own:
         return None
+    if own == "core":  # Tier 0: the lowest layer imports nothing from the repo (stdlib only)
+        return "core-must-not-import-repo"
     if own in CODE_PACKAGES and target.split("/")[0] in CODE_FORBIDDEN:
         return f"code-must-not-import-{target.split('/')[0]}"
     if own.startswith("research/") and target.startswith("research/"):

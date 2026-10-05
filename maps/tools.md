@@ -60,8 +60,8 @@
   - `def disk_state() -> dict[str, str]` L511
   - `def main(argv: list[str] | None=None) -> int` L521
 
-### `tools/check_deps.py` (339 lines)
-- PURPOSE: Enforce the import direction of PHILOSOPHY.md section 2 with `ast` (modules are never imported): code packages must not import research/docs/tests, and a research study must not import another study; path-based coupling is reported as warn…
+### `tools/check_deps.py` (341 lines)
+- PURPOSE: Enforce the import direction of PHILOSOPHY.md section 2 with `ast` (modules are never imported): code packages must not import research/docs/tests, `core/` (tier 0) imports nothing from the repo, and a research study must not import anothe…
 - TAGS: dependencies, imports, import direction, zones, architecture, lint, ci, sys.path, implicit dependencies, duplicate definitions, allowlist, اتجاه الاعتماد
 - PITFALLS: Also hosts the shared repo helpers (Repo, zone_of, file_imports, classify) that tools/build_map.py reuses for DEPENDS. Bare imports (`import lib`) are resolved by a repo-wide module-name index, so only unambiguous names (one zone) are classified. Existing violations are never fixed here: they go in ALLOWLIST below, with a reason. The implicit-dependency allowlist may only shrink (a stale entry fa…
 - API:
@@ -75,11 +75,11 @@
   - `def dotted_name(node: ast.AST) -> str` L158
   - `def notebook_cells(path: Path) -> tuple[list[tuple[int, str, ast.AST]], list[str], int, int, int]` L188
   - `def violation_for(own: str, target: str | None) -> str | None` L218
-  - `def check_file(repo: Repo, rel: str) -> list[tuple[int, str, str, str]]` L229
-  - `def check_notebook(repo: Repo, rel: str) -> list[tuple[str, int, str, str, str]]` L269
-  - `def implicit_deps_problems(root: Path) -> tuple[list[str], int]` L284
-  - `def run(repo: Repo) -> tuple[list[str], int, int, int, int]` L294
-  - `def main(argv: list[str] | None=None) -> int` L326
+  - `def check_file(repo: Repo, rel: str) -> list[tuple[int, str, str, str]]` L231
+  - `def check_notebook(repo: Repo, rel: str) -> list[tuple[str, int, str, str, str]]` L271
+  - `def implicit_deps_problems(root: Path) -> tuple[list[str], int]` L286
+  - `def run(repo: Repo) -> tuple[list[str], int, int, int, int]` L296
+  - `def main(argv: list[str] | None=None) -> int` L328
 
 ### `tools/colab_bridge.py` (196 lines)
 - PURPOSE: Colab <-> GitHub <-> Claude bridge: copies data from Drive to local Colab disk once per session (prepare_data).
@@ -135,6 +135,7 @@
 - PURPOSE: Concurrent downloader of all Binance USDT-perp candles via the live API into the layout the pipeline reads (plus asset_registry, funding, OI).
 - TAGS: download history, klines, binance api, asset_registry, funding rate, open interest, drive-root, resume, include-delisted, csv
 - PITFALLS: Binance blocks US IPs (HTTP 451, typical for Colab): run locally; without --include-delisted delisted coins are missing (survivorship bias); OI history is only the last 30 days.
+- DEPENDS: core
 - API:
   - `def interval_to_ms(interval_str: str) -> int` L118
   - `def parse_date_ms(text: str) -> int` L126
@@ -169,6 +170,7 @@
 - PURPOSE: Colab/Jupyter-ready downloader of Binance futures history from the data.binance.vision archive (candles, funding, OI, metrics, premium index), resumable, gzip per coin.
 - TAGS: download history, data.binance.vision, klines, funding, open interest, futures_metrics, premium index, gaps report, fix-gaps, resume, asset_registry, symbols.txt
 - PITFALLS: Avoids the geo-block (451) but today's data is missing unless the live API is reachable; heavy network/disk (--workers x --downloads); keep resume enabled on Colab disconnects.
+- DEPENDS: core
 - API:
   - `def interval_to_ms(interval_str: str) -> int` L156
   - `def parse_date_ms(text: str) -> int` L164

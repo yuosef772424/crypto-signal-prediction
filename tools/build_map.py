@@ -29,7 +29,7 @@ from check_deps import (  # noqa: E402  (shared repo helpers)
 import implicit_deps  # noqa: E402  (USES / USED BY of the shared-namespace packages)
 
 ALLOWLIST_PATH = "tools/card_allowlist.txt"
-RATCHET_PREFIXES = ("cross_asset/", "tools/", "data/", "model/", "trainer/", "evaluation/", "signal_eval/", "workflow/",
+RATCHET_PREFIXES = ("core/", "cross_asset/", "tools/", "data/", "model/", "trainer/", "evaluation/", "signal_eval/", "workflow/",
                     "discovery/", "research/")
 DATA_EXTS = ("csv", "json", "log", "txt")
 FIELDS = ("PURPOSE", "TAGS", "PITFALLS")

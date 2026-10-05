@@ -18,7 +18,7 @@ Navigate MAP.md -> maps/<zone>.md -> read only the target symbol by line range (
 - `python -m pytest tests/ -q` - full suite, CPU only, no Drive (needs `pip install -r requirements-ci.txt`).
 
 ## Working rules
-- Zones and import direction: code packages (`cross_asset/`, `tools/`, `data/`, `model/`, `trainer/`, `evaluation/`, `signal_eval/`, `workflow/`, `discovery/`) never import `research/`, `docs/` or `tests/`; a study never imports another study (lift shared code into a package).
+- Zones and import direction: `core/` is tier 0 (pure constants/schema, imports NOTHING from the repo, checked by `check_deps.py`; every package may `from core.schema import ...` instead of copying a constant); code packages (`cross_asset/`, `tools/`, `data/`, `model/`, `trainer/`, `evaluation/`, `signal_eval/`, `workflow/`, `discovery/`) never import `research/`, `docs/` or `tests/`; a study never imports another study (lift shared code into a package).
 - Add, don't modify: a new study is `research/<study>/` with a README; recorded results are never edited (add a corrected copy, keep the original marked).
 - A new option's default must reproduce the old behavior exactly (checkpoints and past results stay valid).
 - No silent defaults: unknown config keys or unregistered feature/head/loss names raise; pass config sections explicitly, not via a global.
