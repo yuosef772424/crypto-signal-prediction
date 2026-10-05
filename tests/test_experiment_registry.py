@@ -66,6 +66,12 @@ class RegistryTests(unittest.TestCase):
         self.assertEqual([r["id"] for r in er.covering(SCOPE, rows)], ["F-0002"])
         self.assertEqual(er.covering(SCOPE, [_row(status="reopened")]), [])
 
+    def test_card_is_not_covered_by_its_own_result_row(self):
+        rows = [_row(source="research/x E-x-1 (script.py)")]
+        self.assertEqual(er.covering(dict(SCOPE, id="E-x-1"), rows), [])
+        self.assertEqual(len(er.covering(dict(SCOPE, id="E-x-10"), rows)), 1)          # prefix of another id
+        self.assertEqual(len(er.covering(dict(SCOPE, id="E-x-2"), rows)), 1)
+
     def test_card_needs_front_matter_and_scope(self):
         f = _card(mechanism="momentum")
         self.assertTrue(er.check_card(f, []))

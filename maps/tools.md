@@ -101,7 +101,7 @@
   - `def run_cell(src, ns, name, quiet=False)` L68
   - `def main()` L92
 
-### `tools/experiment_registry.py` (210 lines)
+### `tools/experiment_registry.py` (214 lines)
 - PURPOSE: Failure registry and no-repeat check for every experiment in the project. A failed experiment is closed with its scope (mechanism, timeframe, target, model class...), the level/location where it failed, the verified cause and the explicit…
 - TAGS: failure registry, negative results, no-repeat, reopen conditions, experiment card, research protocol, ledger
 - PITFALLS: Coverage is decided by tag overlap (mechanism AND timeframe AND target AND model_class, `any` matches all), so tags must come from the vocabulary in the registry rows - a new spelling silently escapes coverage; `search` before writing a card. Registry rows are append-only (protocol): close/reopen by adding a row, never editing.
@@ -112,9 +112,9 @@
   - `def validate_registry(rows, header=None)` L61
   - `def parse_card(path)` L94
   - `def covering(meta, rows)` L116
-  - `def check_card(path, rows)` L128
-  - `def all_cards()` L162
-  - `def main(argv=None)` L169
+  - `def check_card(path, rows)` L132
+  - `def all_cards()` L166
+  - `def main(argv=None)` L173
 
 ### `tools/fetch_crypto_dataset.py` (95 lines)
 - PURPOSE: Download Binance spot OHLCV from the public GitHub dataset Speirsy11/crypto-dataset (monthly parquet per coin and interval, stored in Git LFS) and merge it into one parquet per coin: <out>/ohlc_<SYMBOL>_<interval>.parquet with a UTC Dateti…
