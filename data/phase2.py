@@ -1,7 +1,7 @@
 """
 PURPOSE:  Phase-2 glue: locates tools/intraday_features.py, resolves the phase2_data toggles, caches archive reads and adds the 15m intraday and futures-metrics features.
 TAGS:     phase 2, phase2_data, intraday_features, 15m, futures metrics, require_phase2_data, resolve_phase2_toggles, module_dirs
-PITFALLS: All arithmetic lives in tools/intraday_features.py (tested by tests/test_intraday_features.py); this module only finds paths, toggles, caches and fills neutrally. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+PITFALLS: tools/intraday_features.py is looked up under the repo root that holds data/ first (independent of cwd), then cwd, then phase2_data['module_dirs']. All arithmetic lives in tools/intraday_features.py (tested by tests/test_intraday_features.py); this module only finds paths, toggles, caches and fills neutrally. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
 """
 # ══════════════════════════════════════════════════════════════════════════
 # المرحلة ٢: أرشيف Binance الكامل (شموع 15m + تمويل + OI + futures_metrics)
@@ -11,6 +11,8 @@ PITFALLS: All arithmetic lives in tools/intraday_features.py (tested by tests/te
 import importlib.util as _ilu
 import threading as _threading
 import sys as _sys
+
+from data._loader import REPO_ROOT as _DATA_REPO_ROOT  # جذر المستودع الذي يحوي هذه الحزمة (و tools/ بجانبها)
 
 _PHASE2_MOD: Dict[str, Any] = {"mod": None, "tried": False}
 _PHASE2_LOCK = _threading.Lock()
@@ -25,13 +27,13 @@ def _phase2_cfg(config: Optional[dict] = None) -> dict:
 
 
 def _phase2_module(config: Optional[dict] = None):
-    """يستورد tools/intraday_features.py من المستودع (cwd، أو مسارات phase2_data['module_dirs'])."""
+    """يستورد tools/intraday_features.py من المستودع: جذر المستودع الحاوي لحزمة data/ أولاً، ثم cwd، ثم phase2_data['module_dirs']."""
     if _PHASE2_MOD["tried"]:
         return _PHASE2_MOD["mod"]
     with _PHASE2_LOCK:
         if _PHASE2_MOD["tried"]:
             return _PHASE2_MOD["mod"]
-        dirs = [os.getcwd()] + list(_phase2_cfg(config).get('module_dirs') or [])
+        dirs = [str(_DATA_REPO_ROOT), os.getcwd()] + list(_phase2_cfg(config).get('module_dirs') or [])
         for d in dirs:
             path = Path(d) / 'tools' / 'intraday_features.py'
             if path.exists():
@@ -132,7 +134,7 @@ def require_phase2_data(keys=_PHASE2_KEYS, config: Optional[dict] = None) -> Dic
     config = CONFIG if config is None else config
     problems = []
     if _phase2_module(config) is None:
-        problems.append("tools/intraday_features.py غير موجود (cwd أو phase2_data['module_dirs'])")
+        problems.append("tools/intraday_features.py غير موجود (جذر المستودع أو cwd أو phase2_data['module_dirs'])")
     root = _phase2_root(config, mount=True)
     if root is None:
         problems.append("جذر المجلدات غير موجود (phase2_data['data_root'] أو MyDrive)")

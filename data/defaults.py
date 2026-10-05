@@ -302,7 +302,7 @@ DEFAULT_CONFIG: dict = {
         "trades_z_window": 30,           # ITD_TRADES_Z: درجة معيارية مقابل الأيام السابقة فقط
         "topk_bars": 4,                  # ITD_VOL_TOPK: حصة أعلى 4 شموع 15m من حجم اليوم
         "max_age": "1D",                 # قيمة أقدم من هذا عند إغلاق الشمعة = مفقودة (لا ffill بلا حدّ)
-        # أين يُبحث عن tools/intraday_features.py (إضافةً إلى مجلد العمل الحالي):
+        # أين يُبحث عن tools/intraday_features.py (بعد جذر المستودع الحاوي لحزمة data/ ثم مجلد العمل الحالي):
         "module_dirs": ["/content/crypto-signal-prediction", "/content/drive/MyDrive/crypto"],
     },
 

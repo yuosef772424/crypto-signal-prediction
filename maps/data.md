@@ -209,17 +209,17 @@
   - `def imap_ordered(fn: Callable[[T], R], items: Iterable[T], max_workers: int=8, prefetch: Optional[int]=None) -> Iterator[R]` L61
   - `def load_assets(configs: List[Dict], load_asset_fn: Callable, max_workers: Optional[int]=None, prefetch: Optional[int]=None, tail: int=0, verbose: bool=True) -> Dict[str, pd.DataFrame]` L108
 
-### `data/phase2.py` (305 lines)
+### `data/phase2.py` (307 lines)
 - PURPOSE: Phase-2 glue: locates tools/intraday_features.py, resolves the phase2_data toggles, caches archive reads and adds the 15m intraday and futures-metrics features.
 - TAGS: phase 2, phase2_data, intraday_features, 15m, futures metrics, require_phase2_data, resolve_phase2_toggles, module_dirs
-- PITFALLS: All arithmetic lives in tools/intraday_features.py (tested by tests/test_intraday_features.py); this module only finds paths, toggles, caches and fills neutrally. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- PITFALLS: tools/intraday_features.py is looked up under the repo root that holds data/ first (independent of cwd), then cwd, then phase2_data['module_dirs']. All arithmetic lives in tools/intraday_features.py (tested by tests/test_intraday_features.py); this module only finds paths, toggles, caches and fills neutrally. Executed into the one shared pipeline namespace by data/_loader.py (never imported on it…
 - API:
-  - `def resolve_phase2_toggles(config: Optional[dict]=None, verbose: bool=True) -> Dict[str, bool]` L97
-  - `def require_phase2_data(keys=_PHASE2_KEYS, config: Optional[dict]=None) -> Dict[str, bool]` L125
-  - `def load_intraday_daily_frame(symbol: str, config: Optional[dict]=None) -> Optional[pd.DataFrame]` L177
-  - `def intraday_15m_columns(config: Optional[dict]=None) -> List[str]` L216
-  - `def add_intraday_15m_features(dfs: Dict[str, pd.DataFrame], symbol: str, config: Optional[dict]=None) -> Dict[str, pd.DataFrame]` L225
-  - `def futures_metrics_columns(config: Optional[dict]=None) -> List[str]` L247
+  - `def resolve_phase2_toggles(config: Optional[dict]=None, verbose: bool=True) -> Dict[str, bool]` L99
+  - `def require_phase2_data(keys=_PHASE2_KEYS, config: Optional[dict]=None) -> Dict[str, bool]` L127
+  - `def load_intraday_daily_frame(symbol: str, config: Optional[dict]=None) -> Optional[pd.DataFrame]` L179
+  - `def intraday_15m_columns(config: Optional[dict]=None) -> List[str]` L218
+  - `def add_intraday_15m_features(dfs: Dict[str, pd.DataFrame], symbol: str, config: Optional[dict]=None) -> Dict[str, pd.DataFrame]` L227
+  - `def futures_metrics_columns(config: Optional[dict]=None) -> List[str]` L249
 
 ### `data/pipeline.py` (592 lines)
 - PURPOSE: Dataset assembly across all assets: build_dataset (loader or preloaded), exclusions, cross-asset first pass, accumulation; both sources delegate to prepare_single_asset.
