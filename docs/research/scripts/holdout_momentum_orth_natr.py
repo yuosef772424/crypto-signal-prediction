@@ -88,7 +88,8 @@ def take_block(lo, hi):
     return add_y_prefix(s)
 
 g = {'__name__': '__main__', 'np': np, 'pd': pd}
-exec(compile(load_notebook_defs(f'{REPO}/signal_evaluation_axis (3).ipynb'), 'axis', 'exec'), g)
+import sys; sys.path.insert(0, REPO)    # the axis is the package signal_eval/ (was the notebook's defs)
+import signal_eval; signal_eval.load_into(g, exclude=('selftests', 'bootstrap', 'registry_selftests'))
 exec(compile(load_notebook_defs(f'{REPO}/signal_discovery_lab.ipynb'), 'lab', 'exec'), g)
 LC = ['last_high', 'last_low', 'last_close', 'timestamp', 'future_close', 'future_low_min', 'future_high_max']
 g['LAST_COLUMNS'] = LC
