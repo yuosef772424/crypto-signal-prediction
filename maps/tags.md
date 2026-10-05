@@ -51,7 +51,9 @@
 - all reports: evaluation/full_analysis
 - all_global: data/sources
 - all_tests: signal_eval/selftests
-- alpha: model/nig_layers
+- allowlist: tools/check_deps
+- allowlist ratchet: tools/implicit_deps
+- alpha: core/constants, model/nig_layers
 - am_data: tools/colab_bridge
 - analysis_outputs: evaluation/outputs
 - analyze_by_batch: evaluation/output_conditioned
@@ -189,6 +191,7 @@
 - colab cell: tools/fetch_history_colab_cell
 - colab disconnect: trainer/epoch_callbacks
 - collect_signals: workflow/selective_eval
+- column order: core/schema
 - combo signal: edge_discovery/03_quintiles
 - compare: cross_asset/report
 - compare_multiple_models: evaluation/legacy_assets
@@ -205,8 +208,10 @@
 - config keys: data/defaults
 - config_fingerprint: trainer/config
 - consistent_sign: signal_eval/windows
+- constants: core/__init__, core/constants
 - cooldown: edge_discovery/09_market_flush, edge_discovery/events
 - copy trading: edge_discovery/19_hl_copy
+- core: core/__init__
 - cosine_warm_restarts: trainer/schedules
 - cost in r: edge_discovery/23_chart_rules_gross
 - cost stress: edge_discovery/15_h07_robust, edge_discovery/17_h07_break
@@ -215,6 +220,7 @@
 - cross-asset: data/market_context
 - cross-asset attention: cross_asset/__init__
 - cross-entropy: edge_discovery/28_token_decompose
+- cross-package: tools/implicit_deps
 - cross-sectional features: data/cross_sectional_features
 - cross-sectional normalization: data/cross_sectional_norm
 - cross-sectional screen: edge_discovery/01_screen
@@ -313,6 +319,7 @@
 - drop_tail_per_asset: data/live
 - dsr: edge_discovery/17_h07_break
 - dummy tail: data/live
+- duplicate definitions: tools/check_deps, tools/implicit_deps
 - e-h07comb-1: h07_combos/01_combos
 - e-h07vs-1: h07_volsizing/01_volsizing
 - early stopping: cross_asset/train, trainer/best_tracker
@@ -335,6 +342,7 @@
 - entry point: trainer/system
 - entry_close_reg: workflow/retarget
 - entry_close_reg_of: workflow/splits
+- entry_close_regs: core/schema
 - entry_feature_table: data/windows
 - entry_range: workflow/retarget
 - entry_range_target_spec: workflow/chicks_bridge
@@ -410,10 +418,12 @@
 - float16: evaluation/legacy_uncertainty, workflow/batches
 - flush curve: edge_discovery/10_flush_curve
 - format_latest_table: evaluation/latest_table
+- forward reference: tools/implicit_deps
 - forward return: edge_discovery/lib
 - forward test: tools/h07_forward
 - frac_significant: signal_eval/windows
 - fractal: data/custom
+- free names: tools/implicit_deps
 - from __future__: data/common
 - from __future__ annotations: signal_eval/common
 - full analysis: evaluation/full_analysis
@@ -511,6 +521,7 @@
 - ic loss test: cross_asset/selftest
 - image_cnn_results.csv: edge_discovery/25_image_cnn
 - imap_ordered: data/parallel, discovery/batch_runner
+- implicit dependencies: tools/check_deps, tools/implicit_deps
 - implied close: edge_discovery/30_envelope_direction
 - import data: data/__init__
 - import direction: tools/check_deps
@@ -557,9 +568,11 @@
 - label_smoothing: workflow/training_config
 - lag scan: evaluation/integrity
 - last n samples: evaluation/live
-- last_candles: data/windows
+- last_candles: core/schema, data/windows
 - last_close reference: discovery/evaluation
-- last_columns: data/windows
+- last_column_index: core/schema
+- last_columns: core/__init__, core/schema, data/windows
+- last_dtype: core/schema
 - laststep_gbm: workflow/candle_baseline
 - lasttoken: model/readout
 - late binding: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, trainer/_loader … (+1)
@@ -601,7 +614,7 @@
 - load_data_from_drive: data/storage
 - load_dataset_dir: data/storage
 - load_funding_open_interest: data/binance_client
-- load_into: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, trainer/_loader … (+1)
+- load_into: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, tools/implicit_deps … (+2)
 - load_notebook_defs: discovery/axis_loader
 - load_preprocessed_data_from_drive: signal_eval/bootstrap
 - loader: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, trainer/_loader … (+1)
@@ -688,7 +701,7 @@
 - model_x: workflow/splits
 - module order: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, trainer/_loader … (+1)
 - module_dirs: data/defaults, data/phase2
-- modules: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, trainer/_loader … (+1)
+- modules: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, tools/implicit_deps … (+2)
 - momentum: edge_discovery/features
 - momentum rank: data/cross_sectional_features
 - momentum_direction_accuracy: evaluation/integrity
@@ -711,9 +724,10 @@
 - navigation: tools/build_map
 - negative results: tools/experiment_registry
 - new listings: edge_discovery/12_listing
+- nig: core/constants
 - nig mixture: trainer/ensemble
 - nig-timenet v2: model/__init__
-- nig_alpha_den_min: model/nig_layers
+- nig_alpha_den_min: core/__init__, core/constants, model/nig_layers
 - nig_regularizer: trainer/tasks
 - nig_uncertainty_bounded: evaluation/targets
 - nighead: model/nig_layers
@@ -721,11 +735,13 @@
 - niguncertainty: model/nig_layers
 - no future: tests/test_no_lookahead
 - no-repeat: tools/experiment_registry
+- no_relative_bases: core/schema
 - normalization: data/normalize
 - normalization_audit: workflow/generalization
 - normalize: data/normalize
 - notebook: tools/nb_cells
 - notebook definitions: discovery/axis_loader
+- notebook globals: tools/implicit_deps
 - notebooks: tools/build_map
 - npy_dir: data/storage
 - nu: model/nig_layers
@@ -802,6 +818,7 @@
 - pin bar: edge_discovery/22_chart_rules
 - pipeline: data/pipeline
 - pipeline package: data/_loader
+- pipeline_default_config: data/defaults
 - pkl.gz: data/storage
 - platt: evaluation/trust_calibration
 - plot_calibration_curve: evaluation/plots
@@ -961,6 +978,7 @@
 - scan_candidates: discovery/__init__, discovery/scanner
 - scanner: discovery/scanner
 - schedule_value: trainer/schedules
+- schema: core/__init__, core/schema
 - scratch: data/disk_backed
 - screen_disc_mean.csv: edge_discovery/04_screen_mean
 - seasonality: edge_discovery/06_seasonality
@@ -978,10 +996,12 @@
 - selftests: signal_eval/selftests
 - settings: data/defaults
 - settings interval start funding open_interest: tools/fetch_history_colab_cell
+- shadowing: tools/implicit_deps
 - shap: discovery/phase3_tools
+- shared constants: core/__init__
 - shared folder: workflow/dataset_io
 - shared helpers: edge_discovery/lib
-- shared namespace: data/__init__, data/_loader, data/common, discovery/__init__, discovery/_loader, evaluation/__init__ … (+11)
+- shared namespace: data/__init__, data/_loader, data/common, discovery/__init__, discovery/_loader, evaluation/__init__ … (+12)
 - sharpe: evaluation/tearsheet, edge_discovery/tsbt
 - sharpe table: edge_discovery/15_h07_robust
 - short new perps: edge_discovery/12_listing
@@ -996,6 +1016,7 @@
 - signatures: tools/build_map
 - simulate_equity_curve: evaluation/tearsheet
 - simulate_rr_trades: workflow/selective_eval
+- single source: core/__init__
 - single touch: edge_discovery/14_holdout
 - size vs direction: edge_discovery/29_path_envelope
 - skew: edge_discovery/04_screen_mean
@@ -1045,6 +1066,7 @@
 - symbols.txt: tools/fetch_history_vision_colab
 - symlog: model/input_norm
 - symmetric: tools/bracket_eval
+- symtable: tools/implicit_deps
 - synthetic: discovery/selftest
 - synthetic data: cross_asset/selftest, data/selftests, signal_eval/selftests, workflow/wiring_selftest
 - sys.path: tools/check_deps
@@ -1064,8 +1086,10 @@
 - target modes: workflow/retarget
 - target scale: cross_asset/data
 - target-mode: tools/evaluate_trained_model
+- target_columns: core/schema
 - target_mode: tests/test_real_price_modes, workflow/retarget
 - target_mode_of: workflow/splits
+- target_modes: core/__init__, core/schema
 - targets: data/cross_sectional_norm, data/windows
 - targetspec: evaluation/targets
 - task weighting: trainer/task_weighting
@@ -1084,6 +1108,7 @@
 - tf.data: workflow/batches
 - tf.keras.model subclass: trainer/trainer
 - threads: data/parallel
+- tier 0: core/__init__
 - time-series screen: edge_discovery/08_ts_screen
 - time_hour: data/custom
 - timestamps: evaluation/latest_table
@@ -1106,6 +1131,7 @@
 - trainer framework: trainer/__init__
 - trainer package: trainer/_loader
 - trainer targets: workflow/training_config
+- trainer_default_config: trainer/config
 - trainer_framework_v2: trainer/__init__
 - trainer_registry: trainer/checkpoints, trainer/smoke_test
 - trainingdiagnostics: trainer/training_diagnostics
@@ -1116,7 +1142,7 @@
 - trend_disc_val.csv: edge_discovery/07_trend
 - true_key: workflow/training_config
 - trunk_drop: cross_asset/model
-- ts_col: data/windows
+- ts_col: core/__init__, core/schema, data/windows
 - ts_screen_disc.csv: edge_discovery/08_ts_screen
 - tsmom: edge_discovery/07_trend, h07_combos/01_combos
 - tsmom30: edge_discovery/16_h07_oos, h07_volsizing/01_volsizing, tools/h07_forward
@@ -1126,6 +1152,7 @@
 - typevar: data/common
 - typing: data/common, signal_eval/common
 - uncertainty: evaluation/legacy_uncertainty
+- uncertainty floor: core/constants
 - uncertaintyweightedloss: trainer/task_weighting
 - unified pipeline: evaluation/unified
 - unit tests: cross_asset/selftest
@@ -1135,6 +1162,8 @@
 - up_share: cross_asset/report
 - update_config: data/runtime
 - use_mixed_precision: trainer/perf
+- used by: tools/implicit_deps
+- uses: tools/implicit_deps
 - v0-v4: edge_discovery/21_range_fade
 - val auc: edge_discovery/26_h19_generalization
 - valid_train_modes: trainer/config

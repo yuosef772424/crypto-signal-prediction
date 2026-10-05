@@ -2,6 +2,7 @@
 
 ## `discovery/`
 - Package holding the code of the signal discovery lab (candidate predictors, evaluation core, scanner, batch runner, phase-3 tools, self-test) and of the pandas_ta full survey; the notebooks stay the runners of the lab steps. | 11 modules, 0 data files (0 B)
+- implicit deps (shared namespace, tools/implicit_deps.py): USES / USED BY list module names; `*` = defined in a LATER module, `pkg/mod` = another package; shared imports (np, pd, ...) omitted; NOTEBOOK-GLOBALS = names no module defines
 
 ### `discovery/__init__.py` (53 lines)
 - PURPOSE: Package holding the code of the signal discovery lab (candidate predictors, evaluation core, scanner, batch runner, phase-3 tools, self-test) and of the pandas_ta full survey; the notebooks stay the runners of the lab steps.
@@ -27,6 +28,8 @@
 - PURPOSE: Batch runner: parallel evaluation of the whole candidate registry with automatic registration (classify_result, run_batch_and_register).
 - TAGS: run_batch_and_register, classify_result, batch runner, registry, register_hypothesis, imap_ordered, parallel
 - PITFALLS: Writes to the experiment registry (registry_path): self-tests must pass a temporary path. Uses default_workers/imap_ordered from the pipeline. Executed into the notebook's shared namespace by discovery/_loader.py (never imported on its own): names from the axis/pipeline notebooks resolve at call time. Extracted verbatim from signal_discovery_lab.ipynb cell 25 (section 8).
+- USES: data/parallel, evaluation, predictors, signal_eval/registry
+- USED BY: selftest
 - API:
   - `def classify_result(report, min_frac_significant=0.34, min_n_ok=5)` L10
   - `def run_batch_and_register(candidates, windows, targets=('close', 'high', 'low'), feature_order=None, id_prefix='SCAN', max_workers=None, registry_path=None, **eval_kwargs)` L32
@@ -35,6 +38,8 @@
 - PURPOSE: The lab's evaluation core: clean_reg_target (unified last_close reference for high/low targets) and evaluate_candidate (one candidate through the axis: IC + decile + random baseline over rolling windows).
 - TAGS: clean_reg_target, evaluate_candidate, last_close reference, own-kind reference trap, candle shape spurious correlation, axis evaluation
 - PITFALLS: high/low targets must use clean_reg_target (last_close reference): y_high_reg/y_low_reg reference last_high/last_low and carry the last candle's shape (spurious Spearman about +0.51). Needs the axis functions (extract_actuals, concat_splits, evaluate_windows) and LAST_COLUMNS in the namespace. Executed into the notebook's shared namespace by discovery/_loader.py (never imported on its own): names…
+- USES: data/windows, signal_eval/integration, signal_eval/windows
+- USED BY: batch_runner, hypothesis_predictors, phase3_tools, scanner, selftest
 - API:
   - `def clean_reg_target(split, target)` L9
   - `def evaluate_candidate(predict_fn, target, windows, n_shuffles=1000, min_samples=10, seed=42, verbose=False)` L24
@@ -43,6 +48,8 @@
 - PURPOSE: Candidate predictors of the lab's hypothesis rounds: systematic hypothesis generation (RSI vol-adjusted, asymmetric momentum, isolation forest), legacy backtest retests (CMO, TSI, DPO), ridge composite, fractal reversal.
 - TAGS: make_isolation_forest_predict_fn, make_dpo_reversion, make_ridge_composite_predict_fn, make_fractal_reversal_predict_fn, _rsi_vol_adjusted, _asymmetric_momentum, _cmo_reversal, _tsi_momentum
 - PITFALLS: Only definitions: the candidate lists (GENERATIVE_CANDIDATES, LEGACY_BACKTEST_CANDIDATES, FRACTAL_REVERSAL_CANDIDATE) and their runs stay in the notebook cells. Fractal needs a dataset built with exclude_from_features=['open', ...]. Executed into the notebook's shared namespace by discovery/_loader.py (never imported on its own): names from the axis/pipeline notebooks resolve at call time. Extrac…
+- USES: evaluation, predictors, signal_eval/integration
+- USED BY: selftest
 - API:
   - `def make_isolation_forest_predict_fn(features, feature_order=None, contamination=0.1, random_state=42)` L33
   - `def make_dpo_reversion(length)` L76
@@ -53,6 +60,7 @@
 - PURPOSE: Phase-3 discovery tools without prior rules: Matrix Profile, SHAP interaction pairs, ensemble feature ranking, K-means/HDBSCAN regimes, cheap cross-asset coupling test.
 - TAGS: make_matrix_profile_predict_fn, discover_shap_interaction_pairs, discover_ensemble_feature_ranking, make_cluster_regime_predict_fn, make_cross_asset_predict_fn, shap, hdbscan, stumpy
 - PITFALLS: Optional heavy imports (shap, xgboost, hdbscan, stumpy) happen inside the functions. Only definitions here: the runs stay in the notebook cells. Executed into the notebook's shared namespace by discovery/_loader.py (never imported on its own): names from the axis/pipeline notebooks resolve at call time. Extracted verbatim from signal_discovery_lab.ipynb cells 28, 31, 34, 38 and 41 (sections 9, 10…
+- USES: data/windows, evaluation, predictors, signal_eval/integration
 - API:
   - `def make_matrix_profile_predict_fn(target, feature='close', feature_order=None, k=3)` L10
   - `def discover_shap_interaction_pairs(train, target, feature_order, top_k=5, max_depth=4, n_estimators=200, random_state=42)` L38
@@ -64,6 +72,8 @@
 - PURPOSE: Single-candidate framework: extract feature values from windows and build predict_fn closures for feature, interaction, custom, series and generic candidate dicts.
 - TAGS: extract_feature_last_value, extract_feature_matrix, extract_feature_series, make_candidate_predict_fn, make_feature_predict_fn, candidate dict, predict_fn
 - PITFALLS: A candidate dict is {name, track, feature | kind, transform, hypothesis}; any feature in feature_order is a candidate immediately. Executed into the notebook's shared namespace by discovery/_loader.py (never imported on its own): names from the axis/pipeline notebooks resolve at call time. Extracted verbatim from signal_discovery_lab.ipynb cell 8 (section 4).
+- USES: signal_eval/integration
+- USED BY: batch_runner, hypothesis_predictors, phase3_tools, scanner, selftest
 - API:
   - `def extract_feature_last_value(split, feature, tf=None, feature_order=None)` L10
   - `def extract_feature_matrix(split, features=None, tf=None, feature_order=None)` L24
@@ -78,6 +88,8 @@
 - PURPOSE: scan_candidates: evaluate every candidate x every target in one call and return the leaderboard.
 - TAGS: scan_candidates, leaderboard, scanner, candidates x targets
 - PITFALLS: Uses evaluate_candidate (evaluation module) and the axis's registry-free evaluation; windows come from rolling_splits. Executed into the notebook's shared namespace by discovery/_loader.py (never imported on its own): names from the axis/pipeline notebooks resolve at call time. Extracted verbatim from signal_discovery_lab.ipynb cell 19 (section 6).
+- USES: evaluation, predictors
+- USED BY: selftest
 - API:
   - `def scan_candidates(candidates, windows, targets=('close', 'high', 'low'), feature_order=None, **eval_kwargs)` L10
 
@@ -85,6 +97,8 @@
 - PURPOSE: Synthetic-data self-test of the whole lab (run_discovery_lab_selftest): no Drive, checks the predictors, scanner and batch runner.
 - TAGS: run_discovery_lab_selftest, self test, synthetic, lab
 - PITFALLS: Reads FEATURE_ORDER from the notebook namespace when present. The notebook cell calls it right after loading. Executed into the notebook's shared namespace by discovery/_loader.py (never imported on its own): names from the axis/pipeline notebooks resolve at call time. Extracted verbatim from signal_discovery_lab.ipynb cell 92 (section 29).
+- USES: batch_runner, evaluation, hypothesis_predictors, predictors, scanner, signal_eval/registry
+- NOTEBOOK-GLOBALS: FEATURE_ORDER
 - API:
   - `def run_discovery_lab_selftest()` L10
 
@@ -92,6 +106,8 @@
 - PURPOSE: Full pandas_ta_classic survey: dummy OHLCV, parameter sweeps, run_survey classifier (ok / constant / all_nan / error) and generation of candidate dicts for the lab.
 - TAGS: robustness_agg, build_robust_candidate_dicts, run_survey, make_dummy_ohlcv, param_variants, build_candidate_dicts, length_sweep, fast_slow_sweep, pandas_ta_classic, survey, indicators
 - PITFALLS: robustness_agg / build_robust_candidate_dicts (sections 9-10) were nested in the cells' if-blocks and are lifted verbatim (robustness_agg was _agg). `ta` (pandas_ta_classic) and CATEGORY_HYPOTHESES come from the survey notebook's namespace at call time; the dummy data is random, so this checks that indicators run, not that they predict. Executed into the notebook's shared namespace by discovery/_…
+- USES: data/features
+- NOTEBOOK-GLOBALS: CATEGORY_HYPOTHESES, DUMMY_DF
 - API:
   - `def make_dummy_ohlcv(n=300, seed=0)` L11
   - `def param_variants(sig_params)` L28

@@ -7,6 +7,7 @@ Navigate MAP.md -> maps/<zone>.md -> read only the target symbol by line range (
 
 ## Commands
 - `python tools/check_deps.py` - import direction between zones (fails on a violation).
+- `python tools/implicit_deps.py [<module>]` - the implicit (shared-namespace) uses / used-by of a module; `check_deps.py` also fails on NEW cross-package / forward / notebook-global references and NEW duplicate top-level definitions of `data/ model/ trainer/ evaluation/ signal_eval/ workflow/ discovery/` (allowlist `tools/implicit_deps_allowlist.txt` only shrinks: `--prune-allowlist`); the maps show them as USES / USED BY.
 - `python tools/build_map.py` - regenerate MAP.md and maps/ after adding or renaming modules or cards.
 - `python tools/build_map.py --check` - fails if the maps are stale.
 - `git config core.hooksPath .githooks` - once per clone (Claude Code sessions do it on SessionStart): the pre-commit hook regenerates and stages the maps and runs the structure checks, so a commit can't leave them stale.
@@ -17,7 +18,7 @@ Navigate MAP.md -> maps/<zone>.md -> read only the target symbol by line range (
 - `python -m pytest tests/ -q` - full suite, CPU only, no Drive (needs `pip install -r requirements-ci.txt`).
 
 ## Working rules
-- Zones and import direction: code packages (`cross_asset/`, `tools/`, `data/`, `model/`, `trainer/`, `evaluation/`, `signal_eval/`, `workflow/`, `discovery/`) never import `research/`, `docs/` or `tests/`; a study never imports another study (lift shared code into a package).
+- Zones and import direction: `core/` is tier 0 (pure constants/schema, imports NOTHING from the repo, checked by `check_deps.py`; every package may `from core.schema import ...` instead of copying a constant); code packages (`cross_asset/`, `tools/`, `data/`, `model/`, `trainer/`, `evaluation/`, `signal_eval/`, `workflow/`, `discovery/`) never import `research/`, `docs/` or `tests/`; a study never imports another study (lift shared code into a package).
 - Add, don't modify: a new study is `research/<study>/` with a README; recorded results are never edited (add a corrected copy, keep the original marked).
 - A new option's default must reproduce the old behavior exactly (checkpoints and past results stay valid).
 - No silent defaults: unknown config keys or unregistered feature/head/loss names raise; pass config sections explicitly, not via a global.

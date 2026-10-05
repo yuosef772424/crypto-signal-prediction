@@ -361,7 +361,7 @@ def run_pipeline_selftests(verbose: bool = True) -> bool:
         assert stamps[-1] - stamps[0] >= 4 * 0.4 - 0.15          # 5 دفعات ⇒ ≥ 4 نوافذ
 
     def t_default_request_limit_is_2000_per_minute():
-        assert DEFAULT_CONFIG['live_max_requests_per_minute'] == 2000
+        assert PIPELINE_DEFAULT_CONFIG['live_max_requests_per_minute'] == 2000
         cfg = {'live_max_requests_per_minute': 2000}
         a = get_request_limiter(cfg)
         assert a.max_calls == 2000 and a.period == 60.0

@@ -2,6 +2,7 @@
 
 ## `model/`
 - Package holding the NIG-TimeNet v2 model code (formerly the cells of model_v2 (1).ipynb): `import model` gives the whole model (model.build_model_fn, model.MODEL_CONFIG, model.diagnose_model, ...) in this package's namespace, loaded lazily… | 15 modules, 0 data files (0 B)
+- implicit deps (shared namespace, tools/implicit_deps.py): USES / USED BY list module names; `*` = defined in a LATER module, `pkg/mod` = another package; shared imports (np, pd, ...) omitted; NOTEBOOK-GLOBALS = names no module defines
 
 ### `model/__init__.py` (61 lines)
 - PURPOSE: Package holding the NIG-TimeNet v2 model code (formerly the cells of model_v2 (1).ipynb): `import model` gives the whole model (model.build_model_fn, model.MODEL_CONFIG, model.diagnose_model, ...) in this package's namespace, loaded lazily…
@@ -20,6 +21,8 @@
 - PURPOSE: build_nig_timenet_v2: the model architecture builder (+ DEFAULT_HEAD_TYPES).
 - TAGS: build_nig_timenet_v2, default_head_types, encoder, multi-timeframe, anti-memorization options, model builder
 - PITFALLS: Every anti-memorization option defaults to the OLD behaviour exactly, so older checkpoints still load. Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: decomposition, heads, input_norm, nig_layers, patches, readout, transformer
+- USED BY: config
 - API:
   - `def build_nig_timenet_v2(seq_len, n_features, d_model=128, num_layers=4, num_heads=4, num_kv_heads=2, patch_len=4, stride=2, kernel_sizes=(3, 5, 9, 17), max_rel_pos=16, dropout=0.1, attn_dropout=0.0, causal=False, window=No…` L15
 
@@ -27,11 +30,14 @@
 - PURPOSE: Shared imports (numpy, tensorflow, keras layers) and the `register` decorator (keras serializable, package 'nigts').
 - TAGS: imports, register, register_keras_serializable, nigts, numpy, tensorflow, keras layers
 - PITFALLS: `register` must exist before any layer module runs; the registered name is 'nigts>ClassName', so renaming a class breaks saved models. Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USED BY: decomposition, input_norm, nig_layers, patches, readout, transformer
 
 ### `model/config.py` (95 lines)
 - PURPOSE: MODEL_CONFIG, ANTI_MEMORIZATION_CONFIG and build_model_fn, the entry point used by main.ipynb.
 - TAGS: model_config, anti_memorization_config, build_model_fn, head_types, model config
 - PITFALLS: MODEL_CONFIG is a live dict mutated by main.ipynb (MODEL_CONFIG['head_types'] = ...); build_model_fn reads it at call time. Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: builder
+- USED BY: selftests, workflow/model_build, workflow/wiring_selftest
 - API:
   - `def build_model_fn(seq_len, n_features, config=None)` L87
 
@@ -39,6 +45,8 @@
 - PURPOSE: CausalMultiScaleDecomp: causal multi-scale trend/residual split (no future leakage).
 - TAGS: causalmultiscaledecomp, trend, residual, causal, moving average, decomposition
 - PITFALLS: Causal padding only: a centred window would leak the future into the trend. Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: common
+- USED BY: builder
 - API:
   - `class CausalMultiScaleDecomp(layers.Layer)` L11
     - `.__init__(self, kernel_sizes=(3, 5, 9, 17), **kw)` L17
@@ -51,6 +59,7 @@
 - PURPOSE: On-demand model diagnostics: diagnose_model, model_health_verdicts, print_verdicts (+ DIAG_SECTIONS, HEALTH_THRESHOLDS).
 - TAGS: diagnose_model, model_health_verdicts, print_verdicts, diag_sections, health_thresholds, model health, activations, attention
 - PITFALLS: Runs nothing at load; only on explicit call. Verdict thresholds live in HEALTH_THRESHOLDS. Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USED BY: layer_report, workflow/capacity, workflow/diagnostics
 - API:
   - `def diagnose_model(model, X, y=None, sections=DIAG_SECTIONS, max_n=512, batch_size=256, seed=0, feature_names=None, sensitivity='grad_x_input', top_k=10, floor_tol=0.1, verbose=False)` L330
   - `def model_health_verdicts(rep, recorder_stats=None, thresholds=None)` L563
@@ -60,6 +69,7 @@
 - PURPOSE: HEAD_REGISTRY: pluggable output heads (register_head_type, build_head_outputs, binary/multiclass classification heads).
 - TAGS: head_registry, register_head_type, build_head_outputs, binary_classification, multiclass_classification, head types
 - PITFALLS: An unregistered head type raises (no silent default); this is the single place to add a new output type. Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USED BY: builder
 - API:
   - `def register_head_type(name)` L26
   - `def build_head_outputs(head_type, h, target, cfg)` L34
@@ -70,6 +80,8 @@
 - PURPOSE: InstanceNorm (RevIN-style per-window normalisation with stats path) and SymLog level passthrough.
 - TAGS: instancenorm, symlog, revin, stats_mode, input_clip, level_passthrough, anti-memorization, input normalisation
 - PITFALLS: stats_mode 'full' is the old behaviour (default); symlog/none exist because the stats path is the only way raw feature levels reach the model. Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: common
+- USED BY: builder, selftests
 - API:
   - `class InstanceNorm(layers.Layer)` L12
     - `.__init__(self, eps=0.0001, affine=True, clip=None, stats_mode='full', stats_clip=8.0, **kw)` L32
@@ -87,6 +99,8 @@
 - PURPOSE: Per-layer reports on a trained model: layer_probe_report, layer_compare_report, random_init_copy.
 - TAGS: layer_probe_report, layer_probe_verdict, layer_compare_report, random_init_copy, per-layer probe
 - PITFALLS: Needs a TRAINED model plus its random-init twin (random_init_copy); depends on diagnostics.py helpers. Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: diagnostics
+- USED BY: workflow/diagnostics
 - API:
   - `def random_init_copy(model, seed=0)` L29
   - `def layer_probe_report(model, X_train, y_train, X_val, y_val, max_train=2000, max_val=2000, ridge=10.0, n_null=5, n_rand=1, seed=0, batch_size=256, z_min=3.0, rand_margin=0.02)` L78
@@ -97,6 +111,9 @@
 - PURPOSE: Raw NIG head layers: NIGHead, OrderedMeans, NIGUncertainty, ConfidenceHead (+ NIG_ALPHA_DEN_MIN).
 - TAGS: nighead, orderedmeans, niguncertainty, confidencehead, nig_alpha_den_min, nu, alpha, beta, evidential
 - PITFALLS: NIG outputs must stay float32 under mixed precision (lgamma/log are numerically fragile in float16). Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: core
+- USES: common
+- USED BY: builder
 - API:
   - `class NIGHead(layers.Layer)` L14
     - `.__init__(self, hidden=128, dropout=0.1, nu_min=0.1, alpha_min=2.0, beta_min=0.01, l2=1e-05, **kw)` L15
@@ -119,6 +136,8 @@
 - PURPOSE: num_patches helper and PatchEmbedding (patching + learned absolute positions).
 - TAGS: num_patches, patchembedding, patch_len, stride, positional embedding
 - PITFALLS: num_patches pads the sequence so the last patch ends at the last step; keep it in sync with PatchEmbedding. Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: common
+- USED BY: builder
 - API:
   - `def num_patches(seq_len, patch_len, stride)` L10
   - `class PatchEmbedding(layers.Layer)` L16
@@ -131,6 +150,8 @@
 - PURPOSE: Readout layers: LastToken, AttentionPool, FiLM, GatedFusion.
 - TAGS: lasttoken, attentionpool, film, gatedfusion, readout, pooling, fusion
 - PITFALLS: Layer names matter to model_health diagnostics and saved weights; do not rename. Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: common
+- USED BY: builder
 - API:
   - `class LastToken(layers.Layer)` L11
     - `.call(self, x)` L12
@@ -156,6 +177,7 @@
 - PURPOSE: run_model_selftests: data-free self-test of registry, head expansion and full save/load; runs at load.
 - TAGS: run_model_selftests, self-test, selftest, smoke, head registry, save load
 - PITFALLS: RUNS AT LOAD (last statement). Tests and tools that only need the model exclude this module: load_into(ns, exclude=('selftests',)). Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: config, input_norm
 - API:
   - `def run_model_selftests(verbose: bool=True) -> bool` L17
 
@@ -163,6 +185,8 @@
 - PURPOSE: Transformer block parts: RMSNorm, RelativeGQAttention (GQA + relative bias), SwiGLU, TransformerBlock.
 - TAGS: rmsnorm, relativegqattention, gqa, num_kv_heads, swiglu, transformerblock, attention, relative bias
 - PITFALLS: TransformerBlock is looked up by class name in the diagnostics (type(layer).__name__ == 'TransformerBlock'). Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: common
+- USED BY: builder
 - API:
   - `class RMSNorm(layers.Layer)` L11
     - `.__init__(self, epsilon=1e-06, **kw)` L12

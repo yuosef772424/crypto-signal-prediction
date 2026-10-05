@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PURPOSE:  Generate the layered repo map from the code with `ast` (modules are never imported): MAP.md (L0, small) and maps/<zone>.md (L1: cards, public signatures with line numbers, DEPENDS); enforces the card ratchet.
+PURPOSE:  Generate the layered repo map from the code with `ast` (modules are never imported): MAP.md (L0, small) and maps/<zone>.md (L1: cards, public signatures with line numbers, DEPENDS, and for the shared-namespace packages the implicit USES / USED BY module names from tools/implicit_deps.py); enforces the card ratchet.
 TAGS:     map, navigation, cards, signatures, docstring, ast, notebooks, ratchet, ci, tokens, الخريطة
 PITFALLS: Output must stay deterministic (sorted, no timestamps) or `--check` flaps. Never hand-edit MAP.md or maps/. Notebook "cell N" is the 0-based index into the notebook's cells (all types), the same index tests/_cell uses. tools/card_allowlist.txt is a ratchet: it may only shrink, refresh it with `--update-allowlist` after cards are added.
 
@@ -26,9 +26,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from check_deps import (  # noqa: E402  (shared repo helpers)
     CODE_PACKAGES, ROOT, Repo, file_imports, notebook_cells, zone_of,
 )
+import implicit_deps  # noqa: E402  (USES / USED BY of the shared-namespace packages)
 
 ALLOWLIST_PATH = "tools/card_allowlist.txt"
-RATCHET_PREFIXES = ("cross_asset/", "tools/", "data/", "model/", "trainer/", "evaluation/", "signal_eval/", "workflow/",
+RATCHET_PREFIXES = ("core/", "cross_asset/", "tools/", "data/", "model/", "trainer/", "evaluation/", "signal_eval/", "workflow/",
                     "discovery/", "research/")
 DATA_EXTS = ("csv", "json", "log", "txt")
 FIELDS = ("PURPOSE", "TAGS", "PITFALLS")
@@ -376,7 +377,7 @@ def render_tags(mods: dict[str, Mod]) -> str:
     return "\n".join(L).rstrip("\n") + "\n"
 
 
-def render_module(m: Mod, tests: bool = False) -> list[str]:
+def render_module(m: Mod, tests: bool = False, implicit: "implicit_deps.Analysis | None" = None) -> list[str]:
     L = [f"### `{m.path}` ({m.nlines} lines)"]
     tag = "" if m.purpose_src == "card" else (" (from docstring)" if m.purpose_src == "docstring" else "")
     L.append(f"- PURPOSE: {m.purpose}{tag}")
@@ -386,6 +387,8 @@ def render_module(m: Mod, tests: bool = False) -> list[str]:
         L.append(f"- PITFALLS: {squash(m.card['PITFALLS'], 400)}")
     if m.depends:
         L.append(f"- DEPENDS: {', '.join(m.depends)}")
+    if implicit is not None:
+        L += implicit_deps.map_lines(implicit, m.path)
     if m.parse_error:
         L.append("- (syntax error: not parsed)")
     if m.syms:
@@ -394,8 +397,11 @@ def render_module(m: Mod, tests: bool = False) -> list[str]:
     return L
 
 
-def render_entry(e: Entry, mods: dict[str, Mod], title: str) -> list[str]:
-    L = [f"## `{e.key}/`", f"- {title + ' | ' if title else ''}{counts_phrase(e)}", ""]
+def render_entry(e: Entry, mods: dict[str, Mod], title: str, implicit: "implicit_deps.Analysis | None" = None) -> list[str]:
+    L = [f"## `{e.key}/`", f"- {title + ' | ' if title else ''}{counts_phrase(e)}"]
+    if implicit is not None and e.key in implicit_deps.SHARED_PACKAGES and any(p.startswith(e.key + "/") for p in implicit.mods):
+        L.append(f"- {implicit_deps.LEGEND}")
+    L.append("")
     docs = [f for f in e.md]
     if docs:
         L.append("Documents:")
@@ -403,7 +409,7 @@ def render_entry(e: Entry, mods: dict[str, Mod], title: str) -> list[str]:
             L.append(f"- `{posixpath.relpath(f, e.key)}` — {first_heading(read_text(f)) or '(empty)'}")
         L.append("")
     for f in e.py:
-        L += render_module(mods[f], tests=e.kind == "tests")
+        L += render_module(mods[f], tests=e.kind == "tests", implicit=implicit)
         L.append("")
     groups: dict[str, dict[str, list[int]]] = {}
     for f in e.files:
@@ -423,10 +429,11 @@ def render_entry(e: Entry, mods: dict[str, Mod], title: str) -> list[str]:
     return L
 
 
-def render_l1(entries_in_file: list[Entry], mods: dict[str, Mod], titles: dict[str, str], name: str) -> str:
+def render_l1(entries_in_file: list[Entry], mods: dict[str, Mod], titles: dict[str, str], name: str,
+              implicit: "implicit_deps.Analysis | None" = None) -> str:
     L = [f"# {name} (L1) — {HEADER}", ""]
     for e in entries_in_file:
-        L += render_entry(e, mods, titles[e.key])
+        L += render_entry(e, mods, titles[e.key], implicit)
     return "\n".join(L).rstrip("\n") + "\n"
 
 
@@ -456,6 +463,7 @@ def generate(repo: Repo) -> tuple[dict[str, str], dict[str, Mod]]:
     nbs = [analyse_notebook(repo, f) for f in repo.files if "/" not in f and f.endswith(".ipynb")]
     nbs.sort(key=lambda n: n.path)
     titles = {e.key: entry_title(e, mods) for e in entries}
+    implicit = implicit_deps.analyse(repo.root)
     out = {"MAP.md": render_l0(repo, entries, mods, nbs)}
     if nbs:
         out["maps/notebooks.md"] = render_notebooks(nbs)
@@ -464,7 +472,7 @@ def generate(repo: Repo) -> tuple[dict[str, str], dict[str, Mod]]:
     for e in entries:
         by_file.setdefault(e.mapfile, []).append(e)
     for mapfile, es in sorted(by_file.items()):
-        out[f"maps/{mapfile}"] = render_l1(es, mods, titles, mapfile[:-3])
+        out[f"maps/{mapfile}"] = render_l1(es, mods, titles, mapfile[:-3], implicit)
     return out, mods
 
 

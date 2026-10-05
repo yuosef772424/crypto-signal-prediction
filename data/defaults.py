@@ -1,7 +1,7 @@
 """
-PURPOSE:  DEFAULT_CONFIG — the single source of truth for every pipeline/model/training setting — plus COINS_BY_CATEGORY, STATIC_INDICATORS_FULL and DEFAULT_ENABLED_CATEGORIES.
-TAGS:     DEFAULT_CONFIG, defaults, settings, config keys, COINS_BY_CATEGORY, coin categories, indicator_settings, phase2_data, module_dirs, split_dates, holdout_start, الإعدادات
-PITFALLS: A new key's default must reproduce the old behaviour exactly (checkpoints and recorded results stay valid). Never edit DEFAULT_CONFIG at run time: use update_config() on CONFIG. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+PURPOSE:  PIPELINE_DEFAULT_CONFIG (alias DEFAULT_CONFIG) — the single source of truth for every pipeline/model/training setting — plus COINS_BY_CATEGORY, STATIC_INDICATORS_FULL and DEFAULT_ENABLED_CATEGORIES.
+TAGS:     PIPELINE_DEFAULT_CONFIG, DEFAULT_CONFIG, defaults, settings, config keys, COINS_BY_CATEGORY, coin categories, indicator_settings, phase2_data, module_dirs, split_dates, holdout_start, الإعدادات
+PITFALLS: A new key's default must reproduce the old behaviour exactly (checkpoints and recorded results stay valid). Never edit PIPELINE_DEFAULT_CONFIG at run time: use update_config() on CONFIG. Pipeline code must use PIPELINE_DEFAULT_CONFIG, never the bare DEFAULT_CONFIG: trainer/config.py binds a different DEFAULT_CONFIG (6 sections) and the two meet in main.ipynb's namespace. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
 
 ## 4) ⚙️ الإعدادات الافتراضية (`defaults.py` سابقاً)
 
@@ -24,7 +24,7 @@ PITFALLS: A new key's default must reproduce the old behaviour exactly (checkpoi
 ملف JSON عبر ``load_config()``.
 """
 
-DEFAULT_CONFIG: dict = {
+PIPELINE_DEFAULT_CONFIG: dict = {
     # ══════════════════════════════════════════════════════════════════════
     # 1) الفريمات الزمنية والنوافذ
     # ══════════════════════════════════════════════════════════════════════
@@ -523,6 +523,10 @@ DEFAULT_CONFIG: dict = {
     "workspace_dir": None,     # None → يُكتشف تلقائياً
     "use_drive": True,         # يُتجاهَل تلقائياً خارج Colab
 }
+
+#: الاسم القديم لـ PIPELINE_DEFAULT_CONFIG (القاموس نفسه) للدفاتر والاختبارات. المدرّب (trainer/) يعرّف أيضاً DEFAULT_CONFIG
+#: بأقسامه الستة، فالاسم المجرّد ملتبس في نطاق يضمّ الحزمتين؛ كود هذه الحزمة يستعمل PIPELINE_DEFAULT_CONFIG دائماً.
+DEFAULT_CONFIG = PIPELINE_DEFAULT_CONFIG
 
 #: قائمة المؤشرات الثابتة الكاملة (غير مُفعَّلة افتراضياً — انظر التعليق أعلاه).
 STATIC_INDICATORS_FULL = [

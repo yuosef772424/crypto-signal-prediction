@@ -1,8 +1,8 @@
 """
-PURPOSE:  DEFAULT_CONFIG (the single source of truth), deep_update, build_config, config_fingerprint, model_signature.
-TAGS:     DEFAULT_CONFIG, build_config, deep_update, config_fingerprint, model_signature, VALID_TRAIN_MODES, trainer
+PURPOSE:  TRAINER_DEFAULT_CONFIG (alias DEFAULT_CONFIG; the trainer's single source of truth), deep_update, build_config, config_fingerprint, model_signature.
+TAGS:     TRAINER_DEFAULT_CONFIG, DEFAULT_CONFIG, build_config, deep_update, config_fingerprint, model_signature, VALID_TRAIN_MODES, trainer
           config
-PITFALLS: Unknown config keys raise in build_config; the fingerprint decides whether a saved run may resume. Executed
+PITFALLS: Unknown config keys raise in build_config; the fingerprint decides whether a saved run may resume. Code here must use TRAINER_DEFAULT_CONFIG, never the bare DEFAULT_CONFIG: data/defaults.py binds a different DEFAULT_CONFIG (the pipeline's ~100 keys) and the two meet in main.ipynb's namespace. Executed
           into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other
           modules resolve at call time.
 
@@ -27,7 +27,7 @@ PITFALLS: Unknown config keys raise in build_config; the fingerprint decides whe
 # @title 2) قاموس الإعدادات الافتراضي + دالة الدمج
 VALID_TRAIN_MODES = ("auto", "new", "resume", "warm_start")
 
-DEFAULT_CONFIG: Dict[str, Any] = {
+TRAINER_DEFAULT_CONFIG: Dict[str, Any] = {
     # ─────────────────────────────────────────────────────────────
     # إعدادات التشغيل العامة
     # ─────────────────────────────────────────────────────────────
@@ -175,6 +175,11 @@ DEFAULT_CONFIG: Dict[str, Any] = {
 }
 
 
+#: الاسم القديم لـ TRAINER_DEFAULT_CONFIG (القاموس نفسه). خط الأنابيب (data/) يعرّف أيضاً DEFAULT_CONFIG (~100 مفتاحاً)،
+#: فالاسم المجرّد ملتبس في نطاق يضمّ الحزمتين (main.ipynb)؛ كود هذه الحزمة يستعمل TRAINER_DEFAULT_CONFIG دائماً.
+DEFAULT_CONFIG = TRAINER_DEFAULT_CONFIG
+
+
 def deep_update(base: dict, override: dict) -> dict:
     """دمج عميق: override تُكتب فوق base دون فقدان أي مفتاح غير مذكور في override"""
     result = copy.deepcopy(base)
@@ -188,7 +193,7 @@ def deep_update(base: dict, override: dict) -> dict:
 
 def build_config(user_config: dict) -> dict:
     """يدمج إعدادات المستخدم فوق إعدادات الإطار الافتراضية، ويتحقق من الحد الأدنى اللازم"""
-    cfg = deep_update(DEFAULT_CONFIG, user_config)
+    cfg = deep_update(TRAINER_DEFAULT_CONFIG, user_config)
     if not cfg["targets"]:
         raise ValueError("❌ يجب تعريف هدف واحد على الأقل داخل config['targets']")
     for name, tcfg in cfg["targets"].items():

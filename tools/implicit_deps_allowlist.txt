@@ -1,0 +1,137 @@
+# Implicit-dependency debt of the shared-namespace packages (tools/implicit_deps.py), as found when S0 landed.
+# One finding per line: `<kind> <module> <name> [-> <defining module>]` for cross / forward / notebook references,
+# `dup <name> : <modules>` for a name defined in several modules. This list may only shrink: tools/check_deps.py
+# fails on a finding that is not listed AND on a listed finding that no longer exists (python tools/implicit_deps.py
+# --prune-allowlist removes those). Never add a line by hand to silence a new dependency: fix the dependency.
+
+cross discovery/batch_runner.py default_workers -> data/parallel.py
+cross discovery/batch_runner.py imap_ordered -> data/parallel.py
+cross discovery/batch_runner.py register_hypothesis -> signal_eval/registry.py
+cross discovery/evaluation.py LAST_COLUMNS -> data/windows.py
+cross discovery/evaluation.py concat_splits -> signal_eval/integration.py
+cross discovery/evaluation.py evaluate_windows -> signal_eval/windows.py
+cross discovery/evaluation.py extract_actuals -> signal_eval/integration.py
+cross discovery/hypothesis_predictors.py concat_splits -> signal_eval/integration.py
+cross discovery/phase3_tools.py TS_COL -> data/windows.py
+cross discovery/phase3_tools.py concat_splits -> signal_eval/integration.py
+cross discovery/predictors.py concat_splits -> signal_eval/integration.py
+cross discovery/selftest.py REGISTRY_STATUSES -> signal_eval/registry.py
+cross discovery/survey.py ta -> data/features.py
+cross workflow/capacity.py LAST_COLUMNS -> data/windows.py
+cross workflow/capacity.py TRAINER_REGISTRY -> trainer/checkpoints.py
+cross workflow/capacity.py _predict -> model/diagnostics.py
+cross workflow/capacity.py _spearman -> model/diagnostics.py
+cross workflow/capacity.py _unwrap_model -> model/diagnostics.py
+cross workflow/capacity.py build_config -> trainer/config.py
+cross workflow/capacity.py build_training_system -> trainer/system.py
+cross workflow/chicks_bridge.py CONFIG -> data/runtime.py
+cross workflow/chicks_bridge.py LAST_COLUMNS -> data/windows.py
+cross workflow/diagnostics.py DIAG_SECTIONS -> model/diagnostics.py
+cross workflow/diagnostics.py LAST_COLUMNS -> data/windows.py
+cross workflow/diagnostics.py TrainingDiagnostics -> trainer/training_diagnostics.py
+cross workflow/diagnostics.py diagnose_model -> model/diagnostics.py
+cross workflow/diagnostics.py layer_compare_report -> model/layer_report.py
+cross workflow/diagnostics.py layer_probe_report -> model/layer_report.py
+cross workflow/diagnostics.py layer_probe_verdict -> model/layer_report.py
+cross workflow/diagnostics.py model_health_verdicts -> model/diagnostics.py
+cross workflow/diagnostics.py print_verdicts -> model/diagnostics.py
+cross workflow/diagnostics.py with_sample_index -> trainer/training_diagnostics.py
+cross workflow/market_neutral.py CONFIG -> data/runtime.py
+cross workflow/market_neutral.py embargo_duration -> data/split.py
+cross workflow/market_neutral.py resolve_split_dates -> data/split.py
+cross workflow/market_neutral.py sample_timestamps -> data/split.py
+cross workflow/model_build.py build_model_fn -> model/config.py
+cross workflow/permutation_control.py TRAINER_REGISTRY -> trainer/checkpoints.py
+cross workflow/permutation_control.py build_config -> trainer/config.py
+cross workflow/permutation_control.py build_training_system -> trainer/system.py
+cross workflow/pooling.py _extract_timestamps -> evaluation/latest_table.py
+cross workflow/pooling.py _resolve_for_model -> evaluation/targets.py
+cross workflow/pooling.py build_latest_table -> evaluation/latest_table.py
+cross workflow/pooling.py decode_predictions_v4 -> evaluation/decode.py
+cross workflow/pooling.py evaluate_predictions_v4 -> evaluation/metrics.py
+cross workflow/pooling.py predict_batch_v4 -> evaluation/predict.py
+cross workflow/pooling.py print_latest_table -> evaluation/latest_table.py
+cross workflow/reports.py CONFIG -> data/runtime.py
+cross workflow/reports.py LAST_COLUMNS -> data/windows.py
+cross workflow/reports.py invert_reg_predictions -> data/windows.py
+cross workflow/reports.py predict_latest_all_assets -> evaluation/live.py
+cross workflow/retarget.py CONFIG -> data/runtime.py
+cross workflow/retarget.py LAST_COLUMNS -> data/windows.py
+cross workflow/selective_eval.py LAST_COLUMNS -> data/windows.py
+cross workflow/verification.py CONFIG -> data/runtime.py
+cross workflow/wiring_selftest.py ANTI_MEMORIZATION_CONFIG -> model/config.py
+cross workflow/wiring_selftest.py build_config -> trainer/config.py
+cross workflow/wiring_selftest.py build_model_fn -> model/config.py
+cross workflow/wiring_selftest.py build_training_system -> trainer/system.py
+cross workflow/wiring_selftest.py predict_latest_all_assets -> evaluation/live.py
+cross workflow/wiring_selftest.py run_full_analysis -> evaluation/full_analysis.py
+forward data/checkpoints.py _PHASE2_KEYS -> data/phase2.py
+forward data/checkpoints.py _phase2_cfg -> data/phase2.py
+forward data/checkpoints.py _phase2_dirs -> data/phase2.py
+forward data/checkpoints.py _phase2_file -> data/phase2.py
+forward data/diagnostics.py _count_nonfinite -> data/disk_backed.py
+forward data/drive.py CONFIG -> data/runtime.py
+forward data/features.py funding_oi_feature_columns -> data/funding_oi.py
+forward data/features.py futures_metrics_columns -> data/phase2.py
+forward data/features.py intraday_15m_columns -> data/phase2.py
+forward data/features.py intraday_efficiency_columns -> data/funding_oi.py
+forward data/features.py intraday_volume_concentration_columns -> data/funding_oi.py
+forward data/features.py intraday_vwap_columns -> data/funding_oi.py
+forward data/features.py market_breadth_columns -> data/cross_sectional_features.py
+forward data/features.py market_context_columns -> data/market_context.py
+forward data/features.py momentum_orth_natr_columns -> data/cross_sectional_features.py
+forward data/features.py momentum_rank_columns -> data/cross_sectional_features.py
+forward data/funding_oi.py _add_funding_oi_features_phase2 -> data/phase2.py
+forward data/funding_oi.py _phase2_on -> data/phase2.py
+forward data/funding_oi.py _phase2_slot_features -> data/phase2.py
+forward data/pipeline.py add_funding_oi_features -> data/funding_oi.py
+forward data/pipeline.py add_intraday_15m_features -> data/phase2.py
+forward data/pipeline.py add_intraday_efficiency_features -> data/funding_oi.py
+forward data/pipeline.py add_intraday_volume_concentration_features -> data/funding_oi.py
+forward data/pipeline.py add_intraday_vwap_features -> data/funding_oi.py
+forward data/pipeline.py resolve_phase2_toggles -> data/phase2.py
+forward data/runtime.py abstention_enabled -> data/heads.py
+forward data/runtime.py get_target_heads -> data/heads.py
+forward data/runtime.py infer_feature_columns -> data/features.py
+forward data/runtime.py uncertainty_head_enabled -> data/heads.py
+forward data/windows.py load_asset -> data/sources.py
+forward data/windows.py resample_timeframes -> data/sources.py
+forward evaluation/full_analysis.py _trade_accuracy_pct -> evaluation/trade_selection.py
+forward evaluation/full_analysis.py print_trade_selection -> evaluation/trade_selection.py
+forward evaluation/full_analysis.py select_and_rank_trades -> evaluation/trade_selection.py
+forward evaluation/patterns.py plot_clusters_2d -> evaluation/plots.py
+forward evaluation/patterns.py plot_feature_importance -> evaluation/plots.py
+forward workflow/candle_baseline.py TARGET_MODE -> workflow/wiring_selftest.py
+forward workflow/dataset_io.py os -> workflow/verification.py
+forward workflow/diagnostics.py _capacity_lines -> workflow/capacity.py
+forward workflow/selective_eval.py TARGET_MODE -> workflow/wiring_selftest.py
+forward workflow/verification.py TARGET_MODE -> workflow/wiring_selftest.py
+notebook data/binance_client.py client
+notebook discovery/selftest.py FEATURE_ORDER
+notebook discovery/survey.py CATEGORY_HYPOTHESES
+notebook discovery/survey.py DUMMY_DF
+notebook workflow/batches.py main_config
+notebook workflow/capacity.py main_config
+notebook workflow/chicks_bridge.py CHICKS_TARGETS
+notebook workflow/chicks_bridge.py LAST_CLOSE_COL
+notebook workflow/diagnostics.py main_config
+notebook workflow/generalization.py MODEL_TF
+notebook workflow/generalization.py PRICE_TARGETS
+notebook workflow/model_build.py MODEL_N_FEATURES
+notebook workflow/model_build.py MODEL_OVERRIDES
+notebook workflow/model_build.py MODEL_SEQ_LEN
+notebook workflow/permutation_control.py PRICE_TARGETS
+notebook workflow/permutation_control.py main_config
+notebook workflow/reports.py EVAL_TARGET_SPECS
+notebook workflow/reports.py PRICE_TARGETS
+notebook workflow/reports.py model
+notebook workflow/reports.py test
+notebook workflow/reports.py test_dict
+notebook workflow/selective_eval.py PRICE_TARGETS
+notebook workflow/splits.py MODEL_TF
+notebook workflow/verification.py PRICE_TARGETS
+notebook workflow/wiring_selftest.py EVAL_TARGET_SPECS
+notebook workflow/wiring_selftest.py LAST_CLOSE_COL
+dup DEFAULT_CONFIG : data/defaults.py, trainer/config.py
+dup SMALL_ARRAY_BYTES : data/disk_backed.py, data/selftests.py
+dup _auc : model/diagnostics.py, workflow/generalization.py

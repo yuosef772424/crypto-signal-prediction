@@ -5,7 +5,10 @@ PITFALLS: The modules run in ONE shared namespace (see workflow/_loader.py), so 
           (namespace = this package, loaded lazily on first attribute access) or `workflow.load_into(ns, only=...)` (namespace =
           your dict, what the runner notebook does with globals()). Patch names on the namespace that loaded them. The package-level
           namespace is seeded with the data pipeline's names only; names of the model_v2 / trainer / chicks notebooks (build_model_fn,
-          build_training_system, TargetSpec...) exist only in the runner's namespace.
+          build_training_system, TargetSpec...) exist only in the runner's namespace. The lazy package is STANDALONE: its pipeline
+          names come from a private data load, so workflow.CONFIG is a separate dict from data.CONFIG (equal values at start, never
+          kept in sync); main.ipynb never uses it (it calls workflow.load_into(globals(), ...), whose modules read the CONFIG of the
+          namespace they are loaded into, tests/test_config_collisions.py).
 
 Modules (load order) and the old main.ipynb cell each was extracted from:
   dataset_io          cell 7 (section 3)

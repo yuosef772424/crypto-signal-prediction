@@ -47,9 +47,9 @@ class OrderedMeans(layers.Layer):
         return mu_c + tf.nn.softplus(raw_h), mu_c, mu_c - tf.nn.softplus(raw_l)
 
 
-# أرضية مقام (alpha − 1) في عدم اليقين: لا أثر لها إطلاقاً حين alpha ≥ 1.01 (رأس NIG يضمن alpha ≥ alpha_min = 2 افتراضياً)،
-# وتمنع الانفجار β/(α−1) → ∞ إن خُفِّض alpha_min نحو 1 أو جاءت alpha من نموذج آخر.
-NIG_ALPHA_DEN_MIN = 1e-2
+# أرضية مقام (alpha − 1) في عدم اليقين (core/constants.py: المصدر الوحيد، يشاركه evaluation/targets.py): لا أثر لها إطلاقاً حين
+# alpha ≥ 1.01 (رأس NIG يضمن alpha ≥ alpha_min = 2 افتراضياً)، وتمنع الانفجار β/(α−1) → ∞ إن خُفِّض alpha_min نحو 1.
+from core.constants import NIG_ALPHA_DEN_MIN
 
 
 @register

@@ -173,7 +173,7 @@ def _nanmax(x) -> float:
 # تتغيّر. السبب: β = softplus + beta_min بلا سقف فيكبر √(β/(α−1)) بلا حدّ لعيّنة خارج التوزيع (وα → 1 لو خُفِّضت alpha_min).
 # غيّره قبل الاستدعاء (NIG_UNC_MAX = 50.0)؛ float('inf') = بلا قصّ. يوافق unc_max في NIGUncertainty (model_v2).
 NIG_UNC_MAX = 20.0
-NIG_ALPHA_DEN_MIN = 1e-2     # أرضية (α−1) في المقام؛ لا أثر لها حين α ≥ 1.01
+from core.constants import NIG_ALPHA_DEN_MIN     # أرضية (α−1) في المقام؛ لا أثر لها حين α ≥ 1.01 (المصدر الوحيد: core/constants.py)
 
 
 def _bound_unc(x, cap):

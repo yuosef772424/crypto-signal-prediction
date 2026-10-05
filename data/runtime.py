@@ -18,7 +18,7 @@ PITFALLS: CONFIG is mutated in place and never rebound: every function (and ever
 """
 
 #: قاموس الإعدادات الحيّ — المرجع المشترك بين كل دوال هذا الدفتر.
-CONFIG: Dict[str, Any] = deepcopy(DEFAULT_CONFIG)
+CONFIG: Dict[str, Any] = deepcopy(PIPELINE_DEFAULT_CONFIG)
 
 
 def _deep_update(base: dict, new: dict) -> dict:
@@ -36,11 +36,29 @@ def get_config() -> Dict[str, Any]:
     return CONFIG
 
 
+def _reject_unknown_keys(*updates: Optional[dict]) -> None:
+    """يرفع ``ValueError`` إن حوى أي تحديث مفتاحاً من المستوى الأعلى ليس في ``PIPELINE_DEFAULT_CONFIG`` (لا قيم افتراضية صامتة:
+    مفتاح بخطأ إملائي كان يُضاف إلى CONFIG بلا أثر). لا يُطبَّق شيء قبل اجتياز كل التحديثات الفحص. مفتاح جديد مشروع يُسجَّل في
+    data/defaults.py بقيمته الافتراضية بدل تخفيف هذا الفحص."""
+    unknown = sorted({k for u in updates if u for k in u if k not in PIPELINE_DEFAULT_CONFIG}, key=str)
+    if not unknown:
+        return
+    import difflib
+    hints = {k: difflib.get_close_matches(str(k), [str(v) for v in PIPELINE_DEFAULT_CONFIG], n=2) for k in unknown}
+    near = "; ".join(f"{k!r} (did you mean {' / '.join(map(repr, h))}?)" for k, h in hints.items() if h)
+    raise ValueError(
+        f"update_config: unknown config key(s) {unknown}" + (f": {near}" if near else "")
+        + f". Valid top-level keys (PIPELINE_DEFAULT_CONFIG): {sorted(PIPELINE_DEFAULT_CONFIG, key=str)}. "
+        "A legitimately new setting must be added to data/defaults.py with its default.")
+
+
 def update_config(overrides: Optional[dict] = None, **kwargs) -> Dict[str, Any]:
-    """تحديث ``CONFIG`` في المكان بدمج متداخل.
+    """تحديث ``CONFIG`` في المكان بدمج متداخل. مفتاح علوي مجهول (ليس في ``PIPELINE_DEFAULT_CONFIG``) يرفع ``ValueError``
+    ولا يُطبَّق شيء.
 
     >>> update_config({"abstention": {"min_margin": 0.3}}, epochs=50)
     """
+    _reject_unknown_keys(overrides, kwargs)
     if overrides:
         _deep_update(CONFIG, overrides)
     if kwargs:
@@ -51,7 +69,7 @@ def update_config(overrides: Optional[dict] = None, **kwargs) -> Dict[str, Any]:
 def reset_config() -> Dict[str, Any]:
     """إعادة ``CONFIG`` إلى القيم الافتراضية (في المكان)."""
     CONFIG.clear()
-    CONFIG.update(deepcopy(DEFAULT_CONFIG))
+    CONFIG.update(deepcopy(PIPELINE_DEFAULT_CONFIG))
     return CONFIG
 
 

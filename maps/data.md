@@ -2,6 +2,7 @@
 
 ## `data/`
 - Package holding ALL data-preparation code of the project (formerly the cells of crypto_data_pipeline_v6.ipynb): `import data` gives the whole pipeline (data.CONFIG, data.build_dataset, data.split_data, ...) in this package's namespace, loa… | 29 modules, 1 data files (289 B)
+- implicit deps (shared namespace, tools/implicit_deps.py): USES / USED BY list module names; `*` = defined in a LATER module, `pkg/mod` = another package; shared imports (np, pd, ...) omitted; NOTEBOOK-GLOBALS = names no module defines
 
 ### `data/__init__.py` (62 lines)
 - PURPOSE: Package holding ALL data-preparation code of the project (formerly the cells of crypto_data_pipeline_v6.ipynb): `import data` gives the whole pipeline (data.CONFIG, data.build_dataset, data.split_data, ...) in this package's namespace, loa…
@@ -20,6 +21,8 @@
 - PURPOSE: Time-based multi-timeframe alignment: window end indices on a common grid, the single-TF fast path, and the 'closed' higher-TF mode (only bars closed at t).
 - TAGS: alignment, align_multi_timeframes_time_based, window_end_indices, higher_tf_mode, closed bars, 4h context, align_windows_to_grid, look-ahead
 - PITFALLS: A higher-TF window must end on a bar already closed at t (higher_tf_offset / 'closed' mode); any change here must pass tests/test_no_lookahead.py and tests/test_multi_tf.py. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: runtime
+- USED BY: checkpoints, pipeline, presets, selftests, sources, windows
 - API:
   - `def window_end_indices(index: pd.DatetimeIndex, win: int, stride: int, tf: str, config: Optional[dict]=None) -> np.ndarray` L43
   - `def align_multi_timeframes_time_based(dfs: Dict[str, pd.DataFrame], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, stride: Optional[int]=None, config: Optional[dict]=None) -> Tuple[Dict[str, np.ndarray]…` L88
@@ -28,6 +31,9 @@
 - PURPOSE: Binance client and live candle fetching (fetch_data, futures symbols, request rate limiter) plus funding-rate / open-interest fetch and their Drive archive.
 - TAGS: binance, live data, fetch_data, ratelimiter, futures symbols, funding rate, open interest, save_funding_open_interest, load_funding_open_interest, api
 - PITFALLS: API_KEY/API_SECRET stay empty here (public market data only); never write keys into the repo. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: drive, runtime
+- NOTEBOOK-GLOBALS: client
+- USED BY: funding_oi, live, selftests
 - API:
   - `class RateLimiter` L42
     - `.__init__(self, max_calls: int, period: float=60.0, clock=time.monotonic, sleep=time.sleep)` L52
@@ -44,6 +50,8 @@
 - PURPOSE: Per-asset resume checkpoints for build_dataset_from_loader, guarded by a fingerprint of every setting that changes the output.
 - TAGS: checkpoints, resume, checkpoint_dir, fingerprint, clear_checkpoint, _checkpoint_fingerprint
 - PITFALLS: A setting that changes the data must enter _checkpoint_fingerprint, or an old checkpoint is silently merged with new-shape data. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: align, normalize, phase2*, windows
+- USED BY: pipeline, selftests
 - API:
   - `def clear_checkpoint(checkpoint_dir, names: Optional[List[str]]=None) -> int` L194
 
@@ -51,11 +59,14 @@
 - PURPOSE: Shared imports (numpy, pandas, typing, concurrency) and the TypeVars T/R used by every other pipeline module.
 - TAGS: imports, shared namespace, typing, typevar, from __future__
 - PITFALLS: Loaded first: every later module relies on these names (np, pd, Optional, deepcopy, Path...) without importing them. The __future__ import applies to this file only (each module is compiled on its own). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USED BY: parallel
 
 ### `data/cross_sectional_features.py` (474 lines)
 - PURPOSE: Cross-sectional features computed across all coins at the same timestamp: momentum rank, market breadth, momentum orthogonalised to NATR.
 - TAGS: cross-sectional features, momentum rank, market breadth, momentum_orth_natr, natr, rank residual
 - PITFALLS: Runs its _test_*() checks at load time. Needs every coin's returns at once (build_dataset_from_loader does a first pass, _load_cross_asset_frames). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: runtime
+- USED BY: features, pipeline, selftests
 - API:
   - `def momentum_rank_columns(config: Optional[dict]=None) -> List[str]` L24
   - `def build_momentum_rank(data: Optional[Dict]=None, config: Optional[dict]=None) -> Optional[Dict[str, Dict[str, pd.DataFrame]]]` L35
@@ -71,6 +82,8 @@
 - PURPOSE: Optional cross-sectional normalisation of regression targets across coins at the same timestamp (Qlib CSZScoreNorm/CSRankNorm spirit) and its inverse.
 - TAGS: cross-sectional normalization, cross_sectional_normalize, invert_cross_sectional, zscore, rank, targets
 - PITFALLS: Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: custom, heads, runtime, windows
+- USED BY: selftests
 - API:
   - `def cross_sectional_normalize(dataset: Dict, heads: Optional[List[str]]=None, method: Optional[str]=None, min_assets: Optional[int]=None, clip: Optional[float]=None, config: Optional[dict]=None, verbose: bool=True) -> Dict` L27
   - `def invert_cross_sectional(preds: np.ndarray, timestamps: np.ndarray, head: str, dataset: Dict) -> np.ndarray` L132
@@ -79,19 +92,24 @@
 - PURPOSE: Static scale-free custom features (log returns, relative ranges, candle structure, time features, fractals, volatility estimators, trend age, ...) and their column names.
 - TAGS: custom features, add_custom_features, custom_feature_names, default_custom_settings, returns, fractal, supertrend, psar, hurst, variance ratio, ath distance, time_hour
 - PITFALLS: Runs its _test_*() causality checks at load time (module level). Every feature must be causal: row t may only use rows <= t (tests/test_no_lookahead.py). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: runtime
+- USED BY: cross_sectional_norm, features, funding_oi, selftests, windows
 - API:
   - `def add_custom_features(data: pd.DataFrame, settings: Optional[dict]=None, config: Optional[dict]=None) -> pd.DataFrame` L177
   - `def custom_feature_names(settings: Optional[dict]=None, config: Optional[dict]=None) -> List[str]` L546
 
-### `data/defaults.py` (571 lines)
-- PURPOSE: DEFAULT_CONFIG — the single source of truth for every pipeline/model/training setting — plus COINS_BY_CATEGORY, STATIC_INDICATORS_FULL and DEFAULT_ENABLED_CATEGORIES.
-- TAGS: default_config, defaults, settings, config keys, coins_by_category, coin categories, indicator_settings, phase2_data, module_dirs, split_dates, holdout_start, الإعدادات
-- PITFALLS: A new key's default must reproduce the old behaviour exactly (checkpoints and recorded results stay valid). Never edit DEFAULT_CONFIG at run time: use update_config() on CONFIG. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+### `data/defaults.py` (575 lines)
+- PURPOSE: PIPELINE_DEFAULT_CONFIG (alias DEFAULT_CONFIG) — the single source of truth for every pipeline/model/training setting — plus COINS_BY_CATEGORY, STATIC_INDICATORS_FULL and DEFAULT_ENABLED_CATEGORIES.
+- TAGS: pipeline_default_config, default_config, defaults, settings, config keys, coins_by_category, coin categories, indicator_settings, phase2_data, module_dirs, split_dates, holdout_start, الإعدادات
+- PITFALLS: A new key's default must reproduce the old behaviour exactly (checkpoints and recorded results stay valid). Never edit PIPELINE_DEFAULT_CONFIG at run time: use update_config() on CONFIG. Pipeline code must use PIPELINE_DEFAULT_CONFIG, never the bare DEFAULT_CONFIG: trainer/config.py binds a different DEFAULT_CONFIG (6 sections) and the two meet in main.ipynb's namespace. Executed into the one sha…
+- USED BY: presets, runtime, selftests, sources
 
 ### `data/diagnostics.py` (215 lines)
 - PURPOSE: Pre-training diagnostics: missing values, feature availability, registry-vs-data name mismatches, summarize_dataset.
 - TAGS: diagnostics, summarize_dataset, check_missing_values, diagnose_feature_availability, diagnose_data_vs_configs
 - PITFALLS: Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: disk_backed*, runtime
+- USED BY: presets
 - API:
   - `def check_missing_values(data: Dict[str, Dict], tf_order: Optional[List[str]]=None, config: Optional[dict]=None) -> Dict[str, dict]` L16
   - `def diagnose_feature_availability(data: Dict[str, Dict], tf_order: Optional[List[str]]=None, desired_features: Optional[List[str]]=None, config: Optional[dict]=None) -> List[str]` L40
@@ -102,11 +120,14 @@
 - PURPOSE: Disk-backed build (CONFIG['disk_backed']): per-coin spill to local .npy, ordered merge into open_memmap, RAM/scratch helpers.
 - TAGS: disk backed, memmap, spill, scratch, small_array_bytes, _copy_chunk_bytes, ram, _merge_spilled
 - PITFALLS: The merged output must stay byte-identical to the old np.concatenate (tests/test_disk_backed.py patches SMALL_ARRAY_BYTES/_COPY_CHUNK_BYTES in the namespace). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USED BY: diagnostics, pipeline, split, storage
 
 ### `data/drive.py` (44 lines)
 - PURPOSE: Google Drive mount (the only way historical data is read): is_colab() and mount_drive() with a per-session cache.
 - TAGS: google drive, mount_drive, is_colab, colab, mydrive, drive root
 - PITFALLS: mount_drive returns None outside Colab instead of raising; callers decide. Tests replace mount_drive in the namespace dict (ns['mount_drive'] = ...). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: runtime*
+- USED BY: binance_client, phase2, presets, sources, storage
 - API:
   - `def is_colab() -> bool` L12
   - `def mount_drive(mount_point: Optional[str]=None, config: Optional[dict]=None) -> Optional[Path]` L25
@@ -115,6 +136,8 @@
 - PURPOSE: Technical indicator generation via pandas_ta_classic (add_features) and automatic derivation of the feature column list (infer_feature_columns), feature exclusion and price indices.
 - TAGS: features, add_features, pandas_ta, indicators, infer_feature_columns, exclude_features, available_features, price_indices, ohlcv
 - PITFALLS: The feature list is never written by hand: it is derived by running add_features on synthetic data with the current CONFIG. Requires pandas_ta_classic (or pandas_ta) at load time. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: cross_sectional_features*, custom, funding_oi*, market_context*, phase2*, runtime
+- USED BY: pipeline, runtime, selftests, sources, discovery/survey
 - API:
   - `def add_features(data, config: Optional[dict]=None) -> pd.DataFrame` L36
   - `def infer_feature_columns(config: Optional[dict]=None, min_rows: int=600) -> List[str]` L90
@@ -127,6 +150,8 @@
 - PURPOSE: Funding-rate / open-interest archives turned into features, and the intraday archive features (efficiency ratio, VWAP deviation, volume concentration).
 - TAGS: funding rate, open interest, add_funding_oi_features, intraday efficiency, vwap, volume concentration, availability flags
 - PITFALLS: Missing archive periods are filled neutrally with an *_available flag, never dropped (dropna would silently cut years of history). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: binance_client, custom, phase2*, runtime
+- USED BY: features, pipeline, selftests
 - API:
   - `def funding_oi_feature_columns(config: Optional[dict]=None) -> List[str]` L72
   - `def add_funding_oi_features(dfs: Dict[str, pd.DataFrame], symbol: str, config: Optional[dict]=None) -> Dict[str, pd.DataFrame]` L90
@@ -144,6 +169,8 @@
 - PURPOSE: Output-head helpers: {target}_class / {target}_reg names, enabled heads, abstention/uncertainty switches, head config validation and loss weights.
 - TAGS: heads, get_target_heads, enabled_heads, class head, reg head, output names, abstention, loss weights, validate_head_config
 - PITFALLS: enabled_heads is a dict {head: bool}, not a list of names. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: runtime
+- USED BY: cross_sectional_norm, pipeline, runtime, windows
 - API:
   - `def output_name(head: str) -> str` L34
   - `def head_name(output: str) -> str` L39
@@ -167,6 +194,8 @@
 - PURPOSE: Live dataset built with the very same prepare_single_asset (Binance instead of Drive): dummy tail padding, drop_tail_per_asset, extract_last_batch.
 - TAGS: live, build_dataset_live, extract_last_batch, drop_tail_per_asset, dummy tail, inference
 - PITFALLS: The last row per coin has real features but a dummy target; never evaluate on it. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: binance_client, pipeline, runtime, sources
+- USED BY: selftests
 - API:
   - `def drop_tail_per_asset(dataset: Dict, n: int) -> Dict` L147
   - `def extract_last_batch(dataset: Dict, n: int=1) -> Dict` L155
@@ -176,6 +205,8 @@
 - PURPOSE: Cross-asset market context: features of a reference coin (BTC by default) added as MKT_* columns to every other coin, time-aligned; zero for the reference itself.
 - TAGS: market context, mkt_, reference coin, btc, add_market_context, build_market_context, cross-asset
 - PITFALLS: The reference coin's own MKT_ values are zero by design (a non-zero value would leak the target into itself). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: runtime
+- USED BY: features, pipeline, selftests
 - API:
   - `def market_context_columns(config: Optional[dict]=None) -> List[str]` L24
   - `def build_market_context(load_asset_fn: Optional[Callable]=None, resample_fn: Optional[Callable]=None, data: Optional[Dict]=None, config: Optional[dict]=None) -> Optional[Dict[str, pd.DataFrame]]` L105
@@ -185,6 +216,8 @@
 - PURPOSE: Window normalisation driven by a semantic kind per feature (FEATURE_KINDS prefixes): process_windows, price_norm_mode ('window_scale' | 'pct_change'), pct_change encode/decode, audit_normalization.
 - TAGS: normalization, normalize, feature_kinds, classify_feature, process_windows, price_norm_mode, pct_change, clip_abs, audit_normalization, التطبيع
 - PITFALLS: Classification is by column-name prefix (longest prefix wins): a new feature with an unknown prefix falls back to DEFAULT_KIND silently — register its kind in FEATURE_KINDS. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: runtime
+- USED BY: checkpoints, pipeline, presets, selftests, windows
 - API:
   - `def classify_feature(col_name: str, kinds: Optional[Dict[str, str]]=None, default: str=DEFAULT_KIND) -> str` L211
   - `def calc_scale_params(data: np.ndarray, method: str='robust') -> Tuple[float, float]` L242
@@ -204,6 +237,8 @@
 - PURPOSE: Thread-parallel asset loading with preserved order: imap_ordered, load_assets, default_workers (capped by CPU and system RAM).
 - TAGS: parallel, threads, imap_ordered, load_assets, default_workers, max_workers, ram cap
 - PITFALLS: Results come back in input order whatever the completion order, so asset_bounds stay reproducible. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: common
+- USED BY: pipeline, selftests, discovery/batch_runner
 - API:
   - `def default_workers(n_items: int=0) -> int` L40
   - `def imap_ordered(fn: Callable[[T], R], items: Iterable[T], max_workers: int=8, prefetch: Optional[int]=None) -> Iterator[R]` L61
@@ -213,6 +248,8 @@
 - PURPOSE: Phase-2 glue: locates tools/intraday_features.py, resolves the phase2_data toggles, caches archive reads and adds the 15m intraday and futures-metrics features.
 - TAGS: phase 2, phase2_data, intraday_features, 15m, futures metrics, require_phase2_data, resolve_phase2_toggles, module_dirs
 - PITFALLS: tools/intraday_features.py is looked up under the repo root that holds data/ first (independent of cwd), then cwd, then phase2_data['module_dirs']. All arithmetic lives in tools/intraday_features.py (tested by tests/test_intraday_features.py); this module only finds paths, toggles, caches and fills neutrally. Executed into the one shared pipeline namespace by data/_loader.py (never imported on it…
+- USES: drive, runtime
+- USED BY: checkpoints, features, funding_oi, pipeline, presets, selftests
 - API:
   - `def resolve_phase2_toggles(config: Optional[dict]=None, verbose: bool=True) -> Dict[str, bool]` L99
   - `def require_phase2_data(keys=_PHASE2_KEYS, config: Optional[dict]=None) -> Dict[str, bool]` L127
@@ -225,6 +262,8 @@
 - PURPOSE: Dataset assembly across all assets: build_dataset (loader or preloaded), exclusions, cross-asset first pass, accumulation; both sources delegate to prepare_single_asset.
 - TAGS: pipeline, build_dataset, build_dataset_from_loader, build_dataset_from_preloaded, accumulator, asset_bounds, skip_labels
 - PITFALLS: Golden digests (tests/test_multi_tf.py::test_old_presets_byte_identical) cover this path: any output change must be deliberate. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: align, checkpoints, cross_sectional_features, disk_backed, features, funding_oi*, heads, market_context, normalize, parallel, phase2*, runtime, sources, windows
+- USED BY: live, presets, selftests
 - API:
   - `def build_dataset_from_loader(configs: List[Dict], load_asset_fn: Callable, resample_fn: Callable, tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_hori…` L312
   - `def build_dataset_from_preloaded(configs: List[Dict], data: Dict[str, Dict[str, pd.DataFrame]], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_horizon: O…` L474
@@ -234,6 +273,7 @@
 - PURPOSE: Hourly presets: 20-b (1h w168 s32 h4, and 1h w32 s8 h1), 20-c (1h + 4h context, float16) with its contract self-test, 20-d (pct_change price normalisation) — overrides, names and one-call builders.
 - TAGS: presets, hourly, apply_hourly_preset, hourly_w32_s8_overrides, hourly_4h_overrides, pct_change_overrides, build_hourly_w32_s8_dataset, build_hourly_4h_dataset, build_hourly_pct_dataset, run_hourly_4h_selftests
 - PITFALLS: Presets inherit HOURLY_W32_S8_OVERRIDES; changing it changes every preset (and the golden digests). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: align, defaults, diagnostics, drive, normalize, phase2, pipeline, runtime, sources, split, storage, windows
 - API:
   - `def apply_hourly_preset(overrides: Optional[dict]=None) -> Dict[str, Any]` L68
   - `def hourly_coin_configs(registry: Optional[List[Dict]]=None, categories='all') -> List[Dict]` L78
@@ -247,26 +287,29 @@
   - `def pct_decode_consistency(dataset: Dict, column: str='close') -> Dict[str, float]` L391
   - `def build_hourly_pct_dataset(checkpoint_dir: Optional[str]=None, save: bool=True, max_workers: Optional[int]=None, estimate: bool=True, require_phase2: bool=True) -> Dict` L416
 
-### `data/runtime.py` (162 lines)
+### `data/runtime.py` (180 lines)
 - PURPOSE: The live CONFIG dict and its helpers: update_config/reset_config (in place), save/load_config, refresh_features, feature_order, seq_len, describe.
 - TAGS: config, update_config, reset_config, refresh_features, feature_order, save_config, load_config, describe, deep update
 - PITFALLS: CONFIG is mutated in place and never rebound: every function (and every %run caller) holds the same dict object. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: defaults, features*, heads*
+- USED BY: align, binance_client, cross_sectional_features, cross_sectional_norm, custom, diagnostics, drive, features, funding_oi, heads +16
 - API:
   - `def get_config() -> Dict[str, Any]` L34
-  - `def update_config(overrides: Optional[dict]=None, **kwargs) -> Dict[str, Any]` L39
-  - `def reset_config() -> Dict[str, Any]` L51
-  - `def save_config(path, config: Optional[dict]=None) -> Path` L80
-  - `def load_config(path, merge: bool=True) -> Dict[str, Any]` L93
-  - `def refresh_features(config: Optional[dict]=None, force: bool=True) -> List[str]` L108
-  - `def feature_order(config: Optional[dict]=None) -> List[str]` L122
-  - `def n_features(config: Optional[dict]=None) -> int` L130
-  - `def seq_len(config: Optional[dict]=None) -> int` L134
-  - `def describe(config: Optional[dict]=None) -> None` L140
+  - `def update_config(overrides: Optional[dict]=None, **kwargs) -> Dict[str, Any]` L55
+  - `def reset_config() -> Dict[str, Any]` L69
+  - `def save_config(path, config: Optional[dict]=None) -> Path` L98
+  - `def load_config(path, merge: bool=True) -> Dict[str, Any]` L111
+  - `def refresh_features(config: Optional[dict]=None, force: bool=True) -> List[str]` L126
+  - `def feature_order(config: Optional[dict]=None) -> List[str]` L140
+  - `def n_features(config: Optional[dict]=None) -> int` L148
+  - `def seq_len(config: Optional[dict]=None) -> int` L152
+  - `def describe(config: Optional[dict]=None) -> None` L158
 
 ### `data/selftests.py` (2426 lines)
 - PURPOSE: run_pipeline_selftests(): the notebook's self-tests on small synthetic data (no Drive, no network).
 - TAGS: self-tests, run_pipeline_selftests, synthetic data, regression tests
 - PITFALLS: The tests patch names through globals() of the shared namespace; docs/research/audit/_nbload.load_pipeline() leaves this module out (it takes minutes). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: align, binance_client, checkpoints, cross_sectional_features, cross_sectional_norm, custom, defaults, features, funding_oi, live, market_context, normalize, parallel, phase2, pipeline, runtime, sources, split, storage, windows
 - API:
   - `def run_pipeline_selftests(verbose: bool=True) -> bool` L43
 
@@ -274,6 +317,8 @@
 - PURPOSE: Historical data sources (mounted Drive only): asset registry, coin selection by category, coin exclusion, load_asset and resampling (make_resample_fn).
 - TAGS: sources, load_asset, load_asset_registry, flatten_coins_by_category, filter_desired_coins, exclude_coins, resample_timeframes, make_resample_fn, all_global, drive_raw_dir
 - PITFALLS: No public links / gdown: every read goes through mount_drive(). flatten_coins_by_category() without arguments uses DEFAULT_ENABLED_CATEGORIES, not the whole registry. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: align, defaults, drive, features, runtime
+- USED BY: live, pipeline, presets, selftests, windows
 - API:
   - `def load_asset_registry(path: Optional[str]=None, config: Optional[dict]=None) -> List[Dict]` L36
   - `def flatten_coins_by_category(category_dict: Optional[Dict[str, List[str]]]=None, categories: Optional[List[str]]=None) -> List[str]` L56
@@ -288,6 +333,8 @@
 - PURPOSE: Time-based train/val/test split with an embargo gap: global_time (default) or per_asset, holdout, leak-free and rolling splits.
 - TAGS: split, split_data, embargo, holdout, split_dates, global_time, per_asset, rolling_splits, build_leak_free_split, compute_global_cutoff
 - PITFALLS: per_asset leaks when coins' histories differ in length; global_time is the default. The embargo is a time gap covering the largest window plus the horizon. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: disk_backed, runtime, windows
+- USED BY: presets, selftests, workflow/market_neutral
 - API:
   - `def embargo_candles(data: Dict, config: Optional[dict]=None) -> int` L52
   - `def embargo_size(data: Dict, config: Optional[dict]=None) -> int` L80
@@ -309,6 +356,8 @@
 - PURPOSE: Save/load the prepared dataset to/from mounted Drive: pkl.gz or npy_dir (memmap) formats, latest + timestamped copies.
 - TAGS: storage, save_data_to_drive, load_data_from_drive, save_dataset_dir, load_dataset_dir, npy_dir, pkl.gz, memmap, drive
 - PITFALLS: Tests replace mount_drive in the namespace (outside Colab the path is relative ./<project>/preprocessed_data). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: disk_backed, drive, runtime
+- USED BY: presets, selftests
 - API:
   - `def save_dataset_dir(data: dict, dest, verbose: bool=True) -> Path` L61
   - `def load_dataset_dir(path, mmap: bool=True, local_dir=None, small_bytes: Optional[int]=None, verbose: bool=True) -> dict` L87
@@ -316,17 +365,20 @@
   - `def load_data_from_drive(project_name: Optional[str]=None, data_type: str='preprocessed_data', filename_base: str='preprocessing_output', filename: Optional[str]=None, config: Optional[dict]=None, fmt: str='auto', mmap: boo…` L239
   - `def load_preprocessed_data_from_drive(file_id: str, output_filename: str='preprocessing_output.pkl.gz', download_dir: str='.', quiet: bool=False, cleanup: bool=False) -> Any` L290
 
-### `data/windows.py` (463 lines)
+### `data/windows.py` (451 lines)
 - PURPOSE: Windows and targets for one asset (prepare_single_asset), LAST_COLUMNS/last_candles, sample filters, invert_reg_predictions and decode_price_window.
 - TAGS: windows, targets, prepare_single_asset, last_candles, last_columns, ts_col, sample_filters, register_sample_filter, invert_reg_predictions, decode_price_window, entry_feature_table, reg_target_mode
-- PITFALLS: last_candles is float64 (ns timestamps lose ~12 s in float32). Sample filters must be causal. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- PITFALLS: LAST_COLUMNS, TS_COL, LAST_DTYPE and TARGET_COLUMNS are defined once in core/schema.py and only re-bound here. last_candles is float64 (ns timestamps lose ~12 s in float32). Sample filters must be causal. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: core
+- USES: align, custom, heads, normalize, runtime, sources*
+- USED BY: checkpoints, cross_sectional_norm, pipeline, presets, selftests, split, discovery/evaluation, discovery/phase3_tools, workflow/capacity, workflow/chicks_bridge +4
 - API:
-  - `def register_sample_filter(name: str, fn: Callable[[pd.DataFrame], Any]) -> None` L54
-  - `def sample_filter_mask(df: pd.DataFrame, filters: Optional[List[dict]]=None, config: Optional[dict]=None) -> np.ndarray` L98
-  - `def prepare_single_asset(dfs: Dict[str, pd.DataFrame], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_horizon: Optional[int]=None, stride: Option…` L145
-  - `def invert_reg_predictions(preds: np.ndarray, head: str, last_candles: Optional[np.ndarray]=None, bases: Optional[np.ndarray]=None, config: Optional[dict]=None, scale: Optional[float]=None) -> np.ndarray` L360
-  - `def decode_price_window(data: Dict, column: str='close', tf: Optional[str]=None, anchor: Optional[np.ndarray]=None, feature_order: Optional[List[str]]=None, mode: Optional[str]=None) -> np.ndarray` L406
-  - `def entry_feature_table(data: Dict, columns: List[str], load_asset_fn: Optional[Callable]=None, config: Optional[dict]=None) -> pd.DataFrame` L437
+  - `def register_sample_filter(name: str, fn: Callable[[pd.DataFrame], Any]) -> None` L42
+  - `def sample_filter_mask(df: pd.DataFrame, filters: Optional[List[dict]]=None, config: Optional[dict]=None) -> np.ndarray` L86
+  - `def prepare_single_asset(dfs: Dict[str, pd.DataFrame], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_horizon: Optional[int]=None, stride: Option…` L133
+  - `def invert_reg_predictions(preds: np.ndarray, head: str, last_candles: Optional[np.ndarray]=None, bases: Optional[np.ndarray]=None, config: Optional[dict]=None, scale: Optional[float]=None) -> np.ndarray` L348
+  - `def decode_price_window(data: Dict, column: str='close', tf: Optional[str]=None, anchor: Optional[np.ndarray]=None, feature_order: Optional[List[str]]=None, mode: Optional[str]=None) -> np.ndarray` L394
+  - `def entry_feature_table(data: Dict, columns: List[str], load_asset_fn: Optional[Callable]=None, config: Optional[dict]=None) -> pd.DataFrame` L425
 
 Data / other files (counts only):
 - `crypto_data/`: csv×1 — 289 B

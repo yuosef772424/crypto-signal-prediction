@@ -2,6 +2,7 @@
 
 ## `signal_eval/`
 - Package holding ALL code of the signal evaluation axis, phase 0 of the signal-discovery project (formerly the cells of "signal_evaluation_axis (3).ipynb"): `import signal_eval` gives compute_ic, decile_spread, permutation_baseline, evaluat… | 10 modules, 0 data files (0 B)
+- implicit deps (shared namespace, tools/implicit_deps.py): USES / USED BY list module names; `*` = defined in a LATER module, `pkg/mod` = another package; shared imports (np, pd, ...) omitted; NOTEBOOK-GLOBALS = names no module defines
 
 ### `signal_eval/__init__.py` (47 lines)
 - PURPOSE: Package holding ALL code of the signal evaluation axis, phase 0 of the signal-discovery project (formerly the cells of "signal_evaluation_axis (3).ipynb"): `import signal_eval` gives compute_ic, decile_spread, permutation_baseline, evaluat…
@@ -33,6 +34,7 @@
 - PURPOSE: The three independent measurement tools of phase 0: compute_ic (Spearman/Pearson IC), decile_spread and permutation_baseline - pure functions on arrays, no dependence on the dataset shape.
 - TAGS: compute_ic, decile_spread, permutation_baseline, information coefficient, ic, spearman, decile, permutation test, null distribution, p_value, seed
 - PITFALLS: Independent of rolling_splits/dataset shapes by design (tested on synthetic data only). permutation_baseline needs a seed for a reproducible registry entry. Executed into the one shared signal_eval namespace by signal_eval/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USED BY: selftests, windows
 - API:
   - `def compute_ic(predictions: np.ndarray, actuals: np.ndarray, method: str='spearman', min_samples: int=10) -> float` L18
   - `def decile_spread(predictions: np.ndarray, actuals: np.ndarray, n_deciles: int=10, min_per_decile: int=5) -> Dict[str, Any]` L69
@@ -42,6 +44,8 @@
 - PURPOSE: The only layer that assumes the shape of rolling_splits/build_dataset output: concat_splits, extract_actuals, extract_feature_last_diff, momentum_predict_fn, evaluate_hypothesis_over_rolling_windows.
 - TAGS: concat_splits, extract_actuals, extract_feature_last_diff, momentum_predict_fn, evaluate_hypothesis_over_rolling_windows, rolling_splits, split['y'], feature_order, keep_asset_test_separate
 - PITFALLS: Targets are nested under split['y']; feature_order is NOT stored in the windows (pass dataset['feature_order'] via partial). A flat split is recognised by the 'base_params' key. Executed into the one shared signal_eval namespace by signal_eval/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: windows
+- USED BY: discovery/evaluation, discovery/hypothesis_predictors, discovery/phase3_tools, discovery/predictors, selftests
 - API:
   - `def concat_splits(split: Any) -> Dict[str, Any]` L42
   - `def extract_actuals(split: Dict[str, Any], target_key: str='y_close_reg') -> np.ndarray` L84
@@ -53,6 +57,7 @@
 - PURPOSE: Experiment registry: one permanent JSON record per hypothesis (id, claim, source track, status, full axis results incl. per_window): register_hypothesis, list_registry, get_hypothesis.
 - TAGS: register_hypothesis, list_registry, get_hypothesis, experiment registry, discovery_tracks, registry_statuses, registry.json, hypothesis status
 - PITFALLS: source/status outside DISCOVERY_TRACKS/REGISTRY_STATUSES raise. Registering an existing id replaces the record entirely. Path is on Drive when mounted, else ./experiment_registry/ (git-ignored). Executed into the one shared signal_eval namespace by signal_eval/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USED BY: discovery/batch_runner, discovery/selftest, registry_selftests
 - API:
   - `def register_hypothesis(hyp_id: str, hypothesis: str, source: str, status: str, report: Optional[Dict[str, Any]]=None, notes: str='', registry_path: Optional[Path]=None, config: Optional[dict]=None) -> Dict[str, Any]` L79
   - `def list_registry(registry_path: Optional[Path]=None, config: Optional[dict]=None)` L105
@@ -62,6 +67,7 @@
 - PURPOSE: run_registry_selftests: registry self-tests on a temp path, no Drive. Defines only; the runner notebook calls it.
 - TAGS: run_registry_selftests, registry selftests, tempfile
 - PITFALLS: The old notebook called run_registry_selftests() at load; that call now lives in the runner notebook. Executed into the one shared signal_eval namespace by signal_eval/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: registry
 - API:
   - `def run_registry_selftests() -> None` L9
 
@@ -69,6 +75,7 @@
 - PURPOSE: Self-tests of the axis (IC, decile, permutation, evaluate_windows, integration layer) on synthetic data: check(), PASS/FAIL, ALL_TESTS (the 38 t_* functions). Defines only; the runner notebook runs them.
 - TAGS: selftests, check, pass, fail, all_tests, t_ic_*, t_decile_*, t_permutation_*, t_evaluate_windows_*, t_concat_splits_*, t_extract_*, synthetic data
 - PITFALLS: The old notebook ran ALL_TESTS at load (and raised AssertionError on a failure); that invocation now lives in the runner notebook's self-test cell. Executed into the one shared signal_eval namespace by signal_eval/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: core, integration, windows
 - API:
   - `def check(name, fn)` L18
   - `def t_ic_recovers_known_correlation()` L32
@@ -112,5 +119,7 @@
 - PURPOSE: evaluate_windows: aggregates IC + decile + permutation over several time windows and judges consistency (mean_ic, frac_significant, consistent_sign), not one number.
 - TAGS: evaluate_windows, windows aggregation, consistent_sign, frac_significant, mean_ic, std_ic, per_window
 - PITFALLS: A failed window (too few samples) is skipped with a warning, not fatal. Executed into the one shared signal_eval namespace by signal_eval/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: core
+- USED BY: discovery/evaluation, integration, selftests
 - API:
   - `def evaluate_windows(window_results: List[Tuple[str, np.ndarray, np.ndarray]], ic_method: str='spearman', n_shuffles: int=1000, min_samples: int=10, seed: Optional[int]=None, verbose: bool=True) -> Dict[str, Any]` L22
