@@ -2,6 +2,7 @@
 
 ## `evaluation/`
 - Package holding ALL model-evaluation code of the project (formerly the cells of chicks_v4_5_input_output_patterns.ipynb): `import evaluation` gives predict_with_evaluation_v4, test_all_assets_v4, run_full_analysis, ... in this package's na… | 24 modules, 0 data files (0 B)
+- implicit deps (shared namespace, tools/implicit_deps.py): USES / USED BY list module names; `*` = defined in a LATER module, `pkg/mod` = another package; shared imports (np, pd, ...) omitted; NOTEBOOK-GLOBALS = names no module defines
 
 ### `evaluation/__init__.py` (53 lines)
 - PURPOSE: Package holding ALL model-evaluation code of the project (formerly the cells of chicks_v4_5_input_output_patterns.ipynb): `import evaluation` gives predict_with_evaluation_v4, test_all_assets_v4, run_full_analysis, ... in this package's na…
@@ -21,6 +22,8 @@
 - PURPOSE: test_all_assets_v4: test a model on every asset separately plus aggregated metrics and Wilson-CI tables.
 - TAGS: test_all_assets_v4, test_all_assets, per_asset_ci_table, summarize_verification, aggregated metrics, test_dict
 - PITFALLS: Tests exclude this module on the general load and exec it explicitly (load_into(ns, exclude=...)). Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: latest_table, outputs, targets, unified
+- USED BY: full_analysis
 - API:
   - `def summarize_verification(verification_df: pd.DataFrame) -> pd.DataFrame` L20
   - `def print_verification_summary(verification_df: pd.DataFrame)` L62
@@ -33,6 +36,8 @@
 - PURPOSE: Stage 2: flexible decoding of raw model outputs into real units (continuous + categorical), decode_predictions_v4.
 - TAGS: decode_predictions_v4, decode_predictions, softmax, scale offset, reg_target_scale, decode
 - PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: targets
+- USED BY: live, unified, workflow/pooling
 - API:
   - `def decode_predictions_v4(raw_preds: Dict[str, np.ndarray], target_specs: List['TargetSpec'], base_params: Optional[np.ndarray]=None, last_candles: Optional[np.ndarray]=None, limit: Optional[int]=None) -> Dict[str, Dict[str,…` L18
   - `def decode_predictions(raw_preds, base_params, last_candles=None, limit=None)` L189
@@ -41,6 +46,8 @@
 - PURPOSE: build_flat_dataframe: flattens test_all_assets_v4 results into one DataFrame (the input of the trust/calibration/pattern reports).
 - TAGS: build_flat_dataframe, flat dataframe, results flattening
 - PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: targets
+- USED BY: full_analysis
 - API:
   - `def build_flat_dataframe(per_asset_results: pd.DataFrame, target_specs: List['TargetSpec'], continuous_only: bool=False) -> pd.DataFrame` L12
 
@@ -48,6 +55,8 @@
 - PURPOSE: run_full_analysis: the whole pipeline plus every report and plot in one call, big outputs saved to analysis_outputs/.
 - TAGS: run_full_analysis, full analysis, all reports
 - PITFALLS: Tests exclude this module on the general load and exec it explicitly (load_into(ns, exclude=...)). Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: all_assets, flat, integrity, output_conditioned, outputs, patterns, plots, targets, tearsheet, trade_selection*, trust_calibration
+- USED BY: workflow/wiring_selftest
 - API:
   - `def run_full_analysis(model, test_dict: Dict, timeframes: List[str], target_specs: List['TargetSpec'], batch_size: int=256, range_frac: float=0.2, batch_analysis_size: int=100, out_dir: str=DEFAULT_OUTPUT_DIR, make_plots…` L14
 
@@ -55,6 +64,8 @@
 - PURPOSE: Model integrity diagnostics: naive baseline, lag scan (late copying), momentum baseline and directional bias.
 - TAGS: run_integrity_diagnostics, cross_correlation_lag_scan, momentum_direction_accuracy, directional_bias, naive baseline, lag scan
 - PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: outputs, plots, targets
+- USED BY: full_analysis
 - API:
   - `def compute_point_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, float]` L20
   - `def cross_correlation_lag_scan(y_actual: np.ndarray, y_pred: np.ndarray, max_lag: int=5)` L27
@@ -66,6 +77,7 @@
 - PURPOSE: Validated input-output pattern discovery: raw X-window snapshot features vs prediction success with train/validation split, binomial and permutation tests.
 - TAGS: extract_input_snapshot_features, analyze_input_output_validated_patterns, run_input_output_pattern_discovery, plot_pattern_validation, input patterns, permutation test, binomial test
 - PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: latest_table, outputs, targets, unified
 - API:
   - `def extract_input_snapshot_features(X_inputs: Tuple[np.ndarray, ...], timeframe_names: List[str], feature_names: Optional[List[Optional[List[str]]]]=None, agg: Tuple[str, ...]=('last', 'mean', 'std'), max_features_per_tf: Optional[int…` L27
   - `def analyze_input_output_validated_patterns(input_features: pd.DataFrame, outcome: Union[pd.Series, np.ndarray], timestamps: Optional[Union[pd.Series, np.ndarray]]=None, validation_frac: float=0.3, max_tree_depth: int=3, min_leaf_samples: int…` L109
@@ -76,6 +88,8 @@
 - PURPOSE: Latest-samples table (date, signal, confidence, uncertainty, expected move) that works without true targets.
 - TAGS: build_latest_table, format_latest_table, print_latest_table, timestamps, latest samples, live table
 - PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: targets
+- USED BY: all_assets, io_patterns, live, trade_selection, unified, workflow/pooling
 - API:
   - `def build_latest_table(decoded: Dict[str, Dict[str, np.ndarray]], target_specs, n_display: int=5, timestamps=None, asset: Optional[str]=None) -> pd.DataFrame` L86
   - `def format_latest_table(df: pd.DataFrame) -> pd.DataFrame` L189
@@ -85,6 +99,7 @@
 - PURPOSE: Legacy trading-simulation reports: comprehensive_asset_analysis, compare_multiple_models, generate_detailed_report.
 - TAGS: comprehensive_asset_analysis, compare_multiple_models, generate_detailed_report, legacy report
 - PITFALLS: Prints a banner at load, as the old notebook did. Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: outputs
 - API:
   - `def comprehensive_asset_analysis(per_asset_results, model_name='النموذج', market_neutral=None)` L16
   - `def compare_multiple_models(models_data, model_names)` L257
@@ -94,6 +109,7 @@
 - PURPOSE: Legacy uncertainty report (comprehensive_uncertainty_analysis) updated to use save_or_print.
 - TAGS: comprehensive_uncertainty_analysis, legacy report, uncertainty, float16
 - PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: outputs
 - API:
   - `def comprehensive_uncertainty_analysis(per_asset_results)` L15
 
@@ -101,6 +117,8 @@
 - PURPOSE: Live trading report of the last N samples: predict_latest_v4 / predict_latest_all_assets.
 - TAGS: predict_latest_v4, predict_latest_all_assets, live trading, latest_only, last n samples
 - PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: decode, latest_table, metrics, predict, targets
+- USED BY: workflow/reports, workflow/wiring_selftest
 - API:
   - `def predict_latest_v4(model, X_inputs: Tuple[np.ndarray, ...], base_params: np.ndarray, last_candles: Optional[np.ndarray]=None, target_specs=None, n_display: int=5, timestamps=None, timestamp_col: Optional[int]=None, y_…` L18
   - `def predict_latest_all_assets(model, test_dict: Dict, timeframes: List[str], target_specs=None, n_display: int=5, latest_only: bool=False, timestamp_col: Optional[int]=None, timestamp_key: Optional[str]=None, batch_size: int=256…` L78
@@ -109,6 +127,8 @@
 - PURPOSE: Stage 3: flexible evaluation metrics (continuous MAE/direction/tolerance, categorical accuracy), evaluate_predictions_v4.
 - TAGS: evaluate_predictions_v4, evaluate_predictions, mae, direction accuracy, tolerance, metrics
 - PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: targets
+- USED BY: live, unified, workflow/pooling
 - API:
   - `def evaluate_predictions_v4(decoded_preds: Dict[str, Dict[str, np.ndarray]], target_specs: List['TargetSpec'], y_true: Optional[Dict[str, np.ndarray]]=None, base_params: Optional[np.ndarray]=None, direction_tolerance: float=0.…` L12
   - `def evaluate_predictions(decoded_preds, y_true=None, base_params=None, last_candles=None, direction_tolerance=0.2, price_tolerance=None)` L165
@@ -117,6 +137,8 @@
 - PURPOSE: Output-conditioned analysis: success rate by predicted-move type, confidence bucket and consecutive batch.
 - TAGS: analyze_by_predicted_movement, analyze_by_confidence_bucket, analyze_by_batch, buckets
 - PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: outputs
+- USED BY: full_analysis
 - API:
   - `def analyze_by_predicted_movement(df: pd.DataFrame, magnitude_col: str='predicted_change_pct', bins: Optional[List[float]]=None, verbose: bool=True) -> pd.DataFrame` L20
   - `def analyze_by_confidence_bucket(df: pd.DataFrame, n_buckets: int=5, verbose: bool=True) -> pd.DataFrame` L68
@@ -126,6 +148,7 @@
 - PURPOSE: save_or_print / save_figure: large tables and figures go to analysis_outputs/ with a short preview instead of flooding the notebook.
 - TAGS: save_or_print, save_figure, analysis_outputs, default_output_dir, default_max_rows, output management
 - PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USED BY: all_assets, full_analysis, integrity, io_patterns, legacy_assets, legacy_uncertainty, output_conditioned, patterns, plots, trust_calibration
 - API:
   - `def ensure_output_dir(out_dir: str=DEFAULT_OUTPUT_DIR) -> str` L28
   - `def save_or_print(data: Union[pd.DataFrame, str], name: str, out_dir: str=DEFAULT_OUTPUT_DIR, max_rows: int=DEFAULT_MAX_ROWS, max_chars: int=DEFAULT_MAX_CHARS, verbose: bool=True, timestamp: bool=False) -> Optional[s…` L33
@@ -135,6 +158,8 @@
 - PURPOSE: Automatic pattern discovery: decision tree, random-forest importances, K-Means clusters, isolation-forest anomalies per head.
 - TAGS: detect_success_failure_patterns, decision tree, feature importance, kmeans, isolation forest, pattern discovery, per_head
 - PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: outputs, plots*
+- USED BY: full_analysis
 - API:
   - `def detect_success_failure_patterns(df: pd.DataFrame, feature_cols: Optional[List[str]]=None, max_tree_depth: int=4, n_clusters: int=4, top_n_assets_onehot: int=8, verbose: bool=True, per_head: bool=True, head_col: str='target') -> Di…` L208
 
@@ -142,6 +167,8 @@
 - PURPOSE: Visual reports: calibration curve, confidence vs error, error distribution, actual vs predicted, lag correlation, confusion matrix, importances, clusters, equity curve, batch performance.
 - TAGS: plot_calibration_curve, plot_equity_curve, plot_confusion_matrix_heatmap, matplotlib, figures, save_figure
 - PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: outputs
+- USED BY: full_analysis, integrity, patterns
 - API:
   - `def plot_calibration_curve(reliability_df: pd.DataFrame, group_val=None, group_col: str='target', title: Optional[str]=None, save_dir: str=DEFAULT_OUTPUT_DIR) -> Optional[str]` L26
   - `def plot_confidence_vs_error(df: pd.DataFrame, target: Optional[str]=None, error_col: str='abs_error', save_dir: str=DEFAULT_OUTPUT_DIR) -> Optional[str]` L52
@@ -158,6 +185,8 @@
 - PURPOSE: Stage 1: batched model prediction for any set of continuous/categorical targets (predict_batch_v4; predict_batch kept for compatibility).
 - TAGS: predict_batch_v4, predict_batch, batched predict, model outputs
 - PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: targets
+- USED BY: live, unified, workflow/pooling
 - API:
   - `def predict_batch_v4(model, X_inputs: Tuple[np.ndarray, ...], target_specs: List['TargetSpec'], batch_size: int=256, verbose: bool=False, unc_max: Optional[float]=None) -> Dict[str, np.ndarray]` L12
   - `def predict_batch(model, X_inputs, batch_size: int=256, verbose: bool=False) -> Dict[str, np.ndarray]` L106
@@ -166,6 +195,7 @@
 - PURPOSE: Shared imports of the evaluation package plus TargetSpec/resolve_targets (which targets a model outputs: continuous or categorical), NIG uncertainty bounding and the Wilson CI.
 - TAGS: targetspec, resolve_targets, make_categorical_spec, get_model_target_names, nig_uncertainty_bounded, wilson_ci, imports, shared namespace
 - PITFALLS: Loaded first: later modules use its imports (re, warnings, np, tf, pd, dataclass, typing names) without importing them. Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USED BY: all_assets, decode, flat, full_analysis, integrity, io_patterns, latest_table, live, metrics, predict +4
 - API:
   - `class TargetSpec` L36
   - `def make_categorical_spec(name: str, class_names: List[str], has_uncertainty: bool=False) -> TargetSpec` L125
@@ -178,6 +208,7 @@
 - PURPOSE: Tearsheet-style trading metrics (Sharpe, Sortino, Omega, profit factor, SQN, drawdown), equity curve and signal significance report.
 - TAGS: compute_trading_performance_metrics, simulate_equity_curve, signal_significance_report, sharpe, drawdown, tearsheet, equity curve
 - PITFALLS: Two self-tests (_test_*) run at load, as the old notebook did. Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USED BY: full_analysis
 - API:
   - `def compute_trading_performance_metrics(returns_pct: np.ndarray, risk_free_pct: float=0.0, risk_per_trade: float=0.1, periods_per_year: Optional[float]=None) -> Dict[str, float]` L19
   - `def print_performance_verdict(metrics: Dict[str, float]) -> None` L104
@@ -188,6 +219,8 @@
 - PURPOSE: Trade selection: keep only trades whose expected move exceeds the uncertainty (select_and_rank_trades) and print them.
 - TAGS: select_and_rank_trades, print_trade_selection, edge vs uncertainty, min_edge_ratio, trade selection
 - PITFALLS: A self-test of the per-target fairness runs at load. Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: latest_table
+- USED BY: full_analysis
 - API:
   - `def select_and_rank_trades(df: pd.DataFrame, move_col: Optional[str]=None, uncertainty_col: Optional[str]=None, confidence_col: Optional[str]=None, min_edge_ratio: float=1.0, sort_by: str='both', ascending: bool=False, top_n:…` L61
   - `def print_trade_selection(result: pd.DataFrame, original: Optional[pd.DataFrame]=None, title: Optional[str]=None, max_rows: Optional[int]=20, indent: str=' ') -> None` L200
@@ -196,6 +229,8 @@
 - PURPOSE: Trust & calibration report: generate_trust_report, confidence calibrators (isotonic/Platt), ECE/Brier before and after.
 - TAGS: generate_trust_report, fit_confidence_calibrators, apply_confidence_calibration, calibration_report, ece, isotonic, platt, confidence
 - PITFALLS: Calibrators are fitted on val only and never touch test. Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: outputs, targets
+- USED BY: full_analysis
 - API:
   - `def generate_trust_report(df: pd.DataFrame, group_by: Optional[str]='target', n_bins: int=10, verbose: bool=True, calibrators: Optional[Dict]=None) -> Dict` L19
   - `def diagnose_confidence(conf, correct) -> Dict` L269
@@ -208,6 +243,8 @@
 - PURPOSE: Stage 4: predict_with_evaluation_v4 - prediction + decoding + verification + evaluation in one call (v3 kept for compatibility).
 - TAGS: predict_with_evaluation_v4, predict_with_evaluation_v3, unified pipeline, n_display
 - PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: decode, latest_table, metrics, predict, targets, verify
+- USED BY: all_assets, io_patterns
 - API:
   - `def predict_with_evaluation_v4(model, X_inputs: Tuple[np.ndarray, ...], target_specs, base_params: Optional[np.ndarray]=None, last_candles: Optional[np.ndarray]=None, y_true: Optional[Dict[str, np.ndarray]]=None, verbose: bool=Fa…` L12
   - `def predict_with_evaluation_v3(model, X_inputs, base_params, last_candles=None, y_true=None, verbose=False, n_display=5, batch_size=256, direction_tolerance=0.2, price_tolerance=None, min_samples=1)` L123
@@ -216,5 +253,7 @@
 - PURPOSE: Stage 2.5: verify_decoding - checks decoding in the normalized and original space with a round-trip test.
 - TAGS: verify_decoding, round-trip, decoding check
 - PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: targets
+- USED BY: unified
 - API:
   - `def verify_decoding(raw_preds: Dict[str, np.ndarray], decoded: Dict[str, Dict[str, np.ndarray]], target_specs: List['TargetSpec'], base_params: Optional[np.ndarray]=None, y_true: Optional[Dict[str, np.ndarray]]=None, l…` L14

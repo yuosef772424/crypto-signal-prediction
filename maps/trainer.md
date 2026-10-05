@@ -2,6 +2,7 @@
 
 ## `trainer/`
 - Package holding the generic training framework (formerly the cells of trainer_framework_v2.ipynb): `import trainer` gives the whole framework (trainer.build_training_system, trainer.build_config, trainer.GenericTrainer, ...) in this packag… | 20 modules, 0 data files (0 B)
+- implicit deps (shared namespace, tools/implicit_deps.py): USES / USED BY list module names; `*` = defined in a LATER module, `pkg/mod` = another package; shared imports (np, pd, ...) omitted; NOTEBOOK-GLOBALS = names no module defines
 
 ### `trainer/__init__.py` (66 lines)
 - PURPOSE: Package holding the generic training framework (formerly the cells of trainer_framework_v2.ipynb): `import trainer` gives the whole framework (trainer.build_training_system, trainer.build_config, trainer.GenericTrainer, ...) in this packag…
@@ -20,6 +21,8 @@
 - PURPOSE: BestModelTracker: best-copy tracking plus early stopping in one resumable callback.
 - TAGS: bestmodeltracker, early stopping, best weights, restore best, patience, resume
 - PITFALLS: State is saved with the checkpoint (get_state/set_state); changing it breaks resuming old runs. Executed into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: env
+- USED BY: system
 - API:
   - `class BestModelTracker(tf.keras.callbacks.Callback)` L9
     - `.__init__(self, base_model: tf.keras.Model, best_path: Optional[str]=None, monitor: str='val_loss', mode: str='min', patience: int=15, min_delta: float=0.0001, smoothing: str='window', window: int=3, ema_beta…` L22
@@ -33,6 +36,8 @@
 - PURPOSE: Save/resume system: CheckpointManager, archive_state, build_trainer_variables, stage_warm_start_weights.
 - TAGS: checkpointmanager, trainer_registry, state_entries, has_saved_state, archive_state, resume, warm_start, checkpoint
 - PITFALLS: Build optimizer variables BEFORE restoring, or the optimizer momentum is lost (the whole point of this module). Executed into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: env
+- USED BY: epoch_callbacks, smoke_test, system, workflow/capacity, workflow/permutation_control
 - API:
   - `def has_saved_state(directory: Optional[str]) -> bool` L59
   - `def archive_state(directory: str, tag: str) -> str` L66
@@ -48,6 +53,7 @@
 - PURPOSE: DEFAULT_CONFIG (the single source of truth), deep_update, build_config, config_fingerprint, model_signature.
 - TAGS: default_config, build_config, deep_update, config_fingerprint, model_signature, valid_train_modes, trainer config
 - PITFALLS: Unknown config keys raise in build_config; the fingerprint decides whether a saved run may resume. Executed into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USED BY: example, smoke_test, system, workflow/capacity, workflow/permutation_control, workflow/wiring_selftest
 - API:
   - `def deep_update(base: dict, override: dict) -> dict` L178
   - `def build_config(user_config: dict) -> dict` L189
@@ -58,6 +64,7 @@
 - PURPOSE: Optional ensemble inference for evidential targets: ensemble_predict_evidential(_meinert).
 - TAGS: ensemble_predict_evidential, ensemble_predict_evidential_meinert, ensemble, inference, nig mixture
 - PITFALLS: Optional; models must share the same output_keys format. Executed into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: tasks
 - API:
   - `def ensemble_predict_evidential(models: List[tf.keras.Model], x, output_keys: dict) -> Dict[str, np.ndarray]` L15
   - `def ensemble_predict_evidential_meinert(models: List[tf.keras.Model], x, output_keys: dict) -> Dict[str, np.ndarray]` L41
@@ -66,6 +73,7 @@
 - PURPOSE: Imports and environment: IN_COLAB, mount_drive_if_needed, opt_variables, atomic_write_json.
 - TAGS: imports, in_colab, mount_drive_if_needed, opt_variables, atomic_write_json, colab, keras 2/3
 - PITFALLS: Prints the TensorFlow version at load. Works on Keras 2 (tf-keras) and Keras 3; opt_variables hides the API difference. Executed into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USED BY: best_tracker, checkpoints, epoch_callbacks, smoke_test, system
 - API:
   - `def mount_drive_if_needed(path: str)` L34
   - `def opt_variables(optimizer) -> list` L43
@@ -75,6 +83,8 @@
 - PURPOSE: DriveMirror, EpochCheckpointCallback and EpochGuard: per-epoch save, Drive mirror, interruption guard.
 - TAGS: drivemirror, epochcheckpointcallback, epochguard, drive mirror, epoch checkpoint, colab disconnect
 - PITFALLS: Mirrors to Drive only if config run.mirror_dir is set. Executed into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: checkpoints, env
+- USED BY: system
 - API:
   - `class DriveMirror(tf.keras.callbacks.Callback)` L8
     - `.__init__(self, source_dir: str, mirror_dir: str, every: int=1, verbose: int=1)` L12
@@ -93,6 +103,7 @@
 - PURPOSE: Usage template: real_model_builder, high_low_close_order_penalty and real_config (an example config).
 - TAGS: example, real_model_builder, real_config, high_low_close_order_penalty, template
 - PITFALLS: Example only; real_config is built and printed at load. The commented training cell (10.3) is in the runner notebook. Executed into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: config
 - API:
   - `def real_model_builder()` L19
   - `def high_low_close_order_penalty(outputs)` L51
@@ -101,6 +112,7 @@
 - PURPOSE: Optional purged walk-forward K-Fold training: purged_walk_forward_splits, run_kfold_training.
 - TAGS: purged_walk_forward_splits, run_kfold_training, k-fold, walk-forward, purge, resume per fold
 - PITFALLS: Optional; not exercised by the load-time tests. Executed into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: system
 - API:
   - `def purged_walk_forward_splits(n_samples: int, n_splits: int=5, purge: int=50, embargo: int=50)` L16
   - `def run_kfold_training(n_samples: int, model_builder_fn: Callable[[], tf.keras.Model], config_template: dict, dataset_builder_fn: Callable[[np.ndarray, np.ndarray], Tuple[tf.data.Dataset, tf.data.Dataset, Tuple[Any, Any]]…` L27
@@ -109,6 +121,7 @@
 - PURPOSE: TaskWeightUpdater, MetricsLogger (class baselines) and DerivedMetrics callbacks (+ a load-time self-test).
 - TAGS: taskweightupdater, metricslogger, derivedmetrics, class_baselines, callbacks, metrics
 - PITFALLS: RUNS _test_metrics_logger_class_baselines() AT LOAD. Executed into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USED BY: system
 - API:
   - `class TaskWeightUpdater(tf.keras.callbacks.Callback)` L8
     - `.__init__(self, trainer: 'GenericTrainer', update_frequency=1, verbose=1)` L12
@@ -131,6 +144,7 @@
 - PURPOSE: ParamScheduler, schedule_value, apply_schedules and the learning-rate schedules (cosine warm restarts).
 - TAGS: paramscheduler, schedule_value, apply_schedules, cosine_warm_restarts, build_lr_schedule_fn, lr schedule
 - PITFALLS: cross_asset/train.py re-states build_lr_schedule_fn: keep both in sync. Executed into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USED BY: system
 - API:
   - `def schedule_value(start: float, end: float, warmup_epochs: int, schedule: str, epoch: int) -> float` L38
   - `class ParamScheduler(tf.keras.callbacks.Callback)` L46
@@ -145,11 +159,13 @@
 - PURPOSE: Smoke test: proves optimizer state survives an interruption and warm_start works (runs real tiny training at load).
 - TAGS: smoke test, optimizer state, resume, warm_start, trainer_registry, interrupt
 - PITFALLS: RUNS AT LOAD (trains a few epochs on random data into a temp dir); tests exclude this module: load_into(ns, exclude=('smoke_test',)). Executed into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: checkpoints, config, env, system
 
 ### `trainer/snapshot.py` (26 lines)
 - PURPOSE: SnapshotEnsemble: optional snapshot-ensemble callback.
 - TAGS: snapshotensemble, snapshot ensemble, callback
 - PITFALLS: Optional; inactive unless added to the callbacks. Executed into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USED BY: system
 - API:
   - `class SnapshotEnsemble(tf.keras.callbacks.Callback)` L8
     - `.__init__(self, save_epochs: List[int], save_dir: str, base_model: tf.keras.Model, verbose=1)` L12
@@ -159,6 +175,8 @@
 - PURPOSE: build_optimizer, build_training_system (the single entry point) and EMA warm-up (+ a load-time self-test).
 - TAGS: build_training_system, build_optimizer, enable_ema_warmup, emawindow, _resolve_train_mode, train_mode, entry point
 - PITFALLS: RUNS _test_ema_warmup() AT LOAD. Always call build_training_system the same way for new, resumed and warm- start runs. Executed into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: best_tracker, checkpoints, config, env, epoch_callbacks, metrics, schedules, snapshot, trainer
+- USED BY: kfold, smoke_test, workflow/capacity, workflow/permutation_control, workflow/wiring_selftest
 - API:
   - `def enable_ema_warmup(opt)` L27
   - `class EmaWindow(tf.keras.callbacks.Callback)` L52
@@ -171,6 +189,7 @@
 - PURPOSE: UncertaintyWeightedLoss: automatic task balancing (Kendall et al., CVPR 2018) with dynamic names.
 - TAGS: uncertaintyweightedloss, task weighting, homoscedastic uncertainty, log_vars
 - PITFALLS: Weights are trainable variables: they are part of the checkpointed state. Executed into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USED BY: trainer
 - API:
   - `class UncertaintyWeightedLoss(tf.keras.layers.Layer)` L36
     - `.__init__(self, task_names: List[str], name='uncertainty_weighted_loss')` L39
@@ -182,6 +201,7 @@
 - PURPOSE: TASK_REGISTRY and the loss functions (evidential NIG, regression, classification, confidence calibration).
 - TAGS: task_registry, register_task_type, evidential_task_loss, regression_task_loss, classification_task_loss, nig_regularizer, loss
 - PITFALLS: An unregistered task_type raises. NIG loss is numerically fragile (log/lgamma): losses cast to float32. Executed into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USED BY: ensemble, trainer
 - API:
   - `def register_task_type(name: str, fn: Callable, stat_keys: List[str], supports_sample_weight: bool=False)` L71
   - `def compute_confidence_calibration_loss(y_true, y_pred, confidence, sample_weight=None)` L105
@@ -196,6 +216,8 @@
 - PURPOSE: GenericTrainer: the training-step core (any number of targets, evidential/regression/classification).
 - TAGS: generictrainer, train_step, test_step, compute_loss, tf.keras.model subclass, multi-task
 - PITFALLS: The model is passed to self.model(x) as is (the framework never opens x); keep train_step and test_step symmetric. Executed into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USES: task_weighting, tasks
+- USED BY: system
 - API:
   - `class GenericTrainer(tf.keras.Model)` L29
     - `.__init__(self, model: tf.keras.Model, config: dict, **kwargs)` L30
@@ -207,6 +229,7 @@
 - PURPOSE: TrainingDiagnostics: optional diagnostic recorder (+ SAMPLE_IDX_KEY, with_sample_index).
 - TAGS: trainingdiagnostics, with_sample_index, sample_idx_key, tap, per-sample loss, diagnostics callback
 - PITFALLS: Does nothing unless added to callbacks; main.ipynb wraps the train dataset with diag.tap. Executed into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other modules resolve at call time.
+- USED BY: workflow/diagnostics
 - API:
   - `def with_sample_index(y_dict, indices=None)` L28
   - `class TrainingDiagnostics(tf.keras.callbacks.Callback)` L44

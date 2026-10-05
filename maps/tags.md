@@ -51,6 +51,8 @@
 - all reports: evaluation/full_analysis
 - all_global: data/sources
 - all_tests: signal_eval/selftests
+- allowlist: tools/check_deps
+- allowlist ratchet: tools/implicit_deps
 - alpha: model/nig_layers
 - am_data: tools/colab_bridge
 - analysis_outputs: evaluation/outputs
@@ -215,6 +217,7 @@
 - cross-asset: data/market_context
 - cross-asset attention: cross_asset/__init__
 - cross-entropy: edge_discovery/28_token_decompose
+- cross-package: tools/implicit_deps
 - cross-sectional features: data/cross_sectional_features
 - cross-sectional normalization: data/cross_sectional_norm
 - cross-sectional screen: edge_discovery/01_screen
@@ -313,6 +316,7 @@
 - drop_tail_per_asset: data/live
 - dsr: edge_discovery/17_h07_break
 - dummy tail: data/live
+- duplicate definitions: tools/check_deps, tools/implicit_deps
 - e-h07comb-1: h07_combos/01_combos
 - e-h07vs-1: h07_volsizing/01_volsizing
 - early stopping: cross_asset/train, trainer/best_tracker
@@ -410,10 +414,12 @@
 - float16: evaluation/legacy_uncertainty, workflow/batches
 - flush curve: edge_discovery/10_flush_curve
 - format_latest_table: evaluation/latest_table
+- forward reference: tools/implicit_deps
 - forward return: edge_discovery/lib
 - forward test: tools/h07_forward
 - frac_significant: signal_eval/windows
 - fractal: data/custom
+- free names: tools/implicit_deps
 - from __future__: data/common
 - from __future__ annotations: signal_eval/common
 - full analysis: evaluation/full_analysis
@@ -511,6 +517,7 @@
 - ic loss test: cross_asset/selftest
 - image_cnn_results.csv: edge_discovery/25_image_cnn
 - imap_ordered: data/parallel, discovery/batch_runner
+- implicit dependencies: tools/check_deps, tools/implicit_deps
 - implied close: edge_discovery/30_envelope_direction
 - import data: data/__init__
 - import direction: tools/check_deps
@@ -601,7 +608,7 @@
 - load_data_from_drive: data/storage
 - load_dataset_dir: data/storage
 - load_funding_open_interest: data/binance_client
-- load_into: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, trainer/_loader … (+1)
+- load_into: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, tools/implicit_deps … (+2)
 - load_notebook_defs: discovery/axis_loader
 - load_preprocessed_data_from_drive: signal_eval/bootstrap
 - loader: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, trainer/_loader … (+1)
@@ -688,7 +695,7 @@
 - model_x: workflow/splits
 - module order: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, trainer/_loader … (+1)
 - module_dirs: data/defaults, data/phase2
-- modules: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, trainer/_loader … (+1)
+- modules: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, tools/implicit_deps … (+2)
 - momentum: edge_discovery/features
 - momentum rank: data/cross_sectional_features
 - momentum_direction_accuracy: evaluation/integrity
@@ -726,6 +733,7 @@
 - normalize: data/normalize
 - notebook: tools/nb_cells
 - notebook definitions: discovery/axis_loader
+- notebook globals: tools/implicit_deps
 - notebooks: tools/build_map
 - npy_dir: data/storage
 - nu: model/nig_layers
@@ -978,10 +986,11 @@
 - selftests: signal_eval/selftests
 - settings: data/defaults
 - settings interval start funding open_interest: tools/fetch_history_colab_cell
+- shadowing: tools/implicit_deps
 - shap: discovery/phase3_tools
 - shared folder: workflow/dataset_io
 - shared helpers: edge_discovery/lib
-- shared namespace: data/__init__, data/_loader, data/common, discovery/__init__, discovery/_loader, evaluation/__init__ … (+11)
+- shared namespace: data/__init__, data/_loader, data/common, discovery/__init__, discovery/_loader, evaluation/__init__ … (+12)
 - sharpe: evaluation/tearsheet, edge_discovery/tsbt
 - sharpe table: edge_discovery/15_h07_robust
 - short new perps: edge_discovery/12_listing
@@ -1045,6 +1054,7 @@
 - symbols.txt: tools/fetch_history_vision_colab
 - symlog: model/input_norm
 - symmetric: tools/bracket_eval
+- symtable: tools/implicit_deps
 - synthetic: discovery/selftest
 - synthetic data: cross_asset/selftest, data/selftests, signal_eval/selftests, workflow/wiring_selftest
 - sys.path: tools/check_deps
@@ -1135,6 +1145,8 @@
 - up_share: cross_asset/report
 - update_config: data/runtime
 - use_mixed_precision: trainer/perf
+- used by: tools/implicit_deps
+- uses: tools/implicit_deps
 - v0-v4: edge_discovery/21_range_fade
 - val auc: edge_discovery/26_h19_generalization
 - valid_train_modes: trainer/config
