@@ -213,43 +213,15 @@
 
 ## `pandas_ta_full_survey.ipynb`
 - title: مسح شامل لكل مؤشرات `pandas_ta_classic` — كود اختبار + فرضيات مُولَّدة آلياً
-- cells: 27 (13 code)
+- cells: 28 (14 code)
+- DEPENDS: discovery
 - headings: مسح شامل لكل مؤشرات `pandas_ta_classic` — كود اختبار + فرضيات مُولَّدة آلياً · ١) التجهيز — تثبيت واستيراد `pandas_ta_classic` · ٢) بيانات OHLCV وهمية — عشوائية، بلا أي اعتماد على Drive · ٣) المِسبار — يستدعي كل مؤشر بفترات مختلفة ويتحقّق من صحّة الناتج · ٤) التشغيل الفعلي — كل الـ193 مؤشراً على البيانات الوهمية · ٥) فرضيات عامة لكل فئة — بلا افتراض اتجاه مسبق · ٦) توليد قائمة مرشّحين جاهزة — بصيغة قابلة للدمج في `signal_discovery_lab.ipynb` · ٧) الحفظ — نتائج المسح الكامل + قائمة المرشّحين · ٨) اختبار على بيانات حقيقية من Google Drive (اختياري — Colab/Drive فقط) · ٩) التجميع عبر كل العملات — أيّها مستقرّ فعلاً وأيّها حالة خاصة بعملة واحدة · ١٠) التقرير النهائي — الخطوة التالية
-- API:
-  - `def make_dummy_ohlcv(n=300, seed=0)` cell 4 L2
-  - `def param_variants(sig_params)` cell 6 L6
-  - `def run_survey(df=None, indicators=None)` cell 6 L21
-  - `def build_candidate_dicts(results_df)` cell 14 L2
 
 ## `signal_discovery_lab.ipynb`
 - title: مختبر بحث الإشارات (Signal Discovery Lab)
 - cells: 146 (42 code)
+- DEPENDS: discovery
 - headings: مختبر بحث الإشارات (Signal Discovery Lab) · ١) التجهيز — تحميل تعريفات الدفاتر بأمان (بلا تنفيذ تلقائي لخلايا الأمثلة) · ٢) تحميل البيانات وبناء النوافذ المتحرّكة · ٣) الحارس ضدّ أثر مرجع "نفس النوع" — `clean_reg_target` · ٤) إطار المرشّح الواحد — أي ميزة جاهزة كمرشّح فوراً · ٥) مكتبة مرشّحين جاهزين (`literature_mining` + `data_driven`) · ٦) الماسح الآلي — تقييم كل المرشّحين × كل الأهداف دفعة واحدة · ٧) البحث التركيبي الرخيص (`data_driven`/`genetic_search`) — بلا شبكة عصبية · ٨) المُشغّل الدفعي (Batch Runner) — تقييم متوازٍ + تسجيل تلقائي · ٩) المرحلة ٣ — أدوات اكتشاف بلا قواعد مسبقة (Matrix Profile + SHAP) · ١٠) اختبار رخيص لفرضية "الترابط العابر للأصول" — قبل أي معمارية مشتركة · ١١) 🎯 أول فرضية مقبولة من هذا الإطار — عيّنة موسّعة (50 أصلاً، تفعيل `market_context`) · ١٢) مرشّح للاختبار القادم — فركتالات الانعكاس (Williams Fractals) · ١٣) اختبار مرشّحي pandas_ta المؤجَّلين سابقاً — نتيجة سلبية شاملة · ١٤) الدفعة الثانية من مرشّحي pandas_ta — أول نتيجتين تعبران معيار المحور · ١٥) الدفعة الثالثة من مرشّحي pandas_ta — تصحيح منهجي واستكمال شبه كامل للتصنيفات المتاحة · ١٦) ترقية الثلاثة "قيد الاختبار" إلى 50 أصلاً/30 نافذة — النتيجة النهائية · ١٧) الدفعتان الرابعة والخامسة — نافذة أطول + إعادة تصنيف "مولّدات الإشارة"، لا نتائج جديدة · ٢٠) أوّل بحث ميزات جديدة خارج pandas_ta — مقدّرات تقلّب/سيولة كلاسيكية، مرفوضة · ٢٢) ثاني بحث ميزات جديدة خارج pandas_ta — أسّ هيرست وVariance Ratio، مرفوضة
-- API:
-  - `def load_notebook_defs(path)` cell 2 L30
-  - `def clean_reg_target(split, target)` cell 6 L2
-  - `def evaluate_candidate(predict_fn, target, windows, n_shuffles=1000, min_samples=10, seed=42, verbose=False)` cell 6 L17
-  - `def extract_feature_last_value(split, feature, tf=None, feature_order=None)` cell 8 L2
-  - `def extract_feature_matrix(split, features=None, tf=None, feature_order=None)` cell 8 L16
-  - `def extract_feature_series(split, feature, tf=None, feature_order=None)` cell 8 L34
-  - `def make_feature_predict_fn(feature, transform=None, tf=None, feature_order=None)` cell 8 L50
-  - `def make_interaction_predict_fn(feat_a, feat_b, op='mul', transform=None, tf=None, feature_order=None)` cell 8 L60
-  - `def make_custom_predict_fn(fn, tf=None, feature_order=None)` cell 8 L72
-  - `def make_series_predict_fn(fn, feature='close', tf=None, feature_order=None)` cell 8 L85
-  - `def make_candidate_predict_fn(cand, tf=None, feature_order=None)` cell 8 L97
-  - `def make_isolation_forest_predict_fn(features, feature_order=None, contamination=0.1, random_state=42)` cell 14 L25
-  - `def make_dpo_reversion(length)` cell 16 L30
-  - `def scan_candidates(candidates, windows, targets=('close', 'high', 'low'), feature_order=None, **eval_kwargs)` cell 19 L2
-  - `def make_ridge_composite_predict_fn(features, target, feature_order=None, alphas=(0.1, 1.0, 10.0, 100.0))` cell 22 L9
-  - `def classify_result(report, min_frac_significant=0.34, min_n_ok=5)` cell 25 L2
-  - `def run_batch_and_register(candidates, windows, targets=('close', 'high', 'low'), feature_order=None, id_prefix='SCAN', max_workers=None, registry_path=None, **eval_kwargs)` cell 25 L24
-  - `def make_matrix_profile_predict_fn(target, feature='close', feature_order=None, k=3)` cell 28 L2
-  - `def discover_shap_interaction_pairs(train, target, feature_order, top_k=5, max_depth=4, n_estimators=200, random_state=42)` cell 31 L4
-  - `def discover_ensemble_feature_ranking(train, target, feature_order, top_k=10, random_state=42)` cell 34 L4
-  - `def make_cluster_regime_predict_fn(target, feature='close', feature_order=None, algo='kmeans', n_clusters=5, min_cluster_size=None, random_state=42)` cell 38 L2
-  - `def make_cross_asset_predict_fn(feature='RET_1', feature_order=None, agg='mean')` cell 41 L2
-  - `def make_fractal_reversal_predict_fn(feature_order=None, window=5)` cell 45 L29
-  - `def run_discovery_lab_selftest()` cell 92 L2
 
 ## `signal_evaluation_axis (3).ipynb`
 - title: محور التقييم — المرحلة ٠ من مشروع اكتشاف الإشارة

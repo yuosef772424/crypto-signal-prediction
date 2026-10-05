@@ -12,8 +12,8 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `hypothesis_h003_volatility_reversal.ipynb` — H003 — انعكاس/انكماش التقلّب المدفوع بـ`NATR_14` (Volatility Reversal) (0 public defs)
 - `main.ipynb` — 🚀 دفتر `main` — تجميع المشروع (البيانات ← النموذج ← التدريب ← التقييم) (2 public defs)
 - `model_v2 (1).ipynb` — 🧠 دفتر النموذج — `NIG-TimeNet v2` (نسخة مُنظَّفة) (31 public defs)
-- `pandas_ta_full_survey.ipynb` — مسح شامل لكل مؤشرات `pandas_ta_classic` — كود اختبار + فرضيات مُولَّدة آلياً (4 public defs)
-- `signal_discovery_lab.ipynb` — مختبر بحث الإشارات (Signal Discovery Lab) (24 public defs)
+- `pandas_ta_full_survey.ipynb` — مسح شامل لكل مؤشرات `pandas_ta_classic` — كود اختبار + فرضيات مُولَّدة آلياً (0 public defs)
+- `signal_discovery_lab.ipynb` — مختبر بحث الإشارات (Signal Discovery Lab) (0 public defs)
 - `signal_evaluation_axis (3).ipynb` — محور التقييم — المرحلة ٠ من مشروع اكتشاف الإشارة (51 public defs)
 - `trainer_framework_v2.ipynb` — 🧠 إطار عمل مدرّب عام (Generic Trainer Framework) (47 public defs)
 
@@ -22,6 +22,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `tools/` — bracket_eval, build_map, check_deps, colab_bridge, evaluate_trained_model, experiment_registry, fet… | 13 modules, 0 data files (0 B) → maps/tools.md
 - `data/` — Package holding ALL data-preparation code of the project (formerly the cells of crypto_data_pipeline_v6.ipynb): `import data` gives the whole pipeline (data.CONFIG, data.build_dataset, data.split_data, ...) in this package's namespace, loa… | 29 modules, 1 data files (289 B) → maps/data.md
 - `workflow/` — Package holding the project-assembly code of main.ipynb (target-mode switching, split helpers, training batches, model/trainer bridges, section-7 evaluation reports, diagnostics, capacity controls, wiring self-test); main.ipynb stays the s… | 20 modules, 0 data files (0 B) → maps/workflow.md
+- `discovery/` — Package holding the code of the signal discovery lab (candidate predictors, evaluation core, scanner, batch runner, phase-3 tools, self-test) and of the pandas_ta full survey; the notebooks stay the runners of the lab steps. | 11 modules, 0 data files (0 B) → maps/discovery.md
 
 ## Research studies (research/)
 - `research/edge_discovery/` — التقرير النهائي — البحث عن Edge قابل للاستغلال (2024-01 → 2026-09) | 41 scripts, 33 data files (788 KB) → maps/research_edge_discovery.md

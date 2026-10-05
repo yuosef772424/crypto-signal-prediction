@@ -89,7 +89,7 @@ def take_block(lo, hi):
 
 g = {'__name__': '__main__', 'np': np, 'pd': pd}
 exec(compile(load_notebook_defs(f'{REPO}/signal_evaluation_axis (3).ipynb'), 'axis', 'exec'), g)
-exec(compile(load_notebook_defs(f'{REPO}/signal_discovery_lab.ipynb'), 'lab', 'exec'), g)
+__import__('sys').path.insert(0, REPO); __import__('discovery').load_into(g, exclude=('survey',))   # lab defs now live in discovery/ (the notebook is a runner)
 LC = ['last_high', 'last_low', 'last_close', 'timestamp', 'future_close', 'future_low_min', 'future_high_max']
 g['LAST_COLUMNS'] = LC
 evaluate_windows = g['evaluate_windows']; extract = g['extract_feature_last_value']
