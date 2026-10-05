@@ -6,7 +6,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 
 ## Root notebooks → maps/notebooks.md
 - `chicks_v4_5_input_output_patterns.ipynb` — 📓 دفتر تقييم النموذج — نسخة مُحسّنة (v4.1) (70 public defs)
-- `crypto_data_pipeline_v6.ipynb` — خط أنابيب تجهيز بيانات العملات الرقمية — دفتر موحّد (تاريخي + حيّ) (1 public defs)
+- `crypto_data_pipeline_v6.ipynb` — خط أنابيب تجهيز بيانات العملات الرقمية — دفتر موحّد (تاريخي + حيّ) (0 public defs)
 - `hypothesis_h001_short_term_reversal.ipynb` — H001 — الانعكاس قصير المدى (Short-Term Reversal) (2 public defs)
 - `hypothesis_h002_classification_head.ipynb` — H002 — رأس التصنيف الثنائي في `NIG-TimeNet v2` (1 public defs)
 - `hypothesis_h003_volatility_reversal.ipynb` — H003 — انعكاس/انكماش التقلّب المدفوع بـ`NATR_14` (Volatility Reversal) (0 public defs)
