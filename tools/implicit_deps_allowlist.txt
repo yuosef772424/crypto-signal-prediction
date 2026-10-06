@@ -101,37 +101,17 @@ forward evaluation/full_analysis.py print_trade_selection -> evaluation/trade_se
 forward evaluation/full_analysis.py select_and_rank_trades -> evaluation/trade_selection.py
 forward evaluation/patterns.py plot_clusters_2d -> evaluation/plots.py
 forward evaluation/patterns.py plot_feature_importance -> evaluation/plots.py
-forward workflow/candle_baseline.py TARGET_MODE -> workflow/wiring_selftest.py
-forward workflow/dataset_io.py os -> workflow/verification.py
 forward workflow/diagnostics.py _capacity_lines -> workflow/capacity.py
-forward workflow/selective_eval.py TARGET_MODE -> workflow/wiring_selftest.py
-forward workflow/verification.py TARGET_MODE -> workflow/wiring_selftest.py
 notebook data/binance_client.py client
 notebook discovery/selftest.py FEATURE_ORDER
 notebook discovery/survey.py CATEGORY_HYPOTHESES
 notebook discovery/survey.py DUMMY_DF
 notebook workflow/batches.py main_config
-notebook workflow/capacity.py main_config
 notebook workflow/chicks_bridge.py CHICKS_TARGETS
-notebook workflow/chicks_bridge.py LAST_CLOSE_COL
-notebook workflow/diagnostics.py main_config
-notebook workflow/generalization.py MODEL_TF
-notebook workflow/generalization.py PRICE_TARGETS
 notebook workflow/model_build.py MODEL_N_FEATURES
 notebook workflow/model_build.py MODEL_OVERRIDES
 notebook workflow/model_build.py MODEL_SEQ_LEN
-notebook workflow/permutation_control.py PRICE_TARGETS
-notebook workflow/permutation_control.py main_config
-notebook workflow/reports.py EVAL_TARGET_SPECS
-notebook workflow/reports.py PRICE_TARGETS
-notebook workflow/reports.py model
-notebook workflow/reports.py test
-notebook workflow/reports.py test_dict
-notebook workflow/selective_eval.py PRICE_TARGETS
 notebook workflow/splits.py MODEL_TF
-notebook workflow/verification.py PRICE_TARGETS
-notebook workflow/wiring_selftest.py EVAL_TARGET_SPECS
-notebook workflow/wiring_selftest.py LAST_CLOSE_COL
 dup DEFAULT_CONFIG : data/defaults.py, trainer/config.py
 dup SMALL_ARRAY_BYTES : data/disk_backed.py, data/selftests.py
 dup _auc : model/diagnostics.py, workflow/generalization.py

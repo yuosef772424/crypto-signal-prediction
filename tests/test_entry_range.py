@@ -258,13 +258,13 @@ class EntryRangeTargetTests(unittest.TestCase):
                 ns["model"] = lambda x, training=False: out
                 ok = (p["H"] > p["P"]) & (p["L"] < p["P"]) & (np.abs(p["C"] / p["P"] - 1) < 1) & (p["H"] / p["P"] < 2)
                 for t, want in (("high", p["H"]), ("low", p["L"]), ("close", p["C"])):
-                    got = ns["real_price_predictions"]("AAA", t)
+                    got = ns["real_price_predictions"](ns["model"], ns["test"], "AAA", t, "1h")
                     np.testing.assert_allclose(got[ok], want[ok], rtol=1e-6, err_msg=f"{t} {close_reg} {scale}")
                 if close_reg == "abs_return":
-                    self.assertEqual(len(ns["real_price_predictions"]("AAA", "close_up")), len(p["P"]))
+                    self.assertEqual(len(ns["real_price_predictions"](ns["model"], ns["test"], "AAA", "close_up", "1h")), len(p["P"]))
                     del out["y_close_class_logits"]
                     with self.assertRaises(ValueError):
-                        ns["real_price_predictions"]("AAA", "close")           # الاتجاه بلا رأس تصنيف: لا تخمين
+                        ns["real_price_predictions"](ns["model"], ns["test"], "AAA", "close", "1h")   # الاتجاه بلا رأس تصنيف: لا تخمين
 
     def test_collect_signals_prices_and_stamps(self):
         """collect_signals: mu بوحدة العائد، وأسعار pred_* من P، وpred_close بإشارة p_up_close، وختم التعريف."""
@@ -283,7 +283,7 @@ class EntryRangeTargetTests(unittest.TestCase):
                     out.update({f"y_{t}": y[t], f"y_{t}_nu": np.full(n, 1.5), f"y_{t}_alpha": np.full(n, 2.5),
                                 f"y_{t}_beta": np.full(n, 1e-3), f"y_{t}_class_logits": np.full(n, 0.5)})
                 out["y_close_class_logits"] = np.where(cls > 0, 0.9, 0.1)
-                df = ns["collect_signals"](None, te, "1h", outputs=out)
+                df = ns["collect_signals"](None, te, "1h", outputs=out, price_targets=("high", "low", "close"))
                 P, H, L, C = (df[k].to_numpy() for k in ("entry", "fut_high", "fut_low", "fut_close"))
                 want_h, want_l = _reachable(P, H, L)
                 np.testing.assert_allclose(df["pred_high"], want_h, rtol=1e-6)
@@ -306,7 +306,7 @@ class EntryRangeTargetTests(unittest.TestCase):
                 # p_up_close = 0.5 بالضبط ← الاتجاه صعود (≥ 0.5)
                 if close_reg == "abs_return":
                     out["y_close_class_logits"] = np.full(n, 0.5)
-                    df5 = ns["collect_signals"](None, te, "1h", outputs=out)
+                    df5 = ns["collect_signals"](None, te, "1h", outputs=out, price_targets=("high", "low", "close"))
                     np.testing.assert_array_equal(df5["pred_close"], df5["pred_close_up"])
 
     def test_chicks_decode_roundtrip(self):

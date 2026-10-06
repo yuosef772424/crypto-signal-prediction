@@ -145,8 +145,8 @@ class MainRegScaleTests(unittest.TestCase):
                         f"y_{t}_alpha": rng.uniform(2, 3, n), f"y_{t}_beta": rng.uniform(1e-4, 1e-3, n)})
         # نفس التوزيع بوحدة الهدف المضروبة: mu × s، beta × s² (عرض Student-t يتناسب مع s)
         scaled = {k: v * (100.0 if k.count("_") == 1 else 1e4 if k.endswith("_beta") else 1.0) for k, v in out.items()}
-        a = ns1["collect_signals"](None, ns1["test"], "1h", outputs=out)
-        b = ns100["collect_signals"](None, ns100["test"], "1h", outputs=scaled)
+        a = ns1["collect_signals"](None, ns1["test"], "1h", outputs=out, price_targets=ns1["PRICE_TARGETS"])
+        b = ns100["collect_signals"](None, ns100["test"], "1h", outputs=scaled, price_targets=ns100["PRICE_TARGETS"])
         for c in ("pred_high", "pred_low", "mu_close", "wst_close"):
             np.testing.assert_allclose(b[c].to_numpy(), a[c].to_numpy(), rtol=1e-9, err_msg=c)
 

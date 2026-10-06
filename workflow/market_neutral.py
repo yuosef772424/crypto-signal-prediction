@@ -234,26 +234,27 @@ def market_neutral_report(model, train_split, val_split, test_split, model_tf=No
                           quantiles=(0.05, 0.1, 0.2, 0.3), sides=_MN_SIDES, cost_pct=0.08, universe=None,
                           min_assets=20, min_per_leg=5, cost_model="turnover", n_boot=1000, seed=0,
                           baseline_gbm=True, max_train=300_000, val_assets=None, val_df=None, test_df=None,
-                          verbose=True):
+                          verbose=True, dataset=None, price_targets=None):
     """يُرجع {"model": نتائج النموذج، "gbm": نتائج خط الأساس أو None}؛ كلٌّ فيه grid وchosen وic وdeciles.
 
     universe  : None (كل العملات) | "categories" (COINS_BY_CATEGORY) | قائمة رموز — على val وtest معاً. val مدمج في
-                خط الأنابيب بلا أسماء عملات؛ تُستعاد من `dataset` (split_asset_names) أو تُمرَّر في val_assets.
+                خط الأنابيب بلا أسماء عملات؛ تُستعاد من `dataset` (المُمرَّر صراحةً، split_asset_names) أو تُمرَّر في val_assets.
     cost_pct  : تكلفة ذهاب وإياب لكل وحدة رأس مال إجمالي؛ cost_model="turnover" يدفعها على الدوران الفعلي فقط.
-    min_assets: أقل عدد عملات في الفترة ليُعتدّ بالترتيب؛ min_per_leg: أقل عدد عملات في كل طرف."""
-    model_tf = model_tf or _tfs_of()
+    min_assets: أقل عدد عملات في الفترة ليُعتدّ بالترتيب؛ min_per_leg: أقل عدد عملات في كل طرف.
+    model_tf (DatasetInfo.model_tfs) وprice_targets (ModelPlan.price_targets): صريحان؛ dataset: لاستعادة أسماء عملات val."""
+    model_tf = _required(model_tf, "model_tf")
     uni = _resolve_universe(universe)
-    val_df = val_df if val_df is not None else collect_signals(model, val_split, model_tf)
+    val_df = val_df if val_df is not None else collect_signals(model, val_split, model_tf, price_targets=price_targets)
     if (val_df["asset"] == "all").all():
-        if val_assets is None and isinstance(globals().get("dataset"), dict):
+        if val_assets is None and isinstance(dataset, dict):
             try:
-                val_assets = split_asset_names(globals()["dataset"], "val")
+                val_assets = split_asset_names(dataset, "val")
             except Exception as e:                       # بيانات بلا asset_bounds أو وضع تقسيم آخر
                 print(f"ℹ️ تعذّرت استعادة أسماء عملات val ({e})")
         if val_assets is not None and len(val_assets) == len(val_df):
             val_df = val_df.assign(asset=np.asarray(val_assets))
     val_named = not (val_df["asset"] == "all").all()
-    test_df = test_df if test_df is not None else collect_signals(model, test_split, model_tf)
+    test_df = test_df if test_df is not None else collect_signals(model, test_split, model_tf, price_targets=price_targets)
     if score not in val_df:
         raise KeyError(f"الدرجة {score!r} غير موجودة — المتاح: {[c for c in val_df if c.startswith(('p_up_', 'mu_', 'conf_'))]}")
     horizon_ns = pd.Timedelta(_tfs_of(model_tf)[0]).value * int(CONFIG.get("forecast_horizon", 1))
@@ -314,6 +315,7 @@ def market_neutral_report(model, train_split, val_split, test_split, model_tf=No
 
 
 # الاستخدام (بعد تحميل نموذج؛ الأنسب نموذج مدرَّب على TARGET_MODE="relative"):
-#   mn = market_neutral_report(model, train, val, test)
-#   mn = market_neutral_report(model, train, val, test, universe="categories")   # عملات COINS_BY_CATEGORY فقط
-#   mn = market_neutral_report(model, train, val, test, cost_pct=0.15)           # تكلفة أعلى
+#   kw = dict(model_tf=info.model_tfs, price_targets=plan.price_targets, dataset=dataset)
+#   mn = market_neutral_report(model, train, val, test, **kw)
+#   mn = market_neutral_report(model, train, val, test, universe="categories", **kw)   # عملات COINS_BY_CATEGORY فقط
+#   mn = market_neutral_report(model, train, val, test, cost_pct=0.15, **kw)           # تكلفة أعلى

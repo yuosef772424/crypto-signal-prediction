@@ -1,17 +1,18 @@
 """
 PURPOSE:  Section 7 reports on the trained model: latest trading report, real-price predictions, classification accuracy report.
 TAGS:     latest_trading_report, real_price_predictions, classification_accuracy_report, invert_reg_predictions
-PITFALLS: Read model, test_dict, EVAL_TARGET_SPECS from the notebook namespace. Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 23 (section 7).
+PITFALLS: model, test / test_dict, eval_target_specs, price_targets and model_tf are explicit arguments (RunResult / ChicksInputs / ModelPlan / DatasetInfo of workflow/run.py): no notebook global is read. Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted from main.ipynb cell 23 (section 7).
 """
-def latest_trading_report(n_display=5):
-    """تقرير 'آخر N عيّنات' لكل أصل — للتداول الحيّ، يعمل بلا أهداف حقيقية."""
+def latest_trading_report(model, test_dict, eval_target_specs, model_tf, n_display=5):
+    """تقرير 'آخر N عيّنات' لكل أصل — للتداول الحيّ، يعمل بلا أهداف حقيقية.
+    test_dict وeval_target_specs من ChicksInputs (prepare_chicks)؛ model_tf من DatasetInfo."""
     return predict_latest_all_assets(
-        model, test_dict, timeframes=_tfs_of(), target_specs=EVAL_TARGET_SPECS,
+        model, test_dict, timeframes=_tfs_of(model_tf), target_specs=eval_target_specs,
         n_display=n_display,
     )
 
 
-def real_price_predictions(asset, target):
+def real_price_predictions(model, test, asset, target, model_tf):
     """يحوّل مخرَج النموذج (عائد مباشر) لسعر حقيقي عبر invert_reg_predictions
     نفسها المستخدَمة في خط الأنابيب — مفيد حين تحتاج سعراً لا عائداً.
     ``invert_reg_predictions`` تتوقّع اسم *رأس* (مثلاً 'close_reg')، لا اسم
@@ -20,7 +21,7 @@ def real_price_predictions(asset, target):
     (اتجاه close من رأس تصنيفه؛ target='close_up'/'close_down' يعيدان الاتجاهين معاً)؛ invert_reg_predictions لا يعرف
     هذا الوضع."""
     split = test[asset]
-    x = model_x(split)
+    x = model_x(split, model_tf)
     if target_mode_of(split) == "entry_range":
         out = model(x, training=False)
         mu = {t: out[f"y_{t}"].numpy().ravel() / reg_scale_of(split, t) for t in ("high", "low", "close")
@@ -50,7 +51,7 @@ def real_price_predictions(asset, target):
                                   scale=reg_scale_of(split))
 
 
-def classification_accuracy_report():
+def classification_accuracy_report(model, test, price_targets, model_tf):
     """دقة/AUC رؤوس التصنيف الثنائي (صعود/هبوط) لكل هدف وأصل — منفصل عن
     تقرير chicks (مخصَّص للأهداف المستمرة فقط، انظر ملاحظة القسم ٦).
     y_true من خط الأنابيب بترميز +1.0/-1.0 — يُحوَّل هنا بنفس _to_unit_label
@@ -58,9 +59,9 @@ def classification_accuracy_report():
     from sklearn.metrics import accuracy_score, roc_auc_score
     rows = []
     for asset, split in test.items():
-        x = model_x(split)
+        x = model_x(split, model_tf)
         out = model(x, training=False)
-        for t in PRICE_TARGETS:
+        for t in price_targets:
             y_true = _to_unit_label(np.asarray(split["y"][f"y_{t}_class"]).ravel())
             y_prob = out[f"y_{t}_class_logits"].numpy().ravel()
             y_pred = (y_prob >= 0.5).astype("float32")

@@ -16,9 +16,13 @@ def _to_unit_label(y):
     return (np.asarray(y) > 0).astype("float32")
 
 
-def _y_for(split):
+def _y_for(split, config=None):
+    """y لقسم بمفاتيح الهدف التي يتوقّعها المدرّب (config["targets"][*]["true_key"])، وتصنيفها بترميز {0,1}.
+    config: إعداد المدرّب (main_config)؛ None = main_config من نطاق الدفتر."""
+    if config is None:
+        config = main_config
     y = {}
-    for cfg in main_config["targets"].values():
+    for cfg in config["targets"].values():
         v = split["y"][cfg["true_key"]]
         y[cfg["true_key"]] = _to_unit_label(v) if cfg["task_type"] == "classification" else v
     return y

@@ -23,10 +23,10 @@ def _permuted_rows(n, days, mode, rng):
     raise ValueError("mode: 'global' | 'within_day'")
 
 
-def _train_control_run(run_dir, X, y, val_split, epochs, seed, verbose):
+def _train_control_run(run_dir, X, y, val_split, epochs, seed, verbose, config, model_builder, model_tf):
     import tensorflow as tf
     tf.keras.utils.set_random_seed(seed)                      # نفس الأوزان الابتدائية للتشغيلين
-    cfg = copy.deepcopy(main_config)
+    cfg = copy.deepcopy(config)
     # train_mode="auto": يستأنف من آخر حقبة محفوظة في run_dir على Drive إن وُجدت، وإلا يبدأ من جديد.
     # بلا mirror_dir كي لا تُستعاد نسخة التدريب الأساسي في هذا المجلد.
     cfg["run"].update({"run_dir": run_dir, "mirror_dir": None, "epochs": epochs, "train_mode": "auto"})
@@ -53,7 +53,7 @@ def _train_control_run(run_dir, X, y, val_split, epochs, seed, verbose):
         with open(hist_path, "w", encoding="utf-8") as f:
             json.dump(history, f)
 
-    val_ds = make_eval_dataset(model_x(val_split), _y_for(val_split), bs)
+    val_ds = make_eval_dataset(model_x(val_split, model_tf), _y_for(val_split, config), bs)
     trainer.fit(train_ds, validation_data=val_ds, initial_epoch=initial_epoch, epochs=epochs, verbose=verbose,
                 callbacks=callbacks + [tf.keras.callbacks.LambdaCallback(on_epoch_end=_log_epoch)])
     return trainer.model, history
@@ -62,7 +62,8 @@ def _train_control_run(run_dir, X, y, val_split, epochs, seed, verbose):
 def run_label_permutation_control(train_split, val_split, test_split, epochs=6, mode="global",
                                   max_train_samples=None, seed=0, n_boot=500,
                                   run_root="/content/drive/MyDrive/training_runs/permutation_control",
-                                  run_tag=None, leak_min_acc=0.01, verbose=1):
+                                  run_tag=None, leak_min_acc=0.01, verbose=1, config=None, model_builder=None,
+                                  model_tf=None, price_targets=None):
     """يدرّب real وshuffled بنفس الإعداد ويُرجع {"summary", "history_real", "history_shuffled", "model_real",
     "model_shuffled"} — model_real يصلح مباشرة لـ candle_baseline_report / run_full_verification.
 
@@ -70,14 +71,20 @@ def run_label_permutation_control(train_split, val_split, test_split, epochs=6, 
     run_tag: اسم المجلد تحت run_root. الافتراضي يُشتقّ من الحقب والعيّنة والبذرة وبصمة البيانات، فإعادة الاستدعاء
              بنفس الإعداد تستأنف من Drive: ما اكتمل يُحمَّل بلا تدريب، وما انقطع يكمل من آخر حقبة محفوظة.
              real مشترك بين global وwithin_day (نفس النموذج تماماً)، فلا يُدرَّب مرتين.
+    config: إعداد المدرّب (main_config من make_training_config)؛ model_builder: دالة بلا وسائط تبني النموذج (build_model)؛
+    model_tf وprice_targets: DatasetInfo.model_tfs / ModelPlan.price_targets — كلها صريحة، لا تُقرأ من نطاق الدفتر.
     الزمن ≈ 2 × epochs × زمن الحقبة الواحدة في تدريبك العادي."""
+    config = _required(config, "config")
+    model_builder = _required(model_builder, "model_builder")
+    model_tf = _required(model_tf, "model_tf")
+    price_targets = _required(price_targets, "price_targets")
     missing = [n for n in ("_concat_splits", "_LC", "_day_bootstrap_mean") if n not in globals()]
     if missing:   # يُفحص قبل أي تدريب، لا بعد انتهائه
         raise NameError(f"شغّل أولاً خليتي تعريف القسمين ٧-ب و٧-د — ينقص: {missing}")
     rng = np.random.default_rng(seed)
-    X_full = model_x(train_split)                 # مصفوفة، أو قاموس {فريم: مصفوفة} لنموذج متعدّد الفريمات
-    n_full = len(y_full_first := next(iter(_y_for(train_split).values())))
-    y_full = _y_for(train_split)
+    X_full = model_x(train_split, model_tf)       # مصفوفة، أو قاموس {فريم: مصفوفة} لنموذج متعدّد الفريمات
+    n_full = len(y_full_first := next(iter(_y_for(train_split, config).values())))
+    y_full = _y_for(train_split, config)
     days_full = np.asarray(train_split["last_candles"])[:, _LC["timestamp"]]
     _rows = lambda X_, idx: {k: v[idx] for k, v in X_.items()} if isinstance(X_, dict) else X_[idx]
     if max_train_samples and max_train_samples < n_full:
@@ -98,17 +105,18 @@ def run_label_permutation_control(train_split, val_split, test_split, epochs=6, 
     runs = {}
     for tag, yy in (("real", y), (f"shuffled_{mode}", y_shuf)):
         print(f"\n{'═' * 80}\n🔀 تشغيل {tag}: {len(days):,} عيّنة، {epochs} حقب\n{'═' * 80}")
-        runs[tag] = _train_control_run(f"{run_root}/{run_tag}/{tag}", X, yy, val_split, epochs, seed, verbose)
+        runs[tag] = _train_control_run(f"{run_root}/{run_tag}/{tag}", X, yy, val_split, epochs, seed, verbose,
+                                       config, model_builder, model_tf)
     (m_real, h_real), (m_shuf, h_shuf) = runs["real"], runs[f"shuffled_{mode}"]
 
     # ── المقارنة على test عيّنة بعيّنة ──
-    te, _ = _concat_splits(test_split, _tfs_of())
-    Xte = model_x(te)
+    te, _ = _concat_splits(test_split, model_tf)
+    Xte = model_x(te, model_tf)
     out_r = m_real.predict(Xte, batch_size=1024, verbose=0)
     out_s = m_shuf.predict(Xte, batch_size=1024, verbose=0)
     days_te = np.asarray(te["last_candles"])[:, _LC["timestamp"]]
     rows = []
-    for t in PRICE_TARGETS:
+    for t in price_targets:
         if f"y_{t}_class" in te["y"] and f"y_{t}_class_logits" in out_r:
             yt = (np.asarray(te["y"][f"y_{t}_class"]).ravel() > 0).astype(int)
             maj = int(np.mean(np.asarray(y[f"y_{t}_class"]).ravel() >= 0.5) >= 0.5)   # فئة train الأكبر
@@ -182,6 +190,7 @@ def run_label_permutation_control(train_split, val_split, test_split, epochs=6, 
 
 # الاستخدام: استدعاء واحد في كل خلية جديدة (لا تُزِل التعليق عن الأسطر الثلاثة معاً — كل سطر تجربة كاملة).
 # كل تدريب ≈ epochs × زمن حقبة. أوقفته؟ أعد نفس الاستدعاء فيكمل من Drive. real يُدرَّب مرة واحدة لكل إعداد.
-#   ctrl = run_label_permutation_control(train, val, test, epochs=6)                  # كامل البيانات
-#   ctrl = run_label_permutation_control(train, val, test, epochs=6, max_train_samples=100_000)  # أسرع
-#   ctrl_day = run_label_permutation_control(train, val, test, epochs=6, mode="within_day")
+#   kw = dict(config=main_config, model_builder=model_builder, model_tf=info.model_tfs, price_targets=plan.price_targets)
+#   ctrl = run_label_permutation_control(train, val, test, epochs=6, **kw)                  # كامل البيانات
+#   ctrl = run_label_permutation_control(train, val, test, epochs=6, max_train_samples=100_000, **kw)  # أسرع
+#   ctrl_day = run_label_permutation_control(train, val, test, epochs=6, mode="within_day", **kw)

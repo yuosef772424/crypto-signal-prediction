@@ -3,6 +3,14 @@ PURPOSE:  Helpers over train/val/test splits: model input (single or multi-timef
 TAGS:     model_x, _tfs_of, MODEL_TFS, multi timeframe input, reg_scale_of, target_mode_of, entry_close_reg_of, split stamps
 PITFALLS: _tfs_of reads MODEL_TFS/MODEL_TF from the notebook namespace at call time. reg_scale_of(split, target) prefers the per-target stamp reg_target_scales (entry_range close with range_pos is unscaled). Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 8 (section 3).
 """
+def _required(value, name):
+    """وسيط صريح بلا قيمة افتراضية: None = نسيه المستدعي (لا يُقرأ أي متغيّر من نطاق الدفتر — القيمة من الإعدادات/الخطوات)."""
+    if value is None:
+        raise ValueError(f"{name} مطلوب صراحةً (لا قيمة افتراضية من نطاق الدفتر) — مثلاً DatasetInfo.model_tfs / ModelPlan.price_targets "
+                         "من workflow/run.py")
+    return value
+
+
 def _tfs_of(model_tf=None):
     """فريمات مُدخل النموذج كقائمة: model_tf اسم فريم، أو قائمة، أو None = MODEL_TFS (وإلا [MODEL_TF])."""
     if model_tf is None:

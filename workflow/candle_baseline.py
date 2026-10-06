@@ -59,7 +59,7 @@ def candle_baseline_report(model, train_split, val_split, test_split, model_tf=N
                            targets=("high", "low"), max_train=300_000, n_boot=300, seed=0,
                            batch_size=1024, min_auc_gain=0.005, verbose=True):
     """يقارن رأسَي التصنيف high/low في النموذج بخطوط أساس من شكل الشمعة. يُرجع جدولاً وحكماً لكل هدف."""
-    model_tf = model_tf or _tfs_of()
+    model_tf = _required(model_tf, "model_tf")
     base_tf = _tfs_of(model_tf)[0]        # خط أساس آخر خطوة (laststep_gbm) على الفريم الأساسي وحده
     tr, tr_split = _candle_frame(train_split, model_tf)
     va, va_split = _candle_frame(val_split, model_tf)
@@ -134,10 +134,10 @@ def candle_baseline_report(model, train_split, val_split, test_split, model_tf=N
     table = pd.DataFrame(rows)
     if verbose:
         print("\n🕯️ رأسا high/low مقابل خطوط أساس من شكل الشمعة (كل خطوط الأساس دُرِّبت على train فقط)")
-        if globals().get("TARGET_MODE") in (None, "return"):
+        if target_mode_of(test_split) in (None, "return"):
             print(f"   فحص تعريف الهدف من الأسعار الخام — val: {va.attrs['label_check']} | test: {te.attrs['label_check']}")
         else:   # أهداف القسم ٣-ب لا تساوي «السعر المستقبلي > آخر سعر» بالتعريف — المطابقة الجزئية متوقَّعة
-            print(f"   (فحص تعريف الهدف من الأسعار الخام متخطّى: TARGET_MODE={TARGET_MODE!r})")
+            print(f"   (فحص تعريف الهدف من الأسعار الخام متخطّى: TARGET_MODE={target_mode_of(test_split)!r})")
         with pd.option_context("display.float_format", "{:.4f}".format, "display.width", 200):
             print(table.pivot_table(index=["target", "score"], columns="split",
                                     values=["auc", "accuracy"]).round(4).to_string())

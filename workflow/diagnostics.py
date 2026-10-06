@@ -11,7 +11,7 @@ def _diag_xy(split_or_dict, model_tf=None, max_n=2000, seed=0):
     """(X, y) من قسم أو قاموس عملات، مأخوذَين بعيّنة max_n **قبل** الضمّ (لا نسخ كامل لـ X): X مصفوفة (فريم واحد) أو {فريم: مصفوفة}؛
     y بمفاتيح خط الأنابيب كما هي (y_{t}_class بترميزه الخام: الدوال تقرأ >0)."""
     parts = _split_parts(split_or_dict)
-    tfs = _tfs_of(model_tf)
+    tfs = _tfs_of(_required(model_tf, "model_tf"))
     lens = [len(np.asarray(s["y"][next(iter(s["y"]))])) for _, s in parts]
     total = int(sum(lens))
     pick = np.arange(total) if total <= max_n else np.sort(np.random.default_rng(seed).choice(total, max_n, replace=False))
@@ -23,38 +23,43 @@ def _diag_xy(split_or_dict, model_tf=None, max_n=2000, seed=0):
     return (X[tfs[0]] if len(tfs) == 1 else X), y
 
 
-def _diag_feature_names(model_tf=None):
-    ds = globals().get("dataset")
-    names = list(ds["feature_order"]) if isinstance(ds, dict) and "feature_order" in ds else None
+def _diag_feature_names(feature_names, model_tf):
+    """أسماء الميزات للتقارير (dataset["feature_order"]): قائمة، وقاموس {فريم: قائمة} لأكثر من فريم؛ None = أسماء رقمية."""
+    names = list(feature_names) if feature_names else None
     return {tf: names for tf in _tfs_of(model_tf)} if names and len(_tfs_of(model_tf)) > 1 else names
 
 
 def make_training_diagnostics(train_split, val_split, batch_size=None, seed=0, probe_size=256, cartography_size=2000,
-                              with_timestamps=True, **kw):
+                              with_timestamps=True, config=None, model_tf=None, **kw):
     """يبني (diag, train_ds): مسجّل TrainingDiagnostics (trainer_framework_v2 §6.5) + dataset التدريب نفسه مغلَّفاً بـ diag.tap وبمفتاح
     فهرس العيّنة. probe = عيّنة ثابتة من val، وخريطة البيانات على عيّنة ثابتة من train. kw: بقية خيارات TrainingDiagnostics
     (grad_every, influence_every, influence_scope, report_fn, …)؛ اسم خاطئ ← TypeError.
-    train_ds يطابق dataset القسم ٥ تماماً (نفس الدفعات والترتيب)، فلا يتغيّر التدريب."""
-    bs = batch_size or main_config["run"]["batch_size"]
-    Xtr, ytr = model_x(train_split), with_sample_index(_y_for(train_split))
+    train_ds يطابق dataset القسم ٥ تماماً (نفس الدفعات والترتيب)، فلا يتغيّر التدريب.
+    config: إعداد المدرّب (main_config)، وmodel_tf: DatasetInfo.model_tfs — صريحان."""
+    config = _required(config, "config")
+    model_tf = _required(model_tf, "model_tf")
+    bs = batch_size or config["run"]["batch_size"]
+    Xtr, ytr = model_x(train_split, model_tf), with_sample_index(_y_for(train_split, config))
     meta = None
     if with_timestamps and "last_candles" in train_split:
         meta = pd.DataFrame({"timestamp": np.asarray(train_split["last_candles"])[:, LAST_COLUMNS.index("timestamp")]})
-    diag = TrainingDiagnostics(probe=(model_x(val_split), _y_for(val_split)), probe_size=probe_size, cartography=(Xtr, ytr),
+    diag = TrainingDiagnostics(probe=(model_x(val_split, model_tf), _y_for(val_split, config)), probe_size=probe_size, cartography=(Xtr, ytr),
                                cartography_size=cartography_size, sample_meta=meta, seed=seed, **kw)
     return diag, diag.tap(make_shuffled_dataset(Xtr, ytr, bs, seed=seed))
 
 
 def model_health_report(model, train_split, val_split, recorder=None, model_tf=None, max_n=512, sections=None,
-                        sensitivity="grad_x_input", thresholds=None, capacity=None, with_capacity=True, verbose=True):
+                        sensitivity="grad_x_input", thresholds=None, capacity=None, with_capacity=True, verbose=True,
+                        feature_names=None):
     """تقرير صحّة النموذج في استدعاء واحد: diagnose_model على عيّنة من val (+ من train للمقارنة بالتنشيطات) → جدول حكم ✅/⚠️/🚨
     بسبب وإجراء مقترح لكل بند. recorder (TrainingDiagnostics) يُضيف بنود التدريب: هيمنة الرؤوس، تضارب التدرّجات، تلاشي/انفجار الطبقات،
     نسبة التحديث، قفزات الخسارة، تأثير الدفعات، وخريطة البيانات.
     with_capacity: يضيف بند «سعة مقابل عيّنات فعّالة» (العيّنات الفعّالة + المرجع الخطّي بلا تدريب) يفصل «إخفاق إعداد (سعة)» عن «لا إشارة»؛
-    capacity={'sweep','curve',...} من capacity_report يُدخل نتائج المسح/المنحنى في الحكم. يُرجع {'verdicts', 'diagnosis', 'recorder', 'capacity'}."""
+    capacity={'sweep','curve',...} من capacity_report يُدخل نتائج المسح/المنحنى في الحكم. يُرجع {'verdicts', 'diagnosis', 'recorder', 'capacity'}.
+    feature_names: dataset["feature_order"] (أسماء الميزات في التقرير)؛ model_tf: DatasetInfo.model_tfs — صريحان."""
     Xv, yv = _diag_xy(val_split, model_tf, max_n)
     rep = diagnose_model(model, Xv, yv, sections=sections or DIAG_SECTIONS, max_n=max_n, sensitivity=sensitivity,
-                         feature_names=_diag_feature_names(model_tf))
+                         feature_names=_diag_feature_names(feature_names, model_tf))
     v = model_health_verdicts(rep, recorder.stats() if recorder is not None else None, thresholds)
     cap_lines = []
     if with_capacity or capacity:

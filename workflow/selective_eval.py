@@ -24,9 +24,10 @@ def _concat_splits(split_or_dict, model_tf):
     return merged, assets
 
 
-def collect_signals(model, split_or_dict, model_tf, batch_size=1024, outputs=None):
+def collect_signals(model, split_or_dict, model_tf, batch_size=1024, outputs=None, price_targets=None):
     """مخرجات النموذج + الحقيقة الفعلية للشمعة التالية في DataFrame واحد (صف لكل عيّنة).
-    ``outputs``: مخرجات جاهزة (dict) بدل استدعاء النموذج — للاختبار فقط."""
+    ``outputs``: مخرجات جاهزة (dict) بدل استدعاء النموذج — للاختبار فقط. ``price_targets``: الأهداف المفعّلة (ModelPlan.price_targets)."""
+    price_targets = _required(price_targets, "price_targets")
     split, assets = _concat_splits(split_or_dict, model_tf)
     if outputs is None:
         outputs = model.predict(model_x(split, model_tf), batch_size=batch_size, verbose=0)
@@ -41,7 +42,7 @@ def collect_signals(model, split_or_dict, model_tf, batch_size=1024, outputs=Non
         "fut_close": lc[:, _LC["future_close"]],
         "fut_high": lc[:, _LC["future_high_max"]], "fut_low": lc[:, _LC["future_low_min"]],
     })
-    for t in PRICE_TARGETS:
+    for t in price_targets:
         if f"y_{t}" not in o:
             continue
         nu, alpha, beta = o[f"y_{t}_nu"], o[f"y_{t}_alpha"], o[f"y_{t}_beta"]
@@ -71,7 +72,7 @@ def collect_signals(model, split_or_dict, model_tf, batch_size=1024, outputs=Non
     df["target_mode"] = mode or "return"   # ختم الوضع: مستهلكو ملف الإشارات (report.train_labels) لا يخمّنونه
     if mode == "entry_range":
         # تسميات التدريب نفسها — report.summarize يقيس AUC عليها
-        for t in PRICE_TARGETS:
+        for t in price_targets:
             if f"y_{t}_class" in split["y"]:
                 df[f"y_{t}_class"] = (np.asarray(split["y"][f"y_{t}_class"]).ravel() > 0).astype(int)
     return df
@@ -273,15 +274,17 @@ def rr_trading_report(val_df, test_df, rr=2.0, stop_mode="nig", stop_k=1.0, cost
 
 
 def selective_evaluation(model=None, val_split=None, test_split=None, model_tf=None, target_acc=0.65,
-                         rr=2.0, stop_mode="nig", min_n=200, val_df=None, test_df=None, verbose=True):
+                         rr=2.0, stop_mode="nig", min_n=200, val_df=None, test_df=None, verbose=True, price_targets=None):
     """نقطة دخول واحدة: يجمع إشارات val/test ثم يُخرج التقريرين. مرّر val_df/test_df جاهزين لتفادي
-    إعادة التنبؤ عند تجربة إعدادات صفقات مختلفة."""
-    if globals().get("TARGET_MODE") not in (None, "return"):   # القسم ٣-ب
-        print(f"⏭️ ٧-ب يفترض أهداف 'return' (اتجاه وصفقات بأسعار حقيقية) — تخطٍّ مع TARGET_MODE={TARGET_MODE!r}")
+    إعادة التنبؤ عند تجربة إعدادات صفقات مختلفة. وضع الهدف من ختم test (أو من عمود target_mode في test_df)."""
+    mode = (target_mode_of(test_split) if test_split is not None
+            else (test_df["target_mode"].iloc[0] if test_df is not None and len(test_df) else None))
+    if mode not in (None, "return"):   # القسم ٣-ب
+        print(f"⏭️ ٧-ب يفترض أهداف 'return' (اتجاه وصفقات بأسعار حقيقية) — تخطٍّ مع TARGET_MODE={mode!r}")
         return None
-    model_tf = model_tf or _tfs_of()
-    val_df = val_df if val_df is not None else collect_signals(model, val_split, model_tf)
-    test_df = test_df if test_df is not None else collect_signals(model, test_split, model_tf)
+    model_tf = _required(model_tf, "model_tf")
+    val_df = val_df if val_df is not None else collect_signals(model, val_split, model_tf, price_targets=price_targets)
+    test_df = test_df if test_df is not None else collect_signals(model, test_split, model_tf, price_targets=price_targets)
     return {
         "val_df": val_df, "test_df": test_df,
         "direction": selective_direction_report(val_df, test_df, target_acc=target_acc, min_n=min_n,

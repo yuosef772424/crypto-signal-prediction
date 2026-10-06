@@ -131,7 +131,7 @@ class RunnerNotebookTests(unittest.TestCase):
 
     def test_main_loads_every_workflow_module_in_package_order(self):
         loads = _load_lines("main.ipynb")
-        self.assertEqual({m for _, mods in loads for m in mods} | {"panel_bridge"}, set(workflow_loader.MODULES))
+        self.assertEqual({m for _, mods in loads for m in mods} | {"panel_bridge", "settings", "run"}, set(workflow_loader.MODULES))
         seen = []
         for _, mods in loads:
             for m in mods:

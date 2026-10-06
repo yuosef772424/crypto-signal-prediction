@@ -145,7 +145,7 @@ def _rebuild(parts, new_y, keep, mode, scale=1.0, scales=None, stamps=None):
 
 def retarget_splits(train_split, val_split, test_split, mode="return", targets=None, clip=None,
                     center="median", group_freq=None, min_group=5, drop_small_groups=False, close_reg=None,
-                    verbose=True):
+                    verbose=True, reg_target_scale=None, price_targets=None):
     """يُرجع (train, val, test) جديدة بأهداف الوضع المطلوب. الأصلية لا تُعدَّل.
 
     clip            : حدّ قصّ هدف الانحدار (±). الافتراضي 10 لـ scaled و1 لغيره — نفس خط الأنابيب.
@@ -153,12 +153,19 @@ def retarget_splits(train_split, val_split, test_split, mode="return", targets=N
                       طوابع العملات تماماً (stride على فريم الساعة قد يُزيح بدايات العملات).
     min_group       : أقل عدد عملات في الطابع الزمني ليكون «متوسط السوق» ذا معنى (+relative).
     drop_small_groups: True يحذف عيّنات المجموعات الأصغر من min_group (ينسخ X — ذاكرة إضافية).
-    close_reg       : تعريف انحدار close في entry_range: "abs_return" | "range_pos". None = ENTRY_CLOSE_REG."""
+    close_reg       : تعريف انحدار close في entry_range: "abs_return" | "range_pos". None = ENTRY_CLOSE_REG.
+    reg_target_scale: مقياس أهداف الانحدار من البيانات (DatasetInfo.reg_target_scale؛ يُضرب فيه بعد القصّ لأوضاع وحدة العائد).
+                      None = REG_TARGET_SCALE من نطاق الدفتر (وإلا 1.0).
+    price_targets   : الأهداف المفعّلة (ModelPlan.price_targets) حين يكون بعضها معلّقاً؛ None = PRICE_TARGETS من نطاق الدفتر
+                      (وإلا أهداف CONFIG)."""
     base, cross = _parse_mode(mode)
     clip = _DEFAULT_CLIP.get(base, 1.0) if clip is None else clip
-    scale = float(globals().get("REG_TARGET_SCALE", 1.0)) if base in _RETURN_UNIT_BASES else 1.0
+    if reg_target_scale is None:
+        reg_target_scale = globals().get("REG_TARGET_SCALE", 1.0)
+    scale = float(reg_target_scale) if base in _RETURN_UNIT_BASES else 1.0
     first = _split_parts(train_split)[0][1]
-    known = globals().get("PRICE_TARGETS") or list(CONFIG.get("targets", ("high", "low", "close")))   # القسم ٤ يأتي بعد هذه الخلية
+    known = (price_targets or globals().get("PRICE_TARGETS")
+             or list(CONFIG.get("targets", ("high", "low", "close"))))   # القسم ٤ يأتي بعد هذه الخلية
     if base == "entry_range" and not targets:
         # كل أهداف y لا المفعّلة فقط: إعادة تشغيل الخلية بعد القسم ٤ (close معلّق) كانت ستُبقي y_close بوضع سابق
         # تحت ختم entry_range؛ إلغاء التعليق لاحقاً يجده جاهزاً بمعناه الجديد

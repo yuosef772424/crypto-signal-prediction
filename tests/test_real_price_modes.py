@@ -47,7 +47,7 @@ class RealPricePredictionsModes(unittest.TestCase):
                 ok = np.abs(y) < 9.999                                   # clipped samples cannot round-trip
                 self.assertGreater(ok.sum(), 0)
                 want = split["last_candles"][:, cols.index(fut)]
-                got = ns["real_price_predictions"]("AAA", t)
+                got = ns["real_price_predictions"](ns["model"], ns["test"], "AAA", t, "1h")
                 np.testing.assert_allclose(got[ok], want[ok], rtol=1e-5, err_msg=f"{t} scale={scale}")
                 # teeth: the generic same-kind-return inversion (what ran before) gets scaled targets wrong
                 wrong = ns["invert_reg_predictions"](y, f"{t}_reg", last_candles=split["last_candles"],
@@ -61,13 +61,13 @@ class RealPricePredictionsModes(unittest.TestCase):
             y = np.asarray(split["y"][f"y_{t}_reg"], dtype="float64")
             ok = np.abs(y) < 0.999                                       # return targets are clipped at +-1
             want = split["last_candles"][:, cols.index(fut)]
-            np.testing.assert_allclose(ns["real_price_predictions"]("AAA", t)[ok], want[ok], rtol=1e-5, err_msg=t)
+            np.testing.assert_allclose(ns["real_price_predictions"](ns["model"], ns["test"], "AAA", t, "1h")[ok], want[ok], rtol=1e-5, err_msg=t)
 
     def test_unsupported_modes_raise_instead_of_a_wrong_price(self):
         for mode in ("return_close", "magnitude", "relative"):
             ns, _ = _with_mode(1.0, mode)
             with self.assertRaises(ValueError, msg=mode):
-                ns["real_price_predictions"]("AAA", "close")
+                ns["real_price_predictions"](ns["model"], ns["test"], "AAA", "close", "1h")
 
 
 if __name__ == "__main__":
