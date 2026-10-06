@@ -96,9 +96,11 @@ def split_fp(split):
     return out
 
 
-def close(a, b, path="", rtol=1e-6):
+def close(a, b, path="", rtol=1e-4):
     """Recursive comparison of two fingerprint trees: numbers with a relative tolerance, everything else exactly. Returns a list of
-    human-readable differences (empty = equal)."""
+    human-readable differences (empty = equal). rtol=1e-4: the 4h features of the two-timeframe fixture differ by ~3e-6 (relative,
+    sums of float32 arrays) between the recording machine and GitHub's CI runners for the same code; a change of logic moves a
+    sum by far more."""
     diffs = []
     if isinstance(a, dict) and isinstance(b, dict):
         for k in sorted(set(a) | set(b), key=str):

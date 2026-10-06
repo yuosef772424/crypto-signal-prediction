@@ -6,7 +6,7 @@
 ### `tests/__init__.py` (0 lines)
 - PURPOSE: (no card)
 
-### `tests/run_fixture.py` (172 lines)
+### `tests/run_fixture.py` (174 lines)
 - PURPOSE: Synthetic pipeline datasets (single 1h timeframe, and 1h + 4h) built by the real data pipeline from seeded OHLCV, plus fingerprints of splits/configs; the shared fixture of the main-wiring equivalence tests (RunSettings / workflow.run).
 - TAGS: run fixture, synthetic dataset, golden, fingerprint, runsettings, main wiring, tests
 - PITFALLS: Fingerprints are (shape, dtype, sum, sum of squares) compared with a relative tolerance, never byte hashes: the pipeline's float64 exp/log differ in the last bits between CPUs (PHILOSOPHY 2.1), while any change of logic moves a sum by far more. The recorded values in tests/golden_run_settings.json were taken from the code before RunSettings existed (main.ipynb cells executed in order, commit 1b1b…
@@ -17,10 +17,10 @@
   - `def run_namespace()` L70
   - `def arr_fp(a)` L81
   - `def split_fp(split)` L88
-  - `def close(a, b, path='', rtol=1e-06)` L99
-  - `def jsonable(x)` L123
-  - `def model_fp(model)` L139
-  - `def capture_state(*, config, model_tf, model_tfs, reg_target_scale, train, val, test, price_targets, suspended_targets, model_overrides, model_seq_len, model_n_features, model, main_config, val_batch, chicks_targets,…` L146
+  - `def close(a, b, path='', rtol=0.0001)` L99
+  - `def jsonable(x)` L125
+  - `def model_fp(model)` L141
+  - `def capture_state(*, config, model_tf, model_tfs, reg_target_scale, train, val, test, price_targets, suspended_targets, model_overrides, model_seq_len, model_n_features, model, main_config, val_batch, chicks_targets,…` L148
 
 ### `tests/test_audit_round2.py` (286 lines)
 - PURPOSE: إصلاحات تدقيق الجولة ٢ (docs/research/audit/r2_01..07) — كل اختبار يفشل على الكود قبل الإصلاح. (from docstring)
