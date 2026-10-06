@@ -2,13 +2,118 @@
 
 توثيق مسار اكتشاف الإشارات، مقسَّم بحسب الموضوع بدل ملف واحد متضخّم — كل ملف يقابل مرحلة أو فرضية محدَّدة، وأي واحد منها قد يعتمد على الذي قبله. راجع أيضاً [خطة المشروع البحثي الكاملة](../../خطة%20نظام%20اكتشاف%20الإشارة%20—%20مشروع%20توقع%20اتجاه%20العملات.md) للمنهجية والدوافع.
 
+## أين كود خط الأنابيب (`crypto_data_pipeline_v6`)
+
+كل كود تجهيز البيانات نُقل حرفياً من خلايا `crypto_data_pipeline_v6.ipynb` إلى الحزمة [`data/`](../../data/) (الدفتر صار مُشغِّلاً رفيعاً
+يحمّلها في نطاقه بـ`data.load_into(globals())`؛ الأسماء المتاحة بعد `%run` هي نفسها). الوثائق المسجَّلة قبل النقل تشير إلى «الخلية N» أو
+«القسم N» من الدفتر القديم؛ هذا جدول التحويل (أرقام الخلايا في الدفتر قبل النقل → الوحدة؛ الخريطة الحالية في [`maps/data.md`](../../maps/data.md)):
+
+| الخلية (قبل النقل) | الوحدة | الخلية | الوحدة |
+|---|---|---|---|
+| 4 (استيرادات) | `data/common.py` | 36 (القسم 15، `build_dataset`) | `data/pipeline.py` |
+| 7 (Drive) | `data/drive.py` | 38 (15-ب، تطبيع مقطعي) | `data/cross_sectional_norm.py` |
+| 9 (`DEFAULT_CONFIG`) | `data/defaults.py` | 40 (التقسيم) | `data/split.py` |
+| 11 (`CONFIG`) | `data/runtime.py` | 42 (Binance) | `data/binance_client.py` |
+| 14 (الرؤوس) | `data/heads.py` | 44 (التمويل/OI + المرحلة ٢) | `data/funding_oi.py`، `data/phase2.py` |
+| 16 (مخصّصة) | `data/custom.py` | 46 (الحيّ) | `data/live.py` |
+| 18 (الميزات) | `data/features.py` | 48 (الحفظ/التحميل) | `data/storage.py` |
+| 20 (التطبيع، `FEATURE_KINDS`) | `data/normalize.py` | 51 (19-ب، الاختبارات الذاتية) | `data/selftests.py` |
+| 22 (المحاذاة) | `data/align.py` | 54 (`default_workers` مكرَّرة) | `data/parallel.py` |
+| 24 (النوافذ) | `data/windows.py` | 59 / 61 / 63 / 65 (20-ب / 20-ج / اختبارها / 20-د) | `data/presets.py` |
+| 26 (التشخيص) | `data/diagnostics.py` | 33 (السياق السوقي) | `data/market_context.py` |
+| 28 (التوازي) | `data/parallel.py` | 34 (رتبة الزخم المقطعية) | `data/cross_sectional_features.py` |
+| 30 (المصادر) | `data/sources.py` | 35 (نقاط الاستئناف + بناء مدعوم بالقرص) | `data/checkpoints.py`، `data/disk_backed.py` |
+
+للتعديل: غيّر ملف الوحدة في `data/` (لا الدفتر)، وراجع `CLAUDE.md` (تعديل لا يغيّر السلوك الافتراضي، واختبارات `tests/`).
+
+## أين كود النموذج والمدرّب (`model_v2` و`trainer_framework_v2`)
+
+كود النموذج نُقل حرفياً من خلايا `model_v2 (1).ipynb` إلى الحزمة [`model/`](../../model/)، وكود المدرّب العام من خلايا `trainer_framework_v2.ipynb`
+إلى الحزمة [`trainer/`](../../trainer/) (الدفتران صارا مُشغِّلَين رفيعين يحمّلان حزمتيهما في نطاقهما بـ`model.load_into(globals())` /
+`trainer.load_into(globals())`؛ الأسماء المتاحة بعد `%run` هي نفسها، وكل ما كان يعمل عند التحميل — الاختبار الذاتي للنموذج، واختبارات المدرّب
+الذاتية واختبار الدخان (Smoke Test) — يعمل كما كان). الوثائق المسجَّلة قبل النقل تشير إلى «الخلية N» أو «§N» من الدفتر القديم؛ هذا جدول
+التحويل (أرقام الخلايا 0-based في الدفتر قبل النقل → الوحدة؛ الخريطة الحالية في [`maps/model.md`](../../maps/model.md) و[`maps/trainer.md`](../../maps/trainer.md)):
+
+| `model_v2 (1).ipynb` الخلية | الوحدة | `trainer_framework_v2.ipynb` الخلية | الوحدة |
+|---|---|---|---|
+| 1 (استيرادات، `register`) | `model/common.py` | 3 (§1 استيرادات، `IN_COLAB`، `atomic_write_json`) | `trainer/env.py` |
+| 3 (§1 `InstanceNorm`، `SymLog`) | `model/input_norm.py` | 5 (§1.1 GPU وmixed precision) | `trainer/perf.py` |
+| 5 (§2 تفكيك سببي) | `model/decomposition.py` | 7 (§2 `DEFAULT_CONFIG`، `build_config`) | `trainer/config.py` |
+| 7 (§3 رُقَع) | `model/patches.py` | 10 (§3 سجلّ الخسائر) | `trainer/tasks.py` |
+| 9 (§4 كتلة المحوّل) | `model/transformer.py` | 12 (§4 `UncertaintyWeightedLoss`) | `trainer/task_weighting.py` |
+| 11 (§5 القراءة) | `model/readout.py` | 14 (§5 `GenericTrainer`) | `trainer/trainer.py` |
+| 13 (§6 طبقات NIG) | `model/nig_layers.py` | 16 (§6.1 جدولة) | `trainer/schedules.py` |
+| 15 (§7 `HEAD_REGISTRY`) | `model/heads.py` | 17 (§6.2 `BestModelTracker`) | `trainer/best_tracker.py` |
+| 17 (§8 `build_nig_timenet_v2`) | `model/builder.py` | 18 (§6.3 `MetricsLogger`...) | `trainer/metrics.py` |
+| 19 (§9 `MODEL_CONFIG`، `build_model_fn`) | `model/config.py` | 19 (§6.4 `SnapshotEnsemble`) | `trainer/snapshot.py` |
+| 21 (§9-ب `diagnose_model`...) | `model/diagnostics.py` | 21 (§6.5 `TrainingDiagnostics`) | `trainer/training_diagnostics.py` |
+| 23 (§9-ج تقرير الطبقات) | `model/layer_report.py` | 23 (§7.1 `CheckpointManager`) | `trainer/checkpoints.py` |
+| 25 (§10 الاختبار الذاتي) | `model/selftests.py` | 24 (§7.2 `DriveMirror`، `EpochGuard`) | `trainer/epoch_callbacks.py` |
+| | | 26 (§8 `build_training_system`) | `trainer/system.py` |
+| | | 28 (§9 Smoke Test) | `trainer/smoke_test.py` |
+| | | 30 + 31 (§10.1/10.2 مثال النموذج والإعداد) | `trainer/example.py` |
+| | | 32 (§10.3 مثال التدريب، أسطر مُعلَّقة) | يبقى في دفتر `trainer_framework_v2.ipynb` |
+| | | 35 (§12 K-Fold) | `trainer/kfold.py` |
+| | | 37 (§13 Ensemble) | `trainer/ensemble.py` |
+
+للتعديل: غيّر ملف الوحدة (لا الدفتر)، وراجع `CLAUDE.md`. الاختبارات تحمّل الحزمتين عبر `docs/research/audit/_nbload.load_model()` و`load_trainer()`
+(بلا الاختبار الذاتي ولا Smoke Test ولا K-Fold)، وتفحص `tests/test_model_trainer_packages.py` البنية.
+## أين كود تقييم النموذج (`chicks_v4_5_input_output_patterns`) ومحور الإشارة (`signal_evaluation_axis`)
+
+كودا الدفترين نُقلا حرفياً إلى حزمتين: [`evaluation/`](../../evaluation/) (تقييم النموذج بعد التدريب؛ خريطتها [`maps/evaluation.md`](../../maps/evaluation.md))
+و[`signal_eval/`](../../signal_eval/) (محور الإشارة، المرحلة ٠؛ [`maps/signal_eval.md`](../../maps/signal_eval.md)). الدفتران صارا مُشغِّلَين رفيعَين
+(بلا أي `def`) يحمّلان حزمتيهما في نطاقهما بـ`evaluation.load_into(globals())` / `signal_eval.load_into(globals())`، فتبقى الأسماء نفسها لمن يستدعيهما بـ`%run`
+(`main.ipynb`، ودفاتر الفرضيات `hypothesis_h00*.ipynb`). كل حزمة وحداتها تعمل في **نطاق واحد مشترك** (`_loader.py`)، فلا `import evaluation.<module>`.
+الوثائق المسجَّلة قبل النقل تشير إلى «الخلية N» أو «القسم N»؛ هذان جدولا التحويل (أرقام الخلايا قبل النقل، 0-based):
+
+**`chicks_v4_5_input_output_patterns.ipynb` ← `evaluation/`**
+
+| الخلية (القسم) | الوحدة | الخلية (القسم) | الوحدة |
+|---|---|---|---|
+| 2 (١، `TargetSpec` + الاستيرادات) | `evaluation/targets.py` | 24 (١٠، الثقة والمعايرة) | `evaluation/trust_calibration.py` |
+| 4 (٢، `save_or_print`) | `evaluation/outputs.py` | 26 (١١، تحليل موجَّه للمخرجات) | `evaluation/output_conditioned.py` |
+| 6 (٣، التنبؤ) | `evaluation/predict.py` | 28 (١٢، اكتشاف الأنماط) | `evaluation/patterns.py` |
+| 8 (٤، فك التشفير) | `evaluation/decode.py` | 30 (١٣، مقاييس التداول) | `evaluation/tearsheet.py` |
+| 10 (٥، التحقق من فك التشفير) | `evaluation/verify.py` | 32 (١٤، الرسوم) | `evaluation/plots.py` |
+| 12 (٦، المقاييس) | `evaluation/metrics.py` | 34 (١٥، نزاهة النموذج) | `evaluation/integrity.py` |
+| 14 (٦.٥، جدول آخر العينات) | `evaluation/latest_table.py` | 36 (١٦، `run_full_analysis`) | `evaluation/full_analysis.py` |
+| 16 (٧، `predict_with_evaluation_v4`) | `evaluation/unified.py` | 38 (١٧، تقرير قديم) | `evaluation/legacy_uncertainty.py` |
+| 18 (٨، `test_all_assets_v4`) | `evaluation/all_assets.py` | 40 (١٨، محاكاة قديمة) | `evaluation/legacy_assets.py` |
+| 20 (التداول الحي) | `evaluation/live.py` | 42–44 (١٩، اختيار الصفقات) | `evaluation/trade_selection.py` |
+| 22 (٩، `build_flat_dataframe`) | `evaluation/flat.py` | 46–49 (٢٠، أنماط المدخلات ↔ المخرجات) | `evaluation/io_patterns.py` |
+
+**`signal_evaluation_axis (3).ipynb` ← `signal_eval/`**
+
+| الخلية (القسم) | الوحدة / الموضع الجديد |
+|---|---|
+| 2 (١، الاستيرادات) | `signal_eval/common.py` |
+| 4 + 6 + 8 (٢–٤، `compute_ic`/`decile_spread`/`permutation_baseline`) | `signal_eval/core.py` |
+| 10 (٥، `evaluate_windows`) | `signal_eval/windows.py` |
+| 12 (٦، طبقة التكامل مع `rolling_splits`) | `signal_eval/integration.py` |
+| 14 (٧، الاختبارات الذاتية) | التعريفات في `signal_eval/selftests.py`؛ **تشغيلها** (`PASS.clear()...`) خلية في الدفتر المُشغِّل |
+| 15 (تنزيل `dataprocess.ipynb` + `%run` + تحميل `dataset`) | `download_notebook_from_drive` في `signal_eval/bootstrap.py`؛ خط الأنابيب يُحمَّل من `data/` (خلية في الدفتر المُشغِّل)؛ تحميل `dataset` خلية في الدفتر المُشغِّل |
+| 16 (تحميل `dataset` من Drive) و18 (٨، بوّابة المرحلة ٠) | تبقيان خليتين في الدفتر المُشغِّل (دفاتر الفرضيات تعتمد على `dataset`/`windows`/`report` الناتجة عنهما) |
+| 20 (٩، سجلّ التجارب) | `signal_eval/registry.py` |
+| 22 (اختبارات السجلّ) | التعريف في `signal_eval/registry_selftests.py`؛ استدعاؤه خلية في الدفتر المُشغِّل |
+
+**قرار `dataprocess.ipynb`:** كان الدفتر الأصلي ينزّل `dataprocess.ipynb` (نسخة من دفتر خط الأنابيب على Drive، غير موجودة في المستودع) ثم يعمل `%run` له ليحصل على
+`rolling_splits` وCONFIG و`load_preprocessed_data_from_drive`. الدفتر المُشغِّل يحمّل الآن الحزمة `data/` (المصدر الحالي لخط الأنابيب نفسه) في نطاقه
+**فقط إن لم تكن هذه الأسماء موجودة** (مثلاً بعد `%run "crypto_data_pipeline_v6.ipynb"`)؛ فإن وُجدت لا يتغيّر شيء. لا تنزيل من Drive بعد الآن. اختبارات `dataprocess` الذاتية
+التي كانت تعمل عند ذلك `%run` (ونتائجها المحفوظة في مخرجات الدفتر القديم) لا تُشغَّل هنا؛ مكانها `run_pipeline_selftests` في `data/selftests.py`.
+
+للتعديل: غيّر ملف الوحدة (لا الدفتر)، وراجع `CLAUDE.md` (تعديل لا يغيّر السلوك الافتراضي، واختبارات `tests/`: `tests/test_evaluation_packages.py` يثبّت البنية).
+## أين كود `main` ومختبر الإشارات ومسح pandas_ta
+
+نُقل حرفياً إلى الحزمتين [`workflow/`](../../workflow/) و[`discovery/`](../../discovery/) (الدفاتر مُشغِّلات)؛ جدول «الخلية القديمة ← الوحدة» في
+[`main_lab_code_layout.md`](main_lab_code_layout.md).
+
 ## بنية دفاتر محور التقييم (`signal_evaluation_axis`)
 
 كان `signal_evaluation_axis (3).ipynb` يضمّ المحور القياسي وكل الفرضيات المُختبَرة عبره في ملف واحد كبير. أُفرِد الآن إلى دفتر أساسي + دفتر مستقلّ لكل فرضية، كلٌّ منها يعتمد على الأساسي عبر `%run` (نفس أسلوب `main.ipynb` في تجميع الدفاتر):
 
 | الدفتر | الدور |
 |---|---|
-| [`signal_evaluation_axis (3).ipynb`](../../signal_evaluation_axis%20(3).ipynb) | **المحور الأساسي فقط**: `compute_ic`/`decile_spread`/`permutation_baseline`/`evaluate_windows`، طبقة ربط بخط الأنابيب، وسجلّ التجارب (`register_hypothesis`/`list_registry`) — بلا أي فرضية مُختبَرة. |
+| [`signal_evaluation_axis (3).ipynb`](../../signal_evaluation_axis%20(3).ipynb) | **المحور الأساسي فقط** (مُشغِّل رفيع؛ الكود في الحزمة `signal_eval/`): `compute_ic`/`decile_spread`/`permutation_baseline`/`evaluate_windows`، طبقة ربط بخط الأنابيب، وسجلّ التجارب (`register_hypothesis`/`list_registry`) — بلا أي فرضية مُختبَرة. |
 | [`hypothesis_h001_short_term_reversal.ipynb`](../../hypothesis_h001_short_term_reversal.ipynb) | تسجيل واستقصاء [H001](h001_short_term_reversal.md) (مقبولة). |
 | [`hypothesis_h002_classification_head.ipynb`](../../hypothesis_h002_classification_head.ipynb) | تسجيل [H002](h002_classification_head.md) (مرفوضة). |
 | [`hypothesis_h003_volatility_reversal.ipynb`](../../hypothesis_h003_volatility_reversal.ipynb) | تسجيل [H003](h003_volatility_reversal.md) (مقبولة). |

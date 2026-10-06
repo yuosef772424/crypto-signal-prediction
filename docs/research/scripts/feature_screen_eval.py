@@ -19,7 +19,8 @@ def load_notebook_defs(path):
             or (isinstance(n, ast.Assign) and isinstance(n.value, lit))]
     mod = ast.Module(body=body, type_ignores=[]); ast.fix_missing_locations(mod); return ast.unparse(mod)
 g = {'__name__': '__axis__', 'np': np, 'pd': pd}
-exec(compile(load_notebook_defs(f'{REPO}/signal_evaluation_axis (3).ipynb'), 'axis', 'exec'), g)
+import sys; sys.path.insert(0, REPO)    # the axis is the package signal_eval/ (was the notebook's defs)
+import signal_eval; signal_eval.load_into(g, exclude=('selftests', 'bootstrap', 'registry_selftests'))
 D = pickle.load(open(f'{S}/feature_screen_inputs.pkl', 'rb'))
 X, TG, TS, FO, BL = D['X'], D['TG'], D['TS'], D['FO'], D['blocks']
 NB = len(TS)

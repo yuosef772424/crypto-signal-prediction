@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-PURPOSE:  Enforce the import direction of PHILOSOPHY.md section 2 with `ast` (modules are never imported): code packages must not import research/docs/tests, and a research study must not import another study; path-based coupling is reported as warnings.
-TAGS:     dependencies, imports, import direction, zones, architecture, lint, ci, sys.path, اتجاه الاعتماد
-PITFALLS: Also hosts the shared repo helpers (Repo, zone_of, file_imports, classify) that tools/build_map.py reuses for DEPENDS. Bare imports (`import lib`) are resolved by a repo-wide module-name index, so only unambiguous names (one zone) are classified. Existing violations are never fixed here: they go in ALLOWLIST below, with a reason.
+PURPOSE:  Enforce the import direction of PHILOSOPHY.md section 2 with `ast` (modules are never imported): code packages must not import research/docs/tests, `core/` (tier 0) imports nothing from the repo, and a research study must not import another study; path-based coupling is reported as warnings. Also gates the IMPLICIT dependencies of the shared-namespace packages (new cross-package / forward / notebook-global references and new duplicate top-level definitions, via tools/implicit_deps.py) against tools/implicit_deps_allowlist.txt.
+TAGS:     dependencies, imports, import direction, zones, architecture, lint, ci, sys.path, implicit dependencies, duplicate definitions, allowlist, اتجاه الاعتماد
+PITFALLS: Also hosts the shared repo helpers (Repo, zone_of, file_imports, classify) that tools/build_map.py reuses for DEPENDS. Bare imports (`import lib`) are resolved by a repo-wide module-name index, so only unambiguous names (one zone) are classified. Existing violations are never fixed here: they go in ALLOWLIST below, with a reason. The implicit-dependency allowlist may only shrink (a stale entry fails, see tools/implicit_deps.py --prune-allowlist).
 
 Usage: python tools/check_deps.py        (exit 1 on any non-allowlisted error)
 """
@@ -19,7 +19,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-CODE_PACKAGES = ("cross_asset", "tools")
+CODE_PACKAGES = ("core", "cross_asset", "tools", "data", "model", "trainer", "evaluation", "signal_eval", "workflow",
+                 "discovery")
 CODE_FORBIDDEN = ("research", "docs", "tests")  # code packages must not import these
 SKIP_DIRS = {".git", "__pycache__", ".ipynb_checkpoints", ".claude"}
 ZONE_HEADS = CODE_PACKAGES + ("tests", "docs", "research")
@@ -61,12 +62,12 @@ def list_repo_files(root: Path = ROOT) -> list[str]:
 
 
 def zone_of(rel: str) -> str:
-    """root | cross_asset | tools | tests | docs | research/<study> | research | other."""
+    """root | cross_asset | tools | data | tests | docs | research/<study> | research | other."""
     parts = rel.split("/")
     if len(parts) == 1:
         return "root"
     head = parts[0]
-    if head in ("cross_asset", "tools", "tests", "docs"):
+    if head in CODE_PACKAGES or head in ("tests", "docs"):
         return head
     if head == "research":
         return f"research/{parts[1]}" if len(parts) >= 3 else "research"
@@ -218,6 +219,8 @@ def violation_for(own: str, target: str | None) -> str | None:
     """Rule id broken by `own` zone importing `target` zone, else None."""
     if not target or target == own:
         return None
+    if own == "core":  # Tier 0: the lowest layer imports nothing from the repo (stdlib only)
+        return "core-must-not-import-repo"
     if own in CODE_PACKAGES and target.split("/")[0] in CODE_FORBIDDEN:
         return f"code-must-not-import-{target.split('/')[0]}"
     if own.startswith("research/") and target.startswith("research/"):
@@ -280,6 +283,16 @@ def check_notebook(repo: Repo, rel: str) -> list[tuple[str, int, str, str, str]]
     return sorted(set(found))
 
 
+def implicit_deps_problems(root: Path) -> tuple[list[str], int]:
+    """New implicit references / duplicate definitions of the shared-namespace packages (tools/implicit_deps.py)."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    try:
+        import implicit_deps
+    finally:
+        sys.path.pop(0)
+    return implicit_deps.check(root)
+
+
 def run(repo: Repo) -> tuple[list[str], int, int, int, int]:
     lines: list[str] = []
     errors = warnings = allowed = 0
@@ -296,6 +309,11 @@ def run(repo: Repo) -> tuple[list[str], int, int, int, int]:
                 errors += 1
             else:
                 warnings += 1
+    implicit, n_allowed_implicit = implicit_deps_problems(repo.root)
+    for text in implicit:
+        lines.append(f"error[implicit-dependency] — {text}")
+        errors += 1
+    allowed += n_allowed_implicit
     notebooks = [f for f in repo.files if "/" not in f and f.endswith(".ipynb")]
     for rel in notebooks:
         for where, line, sev, rule, text in check_notebook(repo, rel):

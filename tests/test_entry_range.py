@@ -19,7 +19,7 @@ import pandas as pd
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
-from tests.test_reg_target_scale import _cell, _ns  # noqa: E402 — نطاق خط الأنابيب وchicks المشترك (يُحمَّل مرّة)
+from tests.test_reg_target_scale import _kit, _load_workflow, _nbload, _ns, _quiet, _rt, _with_chicks  # noqa: E402 — نطاق خط الأنابيب وchicks المشترك (يُحمَّل مرّة)
 
 # صفوف الحالات الحدّية في كل قسم: فجوة صعود (L > P)، فجوة هبوط (H < P)، مدى صفر (فوق P)، حركة أكبر من القصّ (+200%)
 UP_GAP, DOWN_GAP, ZERO, HUGE = 0, 1, 2, 3
@@ -53,14 +53,15 @@ def _split(ns, n, seed, scale):
 
 
 def _main_ns(scale, price_targets=("high", "low", "close")):
-    """خلايا main (٣ الختم، ٣-ب) على بيانات بمقياس scale."""
-    ns = dict(_ns())
+    """خطوة main للتقسيم والختم (make_splits) على بيانات بمقياس scale، ثم retarget_splits متاحة في ns."""
+    ns = _load_workflow(dict(_ns()))
     tr, va = _split(ns, 64, 0, scale), _split(ns, 32, 1, scale)
     te = {"AAA": _split(ns, 24, 2, scale), "BBB": _split(ns, 24, 3, scale)}
-    ns.update(REG_TARGET_SCALE=scale, MODEL_TF="1h", PRICE_TARGETS=list(price_targets),
-              split_data=lambda dataset, config=None: (tr, va, te), dataset={})
-    for idx in (8, 10):
-        exec(compile(_cell("main.ipynb", idx), f"main#cell{idx}", "exec"), ns)
+    kit = _kit(ns, split_data=lambda dataset, config=None: (tr, va, te))
+    info = ns["DatasetInfo"](model_tf="1h", model_tfs=("1h",), reg_target_scale=scale)
+    settings = ns["RunSettings"]()
+    ns.update(settings=settings, kit=kit, info=info, PRICE_TARGETS=list(price_targets))     # test-local: لا وحدة تقرأها
+    ns["train"], ns["val"], ns["test"] = _quiet(ns["make_splits"], settings, {}, info, kit)
     return ns
 
 
@@ -87,7 +88,7 @@ def _reachable(P, H, L):
 
 
 def _retarget(ns, **kw):
-    return ns["retarget_splits"](ns["train"], ns["val"], ns["test"], mode="entry_range", verbose=False, **kw)
+    return _rt(ns, mode="entry_range", **kw)
 
 
 def _splits_of(out):
@@ -126,10 +127,12 @@ class EntryRangeTargetTests(unittest.TestCase):
     def test_close_reg_range_pos_option(self):
         for scale in (1.0, 100.0):
             ns = _main_ns(scale)
-            for how in ("kw", "global"):
-                if how == "global":
-                    ns["ENTRY_CLOSE_REG"] = "range_pos"
-                out = _retarget(ns, **({"close_reg": "range_pos"} if how == "kw" else {}))
+            for how in ("kw", "settings"):
+                if how == "settings":              # خطوة retarget من الإعدادات: target.entry_close_reg
+                    s = ns["settings"].updated({"target": {"target_mode": "entry_range", "entry_close_reg": "range_pos"}})
+                    out = _quiet(ns["retarget"], s, ns["train"], ns["val"], ns["test"], ns["info"])
+                else:
+                    out = _retarget(ns, close_reg="range_pos")
                 for split in _splits_of(out):
                     want, _ = _expected(split, "range_pos")
                     y = split["y"]
@@ -149,13 +152,19 @@ class EntryRangeTargetTests(unittest.TestCase):
 
     def test_defaults_and_removed_threshold(self):
         ns = _main_ns(1.0)
-        self.assertEqual(ns["ENTRY_CLOSE_REG"], "abs_return")
+        self.assertEqual(ns["settings"].target.entry_close_reg, "abs_return")
         self.assertEqual(tuple(ns["ENTRY_CLOSE_REGS"]), REGS)
         self.assertNotIn("ENTRY_RANGE_CLASS_THRESHOLD", ns)
         with open(os.path.join(ROOT, "main.ipynb"), encoding="utf-8") as f:
             for i, c in enumerate(json.load(f)["cells"]):
                 self.assertNotIn("ENTRY_RANGE_CLASS_THRESHOLD", "".join(c["source"]), f"main cell {i}")
                 self.assertNotIn("class_threshold", "".join(c["source"]), f"main cell {i}")
+        for fn in sorted(os.listdir(os.path.join(ROOT, "workflow"))):          # main's code now lives in workflow/
+            if fn.endswith(".py"):
+                with open(os.path.join(ROOT, "workflow", fn), encoding="utf-8") as f:
+                    text = f.read()
+                self.assertNotIn("ENTRY_RANGE_CLASS_THRESHOLD", text, f"workflow/{fn}")
+                self.assertNotIn("class_threshold", text, f"workflow/{fn}")
         import cross_asset.report as report
         self.assertFalse(hasattr(report, "ENTRY_RANGE_CLASS_THRESHOLD"))
 
@@ -185,7 +194,7 @@ class EntryRangeTargetTests(unittest.TestCase):
     def test_relative_composition_refused(self):
         ns = _main_ns(1.0)
         with self.assertRaises(ValueError):
-            ns["retarget_splits"](ns["train"], ns["val"], ns["test"], mode="entry_range+relative", verbose=False)
+            _rt(ns, mode="entry_range+relative")
 
     def test_roundtrip_targets_to_prices(self):
         """high وlow يعودان إلى سعر الأفق تماماً (ما دام الهدف لم يُصفَّر بـ max(·،0) ولم يُقصّ)، وclose تماماً بالإشارة الحقيقية."""
@@ -244,7 +253,6 @@ class EntryRangeTargetTests(unittest.TestCase):
             for scale in (1.0, 100.0):
                 ns = _main_ns(scale)
                 ns["train"], ns["val"], ns["test"] = _retarget(ns, close_reg=close_reg)
-                exec(compile(_cell("main.ipynb", 23), "main#cell23", "exec"), ns)
                 split = ns["test"]["AAA"]
                 p = _prices(split)
                 out = {f"y_{t}": _T(split["y"][f"y_{t}_reg"].reshape(-1, 1)) for t in ("high", "low", "close")}
@@ -252,13 +260,13 @@ class EntryRangeTargetTests(unittest.TestCase):
                 ns["model"] = lambda x, training=False: out
                 ok = (p["H"] > p["P"]) & (p["L"] < p["P"]) & (np.abs(p["C"] / p["P"] - 1) < 1) & (p["H"] / p["P"] < 2)
                 for t, want in (("high", p["H"]), ("low", p["L"]), ("close", p["C"])):
-                    got = ns["real_price_predictions"]("AAA", t)
+                    got = ns["real_price_predictions"](ns["model"], ns["test"], "AAA", t, "1h")
                     np.testing.assert_allclose(got[ok], want[ok], rtol=1e-6, err_msg=f"{t} {close_reg} {scale}")
                 if close_reg == "abs_return":
-                    self.assertEqual(len(ns["real_price_predictions"]("AAA", "close_up")), len(p["P"]))
+                    self.assertEqual(len(ns["real_price_predictions"](ns["model"], ns["test"], "AAA", "close_up", "1h")), len(p["P"]))
                     del out["y_close_class_logits"]
                     with self.assertRaises(ValueError):
-                        ns["real_price_predictions"]("AAA", "close")           # الاتجاه بلا رأس تصنيف: لا تخمين
+                        ns["real_price_predictions"](ns["model"], ns["test"], "AAA", "close", "1h")   # الاتجاه بلا رأس تصنيف: لا تخمين
 
     def test_collect_signals_prices_and_stamps(self):
         """collect_signals: mu بوحدة العائد، وأسعار pred_* من P، وpred_close بإشارة p_up_close، وختم التعريف."""
@@ -266,8 +274,6 @@ class EntryRangeTargetTests(unittest.TestCase):
             for scale in (1.0, 100.0):
                 ns = _main_ns(scale)
                 ns["train"], ns["val"], ns["test"] = _retarget(ns, close_reg=close_reg)
-                for idx in (19, 26):
-                    exec(compile(_cell("main.ipynb", idx), f"main#cell{idx}", "exec"), ns)
                 te = ns["test"]
                 y = {t: np.concatenate([s["y"][f"y_{t}_reg"] for s in te.values()]) for t in ("high", "low", "close")}
                 cls = np.concatenate([s["y"]["y_close_class"] for s in te.values()])
@@ -277,7 +283,7 @@ class EntryRangeTargetTests(unittest.TestCase):
                     out.update({f"y_{t}": y[t], f"y_{t}_nu": np.full(n, 1.5), f"y_{t}_alpha": np.full(n, 2.5),
                                 f"y_{t}_beta": np.full(n, 1e-3), f"y_{t}_class_logits": np.full(n, 0.5)})
                 out["y_close_class_logits"] = np.where(cls > 0, 0.9, 0.1)
-                df = ns["collect_signals"](None, te, "1h", outputs=out)
+                df = ns["collect_signals"](None, te, "1h", outputs=out, price_targets=("high", "low", "close"))
                 P, H, L, C = (df[k].to_numpy() for k in ("entry", "fut_high", "fut_low", "fut_close"))
                 want_h, want_l = _reachable(P, H, L)
                 np.testing.assert_allclose(df["pred_high"], want_h, rtol=1e-6)
@@ -300,7 +306,7 @@ class EntryRangeTargetTests(unittest.TestCase):
                 # p_up_close = 0.5 بالضبط ← الاتجاه صعود (≥ 0.5)
                 if close_reg == "abs_return":
                     out["y_close_class_logits"] = np.full(n, 0.5)
-                    df5 = ns["collect_signals"](None, te, "1h", outputs=out)
+                    df5 = ns["collect_signals"](None, te, "1h", outputs=out, price_targets=("high", "low", "close"))
                     np.testing.assert_array_equal(df5["pred_close"], df5["pred_close_up"])
 
     def test_chicks_decode_roundtrip(self):
@@ -310,10 +316,7 @@ class EntryRangeTargetTests(unittest.TestCase):
             for scale in (1.0, 100.0):
                 ns = _main_ns(scale)
                 ns["train"], ns["val"], ns["test"] = _retarget(ns, close_reg=close_reg)
-                for idx in (19, 20):
-                    src = _cell("main.ipynb", idx)
-                    src = src[src.index("import dataclasses"):] if idx == 20 else src
-                    exec(compile(src, f"main#cell{idx}", "exec"), ns)
+                _with_chicks(ns)                                                  # prepare_chicks: CHICKS_TARGETS وEVAL_TARGET_SPECS
                 self.assertEqual(ns["CHICKS_TARGETS"], names)
                 self.assertEqual([s.name for s in ns["EVAL_TARGET_SPECS"]], names)
                 split = ns["test"]["AAA"]
@@ -355,7 +358,7 @@ class EntryRangeTargetTests(unittest.TestCase):
         ns = _main_ns(100.0)
         cols = ns["LAST_COLUMNS"]
         for mode in ("return", "return_close", "magnitude", "relative"):
-            tr = ns["retarget_splits"](ns["train"], ns["val"], ns["test"], mode=mode, verbose=False)[0]
+            tr = _rt(ns, mode=mode)[0]
             lc = tr["last_candles"]
             col = lambda k: lc[:, cols.index(k)]
             self.assertEqual(tr["target_mode"], mode)
@@ -379,15 +382,15 @@ class EntryRangeTargetTests(unittest.TestCase):
                     np.testing.assert_array_equal(tr["y"][f"y_{t}_class"], np.where(r > 0, 1.0, -1.0))
                 else:
                     self.assertEqual(set(np.unique(tr["y"][f"y_{t}_class"])) - {1.0, -1.0}, set())
-        s = ns["retarget_splits"](ns["train"], ns["val"], ns["test"], mode="scaled", verbose=False)[0]
+        s = _rt(ns, mode="scaled")[0]
         self.assertEqual(s["reg_target_scales"], {"high": 1.0, "low": 1.0, "close": 1.0})
         # العودة من entry_range إلى وضع آخر في الجلسة نفسها: لا يبقى ختمه ولا تسمياته 1/0
         er = _retarget(ns)
-        back = ns["retarget_splits"](*er, mode="return", verbose=False)[0]
+        back = _rt(ns, *er, mode="return")[0]
         self.assertNotIn("entry_close_reg", back)
         self.assertEqual(set(np.unique(back["y"]["y_close_class"])), {-1.0, 1.0})
         # entry_range يطابق magnitude في الانحدار (المقدار نفسه) ويختلف عنه في التسمية (اتجاه لا عتبة وسيط)
-        mag = ns["retarget_splits"](ns["train"], ns["val"], ns["test"], mode="magnitude", verbose=False)[0]
+        mag = _rt(ns, mode="magnitude")[0]
         for t in ("high", "low", "close"):
             np.testing.assert_allclose(er[0]["y"][f"y_{t}_reg"], mag["y"][f"y_{t}_reg"], rtol=1e-6, atol=1e-6)
 
@@ -399,11 +402,9 @@ class EntryRangeChicksCloseTests(unittest.TestCase):
     def _chicks_ns(scale, close_reg="abs_return"):
         ns = _main_ns(scale)
         ns["train"], ns["val"], ns["test"] = _retarget(ns, close_reg=close_reg)
-        for idx in (19, 20):
-            src = _cell("main.ipynb", idx)
-            exec(compile(src[src.index("import dataclasses"):] if idx == 20 else src, f"main#cell{idx}", "exec"), ns)
+        _with_chicks(ns)                                                          # prepare_chicks: CHICKS_TARGETS وEVAL_TARGET_SPECS
         # test_all_assets_v4 (chicks ٨): تحميل الدفتر العام يتخطّاها (تحوي نصّ الاستدعاء)، وهنا هي المسار المختبَر
-        exec(compile(_cell("chicks_v4_5_input_output_patterns.ipynb", 18), "chicks#cell18", "exec"), ns)
+        _nbload.exec_evaluation_module("all_assets", ns, quiet=False)      # chicks cell 18
         return ns
 
     @staticmethod
@@ -465,7 +466,7 @@ class EntryRangeChicksCloseTests(unittest.TestCase):
             flip = rng.random(len(truth)) < 0.25
             ps["close"][i] = np.where(truth ^ flip, 0.8, 0.2)
         model = self._model(ns, ps)
-        td = ns["build_chicks_test_dict"](ns["test"], "1h")
+        td = ns["build_chicks_test_dict"](ns["test"], "1h", chicks_targets=ns["CHICKS_TARGETS"])
         self.assertEqual(set(td["AAA"]["y"]), {"high", "low", "close"})
         for i, (a, s) in enumerate(td.items()):
             s["X_1h"] = ns["test"][a]["X_1h"]
@@ -497,7 +498,7 @@ class EntryRangeChicksCloseTests(unittest.TestCase):
         rng = np.random.default_rng(4)
         ps = {t: [rng.uniform(0.05, 0.95, len(s["last_candles"])) for s in ns["test"].values()] for t in ("high", "low", "close")}
         model = self._model(ns, ps)
-        td = ns["build_chicks_test_dict"](ns["test"], "1h")
+        td = ns["build_chicks_test_dict"](ns["test"], "1h", chicks_targets=ns["CHICKS_TARGETS"])
         for a, s in td.items():
             s["X_1h"] = ns["test"][a]["X_1h"]
         res = ns["test_all_assets_v4"](model, td, ["1h"], ns["EVAL_TARGET_SPECS"], verbose=False, batch_size=256)
@@ -538,10 +539,7 @@ class EntryRangeChicksCloseTests(unittest.TestCase):
         self.assertEqual(list(r["skipped"]), ["low"])
 
     def test_other_modes_unchanged(self):
-        ns = _main_ns(100.0)                                        # target_mode = None (return)
-        for idx in (19, 20):
-            src = _cell("main.ipynb", idx)
-            exec(compile(src[src.index("import dataclasses"):] if idx == 20 else src, f"main#cell{idx}", "exec"), ns)
+        ns = _with_chicks(_main_ns(100.0))                          # target_mode = None (return)
         self.assertEqual(ns["CHICKS_TARGETS"], ["high", "low", "close"])
         for s in ns["EVAL_TARGET_SPECS"]:
             self.assertIsNone(s.class_key, s.name)
@@ -624,7 +622,7 @@ class EntryRangeConsumerTests(unittest.TestCase):
         from cross_asset.data import panel_split_from
         from cross_asset.train import export_signals
         ns = _main_ns(100.0)
-        te = ns["retarget_splits"](ns["train"], ns["val"], ns["test"], mode="return", verbose=False)[2]
+        te = _rt(ns, mode="return")[2]
         ps = panel_split_from(te, "1h", targets=("high", "low", "close"), name="test")
         self.assertEqual(ps.target_scale, 100.0)                          # رقم واحد كما كان
         self.assertIsNone(ps.entry_close_reg)
@@ -653,24 +651,24 @@ class EntryRangeConsumerTests(unittest.TestCase):
 
     def test_tool_target_modes_match_notebook(self):
         from tools.evaluate_trained_model import ENTRY_CLOSE_REG_CHOICES, TARGET_MODE_CHOICES
-        src = _cell("main.ipynb", 10)
-        bases = eval(re.search(r"^TARGET_MODES = (\(.*?\))", src, re.M).group(1))
-        no_rel = eval(re.search(r"^_NO_RELATIVE_BASES = (\(.*?\))", src, re.M).group(1))
+        ns = {"__name__": "t"}                                       # TARGET_MODES now comes from core/schema.py via workflow/retarget.py
+        _nbload.workflow_package().load_into(ns, only=("retarget",))
+        bases, no_rel = ns["TARGET_MODES"], ns["_NO_RELATIVE_BASES"]
+        self.assertEqual(tuple(ns["ENTRY_CLOSE_REGS"]), tuple(ENTRY_CLOSE_REG_CHOICES))
         want = set(bases) | {"relative"} | {f"{b}+relative" for b in bases if b not in no_rel}
         self.assertEqual(set(TARGET_MODE_CHOICES), want)
         self.assertEqual(set(ENTRY_CLOSE_REG_CHOICES), set(REGS))
 
     def test_suspended_targets_follow_mode(self):
-        """القسم ٤: close مُفعَّل في entry_range (مقدار|موقع)، ومعلّق في غيره (اتجاه)."""
-        src = _cell("main.ipynb", 13)
-        src = src[:src.index("# ⚠️ OrderedMeans")]
-        for mode, want in ((None, ["high", "low"]), ("return", ["high", "low"]),
-                           ("entry_range", ["high", "low", "close"])):
-            ns = {"dataset": {"window_sizes": {"1h": 32}, "feature_order": ["a"]}, "MODEL_TF": "1h",
-                  "CONFIG": {"targets": ["high", "low", "close"]}, "TARGET_MODE": mode}
-            exec(compile(src, "main#cell13", "exec"), ns)
-            self.assertEqual(ns["PRICE_TARGETS"], want, mode)
-
+        """القسم ٤ (plan_model): close مُفعَّل في entry_range (مقدار|موقع)، ومعلّق في غيره (اتجاه)."""
+        ns = _load_workflow(dict(_ns()))
+        info = ns["DatasetInfo"](model_tf="1h", model_tfs=("1h",), reg_target_scale=1.0)
+        kit = _kit(ns, config={"targets": ["high", "low", "close"]}, anti_memorization_config={})
+        for mode, want in ((None, ("high", "low")), ("return", ("high", "low")), ("entry_range", ("high", "low", "close"))):
+            settings = ns["RunSettings"]().updated({"target": {"target_mode": mode}})
+            plan = _quiet(ns["plan_model"], settings, {"window_sizes": {"1h": 32}, "feature_order": ["a"]}, info, kit)
+            self.assertEqual(plan.price_targets, want, mode)
+            self.assertEqual(plan.suspended_targets, () if mode == "entry_range" else ("close",), mode)
 
 if __name__ == "__main__":
     unittest.main()
