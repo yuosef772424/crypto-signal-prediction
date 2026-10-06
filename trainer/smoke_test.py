@@ -43,8 +43,11 @@ def _dummy_model_builder():
     return tf.keras.Model(inputs=inp, outputs=outputs)
 
 
+# Colab: /content (as before); elsewhere (CI runners, local non-root) the temp dir, like data/disk_backed.py's scratch root.
+_SMOKE_ROOT = "/content" if os.path.isdir("/content") else tempfile.gettempdir()
+
 smoke_config = build_config({
-    "run": {"run_dir": "/content/_smoke_test_run", "epochs": 4, "batch_size": 32, "verbose": 1},
+    "run": {"run_dir": os.path.join(_SMOKE_ROOT, "_smoke_test_run"), "epochs": 4, "batch_size": 32, "verbose": 1},
     "targets": {
         "a": {
             "true_key": "y_a", "task_type": "evidential",
@@ -103,21 +106,21 @@ print("\n🎉 الاختبار الأصلي نجح — الإطار يحافظ �
 
 # ── 🆕 اختبار warm_start: عقوبات الثقة تستأنف من حقبتها، لا من الصفر ──
 print(f"\n{'=' * 70}\n── اختبار warm_start ──\n{'=' * 70}")
-warm_run_dir = "/content/_smoke_test_warm_start"
+warm_run_dir = os.path.join(_SMOKE_ROOT, "_smoke_test_warm_start")
 shutil.rmtree(warm_run_dir, ignore_errors=True)
 finished_cfg = deep_update(smoke_config, {"run": {"run_dir": warm_run_dir, "epochs": 6}})
 finished_trainer, finished_cbs, ie = build_training_system(_dummy_model_builder, finished_cfg, smoke_sample_batch)
 finished_trainer.fit(smoke_train_ds, initial_epoch=ie, epochs=6, callbacks=finished_cbs, verbose=0)
 lambda_reg_at_end = float(finished_trainer.scheduled_vars["lambda_reg"].numpy())
 assert abs(lambda_reg_at_end - 0.05) < 1e-6, f"❌ توقعنا lambda_reg=0.05 بعد اكتمال warmup لكن الفعلي={lambda_reg_at_end}"
-weights_path = "/content/_smoke_finished.weights.h5"
+weights_path = os.path.join(_SMOKE_ROOT, "_smoke_finished.weights.h5")
 finished_trainer.model.save_weights(weights_path)
 
 TRAINER_REGISTRY.pop(warm_run_dir, None)
 tf.keras.backend.clear_session()
 
 warm_cfg = deep_update(smoke_config, {
-    "run": {"run_dir": "/content/_smoke_test_warm_start_2", "epochs": 8, "train_mode": "warm_start",
+    "run": {"run_dir": os.path.join(_SMOKE_ROOT, "_smoke_test_warm_start_2"), "epochs": 8, "train_mode": "warm_start",
             "warm_start": {"weights_path": weights_path, "epochs_done": 6, "lr_rewarmup_epochs": 1}},
 })
 shutil.rmtree(warm_cfg["run"]["run_dir"], ignore_errors=True)

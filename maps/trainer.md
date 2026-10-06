@@ -155,7 +155,7 @@
   - `def cosine_warm_restarts(epoch, lr_initial, lr_min, cycle_length=10, cycle_mult=1.5)` L79
   - `def build_lr_schedule_fn(opt_cfg: dict, rewarm_from_epoch: Optional[int]=None, rewarm_epochs: int=0) -> Callable[[int], float]` L89
 
-### `trainer/smoke_test.py` (132 lines)
+### `trainer/smoke_test.py` (135 lines)
 - PURPOSE: Smoke test: proves optimizer state survives an interruption and warm_start works (runs real tiny training at load).
 - TAGS: smoke test, optimizer state, resume, warm_start, trainer_registry, interrupt
 - PITFALLS: RUNS AT LOAD (trains a few epochs on random data into a temp dir); tests exclude this module: load_into(ns, exclude=('smoke_test',)). Executed into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other modules resolve at call time.
