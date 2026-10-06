@@ -66,8 +66,8 @@ def predict_pooled_batch_by_asset(model, pooled, model_tf, target_specs=None, n_
     مثال تداول حيّ مباشر (بلا `test_dict` إطلاقاً):
         live_ds = build_dataset_live(["BTCUSDT", "ETHUSDT", "SOLUSDT"])
         live_batch = extract_last_batch(live_ds, n=1)   # آخر شمعة لكل عملة
-        predict_pooled_batch_by_asset(model, live_batch, MODEL_TF,
-                                      target_specs=EVAL_TARGET_SPECS, n_display=1)
+        predict_pooled_batch_by_asset(model, live_batch, info.model_tf,
+                                      target_specs=chicks.eval_target_specs, n_display=1)
     """
     X_inputs = tuple(pooled[f"X_{tf}"] for tf in _tfs_of(model_tf))   # فريم واحد = tuple بعنصر (كما كان)
     specs = _resolve_for_model(target_specs, model, X_inputs)

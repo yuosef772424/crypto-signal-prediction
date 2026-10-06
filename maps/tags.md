@@ -19,6 +19,7 @@
 - _naive_class_baseline: workflow/training_config
 - _notebook_code: discovery/axis_loader
 - _pool_by_asset: workflow/pooling
+- _required: workflow/splits
 - _resolve_train_mode: trainer/system
 - _rsi_vol_adjusted: discovery/hypothesis_predictors
 - _tfs_of: workflow/splits
@@ -62,9 +63,11 @@
 - analyze_input_output_validated_patterns: evaluation/io_patterns
 - anti-memorization: cross_asset/__init__, model/input_norm
 - anti-memorization options: model/builder
+- anti_memorization: workflow/settings
 - anti_memorization_config: model/config
 - api: data/binance_client
 - apply_confidence_calibration: evaluation/trust_calibration
+- apply_dataset_config: workflow/run
 - apply_hourly_preset: data/presets
 - apply_schedules: trainer/schedules
 - architecture: tools/check_deps
@@ -133,6 +136,7 @@
 - build_leak_free_split: data/split
 - build_lr_schedule_fn: trainer/schedules
 - build_market_context: data/market_context
+- build_model: workflow/run
 - build_model_fn: model/__init__, model/config, workflow/model_build
 - build_nig_timenet_v2: model/builder
 - build_optimizer: trainer/system
@@ -171,10 +175,12 @@
 - chicks: workflow/chicks_bridge, workflow/wiring_selftest
 - chicks_target_modes: workflow/chicks_bridge
 - chicks_v4_5: evaluation/__init__
+- chicksinputs: workflow/run
 - ci: tools/build_map, tools/check_deps
 - ci guard: tests/test_no_lookahead
 - class head: data/heads
 - class_baselines: trainer/metrics, workflow/training_config
+- class_only: workflow/settings
 - classification_accuracy_report: workflow/reports
 - classification_task_loss: trainer/tasks
 - classify_feature: data/normalize
@@ -242,6 +248,8 @@
 - data.binance.vision: tools/fetch_history_vision_colab
 - dataprocess.ipynb: signal_eval/bootstrap
 - dataset file search: workflow/dataset_io
+- datasetinfo: workflow/run
+- datasettings: workflow/settings
 - day bootstrap: workflow/candle_baseline, workflow/verification
 - day grouping: cross_asset/data
 - day of week: edge_discovery/06_seasonality
@@ -340,7 +348,7 @@
 - ensemble_predict_evidential: trainer/ensemble
 - ensemble_predict_evidential_meinert: trainer/ensemble
 - entry point: trainer/system
-- entry_close_reg: workflow/retarget
+- entry_close_reg: workflow/retarget, workflow/settings
 - entry_close_reg_of: workflow/splits
 - entry_close_regs: core/schema
 - entry_feature_table: data/windows
@@ -357,6 +365,7 @@
 - eth: tools/h07_forward
 - eval cli: tools/evaluate_trained_model
 - eval_target_specs: workflow/chicks_bridge
+- evalsettings: workflow/settings
 - evaluate trained model: tools/evaluate_trained_model
 - evaluate_candidate: discovery/__init__, discovery/evaluation
 - evaluate_hypothesis_over_rolling_windows: signal_eval/integration
@@ -409,7 +418,7 @@
 - filter_desired_coins: data/sources
 - filters: tools/bracket_eval
 - filters c0-c3: edge_discovery/25_image_cnn
-- fingerprint: data/checkpoints
+- fingerprint: data/checkpoints, tests/run_fixture
 - finite checks: workflow/verification
 - fit_confidence_calibrators: evaluation/trust_calibration
 - fix-gaps: tools/fetch_history_vision_colab
@@ -426,6 +435,7 @@
 - free names: tools/implicit_deps
 - from __future__: data/common
 - from __future__ annotations: signal_eval/common
+- frozen dataclass: workflow/settings
 - full analysis: evaluation/full_analysis
 - funding: tools/fetch_history_vision_colab
 - funding features: tools/intraday_features
@@ -452,6 +462,7 @@
 - github dataset: tools/fetch_crypto_dataset
 - give-back: h07_combos/01_combos
 - global_time: data/split
+- golden: tests/run_fixture
 - google drive: data/drive
 - gpu: trainer/perf
 - gqa: model/transformer
@@ -612,6 +623,7 @@
 - load_assets: data/parallel
 - load_config: data/runtime
 - load_data_from_drive: data/storage
+- load_dataset: workflow/run
 - load_dataset_dir: data/storage
 - load_funding_open_interest: data/binance_client
 - load_into: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, tools/implicit_deps … (+2)
@@ -635,12 +647,13 @@
 - mae: evaluation/metrics
 - magnitude: workflow/retarget
 - main notebook: workflow/__init__
-- main.ipynb patched cells: tools/evaluate_trained_model
+- main wiring: tests/run_fixture
 - main.ipynb section 7-h: cross_asset/experiment
 - make_candidate_predict_fn: discovery/predictors
 - make_categorical_spec: evaluation/targets
 - make_cluster_regime_predict_fn: discovery/phase3_tools
 - make_cross_asset_predict_fn: discovery/phase3_tools
+- make_datasets: workflow/run
 - make_dpo_reversion: discovery/hypothesis_predictors
 - make_dummy_ohlcv: discovery/survey
 - make_eval_dataset: workflow/batches
@@ -648,9 +661,12 @@
 - make_fractal_reversal_predict_fn: discovery/hypothesis_predictors
 - make_isolation_forest_predict_fn: discovery/hypothesis_predictors
 - make_matrix_profile_predict_fn: discovery/phase3_tools
+- make_model_builder: workflow/model_build
 - make_resample_fn: data/sources
 - make_ridge_composite_predict_fn: discovery/hypothesis_predictors
 - make_shuffled_dataset: workflow/__init__, workflow/batches
+- make_splits: workflow/run
+- make_training_config: workflow/run
 - make_training_diagnostics: workflow/diagnostics
 - maker limit: edge_discovery/24_pullback_maker
 - map: tools/build_map
@@ -696,9 +712,11 @@
 - model_overrides: workflow/model_build
 - model_seq_len: workflow/model_build
 - model_signature: trainer/config
-- model_tfs: workflow/splits
+- model_tf: workflow/splits
 - model_v2: model/__init__
 - model_x: workflow/splits
+- modelplan: workflow/run
+- modelsettings: workflow/settings
 - module order: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, trainer/_loader … (+1)
 - module_dirs: data/defaults, data/phase2
 - modules: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, tools/implicit_deps … (+2)
@@ -780,8 +798,10 @@
 - panel_loss: cross_asset/train
 - panel_mode: cross_asset/experiment
 - panel_names: workflow/panel_bridge
+- panel_presets: workflow/settings
 - panel_split_from: cross_asset/data
 - panelmodel: cross_asset/model
+- panelsettings: workflow/settings
 - panelsplit: cross_asset/__init__, cross_asset/data
 - paneltrainer: cross_asset/train
 - paper trading: tools/h07_forward
@@ -820,6 +840,7 @@
 - pipeline package: data/_loader
 - pipeline_default_config: data/defaults
 - pkl.gz: data/storage
+- plan_model: workflow/run
 - platt: evaluation/trust_calibration
 - plot_calibration_curve: evaluation/plots
 - plot_confusion_matrix_heatmap: evaluation/plots
@@ -844,6 +865,7 @@
 - predict_with_evaluation_v4: evaluation/__init__, evaluation/unified
 - predicted high low: edge_discovery/31_wick_capture, edge_discovery/32_breakout_stops, tools/bracket_eval
 - premium index: tools/fetch_history_vision_colab
+- prepare_chicks: workflow/run
 - prepare_data: tools/colab_bridge
 - prepare_single_asset: data/windows
 - presets: data/presets
@@ -854,6 +876,7 @@
 - print_trade_selection: evaluation/trade_selection
 - print_verdicts: model/diagnostics
 - process_windows: data/normalize
+- projectsettings: workflow/settings
 - psar: data/custom
 - pullback: edge_discovery/24_pullback_maker
 - pump: edge_discovery/05_events
@@ -894,7 +917,7 @@
 - reg head: data/heads
 - reg_scale_of: workflow/splits
 - reg_target_mode: data/windows
-- reg_target_scale: evaluation/decode
+- reg_target_scale: evaluation/decode, workflow/retarget
 - register: model/common
 - register_head_type: model/heads
 - register_hypothesis: discovery/batch_runner, signal_eval/__init__, signal_eval/registry
@@ -930,6 +953,7 @@
 - resume per fold: trainer/kfold
 - retail long/short ratio: edge_discovery/02_fmb
 - retail positioning: edge_discovery/11_more
+- retarget: workflow/run
 - retarget_splits: tests/test_real_price_modes, workflow/__init__, workflow/retarget
 - return: tests/test_real_price_modes
 - return_close: tests/test_real_price_modes
@@ -944,7 +968,10 @@
 - rqa: edge_discovery/27_repr_info
 - rr_trading_report: workflow/selective_eval
 - rule_cpos: workflow/candle_baseline
+- run fixture: tests/run_fixture
 - run_batch_and_register: discovery/__init__, discovery/batch_runner
+- run_chicks: workflow/run
+- run_dir_for: workflow/settings
 - run_discovery_lab_selftest: discovery/selftest
 - run_full_analysis: evaluation/__init__, evaluation/full_analysis
 - run_full_verification: workflow/verification
@@ -953,15 +980,22 @@
 - run_integrity_diagnostics: evaluation/integrity
 - run_kfold_training: trainer/kfold
 - run_label_permutation_control: workflow/permutation_control
+- run_main: workflow/run
+- run_main_training: workflow/settings
 - run_model_selftests: model/selftests
+- run_panel: workflow/run
 - run_panel_experiment: cross_asset/__init__, cross_asset/experiment, workflow/panel_bridge
 - run_panel_selftest: cross_asset/selftest
 - run_pipeline_selftests: data/selftests
 - run_registry_selftests: signal_eval/registry_selftests
+- run_reports: workflow/run
 - run_survey: discovery/__init__, discovery/survey
 - run_weights: edge_discovery/tsbt
 - run_wiring_selftest: workflow/wiring_selftest
 - runner notebook: data/__init__, evaluation/__init__, model/__init__, signal_eval/__init__, trainer/__init__
+- runresult: workflow/run
+- runsettings: tests/run_fixture, tools/evaluate_trained_model, workflow/settings
+- runsettings steps: workflow/run
 - safe load: discovery/axis_loader
 - sample_filters: data/windows
 - sample_idx_key: trainer/training_diagnostics
@@ -994,7 +1028,7 @@
 - self-tests: data/selftests
 - selftest: cross_asset/selftest, model/selftests
 - selftests: signal_eval/selftests
-- settings: data/defaults
+- settings: data/defaults, workflow/settings
 - settings interval start funding open_interest: tools/fetch_history_colab_cell
 - shadowing: tools/implicit_deps
 - shap: discovery/phase3_tools
@@ -1053,6 +1087,7 @@
 - stop loss: edge_discovery/13_listing_stops, tools/bracket_eval
 - storage: data/storage
 - stress test: edge_discovery/17_h07_break
+- strict config: workflow/settings
 - stride: model/patches
 - stumpy: discovery/phase3_tools
 - summarize: cross_asset/report
@@ -1069,6 +1104,7 @@
 - symtable: tools/implicit_deps
 - synthetic: discovery/selftest
 - synthetic data: cross_asset/selftest, data/selftests, signal_eval/selftests, workflow/wiring_selftest
+- synthetic dataset: tests/run_fixture
 - sys.path: tools/check_deps
 - t-stat: edge_discovery/04_screen_mean, edge_discovery/lib
 - t_concat_splits_*: signal_eval/selftests
@@ -1087,10 +1123,11 @@
 - target scale: cross_asset/data
 - target-mode: tools/evaluate_trained_model
 - target_columns: core/schema
-- target_mode: tests/test_real_price_modes, workflow/retarget
+- target_mode: tests/test_real_price_modes, workflow/retarget, workflow/settings
 - target_mode_of: workflow/splits
 - target_modes: core/__init__, core/schema
 - targets: data/cross_sectional_norm, data/windows
+- targetsettings: workflow/settings
 - targetspec: evaluation/targets
 - task weighting: trainer/task_weighting
 - task_registry: trainer/tasks
@@ -1104,6 +1141,7 @@
 - test_all_assets_v4: evaluation/__init__, evaluation/all_assets
 - test_dict: evaluation/all_assets, workflow/chicks_bridge
 - test_step: trainer/trainer
+- tests: tests/run_fixture
 - tests/test_cross_asset: cross_asset/selftest
 - tf.data: workflow/batches
 - tf.keras.model subclass: trainer/trainer
@@ -1116,6 +1154,7 @@
 - tokens: edge_discovery/27_repr_info, tools/build_map
 - tolerance: evaluation/metrics
 - tool result: edge_discovery/data_tools/dec
+- toolkit: workflow/run
 - top traders: edge_discovery/19_hl_copy
 - top-50 big: edge_discovery/lib
 - torch: edge_discovery/25_image_cnn
@@ -1126,6 +1165,7 @@
 - train<=2021 val 2022 test 2023-26: edge_discovery/27_repr_info
 - train_labels: cross_asset/report
 - train_mode: trainer/system
+- train_model: workflow/run
 - train_step: trainer/trainer
 - trainer config: trainer/config
 - trainer framework: trainer/__init__
@@ -1135,6 +1175,7 @@
 - trainer_framework_v2: trainer/__init__
 - trainer_registry: trainer/checkpoints, trainer/smoke_test
 - trainingdiagnostics: trainer/training_diagnostics
+- trainsettings: workflow/settings
 - transformerblock: model/transformer
 - trend: model/decomposition
 - trend filter: tools/h07_forward
@@ -1200,6 +1241,7 @@
 - within_day: workflow/permutation_control
 - workflow: workflow/__init__
 - workflow package: workflow/_loader
+- workflow.run steps: tools/evaluate_trained_model
 - xla: trainer/perf
 - zero cost: edge_discovery/23_chart_rules_gross
 - zones: tools/check_deps

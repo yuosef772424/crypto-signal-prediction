@@ -31,8 +31,8 @@ def _split_ts(split_or_dict):
     return np.concatenate([np.asarray(s["last_candles"])[:, _LC["timestamp"]] for s in split_or_dict.values()])
 
 
-def _label_checks(split_or_dict, model_tf):
-    if globals().get("TARGET_MODE") not in (None, "return"):   # أهداف القسم ٣-ب لا تُقارَن بعائد خام
+def _label_checks(split_or_dict, model_tf, price_targets):
+    if target_mode_of(split_or_dict) not in (None, "return"):   # أهداف القسم ٣-ب لا تُقارَن بعائد خام
         return {}
     split, _ = _concat_splits(split_or_dict, model_tf)
     lc = np.asarray(split["last_candles"], dtype="float64")
@@ -40,7 +40,7 @@ def _label_checks(split_or_dict, model_tf):
     fut = {"high": lc[:, _LC["future_high_max"]], "low": lc[:, _LC["future_low_min"]],
            "close": lc[:, _LC["future_close"]]}
     out = {}
-    for t in PRICE_TARGETS:
+    for t in price_targets:
         if f"y_{t}_class" in split["y"]:
             y = np.asarray(split["y"][f"y_{t}_class"]).ravel() > 0
             out[f"{t}_class"] = float(np.mean(y == (fut[t] > last[t])))
@@ -53,9 +53,11 @@ def _label_checks(split_or_dict, model_tf):
 
 def run_full_verification(model, train_split, val_split, test_split, model_tf=None, target_acc=0.65,
                           rr=2.0, stop_mode="nig", n_boot=500, out_dir=None, run_candle=True,
-                          verbose=True):
-    """يشغّل كل الفحوص ويُرجع {"summary": جدول الحكم، "details": كل التقارير الفرعية}."""
-    model_tf = model_tf or _tfs_of()
+                          verbose=True, price_targets=None):
+    """يشغّل كل الفحوص ويُرجع {"summary": جدول الحكم، "details": كل التقارير الفرعية}.
+    model_tf (فريم أو قائمة فريمات = DatasetInfo.model_tfs) وprice_targets (= ModelPlan.price_targets) صريحان — لا قيمة افتراضية."""
+    model_tf = _required(model_tf, "model_tf")
+    price_targets = _required(price_targets, "price_targets")
     tfs = _tfs_of(model_tf)
     base_tf = tfs[0]
     rows, details = [], {}
@@ -69,10 +71,10 @@ def run_full_verification(model, train_split, val_split, test_split, model_tf=No
                  for tf in tfs)
         add("أ) البيانات", f"X_{name} بلا NaN/Inf", ok, "✅" if ok else "❌")
     for name, sp in (("val", val_split), ("test", test_split)):
-        chk = _label_checks(sp, model_tf)
+        chk = _label_checks(sp, model_tf, price_targets)
         if not chk:
             add("أ) البيانات", f"الأهداف تطابق الأسعار الخام ({name})", "—", "ℹ️",
-                f"تخطٍّ: TARGET_MODE={globals().get('TARGET_MODE')!r} (فحصه الذاتي في القسم ٣-ب)")
+                f"تخطٍّ: TARGET_MODE={target_mode_of(sp)!r} (فحصه الذاتي في القسم ٣-ب)")
             continue
         worst = min(chk.values())
         add("أ) البيانات", f"الأهداف تطابق الأسعار الخام ({name})", round(worst, 4),
@@ -87,20 +89,20 @@ def run_full_verification(model, train_split, val_split, test_split, model_tf=No
         add("أ) البيانات", f"{a} قبل {b} زمنياً (فجوة بالشموع)", round(float(gap), 1),
             "✅" if gap >= window + horizon else ("⚠️" if gap > 0 else "❌"),
             f"المطلوب ≥ نافذة+أفق = {window + horizon}")
-    for t in PRICE_TARGETS:
+    for t in price_targets:
         k = f"y_{t}_class"
         if k in train_split["y"]:
             p = float(np.mean(np.asarray(train_split["y"][k]) > 0))
             add("أ) البيانات", f"نسبة الصعود في train ({t})", round(p, 4), "ℹ️", "خط أساس الفئة الأكبر = max(p, 1−p)")
 
     # ── ب) خطوط الأساس على test ────────────────────────────────────────────
-    val_df = collect_signals(model, val_split, model_tf)
-    test_df = collect_signals(model, test_split, model_tf)
+    val_df = collect_signals(model, val_split, model_tf, price_targets=price_targets)
+    test_df = collect_signals(model, test_split, model_tf, price_targets=price_targets)
     te_split, _ = _concat_splits(test_split, model_tf)
     days = test_df["timestamp"].values
     add("ب) خطوط الأساس", "أيام test المستقلة", int(len(np.unique(days))), "ℹ️",
         "كل الأحكام أدناه على هذه الأيام — أقل من ~250 يوماً يعني أحكاماً ضعيفة إحصائياً")
-    for t in PRICE_TARGETS:
+    for t in price_targets:
         if f"p_up_{t}" not in test_df or f"y_{t}_class" not in train_split["y"]:
             continue
         y = (np.asarray(te_split["y"][f"y_{t}_class"]).ravel() > 0).astype(int)   # نفس هدف التدريب أياً كان وضعه
@@ -110,7 +112,7 @@ def run_full_verification(model, train_split, val_split, test_split, model_tf=No
         add("ب) خطوط الأساس", f"دقة اتجاه {t} − الفئة الأكبر (test)", round(m, 4),
             "✅" if lo > 0 else ("❌" if hi < 0 else "➖"),
             f"دقة النموذج {np.mean(pred == y):.4f} | الفئة الأكبر {np.mean(maj == y):.4f} | فاصل [{lo:+.4f}, {hi:+.4f}]")
-    for t in PRICE_TARGETS:
+    for t in price_targets:
         if f"y_{t}_reg" not in te_split["y"] or f"mu_{t}" not in test_df:
             continue
         y = np.asarray(te_split["y"][f"y_{t}_reg"], dtype="float64").ravel() / reg_scale_of(test_split, t)   # وحدة mu_
@@ -124,8 +126,8 @@ def run_full_verification(model, train_split, val_split, test_split, model_tf=No
             f" {np.mean(np.abs(y - const)):.5f} | فاصل [{lo:+.5f}, {hi:+.5f}]")
 
     # ── ج) الثقة والتداول ─────────────────────────────────────────────────
-    if globals().get("TARGET_MODE") not in (None, "return"):
-        add("ج) الثقة والتداول", "تخطٍّ", "—", "ℹ️", f"يفترض أهداف 'return' — TARGET_MODE={TARGET_MODE!r}")
+    if target_mode_of(test_split) not in (None, "return"):
+        add("ج) الثقة والتداول", "تخطٍّ", "—", "ℹ️", f"يفترض أهداف 'return' — TARGET_MODE={target_mode_of(test_split)!r}")
         sel = trd = pd.DataFrame()
     else:
         sel = selective_direction_report(val_df, test_df, target_acc=target_acc, verbose=verbose)

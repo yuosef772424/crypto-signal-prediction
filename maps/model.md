@@ -37,7 +37,7 @@
 - TAGS: model_config, anti_memorization_config, build_model_fn, head_types, model config
 - PITFALLS: MODEL_CONFIG is a live dict mutated by main.ipynb (MODEL_CONFIG['head_types'] = ...); build_model_fn reads it at call time. Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
 - USES: builder
-- USED BY: selftests, workflow/model_build, workflow/wiring_selftest
+- USED BY: selftests, workflow/wiring_selftest
 - API:
   - `def build_model_fn(seq_len, n_features, config=None)` L87
 

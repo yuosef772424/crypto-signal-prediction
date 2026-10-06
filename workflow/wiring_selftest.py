@@ -1,9 +1,16 @@
 """
 PURPOSE:  Section 8: self-test of the wiring between the notebooks on synthetic data (no Drive, no real training).
 TAGS:     run_wiring_selftest, wiring, self test, synthetic data, +1/-1 labels, chicks
-PITFALLS: Skipped by tools/evaluate_trained_model.py (the cell calling run_wiring_selftest). Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 44 (section 8).
+PITFALLS: run_wiring_selftest(kit) reads no notebook global (kit = workflow.run.Toolkit; the fake data, targets and decode specs are built inside); the evaluation tool never runs it. Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 44 (section 8).
 """
-def run_wiring_selftest(verbose=True):
+import dataclasses
+
+
+def run_wiring_selftest(kit, verbose=True):
+    """kit: workflow.run.Toolkit (يوفّر مواصفات الفكّ الافتراضية في chicks)؛ لا شيء يُقرأ من نطاق الدفتر."""
+    # أهداف بيانات الاختبار الوهمية (high/low/close بمقياس 1) ومواصفات فكّها تُبنى هنا
+    price_targets = ("high", "low", "close")
+    eval_specs = [dataclasses.replace(s, relative_to_entry=True, reg_scale=1.0) for s in kit.default_price_targets]
     # يثبّت التحويل نفسه أولاً — تأكيد حتمي بمعزل عن عشوائية التدريب
     assert _to_unit_label(np.array([-1.0, 1.0])).tolist() == [0.0, 1.0], "_to_unit_label خاطئة"
     assert _to_unit_label(np.array([0.0, 1.0])).tolist() == [0.0, 1.0], "_to_unit_label خاطئة (ترميز 1/0)"
@@ -73,13 +80,13 @@ def run_wiring_selftest(verbose=True):
 
     results = run_full_analysis(
         model=fake_model, test_dict=fake_test_dict, timeframes=[tf_name],
-        target_specs=EVAL_TARGET_SPECS, make_plots=False, verbose=False,
+        target_specs=eval_specs, make_plots=False, verbose=False,
         out_dir="/tmp/_wiring_selftest_analysis",
     )
     assert "per_asset_results" in results and len(results["per_asset_results"]) == 2
 
     # التقييم الانتقائي (القسم ٧-ب) على مخرجات النموذج الفعلية وبنية val (قسم واحد) وtest (قاموس أصول)
-    sel = selective_evaluation(fake_model, fake_val, fake_test, tf_name, min_n=10, verbose=False)
+    sel = selective_evaluation(fake_model, fake_val, fake_test, tf_name, min_n=10, verbose=False, price_targets=price_targets)
     assert len(sel["val_df"]) == 64 and len(sel["test_df"]) == 90
     assert {"class_margin", "nig_edge", "conf_head", "agree_margin"} <= set(sel["direction"]["score"])
 
@@ -88,12 +95,13 @@ def run_wiring_selftest(verbose=True):
     assert set(cb["verdicts"]) == {"high", "low"} and len(cb["table"]) == 2 * 2 * 5
 
     # التحقق المتكامل (القسم ٧-د) — يعمل من طرفه لطرفه على مخرجات النموذج الفعلية
-    ver = run_full_verification(fake_model, fake_train, fake_val, fake_test, tf_name, n_boot=50, verbose=False)
+    ver = run_full_verification(fake_model, fake_train, fake_val, fake_test, tf_name, n_boot=50, verbose=False,
+                                price_targets=price_targets)
     assert {"أ) البيانات", "ب) خطوط الأساس", "ج) الثقة", "ج) التداول", "د) شكل الشمعة"} <= set(ver["summary"]["section"])
 
     # المحفظة المحايدة (القسم ٧-و) — تعمل من طرفها لطرفها على مخرجات النموذج الفعلية وخط أساس GBM
     mn = market_neutral_report(fake_model, fake_train, fake_val, fake_test, tf_name, quantiles=(0.5,), min_assets=2,
-                               min_per_leg=1, n_boot=20, verbose=False)
+                               min_per_leg=1, n_boot=20, verbose=False, price_targets=price_targets)
     assert {"model", "gbm"} <= set(mn) and mn["gbm"] is not None and len(mn["model"]["grid"]) == 2 * len(_MN_SIDES)
 
     # مقاومة الحفظ (القسم ٧-ز): بيانات عشوائية مُطبَّعة نظيفة، وميزة مستوى مزروعة يجب أن تُكشف
@@ -105,24 +113,22 @@ def run_wiring_selftest(verbose=True):
     lvl_train[f"X_{tf_name}"] = lvl_X
     aud_lvl = normalization_audit(lvl_train, model_tf=tf_name, verbose=False)
     assert "مستوى" in aud_lvl.loc[0, "flags"] and (aud_lvl.loc[1:, "flags"] == "✅").all()
-    gap = generalization_gap_report(fake_model, fake_train, fake_val, fake_test, model_tf=tf_name, verbose=False)
+    gap = generalization_gap_report(fake_model, fake_train, fake_val, fake_test, model_tf=tf_name, verbose=False,
+                                    price_targets=price_targets)
     assert set(gap["verdicts"]) == {"high", "low", "close"}
     assert {"train", "val", "test", "gap_train_val"} <= set(gap["table"].columns)
 
     # تغيير الهدف (القسم ٣-ب): الأوضاع الأخرى تمرّ عبر ٧-ب و٧-د بلا استثناء، وتُتخطّى أجزاء 'return' بوضوح
-    global TARGET_MODE
-    try:
-        for mode in ("magnitude", "relative", "scaled+relative", "volnorm+relative", "entry_range"):
-            TARGET_MODE = mode
-            r_tr, r_va, r_te = retarget_splits(fake_train, fake_val, fake_test, mode=mode, group_freq="1D",
-                                               verbose=False)
-            assert all(s["target_mode"] == mode for s in [r_tr, r_va, *r_te.values()])
-            assert selective_evaluation(fake_model, r_va, r_te, tf_name, verbose=False) is None
-            ver_m = run_full_verification(fake_model, r_tr, r_va, r_te, tf_name, n_boot=20, verbose=False)
-            assert (ver_m["summary"].query("section == 'ج) الثقة والتداول'")["verdict"] == "ℹ️").all()
-    finally:
-        TARGET_MODE = None
-    r_tr, _, _ = retarget_splits(fake_train, fake_val, fake_test, mode="return", verbose=False)
+    for mode in ("magnitude", "relative", "scaled+relative", "volnorm+relative", "entry_range"):
+        r_tr, r_va, r_te = retarget_splits(fake_train, fake_val, fake_test, mode=mode, group_freq="1D",
+                                           verbose=False, reg_target_scale=1.0, price_targets=price_targets)
+        assert all(s["target_mode"] == mode for s in [r_tr, r_va, *r_te.values()])
+        assert selective_evaluation(fake_model, r_va, r_te, tf_name, verbose=False, price_targets=price_targets) is None
+        ver_m = run_full_verification(fake_model, r_tr, r_va, r_te, tf_name, n_boot=20, verbose=False,
+                                      price_targets=price_targets)
+        assert (ver_m["summary"].query("section == 'ج) الثقة والتداول'")["verdict"] == "ℹ️").all()
+    r_tr, _, _ = retarget_splits(fake_train, fake_val, fake_test, mode="return", verbose=False,
+                                 reg_target_scale=1.0, price_targets=price_targets)
     for k, v in fake_train["y"].items():
         if k.endswith("_reg"):   # الأهداف الوهمية هنا: الانحدار متّسق مع الأسعار، التصنيف عشوائي عمداً
             assert np.allclose(r_tr["y"][k], v, atol=1e-6), k
@@ -137,10 +143,10 @@ def run_wiring_selftest(verbose=True):
     pooled, y_true_pooled = pool_test_dict(fake_test_dict, tf_name)
     assert [b["name"] for b in pooled["asset_bounds"]] == list(fake_test_dict.keys())
     pooled_table = predict_pooled_batch_by_asset(
-        fake_model, pooled, tf_name, target_specs=EVAL_TARGET_SPECS,
+        fake_model, pooled, tf_name, target_specs=eval_specs,
         n_display=1000, y_true_pooled=y_true_pooled, verbose=False)
     separate_table = predict_latest_all_assets(
-        fake_model, fake_test_dict, timeframes=[tf_name], target_specs=EVAL_TARGET_SPECS,
+        fake_model, fake_test_dict, timeframes=[tf_name], target_specs=eval_specs,
         n_display=1000, verbose=False)
     for asset in fake_test_dict:
         for t in ("high", "low", "close"):
@@ -183,15 +189,16 @@ def run_wiring_selftest(verbose=True):
     two_trainer.fit(two_ds, validation_data=two_val, initial_epoch=two_ie, epochs=1, callbacks=two_cbs, verbose=0)
     two_model = two_trainer.model
     assert [i.name for i in two_model.inputs] == two, [i.name for i in two_model.inputs]
-    assert len(collect_signals(two_model, fake_val, two)) == 64 and len(collect_signals(two_model, fake_test, two)) == 90
+    assert (len(collect_signals(two_model, fake_val, two, price_targets=price_targets)) == 64
+            and len(collect_signals(two_model, fake_test, two, price_targets=price_targets)) == 90)
     two_res = run_full_analysis(model=two_model, test_dict=fake_test_dict, timeframes=two,
-                                target_specs=EVAL_TARGET_SPECS, make_plots=False, verbose=False,
+                                target_specs=eval_specs, make_plots=False, verbose=False,
                                 out_dir="/tmp/_wiring_selftest_analysis_2tf")
     assert "per_asset_results" in two_res and len(two_res["per_asset_results"]) == 2
     two_pooled, two_y = pool_test_dict(fake_test_dict, two)
-    two_tab = predict_pooled_batch_by_asset(two_model, two_pooled, two, target_specs=EVAL_TARGET_SPECS,
+    two_tab = predict_pooled_batch_by_asset(two_model, two_pooled, two, target_specs=eval_specs,
                                             n_display=1000, y_true_pooled=two_y, verbose=False)
-    two_sep = predict_latest_all_assets(two_model, fake_test_dict, timeframes=two, target_specs=EVAL_TARGET_SPECS,
+    two_sep = predict_latest_all_assets(two_model, fake_test_dict, timeframes=two, target_specs=eval_specs,
                                         n_display=1000, verbose=False)
     for asset in fake_test_dict:
         for t in ("high", "low", "close"):

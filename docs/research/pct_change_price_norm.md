@@ -1,5 +1,8 @@
 # تجربة التطبيع النسبي الهندسي للأسعار (`price_norm_mode='pct_change'`)
 
+> **ملاحظة (S7 — `main.ipynb` مُوجَّه بالإعدادات):** المتغيّرات المذكورة بأسمائها القديمة في خطوات Colab أدناه (`TARGET_MODE`، `ENTRY_CLOSE_REG`، `MODEL_TFS`، `DATA_FILENAME_BASE`، `RUN_MAIN_TRAINING`، `PANEL_MODE`، `PANEL_PRESET`، `PANEL_*`...) صارت حقولاً في `settings` (خلية «٢) الإعدادات»):
+> `target.target_mode`، `target.entry_close_reg`، `data.model_tfs`، `data.filename_base`، `train.run_main_training`، `panel.enabled`، `panel.preset`، `panel.*`. الجدول الكامل: [`main_lab_code_layout.md`](main_lab_code_layout.md) («كان / صار»). الخطوات نفسها والمجلدات نفسها (`run_dir_for`)، والنتائج المسجَّلة أدناه لم تتغيّر.
+
 ## الفكرة
 
 أعمدة `price_level` في X (`close`، و`open`/`high`/`low` والمتوسطات ونطاقات بولنجر حين تُفعَّل) كانت تُطبَّع بمرجع النافذة:

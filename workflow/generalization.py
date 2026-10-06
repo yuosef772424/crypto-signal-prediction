@@ -8,8 +8,8 @@ import pandas as pd
 
 
 def _x_of(split_or_dict, model_tf=None):
-    # فريم واحد بالاسم؛ قائمة فريمات ← أولها (الأساسي). None ← MODEL_TF: التدقيق على الفريم الأساسي، و"4h" صراحةً لسياقه.
-    model_tf = _tfs_of(model_tf)[0] if model_tf else MODEL_TF
+    # فريم واحد بالاسم؛ قائمة فريمات ← أولها (الأساسي). التدقيق على الفريم الأساسي، و"4h" صراحةً لسياقه. model_tf صريح دائماً.
+    model_tf = _tfs_of(_required(model_tf, "model_tf"))[0]
     return np.concatenate([np.asarray(s[f"X_{model_tf}"]) for _, s in _split_parts(split_or_dict)])
 
 
@@ -89,7 +89,8 @@ def normalization_audit(train_split, val_split=None, test_split=None, feature_na
     return df
 
 
-def _heads_eval(model, split_or_dict, max_n, seed, model_tf, batch_size=2048):
+def _heads_eval(model, split_or_dict, max_n, seed, model_tf, batch_size=2048, price_targets=None):
+    price_targets = _required(price_targets, "price_targets")
     parts = _split_parts(split_or_dict)
     tfs = _tfs_of(model_tf)
     X = _x_of(split_or_dict, tfs[0])
@@ -99,7 +100,7 @@ def _heads_eval(model, split_or_dict, max_n, seed, model_tf, batch_size=2048):
     x_in = X[idx] if len(tfs) == 1 else {tf: _x_of(split_or_dict, tf)[idx] for tf in tfs}   # قاموس لنموذج متعدّد الفريمات
     out = model.predict(x_in, batch_size=batch_size, verbose=0)
     res = {}
-    for t in PRICE_TARGETS:
+    for t in price_targets:
         if f"y_{t}_class_logits" in out and f"y_{t}_class" in y:
             yt = y[f"y_{t}_class"][idx] > 0
             p = np.asarray(out[f"y_{t}_class_logits"]).ravel()
@@ -123,11 +124,12 @@ def _auc(y, s):
     return float((rankdata(s)[y].sum() - n1 * (n1 + 1) / 2) / (n1 * n0))
 
 
-def _linear_reference(train_split, eval_splits, model_tf, max_n, seed=0):
+def _linear_reference(train_split, eval_splits, model_tf, max_n, seed=0, price_targets=None):
     """انحدار لوجستي على [آخر خطوة، متوسط النافذة] لكل ميزة — «أبسط نموذج معقول». لا يستطيع الحفظ عملياً
     (معاملات قليلة، C صغير)، فما يحقّقه على val/test هو معلومة متاحة فعلاً في الميزات بهذا الهدف."""
     from sklearn.linear_model import LogisticRegression
     from sklearn.preprocessing import StandardScaler
+    price_targets = _required(price_targets, "price_targets")
     feats = lambda X: np.concatenate([X[:, -1, :], X.mean(axis=1)], axis=1).astype("float64")
     parts = _split_parts(train_split)
     X = _x_of(train_split, model_tf)
@@ -135,7 +137,7 @@ def _linear_reference(train_split, eval_splits, model_tf, max_n, seed=0):
     F = np.nan_to_num(feats(X[idx]))
     sc = StandardScaler().fit(F)
     out = {}
-    for t in PRICE_TARGETS:
+    for t in price_targets:
         k = f"y_{t}_class"
         if k not in parts[0][1]["y"]:
             continue
@@ -153,7 +155,7 @@ def _linear_reference(train_split, eval_splits, model_tf, max_n, seed=0):
 
 
 def generalization_gap_report(model, train_split, val_split, test_split, model_tf=None, max_n=20000,
-                              auc_gap_max=0.03, linear_reference=True, verbose=True):
+                              auc_gap_max=0.03, linear_reference=True, verbose=True, price_targets=None):
     """يقيس نفس المقاييس على train (عيّنة، بوضع الاستدلال: بلا dropout/ضجيج) وval وtest:
     AUC ودقّة رؤوس التصنيف، وIC يومي (سبيرمان داخل كل طابع زمني ثم المتوسط) لرؤوس الانحدار.
 
@@ -171,17 +173,17 @@ def generalization_gap_report(model, train_split, val_split, test_split, model_t
       المعماري أن InstanceNorm يمحو مستوى الميزة — level_passthrough). مع فجوة كبيرة = الحفظ بديل ما لم يستطع رؤيته."""
     rows = {}
     for name, sp, seed in (("train", train_split, 0), ("val", val_split, 1), ("test", test_split, 2)):
-        rows[name] = _heads_eval(model, sp, max_n, seed, model_tf)
+        rows[name] = _heads_eval(model, sp, max_n, seed, model_tf, price_targets=price_targets)
     df = pd.DataFrame(rows)
     df.index = pd.MultiIndex.from_tuples(df.index, names=["target", "metric"])
     df["gap_train_val"] = df["train"] - df["val"]
     df["gap_train_test"] = df["train"] - df["test"]
-    lin = _linear_reference(train_split, {"val": val_split, "test": test_split}, model_tf, max_n) \
-        if linear_reference else {}
+    lin = _linear_reference(train_split, {"val": val_split, "test": test_split}, model_tf, max_n,
+                            price_targets=price_targets) if linear_reference else {}
     for name in ("val", "test"):
         df[f"linear_ref_{name}"] = [lin.get((t, name), np.nan) if m == "class_auc" else np.nan for t, m in df.index]
     verdicts = {}
-    for t in PRICE_TARGETS:
+    for t in price_targets:
         if (t, "class_auc") not in df.index:
             continue
         g, v = df.loc[(t, "class_auc"), "gap_train_val"], df.loc[(t, "class_auc"), "val"]

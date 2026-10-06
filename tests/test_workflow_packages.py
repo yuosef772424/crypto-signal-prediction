@@ -37,15 +37,19 @@ def _code(cell):
 
 
 def _load_lines(name):
-    """[(cell index, tuple of module names)] for every `<pkg>.load_into(globals(), ...)` line of a notebook, in notebook order."""
+    """[(cell index, tuple of module names)] for every `<pkg>.load_into(globals()[, only=(...)])` line of a notebook, in notebook order;
+    a line without ``only`` loads every module of the package."""
     out = []
     for i, c in enumerate(_cells(name)):
         if c["cell_type"] != "code":
             continue
         for ln in _code(c).splitlines():
-            m = re.match(r"\s*(?:workflow|discovery)\.load_into\(globals\(\), only=\(([^)]*)\)", ln)
+            m = re.match(r"\s*(workflow|discovery)\.load_into\(globals\(\)(?:, only=\(([^)]*)\))?(?:, exclude=\(([^)]*)\))?\)", ln)
             if m:
-                out.append((i, tuple(x.strip().strip('"') for x in m.group(1).split(",") if x.strip())))
+                pkg_modules = PACKAGES[m.group(1)].MODULES
+                mods = (tuple(x.strip().strip('"') for x in m.group(2).split(",") if x.strip()) if m.group(2)
+                        else tuple(x for x in pkg_modules if x not in (m.group(3) or "")))
+                out.append((i, mods))
     return out
 
 
@@ -83,12 +87,15 @@ class PackageStructureTests(unittest.TestCase):
 
     def test_shared_namespace_late_binding_and_patching(self):
         ns = workflow_loader.load_into({"__name__": "t"}, only=("splits",))
+        self.assertEqual(ns["_tfs_of"]("1h"), ["1h"])                      # the timeframes are explicit: no notebook global is read
+        self.assertEqual(ns["_tfs_of"](["1h", "4h"]), ["1h", "4h"])
+        with self.assertRaises(ValueError):
+            ns["_tfs_of"]()                                                # nothing to fall back on
         ns["MODEL_TF"] = "1h"
-        self.assertEqual(ns["_tfs_of"](), ["1h"])
-        ns["MODEL_TFS"] = ["1h", "4h"]                           # read through the namespace at call time (as in the notebook)
-        self.assertEqual(ns["_tfs_of"](), ["1h", "4h"])
-        ns["_tfs_of"] = lambda model_tf=None: ["patched"]        # patching a name changes what every function of the dict sees
-        self.assertEqual(ns["model_x"]({"X_patched": 7}), 7)
+        with self.assertRaises(ValueError):
+            ns["_tfs_of"]()                                                # a notebook MODEL_TF / MODEL_TFS is ignored now
+        ns["_tfs_of"] = lambda model_tf=None: ["patched"]                  # patching a name changes what every function of the dict sees
+        self.assertEqual(ns["model_x"]({"X_patched": 7}, "1h"), 7)
 
     def test_lazy_package_attribute_access(self):
         import discovery
@@ -129,44 +136,42 @@ class RunnerNotebookTests(unittest.TestCase):
                 defs = {n.name for n in ast.walk(ast.parse(_code(c))) if isinstance(n, (ast.FunctionDef, ast.ClassDef))}
                 self.assertFalse(defs - ok, f"{nb} cell {i} defines {sorted(defs - ok)}: move it to its package")
 
-    def test_main_loads_every_workflow_module_in_package_order(self):
+    def test_main_loads_every_workflow_module_once_after_the_runner_notebooks(self):
+        """One `workflow.load_into(globals())` after the four %run cells (the modules use the names of those notebooks; generalization
+        shadows model_v2's `_auc` exactly as when it was loaded after model_v2's %run), and the settings cell comes after it."""
         loads = _load_lines("main.ipynb")
-        self.assertEqual({m for _, mods in loads for m in mods} | {"panel_bridge"}, set(workflow_loader.MODULES))
-        seen = []
-        for _, mods in loads:
-            for m in mods:
-                if m not in seen:
-                    seen.append(m)
-        self.assertEqual(seen, [m for m in workflow_loader.MODULES if m in seen])    # first load of each module follows MODULES order
-        # the panel cell loads panel_bridge inside its PANEL_MODE block
-        panel = next("".join(c["source"]) for c in _cells("main.ipynb") if c["cell_type"] == "code" and "PANEL_MODE = False" in "".join(c["source"]))
-        self.assertIn('workflow.load_into(globals(), only=("panel_bridge",))', panel)
-
-    def test_main_loads_workflow_after_the_runner_notebooks_it_shadows(self):
-        """model_v2 %run (section 4) comes before the generalization module (7-g) that shadows model_v2's `_auc`."""
+        self.assertEqual(len(loads), 1, loads)
+        self.assertEqual(set(loads[0][1]), set(workflow_loader.MODULES))
         cells = _cells("main.ipynb")
         run_cells = {}
         for i, c in enumerate(cells):
             for m in re.findall(r'^%run "([^"]+)"', "".join(c["source"]), re.M):
                 run_cells[m] = i
-        self.assertEqual(set(run_cells), {"crypto_data_pipeline_v6.ipynb", "model_v2 (1).ipynb", "trainer_framework_v2.ipynb",
-                                          "chicks_v4_5_input_output_patterns.ipynb"})
-        gen = next(i for i, mods in _load_lines("main.ipynb") if "generalization" in mods)
-        self.assertGreater(gen, max(run_cells.values()))
-        first_load = min(i for i, _ in _load_lines("main.ipynb"))
-        self.assertGreater(first_load, run_cells["crypto_data_pipeline_v6.ipynb"])      # the setup cell finds the repo first
+        self.assertEqual(list(run_cells), ["crypto_data_pipeline_v6.ipynb", "model_v2 (1).ipynb", "trainer_framework_v2.ipynb",
+                                           "chicks_v4_5_input_output_patterns.ipynb"])      # main's order, as tools/evaluate_trained_model.py runs them
+        self.assertEqual(sorted(run_cells.values()), list(run_cells.values()))
+        self.assertGreater(loads[0][0], max(run_cells.values()))
+        settings_cell = next(i for i, c in enumerate(cells) if c["cell_type"] == "code" and "RunSettings(" in "".join(c["source"]))
+        self.assertGreater(settings_cell, loads[0][0])
 
-    def test_evaluate_trained_model_patch_contract(self):
-        """tools/evaluate_trained_model.py patches main's cells by text: these anchors must stay."""
-        text = "\n".join("".join(c["source"]) for c in _cells("main.ipynb") if c["cell_type"] == "code")
-        for anchor in ("TARGET_MODE = None", 'ENTRY_CLOSE_REG = "abs_return"', "ANTI_MEMORIZATION = True", "RUN_MAIN_TRAINING = True",
-                       "PANEL_MODE = False", "# ── نهاية الإعدادات ──", "retarget_splits(train, val, test, mode=TARGET_MODE)",
-                       '"/content/drive/MyDrive/training_runs/crypto_model_v1"', "callbacks=callbacks, verbose=1,", "model.summary()",
-                       "    globals().update(PANEL_PRESETS[PANEL_PRESET])"):
-            self.assertIn(anchor, text, anchor)
-        self.assertTrue(any(re.search(r"^train, val, test = split_data\(", "".join(c["source"]), re.M)
-                            for c in _cells("main.ipynb") if c["cell_type"] == "code"))
-        self.assertTrue(any("run_wiring_selftest(" in "".join(c["source"]) for c in _cells("main.ipynb")))
+    def test_main_is_settings_driven(self):
+        """main.ipynb: one settings cell, then one short cell per step calling workflow/run.py; no setting global is read or defined."""
+        cells = [c for c in _cells("main.ipynb") if c["cell_type"] == "code"]
+        code = "\n".join(_code(c) for c in cells)
+        self.assertEqual(code.count("settings = RunSettings("), 1)
+        steps = ["apply_project_config(", "load_dataset(", "apply_dataset_config(", "make_splits(", "retarget(", "plan_model(", "build_model(",
+                 "make_training_config(", "make_datasets(", "train_model(", "prepare_chicks(", "run_chicks(", "run_panel(", "run_wiring_selftest("]
+        pos = [code.index(s_) for s_ in steps]
+        self.assertEqual(pos, sorted(pos), "the steps must run in this order")
+        used = {n.id for c in cells for n in ast.walk(ast.parse(_code(c))) if isinstance(n, ast.Name)}
+        removed = {"TARGET_MODE", "ENTRY_CLOSE_REG", "ANTI_MEMORIZATION", "CLASS_ONLY", "RUN_MAIN_TRAINING", "PANEL_MODE", "PANEL_PRESET",
+                   "MODEL_TFS", "MODEL_TF", "PRICE_TARGETS", "REG_TARGET_SCALE", "MODEL_OVERRIDES", "MODEL_SEQ_LEN", "MODEL_N_FEATURES",
+                   "EVAL_TARGET_SPECS", "CHICKS_TARGETS", "DATA_FILENAME_BASE", "DATA_FORMAT", "CALIBRATE_CONFIDENCE"}
+        self.assertEqual(used & removed, set(), "main.ipynb still reads/defines a notebook setting global")
+        self.assertNotIn("update_config(", code)                              # the project config goes through settings.project
+        settings_src = next("".join(c["source"]) for c in cells if "settings = RunSettings(" in "".join(c["source"]))
+        for section in ("ProjectSettings(", "DataSettings(", "TargetSettings(", "ModelSettings(", "TrainSettings(", "EvalSettings(", "PanelSettings("):
+            self.assertIn(section, settings_src)
 
     def test_discovery_runners_load_their_modules(self):
         lab = "\n".join("".join(c["source"]) for c in _cells("signal_discovery_lab.ipynb") if c["cell_type"] == "code")

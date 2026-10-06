@@ -1,5 +1,5 @@
 """
-PURPOSE:  Package holding the project-assembly code of main.ipynb (target-mode switching, split helpers, training batches, model/trainer bridges, section-7 evaluation reports, diagnostics, capacity controls, wiring self-test); main.ipynb stays the step-by-step runner.
+PURPOSE:  Package holding the project-assembly code of main.ipynb: RunSettings (every run setting in one strict object) and the run steps that turn settings into splits, model, training and evaluation inputs (workflow/run.py), plus target-mode switching, split helpers, training batches, model/trainer bridges, section-7 evaluation reports, diagnostics, capacity controls and the wiring self-test; main.ipynb stays the step-by-step runner: one settings cell, then one short cell per step.
 TAGS:     workflow, main notebook, assembly, retarget_splits, make_shuffled_dataset, model_health_report, capacity_report, section 7 reports, shared namespace, lazy load
 PITFALLS: The modules run in ONE shared namespace (see workflow/_loader.py), so never `import workflow.<module>`; use `import workflow`
           (namespace = this package, loaded lazily on first attribute access) or `workflow.load_into(ns, only=...)` (namespace =
@@ -10,7 +10,8 @@ PITFALLS: The modules run in ONE shared namespace (see workflow/_loader.py), so 
           kept in sync); main.ipynb never uses it (it calls workflow.load_into(globals(), ...), whose modules read the CONFIG of the
           namespace they are loaded into, tests/test_config_collisions.py).
 
-Modules (load order) and the old main.ipynb cell each was extracted from:
+Modules (load order) and the old main.ipynb cell each was extracted from (settings and run are new: no old cell):
+  settings            RunSettings + its sections, run_dir_for (the ~57 notebook globals as one strict frozen object)
   dataset_io          cell 7 (section 3)
   splits              cell 8 (section 3)
   retarget            cell 10 (section 3-b)
@@ -30,6 +31,8 @@ Modules (load order) and the old main.ipynb cell each was extracted from:
   diagnostics         cell 40 (section 7-i)
   capacity            cell 42 (section 7-j)
   wiring_selftest     cell 44 (section 8)
+  run                 the steps: load_dataset, apply_dataset_config, make_splits, retarget, plan_model, build_model,
+                      make_training_config, make_datasets, train_model, prepare_chicks, run_chicks, run_panel, run_reports, run_main
 """
 import threading as _threading
 

@@ -18,6 +18,7 @@ REPO_ROOT = PACKAGE_DIR.parent
 
 #: Load order = the order of the notebook cells these modules were extracted from (main.ipynb).
 MODULES = (
+    "settings",
     "dataset_io",
     "splits",
     "retarget",
@@ -37,6 +38,7 @@ MODULES = (
     "diagnostics",
     "capacity",
     "wiring_selftest",
+    "run",
 )
 
 

@@ -413,14 +413,14 @@ class MainWrapperTests(unittest.TestCase):
     def setUpClass(cls):
         import tensorflow as tf  # noqa: F401
         ns = dict(_ns())
-        ns.update(MODEL_TF="1h", LAST_COLUMNS=["timestamp"], main_config={"run": {"batch_size": BS}, "targets": {}})
-        _extract_defs("splits", {"_tfs_of", "model_x"}, ns)
+        ns.update(LAST_COLUMNS=["timestamp"])
+        _extract_defs("splits", {"_required", "_tfs_of", "model_x"}, ns)
         _extract_defs("retarget", {"_split_parts"}, ns)
         _extract_defs("batches", {"make_shuffled_dataset", "_to_unit_label", "make_eval_dataset", "_to_float32_inputs"}, ns)
         ns["main_config"] = ns["build_config"]({"run": {"run_dir": tempfile.mkdtemp(), "epochs": 1, "batch_size": BS, "verbose": 0,
                                                         "train_mode": "new"},
                                                 "optimizer": {"lr_initial": 1e-2}, "targets": ns["build_target_configs"](("high", "low"))})
-        ns["_y_for"] = lambda sp: dict(sp["y"])
+        ns["_y_for"] = lambda sp, config=None: dict(sp["y"])
         _module_into("diagnostics", ns)
         _module_into("capacity", ns)
         cls.ns = ns
@@ -431,15 +431,16 @@ class MainWrapperTests(unittest.TestCase):
         cls.model = _main_run()["trainer"].model
 
     def test_diag_xy_samples_before_concat_and_handles_asset_dict(self):
-        X, y = self.ns["_diag_xy"](self.test, None, max_n=60)
+        X, y = self.ns["_diag_xy"](self.test, "1h", max_n=60)
         self.assertEqual((len(X), len(y["y_high_class"])), (60, 60))
-        X2, _ = self.ns["_diag_xy"](self.train, None, max_n=10_000)
+        X2, _ = self.ns["_diag_xy"](self.train, "1h", max_n=10_000)
         self.assertEqual(len(X2), 256)
 
     def test_model_health_report(self):
         buf = io.StringIO()
         with contextlib.redirect_stdout(buf):
-            out = self.ns["model_health_report"](self.model, self.train, self.val, recorder=_main_run()["diag"], max_n=200)
+            out = self.ns["model_health_report"](self.model, self.train, self.val, recorder=_main_run()["diag"], max_n=200,
+                                                 model_tf="1h")
         v = out["verdicts"]
         self.assertTrue({"check", "status", "detail", "action"} <= set(v.columns))
         self.assertTrue(set(v["status"]) <= {"✅", "⚠️", "🚨"})
@@ -451,7 +452,8 @@ class MainWrapperTests(unittest.TestCase):
 
     def test_model_layer_report(self):
         out = self.ns["model_layer_report"](self.model, self.train, self.val, self.test, recorder=_main_run()["diag"],
-                                            max_train=256, max_val=200, max_eval=150, n_rand=2, n_perm=20, verbose=False)
+                                            max_train=256, max_val=200, max_eval=150, n_rand=2, n_perm=20, verbose=False,
+                                            model_tf="1h")
         tab = out["table"]
         self.assertTrue({"layer", "stage", "dead_unit_frac", "probe:high_class", "sep:high_class", "⚑", "grad_trend"} <= set(tab.columns), tab.columns)
         self.assertIn("trunk_norm", set(tab["layer"]))
@@ -461,12 +463,13 @@ class MainWrapperTests(unittest.TestCase):
 
     def test_make_training_diagnostics_does_not_change_dataset(self):
         diag, ds = self.ns["make_training_diagnostics"](self.train, self.val, probe_size=64, cartography_size=100, grad_every=2,
-                                                        influence_every=0, verbose=0)
+                                                        influence_every=0, verbose=0, config=self.ns["main_config"],
+                                                        model_tf="1h")
         x, y = next(iter(ds))
         self.assertEqual(x.shape, (BS, T_LEN, N_FEAT))
         self.assertIn("__sample_idx__", y)
         with self.assertRaises(TypeError):
-            self.ns["make_training_diagnostics"](self.train, self.val, bogus=1)
+            self.ns["make_training_diagnostics"](self.train, self.val, config=self.ns["main_config"], model_tf="1h", bogus=1)
 
 
 # ══════════════════════════════════════════════════════════════════════════════════════════════════
@@ -513,8 +516,8 @@ class CapacityToolsTests(unittest.TestCase):
 
     def test_effective_sample_size_discounts_correlated_assets(self):
         ess = self.ns["effective_sample_size"]
-        indep = ess(_panel_split(8, 120, 0.0, 0), window=T_LEN, n_params=5000)
-        corr = ess(_panel_split(8, 120, 0.9, 0), window=T_LEN, n_params=5000)
+        indep = ess(_panel_split(8, 120, 0.0, 0), window=T_LEN, n_params=5000, model_tf="1h")
+        corr = ess(_panel_split(8, 120, 0.9, 0), window=T_LEN, n_params=5000, model_tf="1h")
         self.assertEqual(indep["n_rows"], corr["n_rows"])
         self.assertEqual(indep["n_assets"], 8)
         self.assertLess(indep["rho_bar"], 0.2)
@@ -526,14 +529,14 @@ class CapacityToolsTests(unittest.TestCase):
         self.assertAlmostEqual(corr["eff_per_param"], corr["n_effective"] / 5000)
         self.assertAlmostEqual(corr["eff_per_feature"], corr["n_effective"] / 6)
         self.assertTrue(corr["verdict"].startswith("🚨"))                              # 5000 معامل ≫ العيّنات الفعّالة
-        small = ess(_panel_split(8, 120, 0.0, 0), window=T_LEN, n_params=10)
+        small = ess(_panel_split(8, 120, 0.0, 0), window=T_LEN, n_params=10, model_tf="1h")
         self.assertTrue(small["verdict"].startswith(("✅", "⚠️")))
-        self.assertEqual(ess(_panel_split(3, 60, 0.0, 1), window=T_LEN, horizon=20)["n_time_indep"], 3.0)   # أفق الهدف يزيد التداخل
+        self.assertEqual(ess(_panel_split(3, 60, 0.0, 1), window=T_LEN, horizon=20, model_tf="1h")["n_time_indep"], 3.0)   # أفق الهدف يزيد التداخل
 
     def test_simple_baseline_signal_vs_noise(self):
         ns = self.ns
-        sig = ns["simple_baseline"](_panel_split(4, 150, 0.0, 0), _panel_split(4, 100, 0.0, 1))
-        noi = ns["simple_baseline"](_panel_split(4, 150, 0.0, 0, noise_labels=True), _panel_split(4, 100, 0.0, 1, noise_labels=True))
+        sig = ns["simple_baseline"](_panel_split(4, 150, 0.0, 0), _panel_split(4, 100, 0.0, 1), "1h")
+        noi = ns["simple_baseline"](_panel_split(4, 150, 0.0, 0, noise_labels=True), _panel_split(4, 100, 0.0, 1, noise_labels=True), "1h")
         a, b = sig.set_index("head").loc["high_class"], noi.set_index("head").loc["high_class"]
         self.assertGreater(a["skill"], 0.7)
         self.assertGreater(a["z"], 3.0)
@@ -546,7 +549,7 @@ class CapacityToolsTests(unittest.TestCase):
         self.assertNotIn("test_split", inspect.signature(ns["feature_count_sweep"]).parameters)    # test لا يدخل الترتيب أصلاً
         tr, va = _panel_split(4, 128, 0.0, 0, n_feat=6), _panel_split(4, 100, 0.0, 1, n_feat=6)
         names = [f"f{i}" for i in range(6)]
-        sw = _quiet(ns["feature_count_sweep"], self._build_fn(), tr, va, names, ks=(1, 6, 99), epochs=5, seed=0, config=self._cfg(), verbose=False)
+        sw = _quiet(ns["feature_count_sweep"], self._build_fn(), tr, va, names, ks=(1, 6, 99), epochs=5, seed=0, config=self._cfg(), model_tf="1h", verbose=False)
         self.assertEqual(list(sw["k"]), [1, 6])                                       # 99 قُصّت إلى 6 (ودُمجت مع 6)
         self.assertEqual(sw.iloc[0]["features"], ["f0"])                              # الميزة الوحيدة المعلوماتية رُتّبت أولاً (train فقط)
         self.assertTrue({"train_skill", "val_skill", "gap", "baseline_val", "null_train", "null_val", "z", "se"} <= set(sw.columns))
@@ -564,7 +567,7 @@ class CapacityToolsTests(unittest.TestCase):
         ns["_capacity_fit"] = lambda builder, X, y, Xv, yv, *a, **k: (seen.append(np.asarray(X)[:, 0, -1].copy()), orig(builder, X, y, Xv, yv, *a, **k))[1]
         try:
             tr, va = _panel_split(3, 128, 0.0, 0), _panel_split(3, 100, 0.0, 1)
-            lc = _quiet(ns["learning_curve"], self._build_fn(), tr, va, fractions=(0.25, 0.5, 1.0), epochs=4, config=self._cfg(), verbose=False)
+            lc = _quiet(ns["learning_curve"], self._build_fn(), tr, va, fractions=(0.25, 0.5, 1.0), epochs=4, config=self._cfg(), model_tf="1h", verbose=False)
         finally:
             ns["_capacity_fit"] = orig
         self.assertEqual(list(lc["fraction"]), [0.25, 0.5, 1.0])
@@ -613,7 +616,7 @@ class CapacityToolsTests(unittest.TestCase):
             tr = _panel_split(4, 128, 0.0, 0, noise_labels=noise)
             va = _panel_split(4, 100, 0.0, 1, noise_labels=noise)
             out = _quiet(ns["capacity_report"], self._build_fn(), tr, va, ks=(1, 6), fractions=(0.5, 1.0), epochs=5,
-                         config=self._cfg(), verbose=False)
+                         config=self._cfg(), model_tf="1h", verbose=False)
             self.assertTrue(any(line.startswith(expect) for line in out["verdict"]), (noise, out["verdict"]))
             self.assertEqual(any(line.startswith("➖") for line in out["verdict"]), noise)
             self.assertEqual(set(out), {"ess", "baseline", "sweep", "curve", "verdict"})

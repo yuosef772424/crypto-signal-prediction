@@ -28,7 +28,7 @@ def effective_sample_size(split, window=None, stride=None, horizon=1, target=Non
     lc = np.asarray(split["last_candles"], dtype="float64")
     ts = lc[:, LAST_COLUMNS.index("timestamp")]
     a = _split_asset_ids(split)
-    X = split[f"X_{_tfs_of(model_tf)[0]}"]
+    X = split[f"X_{_tfs_of(_required(model_tf, 'model_tf'))[0]}"]
     window = int(window or X.shape[1])
     n_features = int(n_features or X.shape[-1])
     if model is not None and n_params is None:
@@ -143,7 +143,7 @@ def _select_cols(X, cols):
 def _capacity_fit(builder, X, y, Xv, yv, epochs, seed, config=None, batch_size=None):
     """تدريب سريع بنفس مسار main (build_training_system) في مجلد مؤقّت: حقب ثابتة بلا إيقاف مبكر ولا استعادة «الأفضل» على val
     (فلا تدخل val في اختيار الحقبة — مقياس val نظيف)، ثم يُحذف المجلد."""
-    cfg = copy.deepcopy(config or main_config)
+    cfg = copy.deepcopy(_required(config, "config"))
     d = tempfile.mkdtemp(prefix="capacity_")
     cfg["run"].update({"run_dir": d, "mirror_dir": None, "epochs": epochs, "train_mode": "new", "seed": seed, "verbose": 0})
     if batch_size:
