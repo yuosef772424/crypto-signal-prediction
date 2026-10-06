@@ -1,7 +1,7 @@
 """
 PURPOSE:  Section 8: self-test of the wiring between the notebooks on synthetic data (no Drive, no real training).
 TAGS:     run_wiring_selftest, wiring, self test, synthetic data, +1/-1 labels, chicks
-PITFALLS: Skipped by tools/evaluate_trained_model.py (the cell calling run_wiring_selftest). Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 44 (section 8).
+PITFALLS: run_wiring_selftest(kit) reads no notebook global (kit = workflow.run.Toolkit; the fake data, targets and decode specs are built inside); the evaluation tool never runs it. Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 44 (section 8).
 """
 import dataclasses
 

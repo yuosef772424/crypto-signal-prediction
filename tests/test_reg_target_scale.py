@@ -4,6 +4,7 @@
     python -m unittest tests.test_reg_target_scale -v
 اختبارات خط الأنابيب نفسه (البناء، القصّ قبل الضرب، الحفظ في البيانات) في run_pipeline_selftests.
 """
+import dataclasses
 import json
 import os
 import sys
@@ -18,23 +19,24 @@ import _nbload  # noqa: E402
 _NS = None
 
 
-def _cell(nb_name, idx):
-    """Source of a notebook code cell (magics dropped). ``idx``: 0-based cell index, or for notebooks whose code moved to a package
-    (main.ipynb) a section key: a workflow module name (the cell whose ``workflow.load_into(...)`` line loads it) or
-    ``"text:<substring>"`` (the first code cell containing it). Keys survive cell insertions/removals, unlike indices."""
-    with open(os.path.join(ROOT, nb_name), encoding="utf-8") as f:
-        cells = json.load(f)["cells"]
-    if isinstance(idx, str):
-        marker = idx[5:] if idx.startswith("text:") else f'"{idx}"'
-        hits = [c for c in cells if c["cell_type"] == "code" and (
-            marker in "".join(c["source"]) if idx.startswith("text:") else
-            any(ln.startswith("workflow.load_into(") and marker in ln for ln in "".join(c["source"]).splitlines()))]
-        assert hits, f"no code cell of {nb_name} matches {idx!r}"
-        cell = hits[0]
-    else:
-        cell = cells[idx]
-    src = "".join(cell["source"])
-    return "\n".join(ln for ln in src.splitlines() if not ln.lstrip().startswith(("!", "%")))
+def _quiet(fn, *a, **k):
+    import contextlib
+    import io
+    with contextlib.redirect_stdout(io.StringIO()):
+        return fn(*a, **k)
+
+
+def _load_workflow(ns, only=("settings", "splits", "retarget", "chicks_bridge", "selective_eval", "reports", "run")):
+    """The workflow modules these tests exercise, loaded into ``ns`` the way main.ipynb's single load line does (all of them)."""
+    _nbload.workflow_package().load_into(ns, only=only)
+    return ns
+
+
+def _kit(ns, **swap):
+    """A Toolkit over ``ns``. These tests have no model/trainer: the entry points that are missing are None (never called)."""
+    T = ns["Toolkit"]
+    kit = T(**{field: ns.get(name) for field, name in T.NAMES.items()})
+    return dataclasses.replace(kit, **swap) if swap else kit
 
 
 def _split(ns, n, seed):
@@ -61,30 +63,48 @@ def _split(ns, n, seed):
 
 
 def _ns():
-    """نطاق خط الأنابيب + خلايا main (٣، ٣-ب، ٦، ٧-ب) + تعريفات chicks — مرّة واحدة لكل الاختبارات."""
+    """نطاق خط الأنابيب + تعريفات chicks — مرّة واحدة لكل الاختبارات (وحدات workflow/ تُحمَّل في نسخة لكل اختبار)."""
     global _NS
     if _NS is None:
         ns = _nbload.load_pipeline()
         _nbload.load_evaluation(ns=ns, exclude=("all_assets", "live", "full_analysis"))   # = chicks cells 18, 20, 36 (skipped as before)
-        ns["workflow"] = _nbload.workflow_package()      # main's cells start with workflow.load_into(globals(), only=...)
         _NS = ns
     return _NS
 
 
 def _main_ns(scale):
-    """يشغّل خلايا main على بيانات مبنية بالمقياس scale (y = عائد × scale)."""
+    """خطوات main (التقسيم والختم) على بيانات مبنية بالمقياس scale (y = عائد × scale)."""
     base = _ns()
-    ns = dict(base)
+    ns = _load_workflow(dict(base))
     tr, va = _split(base, 64, 0), _split(base, 32, 1)
     te = {"AAA": _split(base, 24, 2), "BBB": _split(base, 24, 3)}
     for s in (tr, va, *te.values()):
         for k in list(s["y"]):
             if k.endswith("_reg"):
                 s["y"][k] = s["y"][k] * scale
-    ns.update(REG_TARGET_SCALE=scale, MODEL_TF="1h", PRICE_TARGETS=["high", "low", "close"],
-              split_data=lambda dataset, config=None: (tr, va, te), dataset={})
-    for idx in ("splits", "retarget", "chicks_bridge", "selective_eval"):   # ختم الأقسام، retarget_splits، build_chicks_test_dict، collect_signals
-        exec(compile(_cell("main.ipynb", idx), f"main#{idx}", "exec"), ns)
+    kit = _kit(ns, split_data=lambda dataset, config=None: (tr, va, te))
+    info = ns["DatasetInfo"](model_tf="1h", model_tfs=("1h",), reg_target_scale=scale)
+    settings = ns["RunSettings"]()
+    ns.update(settings=settings, kit=kit, info=info, PRICE_TARGETS=["high", "low", "close"])   # test-local, no module reads them
+    ns["train"], ns["val"], ns["test"] = _quiet(ns["make_splits"], settings, {}, info, kit)    # ختم الأقسام بمقياسها
+    return ns
+
+
+def _rt(ns, train=None, val=None, test=None, **kw):
+    """retarget_splits على أقسام ns بمقياس البيانات وأهداف المفعّلة صراحةً (كما تمرّرها خطوة retarget)."""
+    kw.setdefault("reg_target_scale", ns["info"].reg_target_scale)
+    kw.setdefault("price_targets", ns["PRICE_TARGETS"])
+    return ns["retarget_splits"](ns["train"] if train is None else train, ns["val"] if val is None else val,
+                                 ns["test"] if test is None else test, verbose=False, **kw)
+
+
+def _with_chicks(ns, price_targets=("high", "low", "close")):
+    """prepare_chicks على test الحالي؛ يضع ما كان متغيّرات الدفتر (CHICKS_TARGETS، EVAL_TARGET_SPECS، test_dict) في ns للاختبارات."""
+    plan = ns["ModelPlan"](price_targets=tuple(price_targets), suspended_targets=(), model_overrides={}, seq_len=4, n_features=2,
+                           model_seq_len=4, model_n_features=2)
+    chicks = _quiet(ns["prepare_chicks"], ns["settings"], plan, ns["info"], ns["test"], ns["kit"])
+    ns.update(plan=plan, chicks=chicks, CHICKS_TARGETS=list(chicks.chicks_targets), EVAL_TARGET_SPECS=chicks.eval_target_specs,
+              test_dict=chicks.test_dict)
     return ns
 
 
@@ -98,35 +118,35 @@ class MainRegScaleTests(unittest.TestCase):
     def test_retarget_scales_return_modes_after_clip(self):
         ns1, ns100 = _main_ns(1.0), _main_ns(100.0)
         for mode in ("return", "relative", "magnitude"):
-            a = ns1["retarget_splits"](ns1["train"], ns1["val"], ns1["test"], mode=mode, verbose=False)[0]
-            b = ns100["retarget_splits"](ns100["train"], ns100["val"], ns100["test"], mode=mode, verbose=False)[0]
+            a = _rt(ns1, mode=mode)[0]
+            b = _rt(ns100, mode=mode)[0]
             self.assertEqual(b["reg_target_scale"], 100.0)
             np.testing.assert_allclose(b["y"]["y_close_reg"] / 100.0, a["y"]["y_close_reg"], rtol=1e-5, atol=1e-8)
             np.testing.assert_array_equal(b["y"]["y_close_class"], a["y"]["y_close_class"])
-        s = ns100["retarget_splits"](ns100["train"], ns100["val"], ns100["test"], mode="scaled", verbose=False)[0]
+        s = _rt(ns100, mode="scaled")[0]
         self.assertEqual(s["reg_target_scale"], 1.0)                   # وحدة التقلّب: لا ضرب
         # القصّ بوحدة العائد قبل الضرب: قفزة +300% تُقصّ عند 1 ثم تصبح 100
         tr = dict(ns100["train"])
         tr["last_candles"] = tr["last_candles"].copy()
         lc_cols = ns100["LAST_COLUMNS"]
         tr["last_candles"][0, lc_cols.index("future_close")] = 4 * tr["last_candles"][0, lc_cols.index("last_close")]
-        c = ns100["retarget_splits"](tr, ns100["val"], ns100["test"], mode="return", verbose=False)[0]
+        c = _rt(ns100, train=tr, mode="return")[0]
         self.assertAlmostEqual(float(c["y"]["y_close_reg"][0]), 100.0, places=4)
 
     def test_chicks_relative_future_prices_invariant(self):
         ns1, ns100 = _main_ns(1.0), _main_ns(100.0)
-        a = ns1["retarget_splits"](ns1["train"], ns1["val"], ns1["test"], mode="relative", verbose=False)[2]
-        b = ns100["retarget_splits"](ns100["train"], ns100["val"], ns100["test"], mode="relative", verbose=False)[2]
-        da, db = ns1["build_chicks_test_dict"](a, "1h"), ns100["build_chicks_test_dict"](b, "1h")
+        a = _rt(ns1, mode="relative")[2]
+        b = _rt(ns100, mode="relative")[2]
+        tg = ["high", "low", "close"]
+        da = ns1["build_chicks_test_dict"](a, "1h", chicks_targets=tg)
+        db = ns100["build_chicks_test_dict"](b, "1h", chicks_targets=tg)
         for asset in da:
             np.testing.assert_allclose(db[asset]["last_candles"], da[asset]["last_candles"], rtol=1e-6)
 
     def test_chicks_decode_roundtrip_with_scale(self):
         """سعر ← هدف ← فكّ chicks == السعر المستقبلي، بمقياس 1 و100 (نفس specs التي يبنيها main)."""
         for scale in (1.0, 100.0):
-            ns = _main_ns(scale)
-            src = _cell("main.ipynb", "text:RETURN_PRICE_TARGETS")
-            exec(compile(src[src.index("import dataclasses"):], "main#specs", "exec"), ns)   # بلا %run chicks
+            ns = _with_chicks(_main_ns(scale))                                              # مواصفات الفكّ التي تبنيها خطوة prepare_chicks
             split = ns["test"]["AAA"]
             raw = {t: split["y"][f"y_{t}_reg"] for t in ns["PRICE_TARGETS"]}
             lc = split["last_candles"].copy()

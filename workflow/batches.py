@@ -1,7 +1,7 @@
 """
 PURPOSE:  tf.data batch builders for training/validation: full index shuffle per epoch, memmap-friendly lazy gathering, float16 to float32 at batch time, +1/-1 to {0,1} class labels.
 TAGS:     make_shuffled_dataset, make_eval_dataset, _y_for, _to_unit_label, memmap, float16, tf.data, batches
-PITFALLS: _y_for reads main_config from the notebook namespace. X may be a dict {timeframe: array} (multi-timeframe). Do not copy a memmap X into RAM (tests/test_disk_backed.py). Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 17 (section 5).
+PITFALLS: _y_for takes the trainer config (main_config) explicitly. X may be a dict {timeframe: array} (multi-timeframe). Do not copy a memmap X into RAM (tests/test_disk_backed.py). Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 17 (section 5).
 """
 import numpy as np
 
@@ -18,9 +18,8 @@ def _to_unit_label(y):
 
 def _y_for(split, config=None):
     """y لقسم بمفاتيح الهدف التي يتوقّعها المدرّب (config["targets"][*]["true_key"])، وتصنيفها بترميز {0,1}.
-    config: إعداد المدرّب (main_config)؛ None = main_config من نطاق الدفتر."""
-    if config is None:
-        config = main_config
+    config: إعداد المدرّب (main_config من make_training_config) — إلزامي."""
+    config = _required(config, "config")
     y = {}
     for cfg in config["targets"].values():
         v = split["y"][cfg["true_key"]]

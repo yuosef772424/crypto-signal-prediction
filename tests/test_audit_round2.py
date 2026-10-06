@@ -5,6 +5,7 @@
 (r2_06، مقياس القسم غير المختوم في cross_asset، في tests/test_cross_asset.py::AuditRound2Tests.)
 """
 import contextlib
+import dataclasses
 import io
 import json
 import os
@@ -230,12 +231,13 @@ class SealedHoldoutTests(unittest.TestCase):
         ds = _build(cfg, {"AAAUSDT": _ohlcv("2025-01-01", "2025-01-20", 1)})
         self.assertEqual((ds["split_dates"], ds["holdout_start"]), (ov["split_dates"], ov["holdout_start"]))
 
-        ns = dict(_nbload.load_pipeline())                           # CONFIG مستقلّ عن بقية الاختبارات
-        ns["load_data_from_drive"] = lambda **k: ds
-        src = next("".join(c["source"]) for c in json.loads(_read("main.ipynb"))["cells"]
-                   if c["cell_type"] == "code" and 'only=("dataset_io",)' in "".join(c["source"]))     # قسم ٣: تحميل البيانات
-        ns["workflow"] = _nbload.workflow_package()                 # الخلية تبدأ بـ workflow.load_into(globals(), only=...)
-        _quiet(exec, compile(src, "main#dataset_io", "exec"), ns)
+        ns = _nbload.load_pipeline()                                 # CONFIG مستقلّ عن بقية الاختبارات
+        _nbload.workflow_package().load_into(ns, only=("settings", "splits", "retarget", "dataset_io", "run"))
+        T = ns["Toolkit"]
+        kit = dataclasses.replace(T(**{f: ns.get(n) for f, n in T.NAMES.items()}), load_data_from_drive=lambda **k: ds)
+        settings = ns["RunSettings"]()
+        dataset = _quiet(ns["load_dataset"], settings, kit)           # القسم ٣: تحميل البيانات ثم نقل حدودها إلى CONFIG
+        _quiet(ns["apply_dataset_config"], settings, dataset, kit)
         self.assertEqual(ns["CONFIG"]["split_dates"], ov["split_dates"])
         self.assertEqual(ns["CONFIG"]["holdout_start"], ov["holdout_start"])
 
@@ -274,17 +276,11 @@ class DocsPanelDirTests(unittest.TestCase):
     """r2_07: مسار مجلد اللوحة في تعليمات Colab = ما يحسبه main للتشغيل الموثَّق."""
 
     def test_docs_zip_path_matches_notebook(self):
-        cells = json.loads(_read("main.ipynb"))["cells"]
-        cell = next("".join(c["source"]) for c in cells
-                    if c["cell_type"] == "code" and '"run_dir": "/content/drive' in "".join(c["source"]))
-        expr = re.search(r'"run_dir": (.*?),\n\s*"epochs"', cell, re.S).group(1)
-        env = {"TARGET_MODE": None, "REG_TARGET_SCALE": 100.0, "_am": True}
-        env["globals"] = lambda: env
-        panel_dir = eval("(" + expr + ")", env) + "_panel"
+        ns = _nbload.workflow_package().load_into({"__name__": "t"}, only=("settings",))
+        panel_dir = ns["run_dir_for"](ns["RunSettings"](), 100.0, ("1h",)) + "_panel"      # الإعدادات الافتراضية على بيانات 1h_s8
         docs = _read("docs", "research", "hourly_1h.md")
         for d in re.findall(r"cd (/content/drive/MyDrive/training_runs/\S+?) &&", docs):
             self.assertEqual(d, panel_dir)
-
 
 if __name__ == "__main__":
     unittest.main()

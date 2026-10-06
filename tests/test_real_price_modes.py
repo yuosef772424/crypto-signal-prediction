@@ -13,7 +13,7 @@ import numpy as np
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 from tests.test_entry_range import _main_ns  # noqa: E402 — main cells 8/10 on synthetic splits
-from tests.test_reg_target_scale import _cell, _ns  # noqa: E402
+from tests.test_reg_target_scale import _ns, _rt  # noqa: E402
 
 FUTURE = {"high": "future_high_max", "low": "future_low_min", "close": "future_close"}
 
@@ -28,9 +28,7 @@ class _T:
 
 def _with_mode(scale, mode):
     ns = _main_ns(scale)
-    ns["train"], ns["val"], ns["test"] = ns["retarget_splits"](ns["train"], ns["val"], ns["test"], mode=mode,
-                                                               verbose=False)
-    exec(compile(_cell("main.ipynb", "reports"), "main#reports", "exec"), ns)
+    ns["train"], ns["val"], ns["test"] = _rt(ns, mode=mode)
     split = ns["test"]["AAA"]
     out = {f"y_{t}": _T(split["y"][f"y_{t}_reg"].reshape(-1, 1)) for t in FUTURE}   # a perfect model
     ns["model"] = lambda x, training=False: out

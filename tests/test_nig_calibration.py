@@ -16,7 +16,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 sys.path.insert(0, os.path.join(ROOT, "docs", "research", "audit"))
 import _nbload  # noqa: E402
-from tests.test_reg_target_scale import _cell, _ns, _split  # noqa: E402
+from tests.test_reg_target_scale import _ns, _split  # noqa: E402
 
 _MV = {}
 

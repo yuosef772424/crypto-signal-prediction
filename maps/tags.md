@@ -19,6 +19,7 @@
 - _naive_class_baseline: workflow/training_config
 - _notebook_code: discovery/axis_loader
 - _pool_by_asset: workflow/pooling
+- _required: workflow/splits
 - _resolve_train_mode: trainer/system
 - _rsi_vol_adjusted: discovery/hypothesis_predictors
 - _tfs_of: workflow/splits
@@ -660,6 +661,7 @@
 - make_fractal_reversal_predict_fn: discovery/hypothesis_predictors
 - make_isolation_forest_predict_fn: discovery/hypothesis_predictors
 - make_matrix_profile_predict_fn: discovery/phase3_tools
+- make_model_builder: workflow/model_build
 - make_resample_fn: data/sources
 - make_ridge_composite_predict_fn: discovery/hypothesis_predictors
 - make_shuffled_dataset: workflow/__init__, workflow/batches
@@ -710,7 +712,7 @@
 - model_overrides: workflow/model_build
 - model_seq_len: workflow/model_build
 - model_signature: trainer/config
-- model_tfs: workflow/splits
+- model_tf: workflow/splits
 - model_v2: model/__init__
 - model_x: workflow/splits
 - modelplan: workflow/run
@@ -915,7 +917,7 @@
 - reg head: data/heads
 - reg_scale_of: workflow/splits
 - reg_target_mode: data/windows
-- reg_target_scale: evaluation/decode
+- reg_target_scale: evaluation/decode, workflow/retarget
 - register: model/common
 - register_head_type: model/heads
 - register_hypothesis: discovery/batch_runner, signal_eval/__init__, signal_eval/registry

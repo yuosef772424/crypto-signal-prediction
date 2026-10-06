@@ -1,7 +1,7 @@
 """
 PURPOSE:  Target-mode switching on already-built splits (return, return_close, scaled, magnitude, volnorm, entry_range, +relative): retarget_splits recomputes y_*_reg / y_*_class from raw last_candles; entry_range_to_prices inverts entry_range.
-TAGS:     TARGET_MODE, retarget_splits, target modes, relative, entry_range, entry_range_to_prices, ENTRY_CLOSE_REG, magnitude, volnorm, scaled
-PITFALLS: retarget_splits reads REG_TARGET_SCALE, PRICE_TARGETS, ENTRY_CLOSE_REG and CONFIG from the notebook namespace (globals()); LAST_COLUMNS comes from the pipeline. tools/evaluate_trained_model.py pins TARGET_MODES/ENTRY_CLOSE_REGS (tests/test_entry_range.py). Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 10 (section 3-b).
+TAGS:     target_mode, retarget_splits, target modes, relative, entry_range, entry_range_to_prices, entry_close_reg, reg_target_scale, magnitude, volnorm, scaled
+PITFALLS: retarget_splits takes reg_target_scale (the dataset's, DatasetInfo), price_targets and close_reg (TargetSettings.entry_close_reg) as arguments; only the pipeline's CONFIG (default targets) and LAST_COLUMNS come from the namespace. The scale must be the dataset's, not read back from a split's stamp: a 'scaled' retarget stamps 1.0. tools/evaluate_trained_model.py pins TARGET_MODES/ENTRY_CLOSE_REGS (tests/test_entry_range.py). Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 10 (section 3-b).
 """
 import numpy as np
 import pandas as pd
@@ -144,8 +144,8 @@ def _rebuild(parts, new_y, keep, mode, scale=1.0, scales=None, stamps=None):
 
 
 def retarget_splits(train_split, val_split, test_split, mode="return", targets=None, clip=None,
-                    center="median", group_freq=None, min_group=5, drop_small_groups=False, close_reg=None,
-                    verbose=True, reg_target_scale=None, price_targets=None):
+                    center="median", group_freq=None, min_group=5, drop_small_groups=False, close_reg="abs_return",
+                    verbose=True, reg_target_scale=1.0, price_targets=None):
     """يُرجع (train, val, test) جديدة بأهداف الوضع المطلوب. الأصلية لا تُعدَّل.
 
     clip            : حدّ قصّ هدف الانحدار (±). الافتراضي 10 لـ scaled و1 لغيره — نفس خط الأنابيب.
@@ -153,25 +153,21 @@ def retarget_splits(train_split, val_split, test_split, mode="return", targets=N
                       طوابع العملات تماماً (stride على فريم الساعة قد يُزيح بدايات العملات).
     min_group       : أقل عدد عملات في الطابع الزمني ليكون «متوسط السوق» ذا معنى (+relative).
     drop_small_groups: True يحذف عيّنات المجموعات الأصغر من min_group (ينسخ X — ذاكرة إضافية).
-    close_reg       : تعريف انحدار close في entry_range: "abs_return" | "range_pos". None = ENTRY_CLOSE_REG.
-    reg_target_scale: مقياس أهداف الانحدار من البيانات (DatasetInfo.reg_target_scale؛ يُضرب فيه بعد القصّ لأوضاع وحدة العائد).
-                      None = REG_TARGET_SCALE من نطاق الدفتر (وإلا 1.0).
-    price_targets   : الأهداف المفعّلة (ModelPlan.price_targets) حين يكون بعضها معلّقاً؛ None = PRICE_TARGETS من نطاق الدفتر
-                      (وإلا أهداف CONFIG)."""
+    close_reg       : تعريف انحدار close في entry_range: "abs_return" | "range_pos" (TargetSettings.entry_close_reg).
+    reg_target_scale: مقياس أهداف الانحدار من البيانات (DatasetInfo.reg_target_scale؛ يُضرب فيه بعد القصّ لأوضاع وحدة العائد)؛
+                      1.0 = عائد خام (ملف بلا المفتاح).
+    price_targets   : الأهداف المفعّلة (ModelPlan.price_targets)؛ None = أهداف CONFIG (كل ما في y)."""
     base, cross = _parse_mode(mode)
     clip = _DEFAULT_CLIP.get(base, 1.0) if clip is None else clip
-    if reg_target_scale is None:
-        reg_target_scale = globals().get("REG_TARGET_SCALE", 1.0)
     scale = float(reg_target_scale) if base in _RETURN_UNIT_BASES else 1.0
     first = _split_parts(train_split)[0][1]
-    known = (price_targets or globals().get("PRICE_TARGETS")
-             or list(CONFIG.get("targets", ("high", "low", "close"))))   # القسم ٤ يأتي بعد هذه الخلية
+    known = price_targets or list(CONFIG.get("targets", ("high", "low", "close")))
     if base == "entry_range" and not targets:
         # كل أهداف y لا المفعّلة فقط: إعادة تشغيل الخلية بعد القسم ٤ (close معلّق) كانت ستُبقي y_close بوضع سابق
         # تحت ختم entry_range؛ إلغاء التعليق لاحقاً يجده جاهزاً بمعناه الجديد
         known = ("high", "low", "close")
     targets = list(targets or [t for t in known if f"y_{t}_reg" in first["y"] or f"y_{t}_class" in first["y"]])
-    close_reg = str(globals().get("ENTRY_CLOSE_REG", "abs_return") if close_reg is None else close_reg)
+    close_reg = "abs_return" if close_reg is None else str(close_reg)
     if base == "entry_range" and close_reg not in ENTRY_CLOSE_REGS:
         raise ValueError(f"close_reg غير معروف: {close_reg!r} — المتاح: {ENTRY_CLOSE_REGS}")
     stamps = {"entry_close_reg": close_reg} if base == "entry_range" else {}

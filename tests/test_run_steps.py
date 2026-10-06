@@ -257,5 +257,15 @@ class StepContracts(unittest.TestCase):
                               plan=None, chicks=None)
 
 
+class WiringSelfTest(unittest.TestCase):
+    def test_run_wiring_selftest_passes_without_any_notebook_global(self):
+        """Section 8 on synthetic data (real tiny training, chicks, every section-7 report, the target modes, multi-timeframe, panel).
+        The old cells ran it with the notebook's PRICE_TARGETS / REG_TARGET_SCALE and failed when they were the real run's (close
+        suspended, scale 100); it builds its own targets now. Recorded at 1b1b14f: True (95 s) when those globals were 3 targets / 1.0."""
+        ns = rf.run_namespace()
+        kit = ns["Toolkit"].from_namespace(ns)
+        self.assertTrue(rf._quiet(ns["run_wiring_selftest"], kit, verbose=False))
+
+
 if __name__ == "__main__":
     unittest.main()

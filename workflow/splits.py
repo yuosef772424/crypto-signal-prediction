@@ -1,7 +1,7 @@
 """
 PURPOSE:  Helpers over train/val/test splits: model input (single or multi-timeframe), per-split stamps (reg scale, target mode, entry close definition).
-TAGS:     model_x, _tfs_of, MODEL_TFS, multi timeframe input, reg_scale_of, target_mode_of, entry_close_reg_of, split stamps
-PITFALLS: _tfs_of reads MODEL_TFS/MODEL_TF from the notebook namespace at call time. reg_scale_of(split, target) prefers the per-target stamp reg_target_scales (entry_range close with range_pos is unscaled). Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 8 (section 3).
+TAGS:     model_x, _tfs_of, _required, model_tf, multi timeframe input, reg_scale_of, target_mode_of, entry_close_reg_of, split stamps
+PITFALLS: model_tf (a timeframe name, or the list DatasetInfo.model_tfs) is always an explicit argument: _tfs_of(None) raises (no notebook MODEL_TFS/MODEL_TF fallback); _required(value, name) is the one place that refusal lives. reg_scale_of(split, target) prefers the per-target stamp reg_target_scales (entry_range close with range_pos is unscaled). Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 8 (section 3).
 """
 def _required(value, name):
     """وسيط صريح بلا قيمة افتراضية: None = نسيه المستدعي (لا يُقرأ أي متغيّر من نطاق الدفتر — القيمة من الإعدادات/الخطوات)."""
@@ -12,9 +12,8 @@ def _required(value, name):
 
 
 def _tfs_of(model_tf=None):
-    """فريمات مُدخل النموذج كقائمة: model_tf اسم فريم، أو قائمة، أو None = MODEL_TFS (وإلا [MODEL_TF])."""
-    if model_tf is None:
-        return list(globals().get("MODEL_TFS") or [MODEL_TF])
+    """فريمات مُدخل النموذج كقائمة: model_tf اسم فريم، أو قائمة (DatasetInfo.model_tfs). إلزامي: لا يُقرأ MODEL_TFS/MODEL_TF من نطاق الدفتر."""
+    model_tf = _required(model_tf, "model_tf")
     return [model_tf] if isinstance(model_tf, str) else list(model_tf)
 
 

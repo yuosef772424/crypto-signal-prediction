@@ -26,11 +26,11 @@ import tensorflow as tf  # noqa: E402
 # ── real functions from main.ipynb's code (now the workflow/ package; extracted by name, not copied) ──
 src = "\n".join(open(os.path.join(ROOT, "workflow", f"{m}.py"), encoding="utf-8").read()
                 for m in ("splits", "batches", "selective_eval", "pooling"))
-want = {"_tfs_of", "model_x", "make_shuffled_dataset", "_to_float32_inputs", "_concat_splits", "_pool_by_asset",
+want = {"_required", "_tfs_of", "model_x", "make_shuffled_dataset", "_to_float32_inputs", "_concat_splits", "_pool_by_asset",
         "pool_test_dict", "_split_members"}
 fs = [n for n in ast.parse(src).body if isinstance(n, ast.FunctionDef) and n.name in want]
 assert {f.name for f in fs} == want, want - {f.name for f in fs}
-ns = {"np": np, "pd": pd, "tf": tf, "MODEL_TFS": ["1h", "4h"], "MODEL_TF": "1h"}
+ns = {"np": np, "pd": pd, "tf": tf}
 exec(compile(ast.Module(body=fs, type_ignores=[]), "main_extract", "exec"), ns)
 
 
@@ -44,7 +44,7 @@ def split(off, n):
 
 bad, total = 0, 0
 tr = split(0, 400)
-ds = ns["make_shuffled_dataset"](ns["model_x"](tr), {"y_high_reg": tr["y"]["y_high_reg"]}, 64, seed=1)
+ds = ns["make_shuffled_dataset"](ns["model_x"](tr, ["1h", "4h"]), {"y_high_reg": tr["y"]["y_high_reg"]}, 64, seed=1)
 for x, y in ds.take(6):
     a, b, c = x["1h"].numpy()[:, 0, 0], x["4h"].numpy()[:, 0, 0], y["y_high_reg"].numpy()
     total += 1

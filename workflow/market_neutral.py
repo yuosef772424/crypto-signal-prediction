@@ -1,7 +1,7 @@
 """
 PURPOSE:  Section 7-f: market-neutral portfolio report (long_short, short_only, long_only, rank_weighted, rank_weighted_vol) with net-of-cost bootstrap and a last-step GBM baseline.
 TAGS:     market_neutral_report, split_asset_names, rank IC, decile table, rank_weighted, long_short, portfolio
-PITFALLS: (side, q) are picked on val only; the full test grid is shown for transparency, not for selection. split_asset_names is also used by the panel cell and tools/evaluate_trained_model.py. Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 34 (section 7-f).
+PITFALLS: (side, q) are picked on val only; the full test grid is shown for transparency, not for selection. split_asset_names is also used by workflow/run.py (run_reports). Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 34 (section 7-f).
 """
 import numpy as np
 import pandas as pd

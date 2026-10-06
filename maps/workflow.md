@@ -18,15 +18,15 @@
   - `def module_path(name: str) -> Path` L45
   - `def load_into(ns: dict, only=None, exclude=()) -> dict` L52
 
-### `workflow/batches.py` (77 lines)
+### `workflow/batches.py` (76 lines)
 - PURPOSE: tf.data batch builders for training/validation: full index shuffle per epoch, memmap-friendly lazy gathering, float16 to float32 at batch time, +1/-1 to {0,1} class labels.
 - TAGS: make_shuffled_dataset, make_eval_dataset, _y_for, _to_unit_label, memmap, float16, tf.data, batches
-- PITFALLS: _y_for reads main_config from the notebook namespace. X may be a dict {timeframe: array} (multi-timeframe). Do not copy a memmap X into RAM (tests/test_disk_backed.py). Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 17 (section 5).
-- NOTEBOOK-GLOBALS: main_config
+- PITFALLS: _y_for takes the trainer config (main_config) explicitly. X may be a dict {timeframe: array} (multi-timeframe). Do not copy a memmap X into RAM (tests/test_disk_backed.py). Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 17 (section 5).
+- USES: splits
 - USED BY: capacity, diagnostics, permutation_control, reports, run, wiring_selftest
 - API:
-  - `def make_shuffled_dataset(X, y_dict, batch_size, seed=None, shuffle=True)` L31
-  - `def make_eval_dataset(X, y_dict, batch_size)` L68
+  - `def make_shuffled_dataset(X, y_dict, batch_size, seed=None, shuffle=True)` L30
+  - `def make_eval_dataset(X, y_dict, batch_size)` L67
 
 ### `workflow/candle_baseline.py` (154 lines)
 - PURPOSE: Section 7-c: does the model add anything over the last candle's shape? Candle/last-step baselines and the day-bootstrap AUC difference.
@@ -51,17 +51,16 @@
   - `def capacity_verdict(ess=None, baseline=None, sweep=None, curve=None, model_skill=None, model_metric='auc', thresholds=None)` L274
   - `def capacity_report(build_fn, train_split, val_split, feature_names=None, ks=(1, 3, 5, 10), fractions=(0.25, 0.5, 1.0), window=None, model=None, rank_by='train', epochs=6, seed=0, config=None, model_tf=None, verbose=Tr…` L339
 
-### `workflow/chicks_bridge.py` (71 lines)
+### `workflow/chicks_bridge.py` (70 lines)
 - PURPOSE: Converts the pipeline's test split into the shape chicks expects (build_chicks_test_dict) and defines which target modes chicks supports.
 - TAGS: build_chicks_test_dict, entry_range_target_spec, eval_target_specs, chicks_target_modes, chicks, test_dict, relative modes, base_params last_close
-- PITFALLS: Reads LAST_CLOSE_COL, CHICKS_TARGETS, CONFIG, reg_scale_of, entry_close_reg_of from the notebook namespace. base_params is replaced by [last_close, last_close] only for reg_target_mode='return'. Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb c…
+- PITFALLS: chicks_targets is an explicit argument (prepare_chicks computes it); LAST_CLOSE_COL comes from core/schema.py; CONFIG, reg_scale_of, entry_close_reg_of are namespace names. base_params is replaced by [last_close, last_close] only for reg_target_mode='return'. Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run not…
 - DEPENDS: core
 - USES: data/runtime, data/windows, splits
-- NOTEBOOK-GLOBALS: CHICKS_TARGETS
 - USED BY: run, wiring_selftest
 - API:
   - `def build_chicks_test_dict(pipeline_test, model_tf, reg_target_mode=None, chicks_targets=None)` L21
-  - `def entry_range_target_spec(s, test)` L57
+  - `def entry_range_target_spec(s, test)` L56
 
 ### `workflow/dataset_io.py` (17 lines)
 - PURPOSE: Helper for locating the pre-built dataset file on a mounted Google Drive (shared folders / shortcuts); used by main's section-3 load cell.
@@ -93,23 +92,20 @@
 ### `workflow/market_neutral.py` (321 lines)
 - PURPOSE: Section 7-f: market-neutral portfolio report (long_short, short_only, long_only, rank_weighted, rank_weighted_vol) with net-of-cost bootstrap and a last-step GBM baseline.
 - TAGS: market_neutral_report, split_asset_names, rank ic, decile table, rank_weighted, long_short, portfolio
-- PITFALLS: (side, q) are picked on val only; the full test grid is shown for transparency, not for selection. split_asset_names is also used by the panel cell and tools/evaluate_trained_model.py. Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 34 (se…
+- PITFALLS: (side, q) are picked on val only; the full test grid is shown for transparency, not for selection. split_asset_names is also used by workflow/run.py (run_reports). Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 34 (section 7-f).
 - USES: data/runtime, data/split, selective_eval, splits
 - USED BY: panel_bridge, run, wiring_selftest
 - API:
   - `def split_asset_names(dataset, split='val', config=None)` L29
   - `def market_neutral_report(model, train_split, val_split, test_split, model_tf=None, score='p_up_close', quantiles=(0.05, 0.1, 0.2, 0.3), sides=_MN_SIDES, cost_pct=0.08, universe=None, min_assets=20, min_per_leg=5, cost_model…` L233
 
-### `workflow/model_build.py` (17 lines)
-- PURPOSE: The zero-argument model_builder required by build_training_system (same architecture every call, needed to resume saved state).
-- TAGS: model_builder, build_model_fn, model_overrides, model_seq_len, resume
-- PITFALLS: Reads build_model_fn (model_v2) and MODEL_SEQ_LEN / MODEL_N_FEATURES / MODEL_OVERRIDES from the notebook namespace at call time. Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 13 (section 4).
-- USES: model/config
-- NOTEBOOK-GLOBALS: MODEL_N_FEATURES, MODEL_OVERRIDES, MODEL_SEQ_LEN
+### `workflow/model_build.py` (12 lines)
+- PURPOSE: make_model_builder: the zero-argument model_builder required by build_training_system (same architecture every call, needed to resume saved state).
+- TAGS: make_model_builder, model_builder, build_model_fn, model_overrides, model_seq_len, resume
+- PITFALLS: No namespace reads: build_fn (model_v2's build_model_fn) and the plan's model_seq_len / model_n_features / model_overrides are arguments, so the returned zero-argument builder builds the same architecture every call (needed to resume saved state). Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resol…
 - USED BY: run
 - API:
   - `def make_model_builder(build_fn, model_seq_len, model_n_features, model_overrides)` L6
-  - `def model_builder()` L14
 
 ### `workflow/panel_bridge.py` (38 lines)
 - PURPOSE: Section 7-h glue for the cross-asset panel model: asset names of a split and the current model's signals as the panel experiment's baseline (lifted out of the notebook cell, which keeps only the config and the run_panel_experiment call).
@@ -149,16 +145,16 @@
   - `def real_price_predictions(model, test, asset, target, model_tf)` L15
   - `def classification_accuracy_report(model, test, price_targets, model_tf)` L54
 
-### `workflow/retarget.py` (260 lines)
+### `workflow/retarget.py` (256 lines)
 - PURPOSE: Target-mode switching on already-built splits (return, return_close, scaled, magnitude, volnorm, entry_range, +relative): retarget_splits recomputes y_*_reg / y_*_class from raw last_candles; entry_range_to_prices inverts entry_range.
-- TAGS: target_mode, retarget_splits, target modes, relative, entry_range, entry_range_to_prices, entry_close_reg, magnitude, volnorm, scaled
-- PITFALLS: retarget_splits reads REG_TARGET_SCALE, PRICE_TARGETS, ENTRY_CLOSE_REG and CONFIG from the notebook namespace (globals()); LAST_COLUMNS comes from the pipeline. tools/evaluate_trained_model.py pins TARGET_MODES/ENTRY_CLOSE_REGS (tests/test_entry_range.py). Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebo…
+- TAGS: target_mode, retarget_splits, target modes, relative, entry_range, entry_range_to_prices, entry_close_reg, reg_target_scale, magnitude, volnorm, scaled
+- PITFALLS: retarget_splits takes reg_target_scale (the dataset's, DatasetInfo), price_targets and close_reg (TargetSettings.entry_close_reg) as arguments; only the pipeline's CONFIG (default targets) and LAST_COLUMNS come from the namespace. The scale must be the dataset's, not read back from a split's stamp: a 'scaled' retarget stamps 1.0. tools/evaluate_trained_model.py pins TARGET_MODES/ENTRY_CLOSE_REGS…
 - DEPENDS: core
 - USES: data/runtime, data/windows
 - USED BY: capacity, diagnostics, generalization, reports, run, selective_eval, wiring_selftest
 - API:
-  - `def retarget_splits(train_split, val_split, test_split, mode='return', targets=None, clip=None, center='median', group_freq=None, min_group=5, drop_small_groups=False, close_reg=None, verbose=True, reg_target_scale=Non…` L146
-  - `def entry_range_to_prices(last_close, high=None, low=None, close=None, close_reg='abs_return', p_close_up=None)` L235
+  - `def retarget_splits(train_split, val_split, test_split, mode='return', targets=None, clip=None, center='median', group_freq=None, min_group=5, drop_small_groups=False, close_reg='abs_return', verbose=True, reg_target_s…` L146
+  - `def entry_range_to_prices(last_close, high=None, low=None, close=None, close_reg='abs_return', p_close_up=None)` L231
 
 ### `workflow/run.py` (539 lines)
 - PURPOSE: The steps of a main run as functions of (RunSettings, explicit inputs) -> outputs: load data, adapt CONFIG, split, retarget, plan and build the model, training config and datasets, train, prepare the chicks evaluation, run it, panel model,…
@@ -227,17 +223,16 @@
     - `.to_dict(self)` L349
   - `def run_dir_for(settings, reg_target_scale, model_tfs)` L353
 
-### `workflow/splits.py` (56 lines)
+### `workflow/splits.py` (55 lines)
 - PURPOSE: Helpers over train/val/test splits: model input (single or multi-timeframe), per-split stamps (reg scale, target mode, entry close definition).
-- TAGS: model_x, _tfs_of, model_tfs, multi timeframe input, reg_scale_of, target_mode_of, entry_close_reg_of, split stamps
-- PITFALLS: _tfs_of reads MODEL_TFS/MODEL_TF from the notebook namespace at call time. reg_scale_of(split, target) prefers the per-target stamp reg_target_scales (entry_range close with range_pos is unscaled). Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipyn…
-- NOTEBOOK-GLOBALS: MODEL_TF
-- USED BY: candle_baseline, capacity, chicks_bridge, diagnostics, generalization, market_neutral, permutation_control, pooling, reports, run +3
+- TAGS: model_x, _tfs_of, _required, model_tf, multi timeframe input, reg_scale_of, target_mode_of, entry_close_reg_of, split stamps
+- PITFALLS: model_tf (a timeframe name, or the list DatasetInfo.model_tfs) is always an explicit argument: _tfs_of(None) raises (no notebook MODEL_TFS/MODEL_TF fallback); _required(value, name) is the one place that refusal lives. reg_scale_of(split, target) prefers the per-target stamp reg_target_scales (entry_range close with range_pos is unscaled). Executed into the notebook's shared namespace by workflow…
+- USED BY: batches, candle_baseline, capacity, chicks_bridge, diagnostics, generalization, market_neutral, permutation_control, pooling, reports +4
 - API:
-  - `def model_x(split, model_tf=None)` L21
-  - `def reg_scale_of(split_or_dict, target=None)` L34
-  - `def target_mode_of(split_or_dict)` L47
-  - `def entry_close_reg_of(split_or_dict)` L53
+  - `def model_x(split, model_tf=None)` L20
+  - `def reg_scale_of(split_or_dict, target=None)` L33
+  - `def target_mode_of(split_or_dict)` L46
+  - `def entry_close_reg_of(split_or_dict)` L52
 
 ### `workflow/training_config.py` (53 lines)
 - PURPOSE: Bridge from model heads to trainer_framework targets: build_target_configs (true_key vs output_keys) and the naive majority-class baseline for val_accuracy.
@@ -259,7 +254,7 @@
 ### `workflow/wiring_selftest.py` (233 lines)
 - PURPOSE: Section 8: self-test of the wiring between the notebooks on synthetic data (no Drive, no real training).
 - TAGS: run_wiring_selftest, wiring, self test, synthetic data, +1/-1 labels, chicks
-- PITFALLS: Skipped by tools/evaluate_trained_model.py (the cell calling run_wiring_selftest). Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 44 (section 8).
+- PITFALLS: run_wiring_selftest(kit) reads no notebook global (kit = workflow.run.Toolkit; the fake data, targets and decode specs are built inside); the evaluation tool never runs it. Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 44 (section 8).
 - DEPENDS: cross_asset
 - USES: batches, candle_baseline, chicks_bridge, evaluation/full_analysis, evaluation/live, generalization, market_neutral, model/config, pooling, retarget, selective_eval, splits, trainer/config, trainer/system, training_config, verification
 - API:
