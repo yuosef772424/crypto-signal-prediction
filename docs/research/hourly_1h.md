@@ -1,5 +1,8 @@
 # بيانات فريم الساعة (1h): تدقيق، نماذج high/low، ومحاكاة استراتيجيات أوامر محدّدة
 
+> **ملاحظة (S7 — `main.ipynb` مُوجَّه بالإعدادات):** المتغيّرات المذكورة بأسمائها القديمة في خطوات Colab أدناه (`TARGET_MODE`، `ENTRY_CLOSE_REG`، `MODEL_TFS`، `DATA_FILENAME_BASE`، `RUN_MAIN_TRAINING`، `PANEL_MODE`، `PANEL_PRESET`، `PANEL_*`...) صارت حقولاً في `settings` (خلية «٢) الإعدادات»):
+> `target.target_mode`، `target.entry_close_reg`، `data.model_tfs`، `data.filename_base`، `train.run_main_training`، `panel.enabled`، `panel.preset`، `panel.*`. الجدول الكامل: [`main_lab_code_layout.md`](main_lab_code_layout.md) («كان / صار»). الخطوات نفسها والمجلدات نفسها (`run_dir_for`)، والنتائج المسجَّلة أدناه لم تتغيّر.
+
 **الحالة:** أُجري على CPU بأربع أنوية (2026-09-28). البيانات: `preprocessing_output_1h_h32_s32_h4_latest.pkl.gz`، وهي
 مخرَج خط الأنابيب بعد تعديل التسميات إلى 1/0. السكربتات في [`scripts/hourly_1h/`](scripts/hourly_1h)، ومسار البيانات
 فيها يُمرَّر عبر `H1_DATA`. هدف close مُعلَّق بقرار المستخدم (`SUSPENDED_TARGETS` في main)، لذلك يرد هنا بسطر واحد فقط.

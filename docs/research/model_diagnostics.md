@@ -17,11 +17,11 @@
 
 ```python
 # قبل التدريب (القسم ٥): مسجّل + dataset التدريب نفسه مغلَّفاً بـ tap (نفس الدفعات والترتيب)
-diag, train_ds = make_training_diagnostics(train, val, grad_every=25, influence_every=50)
+diag, train_ds = make_training_diagnostics(train, val, config=main_config, model_tf=info.model_tfs, grad_every=25, influence_every=50)
 trainer.fit(train_ds, validation_data=val_ds, epochs=..., callbacks=callbacks + [diag])
 
-rep   = model_health_report(model, train, val, recorder=diag)        # جدول حكم ✅/⚠️/🚨 + سبب + إجراء
-layer = model_layer_report(model, train, val, test, recorder=diag)   # أداء كل طبقة + صائب/خاطئ لكل طبقة (بلا إعادة تدريب)
+rep   = model_health_report(model, train, val, recorder=diag, model_tf=info.model_tfs)   # جدول حكم ✅/⚠️/🚨 + سبب + إجراء
+layer = model_layer_report(model, train, val, test, recorder=diag, model_tf=info.model_tfs)   # أداء كل طبقة + صائب/خاطئ لكل طبقة (بلا إعادة تدريب)
 diag.top_batches("harmful", target="high_class")                     # أضرّ الدفعات بتوافق نفس المهمة (+ فهارس العيّنات)
 diag.hardest_samples("high_class")                                   # أصعب العيّنات (تسميات مشبوهة)
 ```
@@ -78,12 +78,12 @@ diag.hardest_samples("high_class")                                   # أصعب 
 | الأداة | ما تفعله | تدريب؟ |
 |---|---|---|
 | `effective_sample_size(split, window, horizon, model=)` | عيّنات فعّالة = خطوات زمنية غير متداخلة (المدى ÷ max(النافذة، الأفق)) × أصول مستقلّة (N ÷ (1+(N−1)ρ̄)، ρ̄ = متوسط الارتباط المقطعي للهدف)؛ ونسب إلى عدد الميزات وعدد المعاملات | لا |
-| `simple_baseline(train, val)` | ridge على [آخر خطوة، متوسط النافذة] لكل ميزة + تسميات مخلوطة و z | لا |
+| `simple_baseline(train, val, model_tf)` | ridge على [آخر خطوة، متوسط النافذة] لكل ميزة + تسميات مخلوطة و z | لا |
 | `feature_count_sweep(build_fn, train, val, feature_names, ks=…, rank_by="train")` | يرتّب الميزات بإحصاءة أحادية على train (أو val/train_val) — **لا test في توقيع الدالة أصلاً** — ويدرّب النموذج نفسه على أفضل k لكل k: skill على train وval، الفجوة، خط أساس ridge، و**null** = نفس التدريب على تسميات train مخلوطة (val ≈ 0.5 المتوقّع؛ وtrain فوقه = قدرة على الحفظ) | نعم |
 | `learning_curve(build_fn, train, val, fractions=…, anchor="recent")` | skill على val مقابل نسبة **أحدث** فترة تدريب (زمنياً لا عشوائياً)، والميل عند 100% لكل مضاعفة بيانات | نعم |
 | `capacity_verdict(...)` / `capacity_report(...)` | سطر حكم يفصل الحالات أدناه؛ `capacity_report` يشغّل الكل | نعم |
 
-`build_fn(k)` ← نموذج جديد بـ k ميزة، مثلاً `lambda k: build_model_fn(MODEL_SEQ_LEN, k, config=MODEL_OVERRIDES)`. التدريب في هذه الأدوات بحقب ثابتة بلا إيقاف مبكر ولا استعادة «الأفضل» على val (فلا يدخل val في اختيار الحقبة). التكلفة: `epochs × (2·len(ks) + len(fractions))` تدريباً؛ خفّضها بـ `max_train`, `epochs`, `ks`.
+كل أدوات السعة تأخذ `model_tf=info.model_tfs` (والتي تدرّب `config=main_config`) صراحةً — لا متغيّرات عامة. `build_fn(k)` ← نموذج جديد بـ k ميزة، مثلاً `lambda k: build_model_fn(plan.model_seq_len, k, config=plan.model_overrides)`. التدريب في هذه الأدوات بحقب ثابتة بلا إيقاف مبكر ولا استعادة «الأفضل» على val (فلا يدخل val في اختيار الحقبة). التكلفة: `epochs × (2·len(ks) + len(fractions))` تدريباً؛ خفّضها بـ `max_train`, `epochs`, `ks`.
 
 ### الحكم: إخفاق إعداد أم لا إشارة؟
 | الحكم | متى |

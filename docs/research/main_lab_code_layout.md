@@ -2,17 +2,61 @@
 
 كل دوال `main.ipynb` و`signal_discovery_lab.ipynb` و`pandas_ta_full_survey.ipynb` نُقلت حرفياً إلى حزمتين (نمط `data/` نفسه: وحدة لكل مجموعة
 خلايا، تُنفَّذ كلها في **نطاق الدفتر نفسه** بـ`load_into(globals(), only=...)` فتبقى الأسماء المتاحة بعد `%run` كما كانت، والتعريفات المتأخرة
-`late binding` والقراءة من المتغيرات العامة `CONFIG` / `TARGET_MODE` / `REG_TARGET_SCALE` تعمل كما كانت). الدفاتر صارت مُشغِّلات: إعدادات،
-ثم استدعاءات بالترتيب.
+`late binding` والقراءة من متغيّر `CONFIG` الحيّ للخط تعمل كما كانت). الدفاتر صارت مُشغِّلات: `main.ipynb` **مُوجَّه بالإعدادات**: خلية إعدادات
+واحدة (`RunSettings`، `workflow/settings.py`) ثم خلية قصيرة لكل خطوة تستدعي دالتها من `workflow/run.py` (انظر «كان / صار» أدناه).
 
 للتعديل: غيّر ملف الوحدة (لا الدفتر)، وراجع `CLAUDE.md`. الوثائق المسجَّلة قبل النقل تذكر «القسم §» أو «الخلية N» من الدفتر القديم؛ الجدولان
 أدناه يحوّلان رقم الخلية القديم (قبل النقل) إلى الوحدة. الخريطة الحالية: [`maps/workflow.md`](../../maps/workflow.md) و[`maps/discovery.md`](../../maps/discovery.md).
 
 ## `main.ipynb` ← `workflow/`
 
-أرقام الخلايا الحالية في `main.ipynb` أكبر بواحد من القديمة بعد الخلية 3 (أُضيفت خلية «تحميل الحزمة workflow/» بعد `%run` خط الأنابيب).
-كل خلية قسم كانت تحوي تعريفات صارت تبدأ بسطر `workflow.load_into(globals(), only=("<الوحدة>",))` عند الموضع نفسه الذي كانت تُعرَّف فيه
-(فلا يتغيّر ترتيب التعريفات بالنسبة للدفاتر المُشغَّلة بـ`%run`؛ مثلاً `_auc` في ٧-ز يحجب `_auc` من `model_v2` كما كان).
+الجدول يحوّل رقم الخلية **في `main.ipynb` القديم** (قبل S7) إلى الوحدة. بعد S7 يُحمَّل كل شيء بسطر واحد `workflow.load_into(globals())` بعد الدفاتر الأربعة
+(`%run`: خط الأنابيب، `model_v2`، المدرّب، chicks)؛ ترتيب التحميل بالنسبة لها محفوظ فـ`_auc` في ٧-ز ما زال يحجب `_auc` من `model_v2` كما كان.
+
+### خلايا `main.ipynb` الآن (45 خلية؛ الأقسام كما هي)
+
+| الخلايا | المحتوى |
+|---|---|
+| 0–1 | الشرح، وجدول «كان / صار» |
+| 2–7 | جلب المستودع (Drive/GitHub)، ثم `%run` للدفاتر الأربعة بترتيبها، ثم تحميل الحزمة `workflow/` كلها |
+| 8–9 | **الإعدادات**: `settings = RunSettings(project=…, data=…, target=…, model=…, train=…, evaluation=…, panel=…)` — كل ما تعدّله |
+| 10–12 | ٣: `kit = Toolkit.from_namespace(globals())`، `load_dataset`، `apply_dataset_config`، `make_splits` |
+| 13–14 | ٣-ب: `retarget` |
+| 15–16 | ٤: `plan_model`، `build_model` |
+| 17–19 | ٥: `make_training_config`، `make_datasets`، `train_model` |
+| 20–22 | ٦: `prepare_chicks`، `run_chicks` |
+| 23–42 | ٧: أمثلة استدعاء (معلَّقة) لتقارير `workflow/` + خلية اللوحة `run_panel` (٧-ح) |
+| 43–44 | ٨: `run_wiring_selftest(kit)` |
+
+### `workflow/settings.py` و`workflow/run.py` (جديدتان)
+
+| الوحدة | ما فيها |
+|---|---|
+| `workflow/settings.py` | `RunSettings` وأقسامها السبعة (`ProjectSettings`، `DataSettings`، `TargetSettings`، `ModelSettings`، `TrainSettings`، `EvalSettings`، `PanelSettings`): 53 إعداداً، frozen، اسم مجهول = خطأ، قيمة غير صالحة = خطأ عند البناء، افتراضياتها = قيم الدفتر القديم حرفياً (`tests/golden_run_settings.json`)؛ و`run_dir_for` (اسم مجلد التدريب) |
+| `workflow/run.py` | `Toolkit` (نقاط الدخول إلى الدفاتر الأربعة كحقول صريحة)، `DatasetInfo`/`ModelPlan`/`ChicksInputs`/`RunResult`، والخطوات: `apply_project_config`، `load_dataset`، `apply_dataset_config`، `make_splits`، `retarget`، `plan_model`، `build_model`، `make_training_config`، `make_datasets`، `train_model`، `prepare_chicks`، `run_chicks`، `run_panel`، `run_reports`، و`run_main` (كلها بالترتيب) |
+
+### كان / صار
+
+| كان (متغيّر في خلايا `main`) | صار |
+|---|---|
+| `update_config({...})` (٢) | `settings.project.config_overrides` |
+| `DATA_FILENAME_BASE`، `DATA_FORMAT`، `DATA_MMAP`، `DATA_LOCAL_DIR`، `DATA_PATH` | `settings.data.filename_base` / `.format` / `.mmap` / `.local_dir` / `.path` |
+| `MODEL_TFS` | `settings.data.model_tfs` (والمشتقّ: `info.model_tf`، `info.model_tfs`) |
+| `TARGET_MODE`، `ENTRY_CLOSE_REG` | `settings.target.target_mode` / `.entry_close_reg` (+ `.group_freq`) |
+| `ANTI_MEMORIZATION`، `CLASS_ONLY` | `settings.model.anti_memorization` / `.class_only` |
+| `RUN_MAIN_TRAINING`، `run_dir`، `epochs`، `batch_size`، `train_mode`، جداول `lambda_*`، `ANTI_MEMORIZATION_TRAINER` | `settings.train.*` |
+| `CALIBRATE_CONFIDENCE`، `CALIBRATION_METHOD` | `settings.evaluation.calibrate_confidence` / `.calibration_method` |
+| `PANEL_MODE`، `PANEL_*`، `PANEL_PRESET`/`PANEL_PRESETS` | `settings.panel.enabled`، `settings.panel.*`، `.preset` / `PANEL_PRESETS` |
+| `REG_TARGET_SCALE` | `info.reg_target_scale` |
+| `PRICE_TARGETS`، `SUSPENDED_TARGETS`، `MODEL_OVERRIDES`، `SEQ_LEN`، `MODEL_SEQ_LEN`، `MODEL_N_FEATURES` | `plan.price_targets`، `.suspended_targets`، `.model_overrides`، `.seq_len`، `.model_seq_len`، `.model_n_features` |
+| `model_builder()` | `model_builder` تُرجعه `build_model(plan, kit)` (دالة بلا وسائط) |
+| `main_config` | `main_config = make_training_config(...)` (المتغيّر نفسه) |
+| `CHICKS_TARGETS`، `test_dict`، `EVAL_TARGET_SPECS`، `CHICKS_MARKET_NEUTRAL` | `chicks.chicks_targets`، `.test_dict`، `.eval_target_specs`، `.market_neutral` |
+| تقارير ٧ بلا وسائط عن النموذج/الأهداف | `model_tf=info.model_tfs`، `price_targets=plan.price_targets`، `config=main_config`، `dataset=dataset` صريحة؛ و`real_price_predictions(model, test, asset, target, model_tf)` |
+| `run_wiring_selftest()` | `run_wiring_selftest(kit)` |
+
+القاعدة: دوال `workflow/` لا تقرأ أي متغيّر إعداد من نطاق الدفتر؛ تتلقّاه وسيطاً. `tools/evaluate_trained_model.py` يبني `RunSettings` من سطر الأوامر ويستدعي `run_main`/`run_panel`/`run_reports` (لا يقرأ `main.ipynb`)،
+والاختبارات (`tests/test_run_steps.py`) تستدعي الخطوات وتقارن بما سجّلته خلايا الدفتر القديم (`1b1b14f`).
 
 | الخلية (قبل النقل) | القسم | الوحدة | ما فيها |
 |---|---|---|---|
@@ -36,9 +80,8 @@
 | 42 | ٧-ي | `workflow/capacity.py` | `effective_sample_size`، `simple_baseline`، `feature_count_sweep`، `learning_curve`، `capacity_verdict`، `capacity_report` |
 | 44 | ٨ | `workflow/wiring_selftest.py` | `run_wiring_selftest` |
 
-بقيت في الدفتر (لا تُنقل): خلية ٢ (`github_token`/`git_auth`: تعمل قبل أن يوجد المستودع على Colab)، وكل الإعدادات (`TARGET_MODE`،
-`ENTRY_CLOSE_REG`، `ANTI_MEMORIZATION`، `main_config`، `PANEL_*`...) وخلايا التدريب والتقييم نفسها (`trainer.fit`، `run_full_analysis`...). أداة
-`tools/evaluate_trained_model.py` تشغّل خلايا الدفتر بترتيبها وتُرقّع نصوصها، فتبقى هذه النصوص ثابتة (يحرسها `tests/test_workflow_packages.py`).
+بقيت في الدفتر (لا تُنقل): خلية ٢ (`github_token`/`git_auth`: تعمل قبل أن يوجد المستودع على Colab) وخلية الإعدادات واستدعاءات الخطوات. بعد S7 لا تُرقَّع نصوص الخلايا
+في أي مكان: `tools/evaluate_trained_model.py` يبني `RunSettings` ويستدعي الخطوات.
 
 ## `signal_discovery_lab.ipynb` و`pandas_ta_full_survey.ipynb` ← `discovery/`
 
