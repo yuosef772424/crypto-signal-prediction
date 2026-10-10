@@ -19,7 +19,7 @@
 - addendum l: edge_discovery/31_wick_capture
 - addendum l.1: edge_discovery/32_breakout_stops
 - adverse selection: edge_discovery/31_wick_capture
-- adx trend: indicator_strategy/engine
+- adx trend: indicator_strategy/engine, tools/trade_engine
 - aggregate long/short: edge_discovery/11_more
 - aggregate oi change: edge_discovery/09_market_flush
 - agreement filter: edge_discovery/30_envelope_direction
@@ -30,7 +30,7 @@
 - ast: tools/build_map
 - asym_score: cross_asset/train
 - asymmetry: edge_discovery/29_path_envelope
-- atr stop: edge_discovery/24_pullback_maker, indicator_strategy/engine
+- atr stop: edge_discovery/24_pullback_maker, indicator_strategy/engine, tools/trade_engine
 - auc vs p&l: edge_discovery/18_h13_pr7_signal
 - availability mask: tools/intraday_features
 - backtest: edge_discovery/tsbt
@@ -40,7 +40,7 @@
 - batching: cross_asset/data
 - binance api: tools/fetch_history_csv_concurrent
 - binance vision: tools/fetch_history_colab_cell
-- bollinger breakout: indicator_strategy/engine
+- bollinger breakout: indicator_strategy/engine, tools/trade_engine
 - bracket: tools/bracket_eval
 - bracket table: cross_asset/report
 - break attempt: edge_discovery/17_h07_break
@@ -72,7 +72,7 @@
 - consistency check: indicator_strategy/variants
 - cooldown: edge_discovery/09_market_flush, edge_discovery/events
 - copy trading: edge_discovery/19_hl_copy
-- cost in r: edge_discovery/23_chart_rules_gross, indicator_strategy/engine
+- cost in r: edge_discovery/23_chart_rules_gross, indicator_strategy/engine, tools/trade_engine
 - cost stress: edge_discovery/15_h07_robust, edge_discovery/17_h07_break
 - cost_big cost_small: edge_discovery/03_quintiles
 - count balancing: hedge_recovery/sim2
@@ -112,7 +112,7 @@
 - discovery: edge_discovery/01_screen, edge_discovery/03_quintiles
 - dist_hi/lo: edge_discovery/features
 - docstring: tools/build_map
-- donchian: edge_discovery/07_trend, edge_discovery/22_chart_rules, indicator_strategy/engine
+- donchian: edge_discovery/07_trend, edge_discovery/22_chart_rules, indicator_strategy/engine, tools/trade_engine
 - donchian long_only: indicator_strategy/test_final
 - dose-response: edge_discovery/10_flush_curve
 - download history: tools/fetch_crypto_dataset, tools/fetch_history_colab_cell, tools/fetch_history_csv_concurrent, tools/fetch_history_vision_colab
@@ -132,7 +132,7 @@
 - edit notebook: tools/nb_cells
 - ema weights: cross_asset/train
 - ema20: edge_discovery/24_pullback_maker
-- ema200 pullback: indicator_strategy/engine
+- ema200 pullback: indicator_strategy/engine, tools/trade_engine
 - engulfing: edge_discovery/22_chart_rules
 - entry_range_to_prices: cross_asset/data
 - envelope direction: edge_discovery/30_envelope_direction
@@ -173,7 +173,7 @@
 - futures_metrics folder: edge_discovery/data_tools/folder_index
 - gap report: tools/evaluate_trained_model
 - gaps report: tools/fetch_history_vision_colab
-- gate: indicator_strategy/engine
+- gate: indicator_strategy/engine, tools/trade_engine
 - generalization gap: edge_discovery/26_h19_generalization
 - github dataset: tools/fetch_crypto_dataset
 - grid: edge_discovery/21_range_fade
@@ -227,7 +227,7 @@
 - import direction: tools/check_deps
 - imports: tools/check_deps
 - include-delisted: tools/fetch_history_csv_concurrent
-- indicator screen: indicator_strategy/engine, indicator_strategy/screen
+- indicator screen: indicator_strategy/engine, indicator_strategy/screen, tools/trade_engine
 - inject: tools/nb_cells
 - inside bar: edge_discovery/22_chart_rules
 - integrity checks: cross_asset/data
@@ -257,7 +257,7 @@
 - look-ahead: tests/test_no_lookahead
 - lr schedule: cross_asset/train
 - ls_acc: edge_discovery/features
-- macd: indicator_strategy/engine
+- macd: indicator_strategy/engine, tools/trade_engine
 - main.ipynb patched cells: tools/evaluate_trained_model
 - main.ipynb section 7-h: cross_asset/experiment
 - maker limit: edge_discovery/24_pullback_maker
@@ -336,7 +336,7 @@
 - quarterly consistency: edge_discovery/01_screen
 - quintile spread: edge_discovery/04_screen_mean
 - quintiles: edge_discovery/03_quintiles
-- r multiple: edge_discovery/22_chart_rules, indicator_strategy/engine
+- r multiple: edge_discovery/22_chart_rules, indicator_strategy/engine, tools/trade_engine
 - random control: hedge_recovery/sim, hedge_recovery/sim2
 - random-direction null: tools/bracket_eval
 - range fade: edge_discovery/21_range_fade
@@ -349,7 +349,7 @@
 - rebound: edge_discovery/09_market_flush
 - recurrence plot: edge_discovery/27_repr_info
 - redundancy: edge_discovery/02_fmb
-- regime: indicator_strategy/engine
+- regime: indicator_strategy/engine, tools/trade_engine
 - region bars: indicator_strategy/charts
 - relative direction: edge_discovery/18_h13_pr7_signal
 - reopen conditions: tools/experiment_registry
@@ -367,7 +367,7 @@
 - robustness: edge_discovery/15_h07_robust
 - round-trip: tools/nb_cells
 - rqa: edge_discovery/27_repr_info
-- rsi: indicator_strategy/engine
+- rsi: indicator_strategy/engine, tools/trade_engine
 - run_panel_experiment: cross_asset/__init__, cross_asset/experiment
 - run_panel_selftest: cross_asset/selftest
 - run_weights: edge_discovery/tsbt
@@ -380,6 +380,7 @@
 - selftest: cross_asset/selftest
 - settings interval start funding open_interest: tools/fetch_history_colab_cell
 - shared helpers: edge_discovery/lib
+- shared tool: tools/trade_engine
 - sharpe: edge_discovery/tsbt
 - sharpe table: edge_discovery/15_h07_robust
 - short new perps: edge_discovery/12_listing
@@ -422,7 +423,7 @@
 - test auc: edge_discovery/26_h19_generalization
 - tests/test_cross_asset: cross_asset/selftest
 - time-series screen: edge_discovery/08_ts_screen
-- timeframe resample: indicator_strategy/engine
+- timeframe resample: indicator_strategy/engine, tools/trade_engine
 - token language: edge_discovery/28_token_decompose
 - tokens: edge_discovery/27_repr_info, tools/build_map
 - tool result: edge_discovery/data_tools/dec
@@ -431,8 +432,9 @@
 - torch: edge_discovery/25_image_cnn
 - tp sl: edge_discovery/29_path_envelope
 - tp_room: tools/bracket_eval
+- trade engine: tools/trade_engine
 - trade log: indicator_strategy/screen, indicator_strategy/test_final
-- trade simulator: indicator_strategy/engine
+- trade simulator: indicator_strategy/engine, tools/trade_engine
 - trades: tools/bracket_eval
 - train<=2021 val 2022 test 2023-26: edge_discovery/27_repr_info
 - train_labels: cross_asset/report
