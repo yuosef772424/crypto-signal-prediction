@@ -1,0 +1,2 @@
+data_last_bar,forward_start,closed_trades,open_at_data_end,mean_net_r,sd_net_r,se_month_cluster,z_month_cluster,z_naive_trade_level,coins_with_trades,verdict
+2026-10-08 00:00:00+00:00,2026-10-09,0,0,,,,,,0,running (end condition not reached)
