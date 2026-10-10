@@ -4,6 +4,7 @@
 - strategy_discovery — البحث عن استراتيجية تداول قابلة للتحقق | 7 scripts, 8 data files (58 KB)
 
 Documents:
+- `CATALOG.md` — Indicator rule catalogue for crypto OHLCV (15m, 1h, 4h)
 - `README.md` — strategy_discovery — البحث عن استراتيجية تداول قابلة للتحقق
 - `cards/E-disc-001.md` — Experiment card — E-disc-001: discovery grid on 4h and 1d, DEV and VAL, with multiple-testing contr…
 - `cards/E-disc-002.md` — Experiment card — E-disc-002: robustness of the three E-disc-001 survivors (DEV and VAL only)
