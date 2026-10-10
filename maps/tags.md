@@ -102,6 +102,7 @@
 - day_pearson: cross_asset/train
 - decay: edge_discovery/20_onchain
 - decile long-short: edge_discovery/18_h13_pr7_signal
+- decision metric: strategy_discovery/forward
 - decode: edge_discovery/data_tools/dec, tests/test_real_price_modes
 - decode drive downloads: edge_discovery/data_tools/sweep
 - dedup: edge_discovery/events
@@ -120,7 +121,7 @@
 - discovery grid: strategy_discovery/grid
 - dist_hi/lo: edge_discovery/features
 - docstring: tools/build_map
-- donchian: edge_discovery/07_trend, edge_discovery/22_chart_rules, indicator_strategy/engine, tools/trade_engine
+- donchian: edge_discovery/07_trend, edge_discovery/22_chart_rules, indicator_strategy/engine, strategy_discovery/forward, tools/trade_engine
 - donchian long_only: indicator_strategy/test_final
 - dose-response: edge_discovery/10_flush_curve
 - download history: tools/fetch_crypto_dataset, tools/fetch_history_colab_cell, tools/fetch_history_csv_concurrent, tools/fetch_history_vision_colab
@@ -136,6 +137,7 @@
 - e-disc-004: strategy_discovery/rotation
 - e-disc-005: strategy_discovery/grid2
 - e-disc-006: strategy_discovery/survivor_checks
+- e-fwd-001: strategy_discovery/forward
 - e-hedge-001: hedge_recovery/sim
 - e-hedge-002: hedge_recovery/sim2
 - e-ind-001: indicator_strategy/screen
@@ -149,6 +151,7 @@
 - ema weights: cross_asset/train
 - ema20: edge_discovery/24_pullback_maker
 - ema200 pullback: indicator_strategy/engine, tools/trade_engine
+- end condition: strategy_discovery/forward
 - engulfing: edge_discovery/22_chart_rules
 - entry delay: strategy_discovery/robustness
 - entry_range_to_prices: cross_asset/data
@@ -185,7 +188,9 @@
 - fix-gaps: tools/fetch_history_vision_colab
 - flush curve: edge_discovery/10_flush_curve
 - forward return: edge_discovery/lib
+- forward test: strategy_discovery/forward
 - fresh bars: strategy_discovery/oos, strategy_discovery/survivor_checks
+- frozen hypothesis: strategy_discovery/forward
 - funding: tools/fetch_history_vision_colab
 - funding features: tools/intraday_features
 - funding rate: tools/fetch_history_csv_concurrent
@@ -324,7 +329,7 @@
 - on-chain: edge_discovery/20_onchain
 - one-shot: indicator_strategy/test_final
 - open interest: tools/fetch_history_csv_concurrent, tools/fetch_history_vision_colab
-- out of sample: edge_discovery/16_h07_oos
+- out of sample: edge_discovery/16_h07_oos, strategy_discovery/forward
 - out-of-sample: strategy_discovery/oos
 - package exports: cross_asset/__init__
 - panel data: cross_asset/data
@@ -512,6 +517,7 @@
 - win rate: edge_discovery/events
 - window sensitivity: edge_discovery/15_h07_robust
 - year stability: strategy_discovery/robustness
+- z-score: strategy_discovery/forward
 - zero cost: edge_discovery/23_chart_rules_gross
 - zones: tools/check_deps
 - اتجاه الاعتماد: tools/check_deps

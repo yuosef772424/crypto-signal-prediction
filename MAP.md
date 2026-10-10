@@ -25,7 +25,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `research/edge_discovery/` — التقرير النهائي — البحث عن Edge قابل للاستغلال (2024-01 → 2026-09) | 41 scripts, 33 data files (788 KB) → maps/research_edge_discovery.md
 - `research/hedge_recovery/` — hedge_recovery — دراسة الصفقات المتحوّطة (تجارب E-hedge) | 2 scripts, 2 data files (69 KB) → maps/research_hedge_recovery.md
 - `research/indicator_strategy/` — indicator_strategy — دراسة المؤشرات والشروط على الفريمات 4h و1d | 5 scripts, 5 data files (148 KB) → maps/research_indicator_strategy.md
-- `research/strategy_discovery/` — strategy_discovery — البحث عن استراتيجية تداول قابلة للتحقق | 8 scripts, 9 data files (91 KB) → maps/research_strategy_discovery.md
+- `research/strategy_discovery/` — strategy_discovery — البحث عن استراتيجية تداول قابلة للتحقق | 9 scripts, 10 data files (91 KB) → maps/research_strategy_discovery.md
 
 ## docs/research (legacy)
 - `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 42 md, 1 data files (89 KB) → maps/docs_research.md
