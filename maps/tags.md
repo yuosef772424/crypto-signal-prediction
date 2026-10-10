@@ -2,7 +2,8 @@
 
 - 0.5% sizing: hedge_recovery/sim2
 - 136 tests: edge_discovery/04_screen_mean
-- 15m: tools/intraday_features
+- 15m: strategy_discovery/intraday_macd, tools/intraday_features
+- 1h: strategy_discovery/intraday_macd
 - 2018-2023: edge_discovery/16_h07_oos
 - 21-23 utc: edge_discovery/06_seasonality
 - 4 outputs: edge_discovery/29_path_envelope
@@ -39,6 +40,7 @@
 - batch shape: cross_asset/data
 - batching: cross_asset/data
 - benjamini-hochberg: strategy_discovery/grid
+- bh: strategy_discovery/intraday_macd
 - bh correction: strategy_discovery/rotation
 - bh over the campaign: strategy_discovery/grid2
 - binance api: tools/fetch_history_csv_concurrent
@@ -75,7 +77,7 @@
 - consistency check: indicator_strategy/variants
 - cooldown: edge_discovery/09_market_flush, edge_discovery/events
 - copy trading: edge_discovery/19_hl_copy
-- cost in r: edge_discovery/23_chart_rules_gross, indicator_strategy/engine, tools/trade_engine
+- cost in r: edge_discovery/23_chart_rules_gross, indicator_strategy/engine, strategy_discovery/intraday_macd, tools/trade_engine
 - cost stress: edge_discovery/15_h07_robust, edge_discovery/17_h07_break, strategy_discovery/robustness
 - cost_big cost_small: edge_discovery/03_quintiles
 - count balancing: hedge_recovery/sim2
@@ -107,7 +109,7 @@
 - delay: edge_discovery/19_hl_copy
 - dependencies: tools/check_deps
 - descriptive: edge_discovery/28_token_decompose
-- dev val: strategy_discovery/grid, strategy_discovery/grid2
+- dev val: strategy_discovery/grid, strategy_discovery/grid2, strategy_discovery/intraday_macd
 - dev val split: indicator_strategy/screen
 - diagnostic: edge_discovery/23_chart_rules_gross
 - dip buying: edge_discovery/09_market_flush
@@ -139,6 +141,7 @@
 - e-ind-001: indicator_strategy/screen
 - e-ind-002: indicator_strategy/variants
 - e-ind-003: indicator_strategy/charts, indicator_strategy/test_final
+- e-srch-002: strategy_discovery/intraday_macd
 - early stopping: cross_asset/train
 - edge_data: edge_discovery/lib
 - edit notebook: tools/nb_cells
@@ -196,6 +199,7 @@
 - grid: edge_discovery/21_range_fade
 - grid-hedge: hedge_recovery/sim, hedge_recovery/sim2
 - gross edge: edge_discovery/23_chart_rules_gross
+- gross versus net: strategy_discovery/intraday_macd
 - grouping test: cross_asset/selftest
 - gzip: edge_discovery/data_tools/sweep
 - h01: edge_discovery/01_screen, edge_discovery/04_screen_mean
@@ -248,6 +252,7 @@
 - inject: tools/nb_cells
 - inside bar: edge_discovery/22_chart_rules
 - integrity checks: cross_asset/data
+- intraday: strategy_discovery/intraday_macd
 - intraday features: tools/intraday_features
 - inverse: tests/test_real_price_modes
 - ipynb: tools/nb_cells
@@ -275,7 +280,7 @@
 - look-ahead: tests/test_no_lookahead
 - lr schedule: cross_asset/train
 - ls_acc: edge_discovery/features
-- macd: indicator_strategy/engine, tools/trade_engine
+- macd: indicator_strategy/engine, strategy_discovery/intraday_macd, tools/trade_engine
 - main.ipynb patched cells: tools/evaluate_trained_model
 - main.ipynb section 7-h: cross_asset/experiment
 - maker limit: edge_discovery/24_pullback_maker
