@@ -5,7 +5,7 @@ timeframe: 1d
 target: pnl
 model_class: rule
 reopens: F-0054:R1
-not_covered_by: F-0069=different scope, F-0069 removes ADX > 40 entries and tests the combined arm, E-ind-003 tests only the long-only daily Donchian with no ADX cut; F-0055=maker limit entry at EMA20 with scaling on 1h, this card is a daily Donchian breakout with market fills and a fixed ATR exit; F-0061=stop orders at PREDICTED candle extremes, this card uses an indicator trigger on the close; F-0062=regime filters on wick-capture fills, no regime filter here; F-0064=E-hedge-001 hedge-and-hold, no hedging here; F-0065=E-hedge-002 reversal hedge, no hedging here
+not_covered_by: F-0072=volume-confirmed Donchian on unseen assets, a different trigger and filter from this card; F-0070=cross-sectional momentum rotation of E-disc-004, a portfolio with turnover costs, not a single-asset breakout trade; F-0071=Bollinger band breakout with ADX gate on unseen assets, a different trigger from the Donchian channel of this card; F-0069=different scope, F-0069 removes ADX > 40 entries and tests the combined arm, E-ind-003 tests only the long-only daily Donchian with no ADX cut; F-0055=maker limit entry at EMA20 with scaling on 1h, this card is a daily Donchian breakout with market fills and a fixed ATR exit; F-0061=stop orders at PREDICTED candle extremes, this card uses an indicator trigger on the close; F-0062=regime filters on wick-capture fills, no regime filter here; F-0064=E-hedge-001 hedge-and-hold, no hedging here; F-0065=E-hedge-002 reversal hedge, no hedging here
 ---
 # Experiment card — E-ind-003: final test of one configuration on TEST (run ONCE)
 
