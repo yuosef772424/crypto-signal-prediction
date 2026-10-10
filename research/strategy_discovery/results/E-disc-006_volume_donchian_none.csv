@@ -1,0 +1,6 @@
+test,metric,value,verdict
+R_robustness,DEV cost2 / VAL cost2 / VAL delay1,+0.222 / +0.208 / +0.148,PASS
+R_robustness,VAL grid positive share,1.00,
+R_robustness,VAL 2022 / 2023,+0.050 / +0.351,
+U_unseen_assets,n=112 mean=+0.104 pf=1.20 coins+=1/3,BCHUSDT=-0.045; TRXUSDT=-0.109; ZECUSDT=+0.360,FAIL
+F_fresh_bars,n=1 mean=-1.010 window_end=2026-10-08 00:00:00+00:00,,insufficient sample
