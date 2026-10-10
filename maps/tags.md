@@ -2,7 +2,7 @@
 
 - 0.5% sizing: hedge_recovery/sim2
 - 136 tests: edge_discovery/04_screen_mean
-- 15m: strategy_discovery/intraday_macd, tools/intraday_features
+- 15m: strategy_discovery/intraday_macd, strategy_discovery/seasonality15m, tools/intraday_features
 - 1h: strategy_discovery/intraday_macd
 - 2018-2023: edge_discovery/16_h07_oos
 - 21-23 utc: edge_discovery/06_seasonality
@@ -41,7 +41,7 @@
 - batching: cross_asset/data
 - benjamini-hochberg: strategy_discovery/grid
 - bh: strategy_discovery/intraday_macd
-- bh correction: strategy_discovery/rotation
+- bh correction: strategy_discovery/rotation, strategy_discovery/seasonality15m
 - bh over the campaign: strategy_discovery/grid2
 - binance api: tools/fetch_history_csv_concurrent
 - binance vision: tools/fetch_history_colab_cell
@@ -109,7 +109,7 @@
 - delay: edge_discovery/19_hl_copy
 - dependencies: tools/check_deps
 - descriptive: edge_discovery/28_token_decompose
-- dev val: strategy_discovery/grid, strategy_discovery/grid2, strategy_discovery/intraday_macd
+- dev val: strategy_discovery/grid, strategy_discovery/grid2, strategy_discovery/intraday_macd, strategy_discovery/seasonality15m
 - dev val split: indicator_strategy/screen
 - diagnostic: edge_discovery/23_chart_rules_gross
 - dip buying: edge_discovery/09_market_flush
@@ -142,6 +142,7 @@
 - e-ind-002: indicator_strategy/variants
 - e-ind-003: indicator_strategy/charts, indicator_strategy/test_final
 - e-srch-002: strategy_discovery/intraday_macd
+- e-srch-003: strategy_discovery/seasonality15m
 - early stopping: cross_asset/train
 - edge_data: edge_discovery/lib
 - edit notebook: tools/nb_cells
@@ -233,9 +234,10 @@
 - histgradientboosting: edge_discovery/29_path_envelope
 - history_1d: tools/colab_bridge
 - hl_positions: edge_discovery/19_hl_copy
+- hold length: strategy_discovery/seasonality15m
 - holdout: edge_discovery/14_holdout
 - holdout flag: edge_discovery/13_listing_stops
-- hour of day: edge_discovery/06_seasonality
+- hour of day: edge_discovery/06_seasonality, strategy_discovery/seasonality15m
 - hourly index: edge_discovery/data_tools/build_panel
 - hourly_4h_overrides: tests/test_no_lookahead
 - htf filter: edge_discovery/22_chart_rules
@@ -404,7 +406,7 @@
 - scaled: tests/test_real_price_modes
 - scaling in: edge_discovery/24_pullback_maker
 - screen_disc_mean.csv: edge_discovery/04_screen_mean
-- seasonality: edge_discovery/06_seasonality
+- seasonality: edge_discovery/06_seasonality, strategy_discovery/seasonality15m
 - seed spread: edge_discovery/26_h19_generalization
 - selective trading: tools/bracket_eval
 - selftest: cross_asset/selftest
@@ -458,6 +460,7 @@
 - test: indicator_strategy/test_final
 - test auc: edge_discovery/26_h19_generalization
 - tests/test_cross_asset: cross_asset/selftest
+- time of day: strategy_discovery/seasonality15m
 - time-series screen: edge_discovery/08_ts_screen
 - timeframe resample: indicator_strategy/engine, tools/trade_engine
 - token language: edge_discovery/28_token_decompose
