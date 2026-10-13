@@ -1,0 +1,19 @@
+{
+ "args": [
+  "--sleep",
+  "0"
+ ],
+ "config": {
+  "rows": 5,
+  "seed": 7
+ },
+ "entry": "tools/colab_smoke.py",
+ "expected_outputs": [
+  "smoke.csv"
+ ],
+ "job_id": "smoke-001",
+ "max_minutes": 5,
+ "needs_drive": false,
+ "note": "Sample smoke job: runs tools/colab_smoke.py, which writes smoke.csv and a run-contract manifest.json. Queue a new job_id for the next run.",
+ "repo_ref": "3227aa3a2c42bf37248f2f5e0e4f6e7286919044"
+}
