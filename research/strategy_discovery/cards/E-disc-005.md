@@ -50,3 +50,5 @@ A survivor goes to the robustness card and then to the unseen-asset test. It is 
 ---
 ## Result (added after the run)
 (to be filled after the run; the card is not edited after the run)
+
+Marker (added in a later review commit): the result was never filled in here. It is in `cards/E-disc-005_result.md`, taken mechanically from `results/E-disc-005_summary_campaign.csv`.
