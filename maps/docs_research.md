@@ -201,7 +201,7 @@ Documents:
   - `def auc_pair(aligned)` L90
 
 ## `docs/research/plan/`
-- Phase kickoff: how the build session starts a phase | 0 scripts, 13 md, 2 data files (155 KB)
+- Phase kickoff: how the build session starts a phase | 0 scripts, 14 md, 2 data files (155 KB)
 
 Documents:
 - `KICKOFF.md` — Phase kickoff: how the build session starts a phase
@@ -215,6 +215,7 @@ Documents:
 - `decisions/D-006-open-pr-triage.md` — D-006: Triage of the open draft PRs
 - `decisions/D-007-five-minute-source.md` — D-007: 5m (and 1m–1w) data from the repo's fetch tool
 - `decisions/D-008-gate-style-features.md` — D-008: Build gate-style derived features and test them as model inputs
+- `decisions/D-009-two-level-holdout.md` — D-009: Two-level holdout (level A untouched, level B daily-only touched)
 - `decisions/README.md` — Owner decisions (ADR style)
 - `lock/README.md` — Lock: sealed-holdout specification (phase R0)
 

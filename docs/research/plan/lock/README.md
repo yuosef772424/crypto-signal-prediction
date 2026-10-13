@@ -111,3 +111,33 @@ A request is the half-open interval `[start, end)` of bar open times and is refu
 3. The owner runs `tools/data_manifest.py` on Colab and pastes the bundle into the build session.
 4. `tools/build_lock.py ingest` and `build` produce `manifest/`, `holdout.json` and `holdout.sha256`; they are committed.
 5. After merge, only the access log grows.
+
+## 9. Amendment D-009 (two-level holdout)
+
+Decided by the owner on 2026-10-13 (`../decisions/D-009-two-level-holdout.md`) **before any manifest of `history_15m`
+exists**; the salt is unchanged (the commit that first added this file). Where this section and sections 3 to 5 differ,
+this section governs.
+
+1. **Levels.** A coin read at any timeframe below 1d (1m, 5m, 15m, 1h, 4h) by any study is level **X** (touched) and
+   ineligible (reason `touched_intraday`). A coin touched only by daily-or-slower or non-price studies (`history_1d`
+   rules, daily cross-sections, funding/OI/metrics, listings, categories, CoinMetrics daily) is level **B** and eligible. A
+   coin never touched is level **A** and eligible.
+2. **Ledger column.** `touched.csv` has a column `touch_class` after `kind`: `intraday` (makes the coin level X), `daily`
+   or `derivs` (level B; `derivs` = funding, open interest, basis or metrics data, including listings read from metrics
+   files). Rows of kind `time_seal_read` leave it empty. Rule `unresolved:<name>` names a universe that the repo cannot
+   resolve to symbols; it is recorded in `holdout.json` and touches nobody. The rule `first_bar_before:` is no longer
+   used by the ledger (the CoinMetrics proxy is dropped).
+3. **History.** `min(last_bar, 2026-09-30T23:45:00Z) - first_bar >= 365 days` (was 730). `last_bar >= 2026-09-01`,
+   stablecoin, leveraged and index-contract tests are unchanged.
+4. **Sealed set.** 40 % of the eligible coins (A and B together), `floor(2n / 5)`, ranked by `sha256(salt + symbol)` as in
+   section 5.
+5. **Buckets.** The sealed symbols in rank order are indexed `i = 0, 1, ...`. The nominal bucket is `H(i mod 6 + 1)`. The
+   coin goes to the first bucket, starting at the nominal one and moving in order H1..H6 and back to H1, whose predicate
+   accepts it. Every bucket accepts every coin except **H3** (R2, funding/basis), which refuses a coin with any
+   `derivs` row in its touching sources; such a coin nominally in H3 goes to H4.
+6. **Record.** `holdout.json` lists the level of each eligible coin (`levels`: A or B), its touching sources
+   (`touched_sources`) and touch classes (`touch_classes`), the unresolved rules, and the funnel counts per level.
+7. **Time seal.** Unchanged: open time >= 2026-10-01 for all coins.
+8. **Run outputs.** `tools/data_manifest.py` writes everything into `--out` (manifest.json with the sha256 of every
+   output, each output file at most 300 KB, split into `.partNN.csv` files when needed); `build_lock.py ingest` accepts that
+   folder (`--from-dir`) or the pasted text (`--bundle`).
