@@ -199,6 +199,21 @@ Documents:
   - `def peers_cover_target(ps)` L71
   - `def auc_pair(aligned)` L90
 
+## `docs/research/plan/`
+- Phase kickoff: how the build session starts a phase | 0 scripts, 10 md, 0 data files (0 B)
+
+Documents:
+- `KICKOFF.md` — Phase kickoff: how the build session starts a phase
+- `ROADMAP.md` — Research roadmap (2026-10 →)
+- `STATUS.md` — STATUS: research plan hand-off
+- `decisions/D-001-goal.md` — D-001: Goal of the research plan
+- `decisions/D-002-merge-authority.md` — D-002: The planner may merge a phase PR after review
+- `decisions/D-003-compute-budget.md` — D-003: Colab budget ≤ 1 hour per phase
+- `decisions/D-004-data-on-drive.md` — D-004: Data on Drive
+- `decisions/D-005-phase-order.md` — D-005: Phase order
+- `decisions/D-006-open-pr-triage.md` — D-006: Triage of the open draft PRs
+- `decisions/README.md` — Owner decisions (ADR style)
+
 ## `docs/research/results/`
 - نتائج خطّة `capacity` على بيانات Drive (Colab T4، 2026-09-27) | 0 scripts, 6 md, 0 data files (0 B)
 
