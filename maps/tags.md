@@ -155,6 +155,7 @@
 - build_robust_candidate_dicts: discovery/survey
 - build_target_configs: workflow/training_config
 - build_training_system: trainer/__init__, trainer/system
+- bundle: tools/colab_runner
 - buy and hold: edge_discovery/14_holdout
 - buy and hold benchmark: edge_discovery/16_h07_oos
 - calibration_report: evaluation/trust_calibration
@@ -207,9 +208,11 @@
 - coin categories: data/defaults
 - coinmetrics: edge_discovery/16_h07_oos, edge_discovery/20_onchain
 - coins_by_category: data/defaults
-- colab: data/drive, edge_discovery/25_image_cnn, tools/colab_bridge, trainer/env
+- colab: data/drive, edge_discovery/25_image_cnn, tools/colab_bridge, tools/colab_runner, tools/colab_smoke, trainer/env
 - colab cell: tools/fetch_history_colab_cell
 - colab disconnect: trainer/epoch_callbacks
+- colab-queue: tools/colab_runner
+- colab-results: tools/colab_runner
 - collect_signals: workflow/selective_eval
 - column order: core/schema
 - combo signal: edge_discovery/03_quintiles
@@ -427,6 +430,7 @@
 - evidential: model/nig_layers
 - evidential_task_loss: trainer/tasks
 - example: trainer/example
+- example run script: tools/colab_smoke
 - exchange supply: edge_discovery/20_onchain
 - exclude_coins: data/sources
 - exclude_features: data/features
@@ -512,6 +516,7 @@
 - get_hypothesis: signal_eval/registry
 - get_model_target_names: evaluation/targets
 - get_target_heads: data/heads
+- git_askpass: tools/colab_runner
 - github dataset: tools/fetch_crypto_dataset
 - give-back: h07_combos/01_combos
 - global_time: data/split
@@ -626,6 +631,8 @@
 - is_colab: data/drive
 - isolation forest: evaluation/patterns
 - isotonic: evaluation/trust_calibration
+- job queue: tools/colab_runner
+- job.json: tools/colab_runner, tools/colab_smoke
 - json format: tools/nb_cells
 - k-fold: trainer/kfold
 - kdj: tools/indicator_reverse
@@ -733,6 +740,7 @@
 - make_training_config: workflow/run
 - make_training_diagnostics: workflow/diagnostics
 - maker limit: edge_discovery/24_pullback_maker
+- manifest: tools/colab_runner, tools/colab_smoke
 - map: tools/build_map
 - mark-to-market drawdown: hedge_recovery/sim
 - market adjusted: edge_discovery/events
@@ -843,6 +851,7 @@
 - oi features: tools/intraday_features
 - oi flush: edge_discovery/05_events, edge_discovery/09_market_flush, edge_discovery/10_flush_curve
 - on-chain: edge_discovery/20_onchain
+- one click: tools/colab_runner
 - one-shot: indicator_strategy/test_final
 - open interest: data/binance_client, data/funding_oi, tools/fetch_history_csv_concurrent, tools/fetch_history_vision_colab
 - opt_variables: trainer/env
@@ -958,6 +967,7 @@
 - pump: edge_discovery/05_events
 - purge: trainer/kfold
 - purged_walk_forward_splits: trainer/kfold
+- push results: tools/colab_runner
 - px proxy: edge_discovery/data_tools/build_panel
 - qlike: h07_volsizing/01_volsizing
 - quantile regression: edge_discovery/31_wick_capture
@@ -1017,6 +1027,7 @@
 - reopen conditions: tools/experiment_registry
 - repo_root: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, trainer/_loader … (+1)
 - representation information: edge_discovery/27_repr_info
+- reproduction check: tools/colab_runner
 - require_phase2_data: data/phase2
 - resample_timeframes: data/sources
 - research data: tools/fetch_crypto_dataset
@@ -1053,6 +1064,7 @@
 - rsi: indicator_strategy/engine, tools/indicator_reverse, tools/trade_engine
 - rsi2 pullback: strategy_discovery/grid
 - rule_cpos: workflow/candle_baseline
+- run contract: tools/colab_runner, tools/colab_smoke
 - run fixture: tests/run_fixture
 - run_batch_and_register: discovery/__init__, discovery/batch_runner
 - run_chicks: workflow/run
@@ -1077,6 +1089,7 @@
 - run_survey: discovery/__init__, discovery/survey
 - run_weights: edge_discovery/tsbt
 - run_wiring_selftest: workflow/wiring_selftest
+- runner: tools/colab_runner, tools/colab_smoke
 - runner notebook: data/__init__, evaluation/__init__, model/__init__, signal_eval/__init__, trainer/__init__
 - runresult: workflow/run
 - runsettings: tests/run_fixture, tools/evaluate_trained_model, workflow/settings
@@ -1116,6 +1129,7 @@
 - selftests: signal_eval/selftests
 - settings: data/defaults, workflow/settings
 - settings interval start funding open_interest: tools/fetch_history_colab_cell
+- sha256: tools/colab_runner
 - shadowing: tools/implicit_deps
 - shap: discovery/phase3_tools
 - shared constants: core/__init__
@@ -1149,7 +1163,7 @@
 - small_array_bytes: data/disk_backed
 - smart-minus-retail: edge_discovery/features
 - smoke: model/selftests
-- smoke test: trainer/smoke_test
+- smoke test: tools/colab_smoke, trainer/smoke_test
 - snapshot ensemble: trainer/snapshot
 - snapshotensemble: trainer/snapshot
 - softmax: evaluation/decode
@@ -1247,6 +1261,7 @@
 - time_hour: data/custom
 - timeframe resample: indicator_strategy/engine, tools/trade_engine
 - timestamps: evaluation/latest_table
+- token: tools/colab_runner
 - token language: edge_discovery/28_token_decompose
 - tokens: edge_discovery/27_repr_info, tools/build_map
 - tolerance: evaluation/metrics

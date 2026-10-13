@@ -1,17 +1,15 @@
-# Phase kickoff: how the build session starts a phase
+# Phase kickoff: how a builder agent starts a phase
 
-One build session = one phase = one PR. The planner gives the owner a paste-ready prompt built from the template
-below and the phase's row. Between phases the owner runs `/clear` (not `/compact`) in the build session; add-on
-messages for the same phase are pasted without `/clear`. If the build session is cleared mid-phase, the planner
-resends the full phase task with "do NOT reset the branch again".
+One builder = one phase = one branch = one PR. The builder is a subagent launched by the planner session (model
+`sonnet`, `isolation: "worktree"`, new branch `claude/<phase>` from `origin/master`); there is no separate build
+session (owner, 2026-10-13). "Build session" in ROADMAP.md means this builder agent. Colab bundles are pasted by the
+owner into the planner session, which forwards them to the builder (SendMessage) or to a new builder. Cost rules:
+`WORKING_METHOD.md`.
 
 ## Kickoff prompt (template)
 
 ```
-<FIRST PHASE>  Work on your designated branch.
-<LATER PHASES> PR #<N> is merged. Restart your branch from origin/master
-               (git fetch origin master && git checkout -B <BUILD_BRANCH> origin/master),
-               unsubscribe from PR #<N>, and open a NEW draft PR. Never reuse a merged PR.
+Create branch claude/<phase> from origin/master (git fetch origin master && git checkout -B claude/<phase> origin/master).
 
 Read CLAUDE.md, then docs/research/plan/STATUS.md. Your task is phase <Pn> only
 (docs/research/plan/ROADMAP.md §<Pn>). Read only: <read list from the row below>.
@@ -27,11 +25,12 @@ Strict process:
 4. A new option's default reproduces the old behaviour; unknown config keys raise.
 5. Data is read only through tools/holdout_guard.py; the holdout is never read except in the single frozen confirmation step.
 6. Colab scripts follow the run contract in ROADMAP.md (manifest.json, --max-minutes, outputs <= 300 KB, paste bundle).
-   You cannot reach Drive or Binance: test on small fixtures; I run the scripts on Colab and paste the bundle back.
+   You cannot reach Drive: test on small fixtures; the owner runs the Colab cell and the bundle is sent back to you.
 7. Before every commit: python tools/build_map.py, python tools/check_deps.py, python -m pytest tests/ -q.
 
 Definition of done: the <Pn> DoD in ROADMAP.md, and docs/research/plan/STATUS.md updated in the last (`docs`) commit.
-Open a draft PR, do NOT merge, and report in Arabic: what was built, test counts, the exact Colab cell(s) I must run.
+Push the branch; do NOT open or merge a PR (the planner does). Report in English, <= 40 lines: full head SHA, commits,
+test counts, check outputs, deviations from this brief, and the exact Colab cell(s) the owner must run.
 ```
 
 ## Per-phase inputs
