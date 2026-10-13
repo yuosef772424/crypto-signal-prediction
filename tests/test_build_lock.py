@@ -173,11 +173,12 @@ class SealingTests(Base):
         self.assertNotEqual(a["sealed_order"], b["sealed_order"])
 
     def test_row_order_does_not_matter_and_build_is_deterministic(self):
-        a = bl.dumps(self.build())
-        rows = fixture_rows()
-        write_manifest(self.mdir, list(reversed(rows)))
-        self.assertEqual(a, bl.dumps(bl.build(self.mdir, self.touched, SALT, repo_check=False)))
-        self.assertEqual(a, bl.dumps(self.build()))
+        a = self.build()
+        self.assertEqual(bl.dumps(a), bl.dumps(self.build()))                          # same inputs, same bytes
+        write_manifest(self.mdir, list(reversed(fixture_rows())))
+        b = bl.build(self.mdir, self.touched, SALT, repo_check=False)
+        a.pop("inputs"), b.pop("inputs")                                                # the CSV bytes (and so its hash) differ
+        self.assertEqual(bl.dumps(a), bl.dumps(b))
 
     def test_small_buckets_warn(self):
         d = self.build()

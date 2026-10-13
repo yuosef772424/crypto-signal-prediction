@@ -59,6 +59,7 @@
 - breakout stops: edge_discovery/32_breakout_stops
 - breakout_stops_results.csv: edge_discovery/32_breakout_stops
 - btc: tools/h07_forward
+- buckets: tools/build_lock
 - build: edge_discovery/features
 - build panel: edge_discovery/data_tools/build_panel
 - build_panel_model: cross_asset/model
@@ -123,6 +124,7 @@
 - delay: edge_discovery/19_hl_copy
 - dependencies: tools/check_deps
 - descriptive: edge_discovery/28_token_decompose
+- deterministic build: tools/build_lock
 - dev val: strategy_discovery/grid, strategy_discovery/grid2, strategy_discovery/intraday_macd, strategy_discovery/seasonality15m
 - dev val split: indicator_strategy/screen
 - diagnostic: edge_discovery/23_chart_rules_gross
@@ -165,6 +167,7 @@
 - early stopping: cross_asset/train
 - edge_data: edge_discovery/lib
 - edit notebook: tools/nb_cells
+- eligibility: tools/build_lock
 - ema weights: cross_asset/train
 - ema20: edge_discovery/24_pullback_maker
 - ema200 pullback: indicator_strategy/engine, tools/trade_engine
@@ -308,7 +311,7 @@
 - listing_trades.csv: edge_discovery/13_listing_stops
 - load panel: edge_discovery/lib
 - local cache: tools/colab_bridge
-- lock: tools/data_manifest, tools/data_manifest_colab_cell, tools/holdout_guard
+- lock: tools/build_lock, tools/data_manifest, tools/data_manifest_colab_cell, tools/holdout_guard
 - logistic: edge_discovery/18_h13_pr7_signal
 - london breakout: edge_discovery/22_chart_rules
 - long-only: edge_discovery/07_trend
@@ -322,6 +325,7 @@
 - main.ipynb patched cells: tools/evaluate_trained_model
 - main.ipynb section 7-h: cross_asset/experiment
 - maker limit: edge_discovery/24_pullback_maker
+- manifest ingest: tools/build_lock
 - map: tools/build_map
 - mark-to-market drawdown: hedge_recovery/sim
 - market adjusted: edge_discovery/events
@@ -408,7 +412,7 @@
 - quintile spread: edge_discovery/04_screen_mean
 - quintiles: edge_discovery/03_quintiles
 - r multiple: edge_discovery/22_chart_rules, indicator_strategy/engine, tools/trade_engine
-- r0: tools/data_manifest, tools/data_manifest_colab_cell, tools/holdout_guard
+- r0: tools/build_lock, tools/data_manifest, tools/data_manifest_colab_cell, tools/holdout_guard
 - random control: hedge_recovery/sim, hedge_recovery/sim2
 - random-direction null: tools/bracket_eval
 - range fade: edge_discovery/21_range_fade
@@ -448,11 +452,13 @@
 - run_panel_experiment: cross_asset/__init__, cross_asset/experiment
 - run_panel_selftest: cross_asset/selftest
 - run_weights: edge_discovery/tsbt
+- salt: tools/build_lock
 - sample size guard: strategy_discovery/oos, strategy_discovery/survivor_checks
 - scaled: tests/test_real_price_modes
 - scaling in: edge_discovery/24_pullback_maker
 - screen_disc_mean.csv: edge_discovery/04_screen_mean
 - sealed coins: tools/holdout_guard
+- sealed holdout: tools/build_lock
 - seasonality: edge_discovery/06_seasonality, strategy_discovery/seasonality15m
 - seed spread: edge_discovery/26_h19_generalization
 - selective trading: tools/bracket_eval
@@ -518,6 +524,7 @@
 - top traders: edge_discovery/19_hl_copy
 - top-50 big: edge_discovery/lib
 - torch: edge_discovery/25_image_cnn
+- touched ledger: tools/build_lock
 - tp sl: edge_discovery/29_path_envelope
 - tp_room: tools/bracket_eval
 - trade engine: tools/trade_engine

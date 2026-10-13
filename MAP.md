@@ -19,7 +19,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 
 ## Code packages
 - `cross_asset/` — Package entry of the cross-asset 'panel' model (phase 1): one sample = a full UTC day with all coins, attention across same-day coins; re-exports PanelSplit, panel_split_from, VARIANTS, run_panel_experiment. | 7 modules, 0 data files (0 B) → maps/cross_asset.md
-- `tools/` — bracket_eval, build_map, check_deps, colab_bridge, data_manifest, data_manifest_colab_cell, evaluat… | 18 modules, 0 data files (0 B) → maps/tools.md
+- `tools/` — bracket_eval, build_lock, build_map, check_deps, colab_bridge, data_manifest, data_manifest_colab_c… | 19 modules, 0 data files (0 B) → maps/tools.md
 
 ## Research studies (research/)
 - `research/edge_discovery/` — التقرير النهائي — البحث عن Edge قابل للاستغلال (2024-01 → 2026-09) | 41 scripts, 33 data files (788 KB) → maps/research_edge_discovery.md
