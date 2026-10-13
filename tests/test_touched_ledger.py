@@ -115,7 +115,7 @@ class GeneratedRowsTests(unittest.TestCase):
                                "hourly_83": "intraday", "perps_195": "derivs", "listings": "derivs",
                                "coinmetrics": "daily", "hl_copy": "derivs"})
         for r in self.rows:                                              # rule (a): a sub-daily timeframe read by price studies is intraday
-            if r["symbol_or_rule"] in ("LTCUSDT", "LINKUSDT", "AVAXUSDT", "DOTUSDT") and r["kind"] == "symbol":
+            if r["source"].endswith("(coins named as untouched)"):
                 self.assertEqual(r["touch_class"], "intraday")
 
     def test_only_documented_groups_list_a_subdaily_registry_timeframe_without_being_intraday(self):

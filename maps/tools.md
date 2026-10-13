@@ -15,23 +15,26 @@
   - `def day_clustered_t(x: np.ndarray, ts) -> float` L115
   - `def evaluate_filters(df: pd.DataFrame, filters: Dict[str, Optional[str]], bracket=0.01, direction=None, cost_rt: float=COST_RT, null_reps: int=200, seed: int=0, min_trades: int=30) -> pd.DataFrame` L124
 
-### `tools/build_lock.py` (299 lines)
+### `tools/build_lock.py` (380 lines)
 - PURPOSE: Builds the sealed-holdout lock of phase R0, deterministically: the pasted Colab manifest of history_15m (tools/data_manifest.py bundle) + the touched-data ledger (docs/research/plan/lock/touched.csv) + the salt -> docs/research/plan/lock/h…
-- TAGS: lock, sealed holdout, salt, eligibility, touched ledger, buckets, deterministic build, manifest ingest, r0
-- PITFALLS: The salt must be the commit that first added lock/README.md (checked with git unless --no-repo-check, which is for fixtures only). A pull request carrying that commit must be merge-committed, never squashed. A folder rule whose folder is missing from the bundle, an incomplete manifest, an edited CSV or a duplicate symbol makes the build fail. The output has no timestamps, so the same inputs give…
+- TAGS: d-009, two-level holdout, lock, sealed holdout, salt, eligibility, touched ledger, buckets, deterministic build, manifest ingest, r0
+- PITFALLS: Level X (any intraday touch) is ineligible; level B (daily-only or non-price touches) is eligible and recorded; `unresolved:<name>` rules are recorded and touch nobody. `ingest --from-dir` takes a run folder (what a runner pushes), `--bundle` the pasted text. The salt must be the commit that first added lock/README.md (checked with git unless --no-repo-check, which is for fixtures only). A pull r…
 - API:
-  - `def n_sealed(n)` L52
-  - `def rank_hash(salt, symbol)` L57
-  - `def load_manifest(mdir)` L74
-  - `def parse_touched(path)` L105
-  - `def resolve_touched(touched, rows, folders)` L136
-  - `def reasons_for(symbol, row, bases, touched_sources)` L161
-  - `def verify_salt(salt, repo_root=ROOT)` L184
-  - `def build(manifest_dir, touched_path, salt, *, repo_check=True, repo_root=ROOT)` L195
-  - `def dumps(d)` L238
-  - `def write_lock(d, out_dir)` L242
-  - `def ingest(text, dest_dir)` L255
-  - `def main(argv=None)` L269
+  - `def n_sealed(n)` L58
+  - `def rank_hash(salt, symbol)` L63
+  - `def load_manifest(mdir)` L80
+  - `def parse_touched(path)` L115
+  - `def resolve_touched(touched, rows, folders)` L151
+  - `def reasons_for(symbol, row, bases, touch)` L181
+  - `def bucket_accepts(bucket, symbol, derivs_touched)` L204
+  - `def assign_buckets(sealed_order, derivs_touched)` L209
+  - `def verify_salt(salt, repo_root=ROOT)` L221
+  - `def build(manifest_dir, touched_path, salt, *, repo_check=True, repo_root=ROOT)` L232
+  - `def dumps(d)` L288
+  - `def write_lock(d, out_dir)` L292
+  - `def ingest(text, dest_dir)` L305
+  - `def ingest_dir(src_dir, dest_dir)` L319
+  - `def main(argv=None)` L348
 
 ### `tools/build_map.py` (556 lines)
 - PURPOSE: Generate the layered repo map from the code with `ast` (modules are never imported): MAP.md (L0, small) and maps/<zone>.md (L1: cards, public signatures with line numbers, DEPENDS); enforces the card ratchet.
@@ -110,17 +113,18 @@
   - `def read_registry(registry, url_template=DOWNLOAD_URL)` L141
   - `def download_from_registry(registry=DEFAULT_REGISTRY, dest='/content/am_data/history_1d', names=None, workers=8, force=False, url_template=DOWNLOAD_URL)` L162
 
-### `tools/data_manifest.py` (238 lines)
+### `tools/data_manifest.py` (277 lines)
 - PURPOSE: Colab script that lists the Drive folder history_15m (one row per <SYMBOL>.csv.gz: first/last bar open time, data rows, bytes, file sha256) and the file names of the other Drive folders named in its config (for the folder rules of the touc…
 - TAGS: data manifest, history_15m, drive listing, file sha256, paste bundle, colab, lock, r0, input fingerprint
-- PITFALLS: It reads only headers, first and last bars and counts rows (no prices are analysed). An unreadable file is listed with its error, never skipped. A run that hits --max-minutes says complete=false and exits 1; tools/build_lock.py refuses it. The pasted bundle is verified against manifest.json, so any edit made while copying is detected.
+- PITFALLS: Everything is written as files in --out (manifest.json lists the sha256 of every output; a listing larger than one file is split into history_15m_manifest.partNN.csv files, each under the 300 KB contract limit), so a runner can push the folder as is; the stdout bundle is the same content for copy-and-paste. It reads only headers, first and last bars and counts rows (no prices are analysed). An un…
 - API:
-  - `def load_config(cfg)` L40
-  - `def file_row(path, suffix)` L80
-  - `def run(cfg, out_dir, max_minutes=50, clock=time.time, max_output_bytes=300000)` L135
-  - `def bundle_text(out_dir)` L182
-  - `def parse_bundle(text)` L193
-  - `def main(argv=None)` L225
+  - `def load_config(cfg)` L44
+  - `def file_row(path, suffix)` L84
+  - `def output_names(names, base)` L139
+  - `def run(cfg, out_dir, max_minutes=50, clock=time.time, max_file_bytes=DEFAULT_FILE_BYTES)` L173
+  - `def bundle_text(out_dir)` L221
+  - `def parse_bundle(text)` L232
+  - `def main(argv=None)` L264
 
 ### `tools/data_manifest_colab_cell.py` (61 lines)
 - PURPOSE: Single paste-and-run Colab cell for phase R0: mount Drive, fetch tools/data_manifest.py (GitHub token or Drive copy), run it over history_15m, print the paste bundle and also save it to Drive as lock_manifest_bundle.txt.
@@ -337,15 +341,15 @@
 - API:
   - `def main(argv=None)` L52
 
-### `tools/touched_ledger.py` (186 lines)
+### `tools/touched_ledger.py` (191 lines)
 - PURPOSE: Generates the touched-data ledger docs/research/plan/lock/touched.csv (columns symbol_or_rule, kind, timeframe, period, source, note) from master as of 2026-10-13: every universe in docs/research/failure_registry.csv (F-0001..F-0079), the…
 - TAGS: touched data, ledger, holdout lock, universe, registry, sealed coins, strict side, provenance, r0
-- PITFALLS: Registry rows after F-0079 are outside this ledger by design (it is frozen with the lock); an unmapped row up to F-0079 raises. The notebook symbol lists (COINS_BY_CATEGORY, REAL_ASSET_NAMES, the H002 five) are copied here as literals because the notebooks are being restructured; tests check them against frozen.json and the file lists. The two rules are the strict reading of lists that exist only…
+- PITFALLS: The hourly OI/metrics files behind the 195 perps and the listings are `derivs` by D-009 (b) although edge_discovery derived an hourly price proxy from them; the history_1d rule is `daily` although F-0022/F-0032 read hourly bars for part of it (not resolvable to symbols). The CoinMetrics 44 assets are not listed in the repo: an `unresolved:` rule, no proxy (D-009 h). Registry rows after F-0079 are…
 - API:
-  - `def check_registry(ids, mapped_ids=None)` L127
-  - `def generate()` L135
-  - `def write_csv(rows, path)` L156
-  - `def main(argv=None)` L163
+  - `def check_registry(ids, mapped_ids=None)` L132
+  - `def generate()` L140
+  - `def write_csv(rows, path)` L161
+  - `def main(argv=None)` L168
 
 ### `tools/trade_engine.py` (179 lines)
 - PURPOSE: Shared trade engine for the strategy-discovery studies: loads 1h spot OHLCV and resamples it to 4h / 1d, computes the indicators (EMA, RSI, MACD, Bollinger, ADX/DI, ATR, Donchian), builds named signals from triggers plus optional gates, an…

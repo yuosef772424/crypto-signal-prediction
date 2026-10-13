@@ -5,7 +5,9 @@ PURPOSE:  Colab script that lists the Drive folder history_15m (one row per <SYM
           manifest.json with the sha256 of every output, outputs <= 300 KB, and a printed paste bundle that
           tools/build_lock.py ingests. Standard library only, so one raw file runs on Colab.
 TAGS:     data manifest, history_15m, drive listing, file sha256, paste bundle, colab, lock, R0, input fingerprint
-PITFALLS: It reads only headers, first and last bars and counts rows (no prices are analysed). An unreadable file is listed
+PITFALLS: Everything is written as files in --out (manifest.json lists the sha256 of every output; a listing larger than
+          one file is split into history_15m_manifest.partNN.csv files, each under the 300 KB contract limit), so a runner can
+          push the folder as is; the stdout bundle is the same content for copy-and-paste. It reads only headers, first and last bars and counts rows (no prices are analysed). An unreadable file is listed
           with its error, never skipped. A run that hits --max-minutes says complete=false and exits 1; tools/build_lock.py
           refuses it. The pasted bundle is verified against manifest.json, so any edit made while copying is detected.
 
@@ -29,6 +31,8 @@ import time
 SCHEMA = "data_manifest/1"
 OUT_CSV = "history_15m_manifest.csv"
 OUT_FOLDERS = "folders_manifest.csv"
+FILE_LIMIT = 300_000                  # run contract: every output file at most 300 KB
+DEFAULT_FILE_BYTES = 250_000          # split target
 CSV_COLUMNS = ["symbol", "first_bar", "last_bar", "rows", "bytes", "sha256", "error"]
 FOLDER_COLUMNS = ["folder", "symbol"]
 CONFIG_KEYS = {"history_15m_dir": None, "extra_folders": {}, "suffix": ".csv.gz"}      # None = required
@@ -132,8 +136,44 @@ def _write_csv(path, columns, rows):
             w.writerow([r[c] for c in columns] if isinstance(r, dict) else r)
 
 
-def run(cfg, out_dir, max_minutes=50, clock=time.time, max_output_bytes=300_000):
-    """List the folders and write history_15m_manifest.csv, folders_manifest.csv and manifest.json into out_dir."""
+def output_names(names, base):
+    """Output files of one listing: `<stem>.csv` or `<stem>.part01.csv`, `<stem>.part02.csv`... (sorted)."""
+    stem = base[: -len(".csv")]
+    pat = re.compile(r"^" + re.escape(stem) + r"(\.part\d{2})?\.csv$")
+    return sorted(n for n in names if pat.match(n))
+
+
+def _write_parts(out_dir, base, columns, rows, max_bytes):
+    """Write the rows into one file, or into `.partNN.csv` files of at most max_bytes each. Returns the file names."""
+    def render(r):
+        buf = io.StringIO()
+        csv.writer(buf, lineterminator="\n").writerow([r[c] for c in columns] if isinstance(r, dict) else r)
+        return buf.getvalue()
+    head = render(columns)
+    chunks, cur, size = [], [], len(head.encode("utf-8"))
+    for r in rows:
+        line = render(r)
+        n = len(line.encode("utf-8"))
+        if len(head.encode("utf-8")) + n > max_bytes:
+            raise ValueError(f"{base}: one row ({n} bytes) plus the header does not fit the {max_bytes} byte file limit")
+        if cur and size + n > max_bytes:
+            chunks.append(cur)
+            cur, size = [], len(head.encode("utf-8"))
+        cur.append(line)
+        size += n
+    chunks.append(cur)
+    stem = base[: -len(".csv")]
+    names = [base] if len(chunks) == 1 else [f"{stem}.part{i:02d}.csv" for i in range(1, len(chunks) + 1)]
+    for name, lines in zip(names, chunks):
+        with open(os.path.join(out_dir, name), "w", encoding="utf-8", newline="") as f:
+            f.write(head + "".join(lines))
+    return names
+
+
+def run(cfg, out_dir, max_minutes=50, clock=time.time, max_file_bytes=DEFAULT_FILE_BYTES):
+    """List the folders and write history_15m_manifest*.csv, folders_manifest*.csv and manifest.json into out_dir."""
+    if max_file_bytes > FILE_LIMIT:
+        raise ValueError(f"max_file_bytes {max_file_bytes} is over the {FILE_LIMIT} byte limit of the run contract")
     cfg = load_config(cfg)
     for label, d in [("history_15m_dir", cfg["history_15m_dir"])] + [(f"extra_folders[{k}]", v) for k, v in cfg["extra_folders"].items()]:
         if not os.path.isdir(d):
@@ -155,6 +195,8 @@ def run(cfg, out_dir, max_minutes=50, clock=time.time, max_output_bytes=300_000)
         for n in folders[k]:
             fp.update(f"{k}\t{n}\t{os.path.getsize(os.path.join(cfg['extra_folders'][k], n))}\n".encode())
     os.makedirs(out_dir, exist_ok=True)
+    for n in output_names(os.listdir(out_dir), OUT_CSV) + output_names(os.listdir(out_dir), OUT_FOLDERS):
+        os.remove(os.path.join(out_dir, n))                         # outputs of an older run must not be mistaken for this one
     t0 = clock()
     rows, complete = [], True
     for n in files:
@@ -162,10 +204,10 @@ def run(cfg, out_dir, max_minutes=50, clock=time.time, max_output_bytes=300_000)
             complete = False
             break
         rows.append(file_row(os.path.join(cfg["history_15m_dir"], n), suffix))
-    _write_csv(os.path.join(out_dir, OUT_CSV), CSV_COLUMNS, rows)
-    _write_csv(os.path.join(out_dir, OUT_FOLDERS), FOLDER_COLUMNS,
-               [[k, _stem(n)] for k in cfg["extra_folders"] for n in folders[k]])
-    outputs = {n: _sha256(os.path.join(out_dir, n)) for n in (OUT_CSV, OUT_FOLDERS)}
+    written = _write_parts(out_dir, OUT_CSV, CSV_COLUMNS, rows, max_file_bytes)
+    written += _write_parts(out_dir, OUT_FOLDERS, FOLDER_COLUMNS, [[k, _stem(n)] for k in cfg["extra_folders"] for n in folders[k]],
+                            max_file_bytes)
+    outputs = {n: _sha256(os.path.join(out_dir, n)) for n in written}
     manifest = {"schema": SCHEMA, "git_sha": _git_sha(), "config": cfg, "input_fingerprint": fp.hexdigest(),
                 "complete": complete, "max_minutes": max_minutes, "n_files_total": len(files), "n_files_listed": len(rows),
                 "ignored_files": ignored, "n_bars_listed": sum(r["rows"] for r in rows),
@@ -173,9 +215,6 @@ def run(cfg, out_dir, max_minutes=50, clock=time.time, max_output_bytes=300_000)
                 "n_configurations_evaluated": 0, "runtime_seconds": round(clock() - t0, 3), "outputs": outputs}
     with open(os.path.join(out_dir, "manifest.json"), "w", encoding="utf-8", newline="") as f:
         f.write(json.dumps(manifest, indent=1, sort_keys=True) + "\n")
-    total = sum(os.path.getsize(os.path.join(out_dir, n)) for n in os.listdir(out_dir))
-    if total > max_output_bytes:
-        raise ValueError(f"outputs are {total} bytes, over the {max_output_bytes} byte limit of the run contract")
     return manifest
 
 

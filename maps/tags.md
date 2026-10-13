@@ -100,6 +100,7 @@
 - crossassetblock: cross_asset/model
 - csv: tools/fetch_history_csv_concurrent
 - cumulative r: indicator_strategy/charts
+- d-009: tools/build_lock
 - daily: tools/h07_forward
 - daily breakout: indicator_strategy/variants
 - daily ic: cross_asset/report
@@ -551,6 +552,7 @@
 - tt_pos: edge_discovery/features
 - turnover: edge_discovery/03_quintiles, edge_discovery/18_h13_pr7_signal
 - turnover cost: edge_discovery/tsbt, strategy_discovery/rotation
+- two-level holdout: tools/build_lock
 - unit tests: cross_asset/selftest
 - universe: h07_combos/01_combos, tools/touched_ledger
 - universe mask: edge_discovery/lib

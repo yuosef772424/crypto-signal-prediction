@@ -201,7 +201,7 @@ Documents:
   - `def auc_pair(aligned)` L90
 
 ## `docs/research/plan/`
-- Phase kickoff: how the build session starts a phase | 0 scripts, 14 md, 2 data files (155 KB)
+- Phase kickoff: how the build session starts a phase | 0 scripts, 14 md, 2 data files (161 KB)
 
 Documents:
 - `KICKOFF.md` — Phase kickoff: how the build session starts a phase
@@ -220,7 +220,7 @@ Documents:
 - `lock/README.md` — Lock: sealed-holdout specification (phase R0)
 
 Data / other files (counts only):
-- `lock/`: csv×2 — 155 KB
+- `lock/`: csv×2 — 161 KB
 
 ## `docs/research/results/`
 - نتائج خطّة `capacity` على بيانات Drive (Colab T4، 2026-09-27) | 0 scripts, 6 md, 0 data files (0 B)
