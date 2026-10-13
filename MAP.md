@@ -6,6 +6,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 
 ## Root notebooks → maps/notebooks.md
 - `chicks_v4_5_input_output_patterns.ipynb` — 📓 دفتر تقييم النموذج — نسخة مُحسّنة (v4.1) (70 public defs)
+- `colab_runner.ipynb` — Colab runner: one click per experiment (0 public defs)
 - `crypto_data_pipeline_v6.ipynb` — خط أنابيب تجهيز بيانات العملات الرقمية — دفتر موحّد (تاريخي + حيّ) (152 public defs)
 - `hypothesis_h001_short_term_reversal.ipynb` — H001 — الانعكاس قصير المدى (Short-Term Reversal) (2 public defs)
 - `hypothesis_h002_classification_head.ipynb` — H002 — رأس التصنيف الثنائي في `NIG-TimeNet v2` (1 public defs)
@@ -19,7 +20,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 
 ## Code packages
 - `cross_asset/` — Package entry of the cross-asset 'panel' model (phase 1): one sample = a full UTC day with all coins, attention across same-day coins; re-exports PanelSplit, panel_split_from, VARIANTS, run_panel_experiment. | 7 modules, 0 data files (0 B) → maps/cross_asset.md
-- `tools/` — bracket_eval, build_lock, build_map, check_deps, colab_bridge, data_manifest, data_manifest_colab_c… | 20 modules, 0 data files (0 B) → maps/tools.md
+- `tools/` — bracket_eval, build_lock, build_map, check_deps, colab_bridge, colab_runner, colab_smoke, data_mani… | 22 modules, 0 data files (0 B) → maps/tools.md
 
 ## Research studies (research/)
 - `research/edge_discovery/` — التقرير النهائي — البحث عن Edge قابل للاستغلال (2024-01 → 2026-09) | 41 scripts, 33 data files (788 KB) → maps/research_edge_discovery.md
@@ -34,7 +35,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 ## docs/research (legacy)
 - `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 43 md, 1 data files (94 KB) → maps/docs_research.md
 - `docs/research/audit/` — Audit / Improvement Protocol (Auditor ↔ Builder) | 26 scripts, 5 md, 0 data files (0 B) → maps/docs_research.md
-- `docs/research/plan/` — Phase kickoff: how the build session starts a phase | 0 scripts, 14 md, 2 data files (161 KB) → maps/docs_research.md
+- `docs/research/plan/` — Colab runner: one click per experiment | 0 scripts, 16 md, 2 data files (161 KB) → maps/docs_research.md
 - `docs/research/results/` — نتائج خطّة `capacity` على بيانات Drive (Colab T4، 2026-09-27) | 0 scripts, 6 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/scripts/` — سكربتات إعادة إنتاج تدقيق التطبيع | 9 scripts, 1 md, 1 data files (10 KB) → maps/docs_research.md
 - `docs/research/scripts/entry_range_eval/` — entry_range_eval — تقييم نموذج entry_range المُدرَّب (`crypto_model_v1_entry_range_s100_am`) | 5 scripts, 1 md, 7 data files (127 KB) → maps/docs_research.md
@@ -42,6 +43,6 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `docs/research/templates/` — Experiment card — <id>: <one-line title> | 0 scripts, 1 md, 0 data files (0 B) → maps/docs_research.md
 
 ## Tests
-- `tests/` — test_audit_round2, test_bracket_eval, test_build_lock, test_cross_asset, test_data_manifest, test_d… | 27 modules, 1 data files (30 KB) → maps/tests.md
+- `tests/` — test_audit_round2, test_bracket_eval, test_build_lock, test_colab_runner, test_colab_runner_noteboo… | 29 modules, 1 data files (30 KB) → maps/tests.md
 
 ## Where do I edit X? → `maps/tags.md` (TAGS → modules index)

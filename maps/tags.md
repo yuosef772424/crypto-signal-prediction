@@ -63,6 +63,7 @@
 - build: edge_discovery/features
 - build panel: edge_discovery/data_tools/build_panel
 - build_panel_model: cross_asset/model
+- bundle: tools/colab_runner
 - buy and hold: edge_discovery/14_holdout
 - buy and hold benchmark: edge_discovery/16_h07_oos
 - candlestick sample: indicator_strategy/charts
@@ -77,8 +78,10 @@
 - ci guard: tests/test_no_lookahead
 - cnn: edge_discovery/25_image_cnn
 - coinmetrics: edge_discovery/16_h07_oos, edge_discovery/20_onchain
-- colab: edge_discovery/25_image_cnn, tools/colab_bridge, tools/data_manifest
+- colab: edge_discovery/25_image_cnn, tools/colab_bridge, tools/colab_runner, tools/colab_smoke, tools/data_manifest
 - colab cell: tools/data_manifest_colab_cell, tools/fetch_history_colab_cell
+- colab-queue: tools/colab_runner
+- colab-results: tools/colab_runner
 - combo signal: edge_discovery/03_quintiles
 - compare: cross_asset/report
 - confirmation: tools/holdout_guard
@@ -191,6 +194,7 @@
 - event study: edge_discovery/05_events, edge_discovery/events
 - event_stats: edge_discovery/events
 - events_disc.csv: edge_discovery/05_events
+- example run script: tools/colab_smoke
 - exchange supply: edge_discovery/20_onchain
 - execution lag: edge_discovery/17_h07_break
 - exit grid: strategy_discovery/robustness
@@ -228,6 +232,7 @@
 - gate-cli: tools/indicator_reverse
 - gates: strategy_discovery/grid
 - generalization gap: edge_discovery/26_h19_generalization
+- git_askpass: tools/colab_runner
 - github dataset: tools/fetch_crypto_dataset
 - give-back: h07_combos/01_combos
 - gradient boosting: h07_volsizing/01_volsizing
@@ -297,6 +302,8 @@
 - intraday features: tools/intraday_features
 - inverse: tests/test_real_price_modes
 - ipynb: tools/nb_cells
+- job queue: tools/colab_runner
+- job.json: tools/colab_runner, tools/colab_smoke
 - json format: tools/nb_cells
 - kdj: tools/indicator_reverse
 - keltner squeeze: strategy_discovery/grid2
@@ -327,6 +334,7 @@
 - main.ipynb patched cells: tools/evaluate_trained_model
 - main.ipynb section 7-h: cross_asset/experiment
 - maker limit: edge_discovery/24_pullback_maker
+- manifest: tools/colab_runner, tools/colab_smoke
 - manifest ingest: tools/build_lock
 - map: tools/build_map
 - mark-to-market drawdown: hedge_recovery/sim
@@ -365,6 +373,7 @@
 - oi features: tools/intraday_features
 - oi flush: edge_discovery/05_events, edge_discovery/09_market_flush, edge_discovery/10_flush_curve
 - on-chain: edge_discovery/20_onchain
+- one click: tools/colab_runner
 - one-shot: indicator_strategy/test_final
 - open interest: tools/fetch_history_csv_concurrent, tools/fetch_history_vision_colab
 - out of sample: edge_discovery/16_h07_oos, strategy_discovery/forward, tools/h07_forward
@@ -408,6 +417,7 @@
 - provenance: tools/touched_ledger
 - pullback: edge_discovery/24_pullback_maker
 - pump: edge_discovery/05_events
+- push results: tools/colab_runner
 - px proxy: edge_discovery/data_tools/build_panel
 - qlike: h07_volsizing/01_volsizing
 - quantile regression: edge_discovery/31_wick_capture
@@ -435,6 +445,7 @@
 - relative direction: edge_discovery/18_h13_pr7_signal
 - reopen conditions: tools/experiment_registry
 - representation information: edge_discovery/27_repr_info
+- reproduction check: tools/colab_runner
 - research data: tools/fetch_crypto_dataset
 - research protocol: tools/experiment_registry
 - resumable: edge_discovery/25_image_cnn
@@ -453,9 +464,11 @@
 - rqa: edge_discovery/27_repr_info
 - rsi: indicator_strategy/engine, tools/indicator_reverse, tools/trade_engine
 - rsi2 pullback: strategy_discovery/grid
+- run contract: tools/colab_runner, tools/colab_smoke
 - run_panel_experiment: cross_asset/__init__, cross_asset/experiment
 - run_panel_selftest: cross_asset/selftest
 - run_weights: edge_discovery/tsbt
+- runner: tools/colab_runner, tools/colab_smoke
 - salt: tools/build_lock
 - sample size guard: strategy_discovery/oos, strategy_discovery/survivor_checks
 - scaled: tests/test_real_price_modes
@@ -468,6 +481,7 @@
 - selective trading: tools/bracket_eval
 - selftest: cross_asset/selftest
 - settings interval start funding open_interest: tools/fetch_history_colab_cell
+- sha256: tools/colab_runner
 - shared helpers: edge_discovery/lib
 - shared tool: tools/trade_engine
 - sharpe: edge_discovery/tsbt, strategy_discovery/rotation
@@ -484,6 +498,7 @@
 - sl_room: tools/bracket_eval
 - slippage: edge_discovery/32_breakout_stops
 - smart-minus-retail: edge_discovery/features
+- smoke test: tools/colab_smoke
 - source github/drive: tools/data_manifest_colab_cell, tools/fetch_history_colab_cell
 - speirsy11: tools/fetch_crypto_dataset
 - split-dates: tools/evaluate_trained_model
@@ -523,6 +538,7 @@
 - time seal: tools/holdout_guard
 - time-series screen: edge_discovery/08_ts_screen
 - timeframe resample: indicator_strategy/engine, tools/trade_engine
+- token: tools/colab_runner
 - token language: edge_discovery/28_token_decompose
 - tokens: edge_discovery/27_repr_info, tools/build_map
 - tool result: edge_discovery/data_tools/dec

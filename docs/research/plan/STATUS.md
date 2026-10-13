@@ -9,7 +9,8 @@
 ## Scope (owner, 2026-10-13)
 - Goal (D-001): find or reject, with honest evidence, information that adds something real; a survivor feeds a
   model (feature/target → full model, R6) and/or a bot2 code-computed tool. New docs in English.
-- Planner/reviewer session plans and reviews; a separate build session implements one phase per PR.
+- The planner session plans, reviews and merges; builders are subagents it launches (one phase = one branch = one PR).
+  Cost rules: `WORKING_METHOD.md`.
 - ≤ 1 h compute per phase (D-003). Data: Drive `history_15m` 800+ coins (D-004, Colab; sealed buckets come from it);
   10 touched coins at 1m–1w via `tools/fetch_crypto_dataset.py`, usable in the cloud session (D-007).
 - The planner may merge a phase PR after review (D-002).
@@ -27,7 +28,7 @@
 | Phase | State | PR | Verdict |
 |---|---|---|---|
 | T0 triage open PRs | #16, #15, #19 (H07 studies split from #13, F-0078/79) merged; #6, #14 closed; #13 restructuring: merge master + rtol fix + history note | #15, #16, #19 | in progress |
-| R0 lock (+M) | built; waiting for the Colab manifest (M done) | branch `claude/r0-lock` | — |
+| R0 lock (+M) | built on `claude/r0-lock` (salt b4f3790); D-009 two-level holdout being added; next: manifest job via the Colab runner | — | — |
 | G2 gate-style features | next | — | — |
 | G gate-cli reverse + QC | waits for the owner's raw JSON | — | — |
 | R3 NATR range tool | not started | — | — |
@@ -54,5 +55,5 @@
    plus `kline --with-indicators` for BTC/ETH/SOL at 15m/1h/4h/1d with the largest `--size`, and gate's history depth.
 
 ## Known issues
-- Build branch name (`<BUILD_BRANCH>`): unknown until the build session's first report.
+- Colab runner merged (#21, `colab_runner.ipynb`, `COLAB_RUNNER.md`): owner one-time setup = token file in Drive; first live job `smoke-001`.
 - Baseline checks on master: build_map --check OK, check_deps 0 errors, registry validate OK (79 rows); pytest 227 passed, 0 failed (13 min, CPU).

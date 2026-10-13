@@ -201,12 +201,14 @@ Documents:
   - `def auc_pair(aligned)` L90
 
 ## `docs/research/plan/`
-- Phase kickoff: how the build session starts a phase | 0 scripts, 14 md, 2 data files (161 KB)
+- Colab runner: one click per experiment | 0 scripts, 16 md, 2 data files (161 KB)
 
 Documents:
-- `KICKOFF.md` — Phase kickoff: how the build session starts a phase
+- `COLAB_RUNNER.md` — Colab runner: one click per experiment
+- `KICKOFF.md` — Phase kickoff: how a builder agent starts a phase
 - `ROADMAP.md` — Research roadmap (2026-10 →)
 - `STATUS.md` — STATUS: research plan hand-off
+- `WORKING_METHOD.md` — Working method: one planner session, builder agents, low token cost
 - `decisions/D-001-goal.md` — D-001: Goal of the research plan
 - `decisions/D-002-merge-authority.md` — D-002: The planner may merge a phase PR after review
 - `decisions/D-003-compute-budget.md` — D-003: Colab budget ≤ 1 hour per phase
