@@ -61,3 +61,5 @@ transparency only (no variant was accepted on VAL, so TEST is not a confirmation
 difference of two highly correlated trend strategies has a ±0.3–0.8 uncertainty even over 6 years. The direction is
 consistent for V3/V4 (higher Sharpe and smaller raw drawdown in VAL and in TEST), so they are tracked as **shadow
 variants** in the forward paper trading instead of adopted. Registry row F-0079 (numbered F-0065 on PR #13, renumbered when split onto master).
+
+> Note 2026-10-13: the run computed TEST for all four variants, not only accepted ones, and V3/V4 were chosen as shadow variants partly on it — see `E-h07comb-1_test_use_note.md` (V3/V4 are judged only on the forward ledger).

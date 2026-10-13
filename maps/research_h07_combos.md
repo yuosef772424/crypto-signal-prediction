@@ -6,6 +6,7 @@
 Documents:
 - `README.md` — H07 + قواعد أخرى — هل يتحسّن مرشّح الاتجاه بالدمج؟
 - `cards/E-h07comb-1.md` — Experiment card — E-h07comb-1: can H07 be improved by combining it with other rules?
+- `cards/E-h07comb-1_test_use_note.md` — E-h07comb-1 — TEST-use note (added 2026-10-13, review defect D1)
 
 ### `research/h07_combos/01_combos.py` (141 lines)
 - PURPOSE: E-h07comb-1: four pre-registered extensions of the frozen H07 trend filter — V1 multi-speed ensemble (10/20/30/60d), V2 fast exit (30d AND 10d), V3 10-coin universe, V4 = V1 on 10 coins — against V0 (H07) on VAL 2018-2023 with a Bonferroni…
