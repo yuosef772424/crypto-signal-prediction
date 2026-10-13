@@ -84,3 +84,5 @@ buy & hold; TEST 0.87 vs 0.57, max drawdown −31% vs −60%).
 Coarser bars make the forecast worse (with 4h bars, 6 per day, it no longer beats the trailing 30-day std), but the
 sizing result does not depend on the bar size: in every case the trailing 30-day std gives the best Sharpe and the
 smallest drawdown.
+
+> Note 2026-10-13: TEST was read in three runs (5m, 1h, 4h realized-variance bars), not once — see `E-h07vs-1_test_use_note.md`.
