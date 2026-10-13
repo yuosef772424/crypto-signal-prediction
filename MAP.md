@@ -24,6 +24,8 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 ## Research studies (research/)
 - `research/edge_discovery/` — التقرير النهائي — البحث عن Edge قابل للاستغلال (2024-01 → 2026-09) | 41 scripts, 33 data files (788 KB) → maps/research_edge_discovery.md
 - `research/gate_data_qc/` — تدقيق بيانات gate-cli — التحقق من التقرير وخطة التطبيق والاختبار | 0 scripts, 0 data files (0 B) → maps/research_gate_data_qc.md
+- `research/h07_combos/` — H07 + قواعد أخرى — هل يتحسّن مرشّح الاتجاه بالدمج؟ | 0 scripts, 0 data files (0 B) → maps/research_h07_combos.md
+- `research/h07_volsizing/` — H07 + تحجيم بالتقلّب المتوقَّع (تعلّم آلي للمقدار لا للاتجاه) | 0 scripts, 0 data files (0 B) → maps/research_h07_volsizing.md
 - `research/hedge_recovery/` — hedge_recovery — دراسة الصفقات المتحوّطة (تجارب E-hedge) | 2 scripts, 2 data files (69 KB) → maps/research_hedge_recovery.md
 - `research/indicator_strategy/` — indicator_strategy — دراسة المؤشرات والشروط على الفريمات 4h و1d | 5 scripts, 5 data files (148 KB) → maps/research_indicator_strategy.md
 - `research/strategy_discovery/` — strategy_discovery — البحث عن استراتيجية تداول قابلة للتحقق | 10 scripts, 15 data files (112 KB) → maps/research_strategy_discovery.md
