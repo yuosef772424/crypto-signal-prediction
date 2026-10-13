@@ -4,7 +4,7 @@ PURPOSE:  Forward paper trading of the frozen H07 rule (TSMOM30 long-only BTC+ET
           deterministically from daily Binance spot closes, refuses to rewrite past rows if the data changed, appends new
           days, and prints paper P&L vs equal-weight buy & hold. Shadow variants from research/h07_combos (V3 = the same
           rule on 10 coins, V4 = multi-speed ensemble on 10 coins) are tracked in their own ledgers, never adopted until
-          the pre-registered forward comparison (registry F-0065 R1) says so.
+          the pre-registered forward comparison (registry F-0079 R1) says so.
 TAGS:     H07, TSMOM30, paper trading, forward test, out of sample, ledger, BTC, ETH, trend filter, daily
 PITFALLS: The rule is FROZEN (research/edge_discovery 16_h07_oos.py, re-confirmed in research/h07_volsizing): never tune
           it on the forward ledger. Weights decided at day d's close earn d -> d+1; the first decision is 2026-09-30, so
@@ -30,7 +30,7 @@ LEDGER = os.path.join(ROOT, "research", "h07_forward", "ledger.csv")
 FIRST_DECISION = pd.Timestamp("2026-09-30")
 N, TARGET, CAP, COST_SIDE = 30, 0.02, 3.0, 0.0006
 ALL_COINS = ["BTC", "ETH", "SOL", "ADA", "BCH", "BNB", "DOGE", "TRX", "XRP", "ZEC"]
-#: variant -> (coins, lookbacks averaged into the signal). "h07" is the frozen rule; the others are shadows (F-0065).
+#: variant -> (coins, lookbacks averaged into the signal). "h07" is the frozen rule; the others are shadows (F-0079).
 VARIANTS = {"h07": (["BTC", "ETH"], (30,)),
             "v3_10coins": (ALL_COINS, (30,)),
             "v4_ens_10coins": (ALL_COINS, (10, 20, 30, 60))}

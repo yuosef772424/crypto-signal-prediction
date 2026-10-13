@@ -47,6 +47,12 @@ class RegistryTests(unittest.TestCase):
         for needle in ("F-0001", "verified_cause", "reopen_if", "failure_level", "'mechanism'", "supersedes"):
             self.assertIn(needle, msgs)
 
+    def test_power_is_a_valid_failure_level(self):
+        self.assertIn("power", er.LEVELS)
+        self.assertEqual(er.validate_registry([_row(failure_level="power", status="closed-unverified-cause",
+                                                    verified_cause="")], er.COLUMNS), [])
+        self.assertIn("failure_level", " | ".join(er.validate_registry([_row(failure_level="powr")])))
+
     def test_covered_card_must_reopen_or_explain(self):
         rows = [_row()]
         self.assertTrue(any("F-0001" in e for e in er.check_card(_card(**SCOPE), rows)))           # silent repeat

@@ -5,7 +5,7 @@ timeframe: 1d
 target: pnl
 model_class: rule
 reopens:
-not_covered_by:
+not_covered_by: F-0079=this card is the experiment that produced F-0079 (its own result, not a different scope); F-0070=cross-sectional momentum rotation of 7 coins with turnover costs, not the single-coin 30d trend filter of H07 and its extensions; F-0072=volume-confirmed Donchian breakout with a fixed ATR stop on unseen assets, a different trigger and exit; F-0076=Donchian 20 breakout with ADX gate on unseen assets BCH TRX ZEC, a different rule (H07 is a 30d-return sign filter with volatility sizing and no stop); F-0077=Donchian 20 breakout without gate on unseen assets, a different rule from the H07 trend filter and its extensions
 ---
 # Experiment card — E-h07comb-1: can H07 be improved by combining it with other rules?
 
@@ -60,4 +60,6 @@ transparency only (no variant was accepted on VAL, so TEST is not a confirmation
 **Verdict: not accepted (failure level: power).** No variant's VAL interval excludes 0: with daily data the Sharpe
 difference of two highly correlated trend strategies has a ±0.3–0.8 uncertainty even over 6 years. The direction is
 consistent for V3/V4 (higher Sharpe and smaller raw drawdown in VAL and in TEST), so they are tracked as **shadow
-variants** in the forward paper trading instead of adopted. Registry row F-0065.
+variants** in the forward paper trading instead of adopted. Registry row F-0079 (numbered F-0065 on PR #13, renumbered when split onto master).
+
+> Note 2026-10-13: the run computed TEST for all four variants, not only accepted ones, and V3/V4 were chosen as shadow variants partly on it — see `E-h07comb-1_test_use_note.md` (V3/V4 are judged only on the forward ledger).

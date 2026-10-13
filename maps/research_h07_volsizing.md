@@ -6,6 +6,7 @@
 Documents:
 - `README.md` — H07 + تحجيم بالتقلّب المتوقَّع (تعلّم آلي للمقدار لا للاتجاه)
 - `cards/E-h07vs-1.md` — Experiment card — E-h07vs-1: ML next-day volatility forecast for H07 position sizing
+- `cards/E-h07vs-1_test_use_note.md` — E-h07vs-1 — TEST-use note (added 2026-10-13, review defect D2)
 
 ### `research/h07_volsizing/01_volsizing.py` (177 lines)
 - PURPOSE: E-h07vs-1: does an ML forecast of next-day realized volatility (instead of the trailing 30-day std) improve the frozen H07 trend filter (TSMOM30 long-only BTC+ETH, weight 0.02/sigma clipped at 3)? Compares trail30 / HAR-RV / gradient boost…

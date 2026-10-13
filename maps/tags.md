@@ -2,8 +2,10 @@
 
 - %run: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, trainer/_loader … (+1)
 - +1/-1 labels: workflow/wiring_selftest
+- 0.5% sizing: hedge_recovery/sim2
 - 136 tests: edge_discovery/04_screen_mean
-- 15m: data/phase2, tools/intraday_features
+- 15m: data/phase2, strategy_discovery/intraday_macd, strategy_discovery/seasonality15m, tools/intraday_features
+- 1h: strategy_discovery/intraday_macd
 - 2018-2023: edge_discovery/16_h07_oos
 - 21-23 utc: edge_discovery/06_seasonality
 - 4 outputs: edge_discovery/29_path_envelope
@@ -28,6 +30,7 @@
 - _y_for: workflow/batches
 - a.2: edge_discovery/13_listing_stops
 - abstention: data/heads
+- accept rule: indicator_strategy/screen, indicator_strategy/test_final, strategy_discovery/oos
 - accumulator: data/pipeline
 - activations: model/diagnostics
 - add_custom_features: data/custom
@@ -42,6 +45,8 @@
 - addendum l: edge_discovery/31_wick_capture
 - addendum l.1: edge_discovery/32_breakout_stops
 - adverse selection: edge_discovery/31_wick_capture
+- adx: tools/indicator_reverse
+- adx trend: indicator_strategy/engine, tools/trade_engine
 - aggregate long/short: edge_discovery/11_more
 - aggregate oi change: edge_discovery/09_market_flush
 - aggregated metrics: evaluation/all_assets
@@ -80,7 +85,7 @@
 - asymmetry: edge_discovery/29_path_envelope
 - ath distance: data/custom
 - atomic_write_json: trainer/env
-- atr stop: edge_discovery/24_pullback_maker
+- atr stop: edge_discovery/24_pullback_maker, indicator_strategy/engine, tools/trade_engine
 - attention: model/diagnostics, model/transformer
 - attentionpool: model/readout
 - auc vs p&l: edge_discovery/18_h13_pr7_signal
@@ -99,21 +104,27 @@
 - batched predict: evaluation/predict
 - batches: workflow/batches
 - batching: cross_asset/data
+- benjamini-hochberg: strategy_discovery/grid
 - best weights: trainer/best_tracker
 - bestmodeltracker: trainer/best_tracker
 - beta: model/nig_layers
+- bh: strategy_discovery/intraday_macd
+- bh correction: strategy_discovery/rotation, strategy_discovery/seasonality15m
+- bh over the campaign: strategy_discovery/grid2
 - binance: data/binance_client
 - binance api: tools/fetch_history_csv_concurrent
 - binance vision: tools/fetch_history_colab_cell
 - binary_classification: model/heads
 - binomial test: evaluation/io_patterns
 - block bootstrap: h07_combos/01_combos, h07_volsizing/01_volsizing
+- bollinger: tools/indicator_reverse
+- bollinger breakout: indicator_strategy/engine, tools/trade_engine
 - bonferroni: h07_combos/01_combos
 - bracket: tools/bracket_eval
 - bracket table: cross_asset/report
 - break attempt: edge_discovery/17_h07_break
 - break-even hit rate: tools/bracket_eval
-- breakout: edge_discovery/05_events
+- breakout: edge_discovery/05_events, strategy_discovery/grid
 - breakout stops: edge_discovery/32_breakout_stops
 - breakout_stops_results.csv: edge_discovery/32_breakout_stops
 - btc: data/market_context, tools/h07_forward
@@ -155,6 +166,7 @@
 - candle shape spurious correlation: discovery/evaluation
 - candle_baseline_report: workflow/candle_baseline
 - candle_gbm: workflow/candle_baseline
+- candlestick sample: indicator_strategy/charts
 - capacity: workflow/capacity
 - capacity_report: workflow/__init__, workflow/capacity
 - capacity_thresholds: workflow/capacity
@@ -163,9 +175,11 @@
 - causal: model/decomposition
 - causal alignment: tools/intraday_features
 - causalmultiscaledecomp: model/decomposition
+- cci: tools/indicator_reverse
 - cells: tools/nb_cells
 - chart images: edge_discovery/25_image_cnn
 - chart patterns: edge_discovery/22_chart_rules
+- charts: indicator_strategy/charts
 - check: signal_eval/selftests
 - check_missing_values: data/diagnostics
 - checkpoint: trainer/checkpoints
@@ -213,21 +227,26 @@
 - config: data/__init__, data/runtime
 - config keys: data/defaults
 - config_fingerprint: trainer/config
+- conflict leg: hedge_recovery/sim2
+- consistency check: indicator_strategy/variants
 - consistent_sign: signal_eval/windows
 - constants: core/__init__, core/constants
 - cooldown: edge_discovery/09_market_flush, edge_discovery/events
 - copy trading: edge_discovery/19_hl_copy
 - core: core/__init__
 - cosine_warm_restarts: trainer/schedules
-- cost in r: edge_discovery/23_chart_rules_gross
-- cost stress: edge_discovery/15_h07_robust, edge_discovery/17_h07_break
+- cost in r: edge_discovery/23_chart_rules_gross, indicator_strategy/engine, strategy_discovery/intraday_macd, tools/trade_engine
+- cost stress: edge_discovery/15_h07_robust, edge_discovery/17_h07_break, strategy_discovery/robustness
+- cost x2: strategy_discovery/significance
 - cost_big cost_small: edge_discovery/03_quintiles
+- count balancing: hedge_recovery/sim2
 - crash: edge_discovery/05_events
 - cross-asset: data/market_context
 - cross-asset attention: cross_asset/__init__
 - cross-entropy: edge_discovery/28_token_decompose
 - cross-package: tools/implicit_deps
 - cross-sectional features: data/cross_sectional_features
+- cross-sectional momentum: strategy_discovery/rotation
 - cross-sectional normalization: data/cross_sectional_norm
 - cross-sectional screen: edge_discovery/01_screen
 - cross_asset: workflow/panel_bridge
@@ -237,13 +256,16 @@
 - crossassetblock: cross_asset/model
 - crypto_data_pipeline_v6: data/__init__
 - csv: tools/fetch_history_csv_concurrent
+- cumulative r: indicator_strategy/charts
 - custom features: data/custom
 - custom_feature_names: data/custom
 - daily: tools/h07_forward
+- daily breakout: indicator_strategy/variants
 - daily ic: cross_asset/report
 - daily panel: edge_discovery/tsbt
 - data bridge: tools/colab_bridge
 - data pipeline: data/__init__
+- data quality: tools/indicator_reverse
 - data rebuild: edge_discovery/data_tools/build_panel, edge_discovery/data_tools/dec, edge_discovery/data_tools/folder_index, edge_discovery/data_tools/sweep
 - data.binance.vision: tools/fetch_history_vision_colab
 - dataprocess.ipynb: signal_eval/bootstrap
@@ -253,13 +275,14 @@
 - day bootstrap: workflow/candle_baseline, workflow/verification
 - day grouping: cross_asset/data
 - day of week: edge_discovery/06_seasonality
-- day-clustered t: edge_discovery/events, tools/bracket_eval
+- day-clustered t: edge_discovery/events, strategy_discovery/significance, tools/bracket_eval
 - day_pearson: cross_asset/train
 - decay: edge_discovery/20_onchain
 - decile: signal_eval/core
 - decile long-short: edge_discovery/18_h13_pr7_signal
 - decile table: workflow/market_neutral
 - decile_spread: signal_eval/core
+- decision metric: strategy_discovery/forward
 - decision tree: evaluation/patterns
 - decode: evaluation/decode, edge_discovery/data_tools/dec, tests/test_real_price_modes
 - decode drive downloads: edge_discovery/data_tools/sweep
@@ -285,6 +308,8 @@
 - describe: data/runtime
 - descriptive: edge_discovery/28_token_decompose
 - detect_success_failure_patterns: evaluation/patterns
+- dev val: strategy_discovery/grid, strategy_discovery/grid2, strategy_discovery/intraday_macd, strategy_discovery/seasonality15m
+- dev val split: indicator_strategy/screen
 - diag_sections: model/diagnostics
 - diagnose_data_vs_configs: data/diagnostics
 - diagnose_feature_availability: data/diagnostics
@@ -301,13 +326,15 @@
 - discover_ensemble_feature_ranking: discovery/phase3_tools
 - discover_shap_interaction_pairs: discovery/phase3_tools
 - discovery: discovery/__init__, edge_discovery/01_screen, edge_discovery/03_quintiles
+- discovery grid: strategy_discovery/grid
 - discovery package: discovery/_loader
 - discovery_tracks: signal_eval/registry
 - disk backed: data/disk_backed
 - dist_hi/lo: edge_discovery/features
 - diversification: h07_combos/01_combos
 - docstring: tools/build_map
-- donchian: edge_discovery/07_trend, edge_discovery/22_chart_rules
+- donchian: edge_discovery/07_trend, edge_discovery/22_chart_rules, indicator_strategy/engine, strategy_discovery/forward, tools/trade_engine
+- donchian long_only: indicator_strategy/test_final
 - dose-response: edge_discovery/10_flush_curve
 - download history: tools/fetch_crypto_dataset, tools/fetch_history_colab_cell, tools/fetch_history_csv_concurrent, tools/fetch_history_vision_colab
 - download_notebook_from_drive: signal_eval/bootstrap
@@ -328,8 +355,22 @@
 - dsr: edge_discovery/17_h07_break
 - dummy tail: data/live
 - duplicate definitions: tools/check_deps, tools/implicit_deps
+- e-disc-001: strategy_discovery/grid
+- e-disc-002: strategy_discovery/robustness
+- e-disc-003: strategy_discovery/oos, strategy_discovery/significance
+- e-disc-004: strategy_discovery/rotation
+- e-disc-005: strategy_discovery/grid2
+- e-disc-006: strategy_discovery/significance, strategy_discovery/survivor_checks
+- e-fwd-001: strategy_discovery/forward
 - e-h07comb-1: h07_combos/01_combos
 - e-h07vs-1: h07_volsizing/01_volsizing
+- e-hedge-001: hedge_recovery/sim
+- e-hedge-002: hedge_recovery/sim2
+- e-ind-001: indicator_strategy/screen
+- e-ind-002: indicator_strategy/variants
+- e-ind-003: indicator_strategy/charts, indicator_strategy/test_final
+- e-srch-002: strategy_discovery/intraday_macd
+- e-srch-003: strategy_discovery/seasonality15m
 - early stopping: cross_asset/train, trainer/best_tracker
 - ece: evaluation/trust_calibration
 - edge vs uncertainty: evaluation/trade_selection
@@ -338,15 +379,18 @@
 - effective_sample_size: workflow/capacity
 - ema weights: cross_asset/train
 - ema20: edge_discovery/24_pullback_maker
+- ema200 pullback: indicator_strategy/engine, tools/trade_engine
 - emawindow: trainer/system
 - embargo: data/split
 - enable_ema_warmup: trainer/system
 - enabled_heads: data/heads
 - encoder: model/builder
+- end condition: strategy_discovery/forward
 - engulfing: edge_discovery/22_chart_rules
 - ensemble: h07_combos/01_combos, trainer/ensemble
 - ensemble_predict_evidential: trainer/ensemble
 - ensemble_predict_evidential_meinert: trainer/ensemble
+- entry delay: strategy_discovery/robustness
 - entry point: trainer/system
 - entry_close_reg: workflow/retarget, workflow/settings
 - entry_close_reg_of: workflow/splits
@@ -360,6 +404,7 @@
 - epoch range: edge_discovery/26_h19_generalization
 - epochcheckpointcallback: trainer/epoch_callbacks
 - epochguard: trainer/epoch_callbacks
+- equal weight: strategy_discovery/rotation
 - equity curve: evaluation/tearsheet
 - era split: edge_discovery/24_pullback_maker
 - eth: tools/h07_forward
@@ -387,8 +432,10 @@
 - exclude_features: data/features
 - exec_module: evaluation/_loader, signal_eval/_loader
 - execution lag: edge_discovery/17_h07_break
+- exit grid: strategy_discovery/robustness
 - experiment card: tools/experiment_registry
 - experiment registry: signal_eval/__init__, signal_eval/registry
+- exploratory tier: indicator_strategy/variants
 - export_signals: cross_asset/train
 - extract: tools/nb_cells
 - extract_actuals: signal_eval/integration
@@ -412,12 +459,13 @@
 - feature_order: data/runtime, signal_eval/integration
 - features: data/features, edge_discovery/01_screen, edge_discovery/features
 - fetch_data: data/binance_client
-- figures: evaluation/plots
+- figures: evaluation/plots, indicator_strategy/charts
 - fileid: edge_discovery/data_tools/folder_index
 - film: model/readout
 - filter_desired_coins: data/sources
 - filters: tools/bracket_eval
 - filters c0-c3: edge_discovery/25_image_cnn
+- final evaluation: indicator_strategy/test_final
 - fingerprint: data/checkpoints, tests/run_fixture
 - finite checks: workflow/verification
 - fit_confidence_calibrators: evaluation/trust_calibration
@@ -429,13 +477,15 @@
 - format_latest_table: evaluation/latest_table
 - forward reference: tools/implicit_deps
 - forward return: edge_discovery/lib
-- forward test: tools/h07_forward
+- forward test: strategy_discovery/forward, tools/h07_forward
 - frac_significant: signal_eval/windows
 - fractal: data/custom
 - free names: tools/implicit_deps
+- fresh bars: strategy_discovery/oos, strategy_discovery/survivor_checks
 - from __future__: data/common
 - from __future__ annotations: signal_eval/common
 - frozen dataclass: workflow/settings
+- frozen hypothesis: strategy_discovery/forward
 - full analysis: evaluation/full_analysis
 - funding: tools/fetch_history_vision_colab
 - funding features: tools/intraday_features
@@ -448,7 +498,10 @@
 - gap: workflow/generalization
 - gap report: tools/evaluate_trained_model
 - gaps report: tools/fetch_history_vision_colab
+- gate: indicator_strategy/engine, tools/trade_engine
+- gate-cli: tools/indicator_reverse
 - gatedfusion: model/readout
+- gates: strategy_discovery/grid
 - gdown: signal_eval/bootstrap
 - generalization gap: edge_discovery/26_h19_generalization
 - generalization_gap_report: workflow/generalization
@@ -468,7 +521,9 @@
 - gqa: model/transformer
 - gradient boosting: h07_volsizing/01_volsizing
 - grid: edge_discovery/21_range_fade
+- grid-hedge: hedge_recovery/sim, hedge_recovery/sim2
 - gross edge: edge_discovery/23_chart_rules_gross
+- gross versus net: strategy_discovery/intraday_macd
 - grouping test: cross_asset/selftest
 - gzip: edge_discovery/data_tools/sweep
 - h01: edge_discovery/01_screen, edge_discovery/04_screen_mean
@@ -507,17 +562,19 @@
 - head_types: model/config
 - heads: data/heads
 - health_thresholds: model/diagnostics
+- hedge recovery: hedge_recovery/sim
 - high_class: workflow/candle_baseline
 - high_low_close_order_penalty: trainer/example
 - higher_tf_mode: data/align
 - histgradientboosting: edge_discovery/29_path_envelope
 - history_1d: tools/colab_bridge
 - hl_positions: edge_discovery/19_hl_copy
+- hold length: strategy_discovery/seasonality15m
 - holdout: data/split, edge_discovery/14_holdout
 - holdout flag: edge_discovery/13_listing_stops
 - holdout_start: data/defaults
 - homoscedastic uncertainty: trainer/task_weighting
-- hour of day: edge_discovery/06_seasonality
+- hour of day: edge_discovery/06_seasonality, strategy_discovery/seasonality15m
 - hourly: data/presets
 - hourly index: edge_discovery/data_tools/build_panel
 - hourly_4h_overrides: data/presets, tests/test_no_lookahead
@@ -543,6 +600,8 @@
 - imports: data/common, evaluation/targets, model/common, signal_eval/common, tools/check_deps, trainer/env
 - in_colab: trainer/env
 - include-delisted: tools/fetch_history_csv_concurrent
+- indicator: tools/indicator_reverse
+- indicator screen: indicator_strategy/engine, indicator_strategy/screen, tools/trade_engine
 - indicator_settings: data/defaults
 - indicators: data/features, discovery/survey
 - infer_feature_columns: data/features
@@ -556,6 +615,7 @@
 - instancenorm: model/input_norm
 - integrity checks: cross_asset/data
 - interrupt: trainer/smoke_test
+- intraday: strategy_discovery/intraday_macd
 - intraday efficiency: data/funding_oi
 - intraday features: tools/intraday_features
 - intraday_features: data/phase2
@@ -568,7 +628,9 @@
 - isotonic: evaluation/trust_calibration
 - json format: tools/nb_cells
 - k-fold: trainer/kfold
+- kdj: tools/indicator_reverse
 - keep_asset_test_separate: signal_eval/integration
+- keltner squeeze: strategy_discovery/grid2
 - keras 2/3: trainer/env
 - keras layers: model/common
 - key mask: cross_asset/model
@@ -637,6 +699,7 @@
 - long-only: edge_discovery/07_trend
 - long-short: edge_discovery/03_quintiles
 - long/short ratio: tools/intraday_features
+- long_only: indicator_strategy/variants
 - long_short: workflow/market_neutral
 - look-ahead: data/align, tests/test_no_lookahead
 - loss: trainer/tasks
@@ -644,6 +707,7 @@
 - low_class: workflow/candle_baseline
 - lr schedule: cross_asset/train, trainer/schedules
 - ls_acc: edge_discovery/features
+- macd: indicator_strategy/engine, strategy_discovery/intraday_macd, tools/indicator_reverse, tools/trade_engine
 - mae: evaluation/metrics
 - magnitude: workflow/retarget
 - main notebook: workflow/__init__
@@ -670,6 +734,7 @@
 - make_training_diagnostics: workflow/diagnostics
 - maker limit: edge_discovery/24_pullback_maker
 - map: tools/build_map
+- mark-to-market drawdown: hedge_recovery/sim
 - market adjusted: edge_discovery/events
 - market breadth: data/cross_sectional_features
 - market context: data/market_context
@@ -680,10 +745,11 @@
 - market_neutral_report: workflow/market_neutral
 - masking test: cross_asset/selftest
 - matplotlib: evaluation/plots
-- max drawdown: edge_discovery/tsbt
+- max drawdown: edge_discovery/tsbt, strategy_discovery/rotation
 - max_age: tools/intraday_features
 - max_workers: data/parallel
 - mean returns: edge_discovery/04_screen_mean
+- mean reversion: strategy_discovery/grid
 - mean_ic: signal_eval/windows
 - media.githubusercontent: tools/fetch_crypto_dataset
 - memmap: data/disk_backed, data/storage, workflow/batches
@@ -728,17 +794,19 @@
 - monkeypatch: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, trainer/_loader … (+1)
 - mount_drive: data/drive
 - mount_drive_if_needed: trainer/env
-- moving average: model/decomposition
+- moving average: model/decomposition, tools/indicator_reverse
 - multi timeframe input: workflow/splits
 - multi-task: trainer/trainer
 - multi-timeframe: model/builder
 - multiclass_classification: model/heads
+- multiple testing: strategy_discovery/grid, strategy_discovery/grid2
 - multivariate: edge_discovery/02_fmb
 - mvrv: edge_discovery/20_onchain
 - mydrive: data/drive
 - n_display: evaluation/unified
 - naive baseline: evaluation/integrity
 - natr: data/cross_sectional_features
+- natr regime exit: hedge_recovery/sim
 - navigation: tools/build_map
 - negative results: tools/experiment_registry
 - new listings: edge_discovery/12_listing
@@ -757,6 +825,7 @@
 - normalization: data/normalize
 - normalization_audit: workflow/generalization
 - normalize: data/normalize
+- not_adx40: indicator_strategy/variants
 - notebook: tools/nb_cells
 - notebook definitions: discovery/axis_loader
 - notebook globals: tools/implicit_deps
@@ -774,11 +843,13 @@
 - oi features: tools/intraday_features
 - oi flush: edge_discovery/05_events, edge_discovery/09_market_flush, edge_discovery/10_flush_curve
 - on-chain: edge_discovery/20_onchain
+- one-shot: indicator_strategy/test_final
 - open interest: data/binance_client, data/funding_oi, tools/fetch_history_csv_concurrent, tools/fetch_history_vision_colab
 - opt_variables: trainer/env
 - optimizer state: trainer/smoke_test
 - orderedmeans: model/nig_layers
-- out of sample: edge_discovery/16_h07_oos, tools/h07_forward
+- out of sample: edge_discovery/16_h07_oos, strategy_discovery/forward, tools/h07_forward
+- out-of-sample: strategy_discovery/oos
 - output management: evaluation/outputs
 - output names: data/heads
 - output_keys: workflow/training_config
@@ -786,6 +857,7 @@
 - p_value: signal_eval/core
 - package entry: data/__init__, evaluation/__init__, model/__init__, signal_eval/__init__, trainer/__init__
 - package exports: cross_asset/__init__
+- pandas-ta-classic: tools/indicator_reverse
 - pandas_ta: data/features
 - pandas_ta survey: discovery/__init__
 - pandas_ta_classic: discovery/survey
@@ -818,6 +890,7 @@
 - pattern discovery: evaluation/patterns
 - pct_change: data/normalize
 - pct_change_overrides: data/presets
+- per-coin consistency: indicator_strategy/screen
 - per-coin events: edge_discovery/events
 - per-layer probe: model/layer_report
 - per-sample loss: trainer/training_diagnostics
@@ -841,6 +914,7 @@
 - pipeline_default_config: data/defaults
 - pkl.gz: data/storage
 - plan_model: workflow/run
+- plateau: strategy_discovery/robustness
 - platt: evaluation/trust_calibration
 - plot_calibration_curve: evaluation/plots
 - plot_confusion_matrix_heatmap: evaluation/plots
@@ -876,6 +950,8 @@
 - print_trade_selection: evaluation/trade_selection
 - print_verdicts: model/diagnostics
 - process_windows: data/normalize
+- profit factor: indicator_strategy/screen
+- profit target: hedge_recovery/sim2
 - projectsettings: workflow/settings
 - psar: data/custom
 - pullback: edge_discovery/24_pullback_maker
@@ -888,9 +964,10 @@
 - quarterly consistency: edge_discovery/01_screen
 - quintile spread: edge_discovery/04_screen_mean
 - quintiles: edge_discovery/03_quintiles
-- r multiple: edge_discovery/22_chart_rules
+- r multiple: edge_discovery/22_chart_rules, indicator_strategy/engine, tools/trade_engine
 - ram: data/disk_backed
 - ram cap: data/parallel
+- random control: hedge_recovery/sim, hedge_recovery/sim2
 - random-direction null: tools/bracket_eval
 - random_init_copy: model/layer_report
 - range fade: edge_discovery/21_range_fade
@@ -918,6 +995,8 @@
 - reg_scale_of: workflow/splits
 - reg_target_mode: data/windows
 - reg_target_scale: evaluation/decode, workflow/retarget
+- regime: indicator_strategy/engine, tools/trade_engine
+- region bars: indicator_strategy/charts
 - register: model/common
 - register_head_type: model/heads
 - register_hypothesis: discovery/batch_runner, signal_eval/__init__, signal_eval/registry
@@ -958,15 +1037,21 @@
 - return: tests/test_real_price_modes
 - return_close: tests/test_real_price_modes
 - returns: data/custom
+- reversal hedge: hedge_recovery/sim2
+- reverse engineering: tools/indicator_reverse
+- review correction: strategy_discovery/significance
 - revin: model/input_norm
 - ridge baseline: workflow/capacity
 - rmsnorm: model/transformer
-- robustness: edge_discovery/15_h07_robust
+- robustness: edge_discovery/15_h07_robust, strategy_discovery/robustness, strategy_discovery/survivor_checks
 - robustness_agg: discovery/survey
 - rolling_splits: data/split, signal_eval/integration
+- rotation portfolio: strategy_discovery/rotation
 - round-trip: evaluation/verify, tools/nb_cells
 - rqa: edge_discovery/27_repr_info
 - rr_trading_report: workflow/selective_eval
+- rsi: indicator_strategy/engine, tools/indicator_reverse, tools/trade_engine
+- rsi2 pullback: strategy_discovery/grid
 - rule_cpos: workflow/candle_baseline
 - run fixture: tests/run_fixture
 - run_batch_and_register: discovery/__init__, discovery/batch_runner
@@ -997,6 +1082,7 @@
 - runsettings: tests/run_fixture, tools/evaluate_trained_model, workflow/settings
 - runsettings steps: workflow/run
 - safe load: discovery/axis_loader
+- sample size guard: strategy_discovery/oos, strategy_discovery/survivor_checks
 - sample_filters: data/windows
 - sample_idx_key: trainer/training_diagnostics
 - save load: model/selftests
@@ -1015,7 +1101,7 @@
 - schema: core/__init__, core/schema
 - scratch: data/disk_backed
 - screen_disc_mean.csv: edge_discovery/04_screen_mean
-- seasonality: edge_discovery/06_seasonality
+- seasonality: edge_discovery/06_seasonality, strategy_discovery/seasonality15m
 - section 7 reports: workflow/__init__
 - seed: signal_eval/core
 - seed spread: edge_discovery/26_h19_generalization
@@ -1036,18 +1122,21 @@
 - shared folder: workflow/dataset_io
 - shared helpers: edge_discovery/lib
 - shared namespace: data/__init__, data/_loader, data/common, discovery/__init__, discovery/_loader, evaluation/__init__ … (+12)
-- sharpe: evaluation/tearsheet, edge_discovery/tsbt
+- shared tool: tools/trade_engine
+- sharpe: evaluation/tearsheet, edge_discovery/tsbt, strategy_discovery/rotation
 - sharpe table: edge_discovery/15_h07_robust
 - short new perps: edge_discovery/12_listing
 - shuffled labels: workflow/permutation_control
 - sign vs magnitude: edge_discovery/28_token_decompose
 - signal discovery lab: discovery/__init__
 - signal evaluation axis: signal_eval/__init__
+- signal families: strategy_discovery/grid
 - signal_eval package: signal_eval/_loader
 - signal_evaluation_axis: discovery/axis_loader
 - signal_significance_report: evaluation/tearsheet
 - signals file: cross_asset/report
 - signatures: tools/build_map
+- significance: strategy_discovery/significance
 - simulate_equity_curve: evaluation/tearsheet
 - simulate_rr_trades: workflow/selective_eval
 - single source: core/__init__
@@ -1078,6 +1167,7 @@
 - split_data: data/__init__, data/split
 - split_dates: data/defaults, data/split
 - spot: tools/fetch_crypto_dataset
+- squeeze breakout: strategy_discovery/grid
 - stablecoin: edge_discovery/20_onchain
 - stage-2 logistic: edge_discovery/30_envelope_direction
 - state_entries: trainer/checkpoints
@@ -1093,9 +1183,12 @@
 - summarize: cross_asset/report
 - summarize_dataset: data/diagnostics
 - summarize_verification: evaluation/all_assets
-- supertrend: data/custom
+- supertrend: data/custom, strategy_discovery/grid2
 - survey: discovery/survey
 - survivor: edge_discovery/07_trend
+- survivor check: strategy_discovery/robustness
+- survivor checks: strategy_discovery/survivor_checks
+- survivor test: strategy_discovery/oos
 - sweep: edge_discovery/22_chart_rules, edge_discovery/data_tools/sweep
 - swiglu: model/transformer
 - symbols.txt: tools/fetch_history_vision_colab
@@ -1107,6 +1200,7 @@
 - synthetic dataset: tests/run_fixture
 - sys.path: tools/check_deps
 - t-stat: edge_discovery/04_screen_mean, edge_discovery/lib
+- t-statistic: indicator_strategy/screen
 - t_concat_splits_*: signal_eval/selftests
 - t_decile_*: signal_eval/selftests
 - t_evaluate_windows_*: signal_eval/selftests
@@ -1136,6 +1230,7 @@
 - tempfile: signal_eval/registry_selftests
 - template: trainer/example
 - tensorflow: model/common
+- test: indicator_strategy/test_final
 - test auc: edge_discovery/26_h19_generalization
 - test_all_assets: evaluation/all_assets
 - test_all_assets_v4: evaluation/__init__, evaluation/all_assets
@@ -1147,8 +1242,10 @@
 - tf.keras.model subclass: trainer/trainer
 - threads: data/parallel
 - tier 0: core/__init__
+- time of day: strategy_discovery/seasonality15m
 - time-series screen: edge_discovery/08_ts_screen
 - time_hour: data/custom
+- timeframe resample: indicator_strategy/engine, tools/trade_engine
 - timestamps: evaluation/latest_table
 - token language: edge_discovery/28_token_decompose
 - tokens: edge_discovery/27_repr_info, tools/build_map
@@ -1160,7 +1257,10 @@
 - torch: edge_discovery/25_image_cnn
 - tp sl: edge_discovery/29_path_envelope
 - tp_room: tools/bracket_eval
+- trade engine: tools/trade_engine
+- trade log: indicator_strategy/screen, indicator_strategy/test_final, strategy_discovery/significance
 - trade selection: evaluation/trade_selection
+- trade simulator: indicator_strategy/engine, tools/trade_engine
 - trades: tools/bracket_eval
 - train<=2021 val 2022 test 2023-26: edge_discovery/27_repr_info
 - train_labels: cross_asset/report
@@ -1177,10 +1277,12 @@
 - trainingdiagnostics: trainer/training_diagnostics
 - trainsettings: workflow/settings
 - transformerblock: model/transformer
-- trend: model/decomposition
+- trend: model/decomposition, strategy_discovery/grid
 - trend filter: tools/h07_forward
 - trend following: edge_discovery/07_trend, h07_combos/01_combos
+- trend pullback: hedge_recovery/sim
 - trend_disc_val.csv: edge_discovery/07_trend
+- trimmed mean: strategy_discovery/significance
 - true_key: workflow/training_config
 - trunk_drop: cross_asset/model
 - ts_col: core/__init__, core/schema, data/windows
@@ -1189,7 +1291,7 @@
 - tsmom30: edge_discovery/16_h07_oos, h07_volsizing/01_volsizing, tools/h07_forward
 - tt_pos: edge_discovery/features
 - turnover: edge_discovery/03_quintiles, edge_discovery/18_h13_pr7_signal
-- turnover cost: edge_discovery/tsbt
+- turnover cost: edge_discovery/tsbt, strategy_discovery/rotation
 - typevar: data/common
 - typing: data/common, signal_eval/common
 - uncertainty: evaluation/legacy_uncertainty
@@ -1199,6 +1301,7 @@
 - unit tests: cross_asset/selftest
 - universe: h07_combos/01_combos
 - universe mask: edge_discovery/lib
+- unseen assets: strategy_discovery/oos, strategy_discovery/significance, strategy_discovery/survivor_checks
 - untouched coins: edge_discovery/24_pullback_maker
 - up_share: cross_asset/report
 - update_config: data/runtime
@@ -1210,10 +1313,12 @@
 - valid_train_modes: trainer/config
 - validate_head_config: data/heads
 - variance ratio: data/custom
+- variant arms: indicator_strategy/variants
 - variant b (no attention): cross_asset/model
 - variants a/b/a_ic/b_ic/a_ic_k: cross_asset/experiment
 - verification table: workflow/verification
 - verify_decoding: evaluation/verify
+- visual inspection: indicator_strategy/charts
 - vol clustering: edge_discovery/28_token_decompose
 - vol targeting: edge_discovery/07_trend, edge_discovery/16_h07_oos, h07_volsizing/01_volsizing
 - vol-matched drawdown: h07_combos/01_combos
@@ -1223,12 +1328,15 @@
 - volatility forecast: h07_volsizing/01_volsizing
 - volnorm: workflow/retarget
 - volume concentration: data/funding_oi
+- volume confirmation: strategy_discovery/grid2
+- volume donchian: strategy_discovery/survivor_checks
 - vwap: data/funding_oi
 - walk-forward: trainer/kfold
 - warm_start: trainer/checkpoints, trainer/smoke_test
 - wavelet: edge_discovery/27_repr_info
 - weights: tools/evaluate_trained_model
 - wick capture: edge_discovery/31_wick_capture
+- williams: tools/indicator_reverse
 - wilson_ci: evaluation/targets
 - wilson_interval: workflow/selective_eval
 - win rate: edge_discovery/events
@@ -1243,6 +1351,8 @@
 - workflow package: workflow/_loader
 - workflow.run steps: tools/evaluate_trained_model
 - xla: trainer/perf
+- year stability: strategy_discovery/robustness
+- z-score: strategy_discovery/forward
 - zero cost: edge_discovery/23_chart_rules_gross
 - zones: tools/check_deps
 - zscore: data/cross_sectional_norm

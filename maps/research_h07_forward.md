@@ -5,6 +5,7 @@
 
 Documents:
 - `README.md` — H07 — تداول ورقي على بيانات لم يرها أحد (من 2026-10-01)
+- `cards/E-h07fwd-1.md` — Experiment card — E-h07fwd-1: forward paper trading of the frozen H07 rule and its two shadow varia…
 
 Data / other files (counts only):
 - `.`: csv×3 — 3 KB

@@ -5,7 +5,7 @@ timeframe: 1d
 target: magnitude
 model_class: gbm; regression
 reopens:
-not_covered_by:
+not_covered_by: F-0078=this card is the experiment that produced F-0078 (its own result, not a different scope)
 ---
 # Experiment card — E-h07vs-1: ML next-day volatility forecast for H07 position sizing
 
@@ -69,7 +69,7 @@ return rises with volatility: with gbm sizing, the lowest-weight (highest predic
 (+0.049 vs −0.006 for gbm). Accurate next-day vol targeting cuts exposure on exactly the days that pay.
 
 **Verdict: rejected for sizing** (failure level: economics — the forecast skill is real, its P&L use is negative).
-Registry row F-0064. Side result: H07 itself re-confirmed on executable Binance spot closes (VAL Sharpe 0.91 vs 0.10 for
+Registry row F-0078 (numbered F-0064 on PR #13, renumbered when split onto master). Side result: H07 itself re-confirmed on executable Binance spot closes (VAL Sharpe 0.91 vs 0.10 for
 buy & hold; TEST 0.87 vs 0.57, max drawdown −31% vs −60%).
 
 **Robustness (owner's request, 2026-10-05): realized variance from 1h and 4h bars instead of 5m** (`RV_BAR=1h|4h`,
@@ -84,3 +84,5 @@ buy & hold; TEST 0.87 vs 0.57, max drawdown −31% vs −60%).
 Coarser bars make the forecast worse (with 4h bars, 6 per day, it no longer beats the trailing 30-day std), but the
 sizing result does not depend on the bar size: in every case the trailing 30-day std gives the best Sharpe and the
 smallest drawdown.
+
+> Note 2026-10-13: TEST was read in three runs (5m, 1h, 4h realized-variance bars), not once — see `E-h07vs-1_test_use_note.md`.
