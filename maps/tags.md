@@ -55,6 +55,7 @@
 - breakout: edge_discovery/05_events, strategy_discovery/grid
 - breakout stops: edge_discovery/32_breakout_stops
 - breakout_stops_results.csv: edge_discovery/32_breakout_stops
+- btc: tools/h07_forward
 - build: edge_discovery/features
 - build panel: edge_discovery/data_tools/build_panel
 - build_panel_model: cross_asset/model
@@ -94,6 +95,7 @@
 - crossassetblock: cross_asset/model
 - csv: tools/fetch_history_csv_concurrent
 - cumulative r: indicator_strategy/charts
+- daily: tools/h07_forward
 - daily breakout: indicator_strategy/variants
 - daily ic: cross_asset/report
 - daily panel: edge_discovery/tsbt
@@ -164,6 +166,7 @@
 - epoch range: edge_discovery/26_h19_generalization
 - equal weight: strategy_discovery/rotation
 - era split: edge_discovery/24_pullback_maker
+- eth: tools/h07_forward
 - eval cli: tools/evaluate_trained_model
 - evaluate trained model: tools/evaluate_trained_model
 - evaluate_k_coins: cross_asset/experiment
@@ -193,7 +196,7 @@
 - fix-gaps: tools/fetch_history_vision_colab
 - flush curve: edge_discovery/10_flush_curve
 - forward return: edge_discovery/lib
-- forward test: strategy_discovery/forward
+- forward test: strategy_discovery/forward, tools/h07_forward
 - fresh bars: strategy_discovery/oos, strategy_discovery/survivor_checks
 - frozen hypothesis: strategy_discovery/forward
 - funding: tools/fetch_history_vision_colab
@@ -220,7 +223,7 @@
 - h04: edge_discovery/05_events
 - h05: edge_discovery/09_market_flush, edge_discovery/10_flush_curve
 - h06: edge_discovery/06_seasonality, edge_discovery/14_holdout
-- h07: edge_discovery/07_trend, edge_discovery/14_holdout, edge_discovery/15_h07_robust
+- h07: edge_discovery/07_trend, edge_discovery/14_holdout, edge_discovery/15_h07_robust, tools/h07_forward
 - h07-oos: edge_discovery/16_h07_oos, edge_discovery/17_h07_break
 - h08: edge_discovery/08_ts_screen
 - h09: edge_discovery/11_more
@@ -277,7 +280,7 @@
 - klines: tools/fetch_history_csv_concurrent, tools/fetch_history_vision_colab
 - lead-lag: edge_discovery/11_more
 - leakage: tests/test_no_lookahead
-- ledger: tools/experiment_registry
+- ledger: tools/experiment_registry, tools/h07_forward
 - lfs: tools/fetch_crypto_dataset
 - limit orders: edge_discovery/21_range_fade, edge_discovery/31_wick_capture
 - lint: tools/check_deps
@@ -338,7 +341,7 @@
 - on-chain: edge_discovery/20_onchain
 - one-shot: indicator_strategy/test_final
 - open interest: tools/fetch_history_csv_concurrent, tools/fetch_history_vision_colab
-- out of sample: edge_discovery/16_h07_oos, strategy_discovery/forward
+- out of sample: edge_discovery/16_h07_oos, strategy_discovery/forward, tools/h07_forward
 - out-of-sample: strategy_discovery/oos
 - package exports: cross_asset/__init__
 - pandas-ta-classic: tools/indicator_reverse
@@ -353,6 +356,7 @@
 - panelmodel: cross_asset/model
 - panelsplit: cross_asset/__init__, cross_asset/data
 - paneltrainer: cross_asset/train
+- paper trading: tools/h07_forward
 - parquet: edge_discovery/data_tools/build_panel
 - partial ic: cross_asset/report
 - path envelope: edge_discovery/29_path_envelope
@@ -496,6 +500,7 @@
 - train<=2021 val 2022 test 2023-26: edge_discovery/27_repr_info
 - train_labels: cross_asset/report
 - trend: strategy_discovery/grid
+- trend filter: tools/h07_forward
 - trend following: edge_discovery/07_trend
 - trend pullback: hedge_recovery/sim
 - trend_disc_val.csv: edge_discovery/07_trend
@@ -503,7 +508,7 @@
 - trunk_drop: cross_asset/model
 - ts_screen_disc.csv: edge_discovery/08_ts_screen
 - tsmom: edge_discovery/07_trend
-- tsmom30: edge_discovery/16_h07_oos
+- tsmom30: edge_discovery/16_h07_oos, tools/h07_forward
 - tt_pos: edge_discovery/features
 - turnover: edge_discovery/03_quintiles, edge_discovery/18_h13_pr7_signal
 - turnover cost: edge_discovery/tsbt, strategy_discovery/rotation
