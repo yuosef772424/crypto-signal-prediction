@@ -339,6 +339,20 @@ class InputValidationTests(Base):
         with self.assertRaises(ValueError):
             self.build()
 
+    def test_folder_the_manifest_says_was_not_mounted_is_recorded_not_fatal(self):
+        write_manifest(self.mdir, fixture_rows(), folders=(), extra={"extra_folders_missing": ["history_1d"],
+                                                                      "warnings": ["extra folder history_1d: not mounted"]})
+        d = self.build()
+        self.assertEqual([u["rule"] for u in d["unresolved_rules"]], ["unresolved:coinmetrics-44", "folder:history_1d"])
+        self.assertIn("not mounted", d["unresolved_rules"][1]["note"])
+        self.assertTrue(any("history_1d" in w for w in d["warnings"]))
+        self.assertNotIn("FOLDERUSDT", d["touch_classes"])                       # nobody is marked B by the missing folder
+        self.assertEqual(d["levels"]["FOLDERUSDT"], "A")
+        # a folder that is neither listed nor declared missing is still fatal
+        write_manifest(self.mdir, fixture_rows(), folders=())
+        with self.assertRaises(ValueError):
+            self.build()
+
     def test_bad_touched_files_are_refused(self):
         bad = [[["X", "weird", "", "", "", "s", ""]],                              # unknown kind
                [["folder:", "rule", "daily", "", "", "s", ""]],                    # bad rule

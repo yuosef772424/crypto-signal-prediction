@@ -120,8 +120,33 @@ class ConfigTests(Base):
     def test_missing_folder_fails_loudly(self):
         with self.assertRaises(FileNotFoundError):
             self.run_manifest({"history_15m_dir": os.path.join(self.tmp, "nope")})
-        with self.assertRaises(FileNotFoundError):
-            self.run_manifest({"history_15m_dir": self.h15, "extra_folders": {"history_1d": os.path.join(self.tmp, "nope")}})
+
+    def test_missing_extra_folder_is_a_warning_not_a_crash(self):
+        gone = os.path.join(self.tmp, "not_mounted")
+        m = self.run_manifest({"history_15m_dir": self.h15, "extra_folders": {"history_1d": gone, "other": self.h1d}})
+        self.assertTrue(m["complete"])
+        self.assertEqual(m["extra_folders_missing"], ["history_1d"])
+        self.assertEqual(len(m["warnings"]), 1)
+        self.assertIn("history_1d", m["warnings"][0])
+        self.assertIn(gone, m["warnings"][0])
+        on_disk = json.load(open(os.path.join(self.out, "manifest.json")))
+        self.assertEqual(on_disk["warnings"], m["warnings"])
+        rows = list(csv.DictReader(open(os.path.join(self.out, "folders_manifest.csv"), encoding="utf-8")))
+        self.assertEqual({r["folder"] for r in rows}, {"other"})                        # the folder that exists is still listed
+        self.assertIn("folders_manifest.csv", m["outputs"])                               # always written
+        self.assertEqual(m["rows"]["folders"], {"other": 2})
+        self.assertEqual(set(dm.parse_bundle(dm.bundle_text(self.out))["sections"]), set(m["outputs"]))
+
+    def test_extra_folder_without_data_files_is_also_a_warning(self):
+        empty = os.path.join(self.tmp, "empty_1d")
+        os.makedirs(empty)
+        m = self.run_manifest({"history_15m_dir": self.h15, "extra_folders": {"history_1d": empty}})
+        self.assertEqual(m["extra_folders_missing"], ["history_1d"])
+        self.assertTrue(os.path.exists(os.path.join(self.out, "folders_manifest.csv")))
+
+    def test_a_clean_run_has_no_warnings(self):
+        m = self.run_manifest()
+        self.assertEqual((m["warnings"], m["extra_folders_missing"]), ([], []))
 
     def test_folder_without_data_files_raises(self):
         empty = os.path.join(self.tmp, "empty")

@@ -32,7 +32,7 @@
   - `class EntryFeatureTableTests(unittest.TestCase)` L72
     - (1 methods)
 
-### `tests/test_build_lock.py` (525 lines)
+### `tests/test_build_lock.py` (539 lines)
 - PURPOSE: tools/build_lock.py: pasted manifest + touched.csv + salt -> holdout.json + holdout.sha256, deterministically. (from docstring)
 - DEPENDS: tools
 - API:
@@ -49,14 +49,14 @@
   - `class BucketPredicateTests(unittest.TestCase)` L230
     - (8 methods)
   - `class InputValidationTests(Base)` L303
-    - (8 methods)
-  - `class OutputTests(Base)` L370
+    - (9 methods)
+  - `class OutputTests(Base)` L384
     - (3 methods)
-  - `class IngestTests(unittest.TestCase)` L398
+  - `class IngestTests(unittest.TestCase)` L412
     - (8 methods)
-  - `class SaltTests(unittest.TestCase)` L465
+  - `class SaltTests(unittest.TestCase)` L479
     - (5 methods)
-  - `class CliTests(Base)` L507
+  - `class CliTests(Base)` L521
     - (2 methods)
 
 ### `tests/test_colab_runner.py` (677 lines)
@@ -156,7 +156,7 @@
   - `class AuditRound1Tests(unittest.TestCase)` L400
     - (4 methods)
 
-### `tests/test_data_manifest.py` (295 lines)
+### `tests/test_data_manifest.py` (320 lines)
 - PURPOSE: tools/data_manifest.py: the Colab manifest of Drive history_15m (symbol, first/last bar, rows, file sha256) follows the run (from docstring)
 - DEPENDS: tools
 - API:
@@ -167,14 +167,14 @@
   - `class FileRowTests(Base)` L66
     - (4 methods)
   - `class ConfigTests(Base)` L99
-    - (6 methods)
-  - `class RunTests(Base)` L133
+    - (9 methods)
+  - `class RunTests(Base)` L158
     - (10 methods)
-  - `class BundleTests(Base)` L217
+  - `class BundleTests(Base)` L242
     - (4 methods)
-  - `class CliTests(Base)` L250
+  - `class CliTests(Base)` L275
     - (3 methods)
-  - `class ColabCellTests(unittest.TestCase)` L277
+  - `class ColabCellTests(unittest.TestCase)` L302
     - (1 methods)
 
 ### `tests/test_disk_backed.py` (326 lines)
