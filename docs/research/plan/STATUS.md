@@ -49,4 +49,4 @@ closes #14/#6 after telling the owner), then the R0 kickoff.
 
 ## Known issues
 - Build branch name (`<BUILD_BRANCH>`): unknown until the build session's first report.
-- Baseline checks on master: build_map --check OK, check_deps 0 errors, registry validate OK (63 rows); pytest: see the plan PR.
+- Baseline checks on master: build_map --check OK, check_deps 0 errors, registry validate OK (63 rows); pytest 190 passed, 0 failed (12 min, CPU).
