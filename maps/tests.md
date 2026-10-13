@@ -100,7 +100,7 @@
   - `def test_smoke_script_is_deterministic(tmp_path)` L649
   - `def test_check_job_cli(tmp_path, capsys)` L662
 
-### `tests/test_colab_runner_notebook.py` (151 lines)
+### `tests/test_colab_runner_notebook.py` (297 lines)
 - PURPOSE: colab_runner.ipynb stays thin and works: structure checks, and its code cells executed offline (fake google.colab, a fake (from docstring)
 - DEPENDS: tools
 - API:
@@ -108,9 +108,19 @@
   - `def code_cells()` L25
   - `def test_notebook_is_small_and_constants_live_in_the_first_code_cell_only()` L29
   - `def test_notebook_never_prints_or_embeds_the_token()` L42
-  - `class FakeResponse(io.BytesIO)` L49
-  - `def test_cells_run_end_to_end_against_a_fake_github(tmp_path, monkeypatch)` L57
-  - `def test_bootstrap_cell_refuses_a_bad_repo_ref_before_downloading_code(tmp_path, monkeypatch, bad_ref)` L129
+  - `class FakeResponse(io.BytesIO)` L50
+  - `def test_cells_run_end_to_end_against_a_fake_github(tmp_path, monkeypatch)` L58
+  - `def test_bootstrap_cell_refuses_a_bad_repo_ref_before_downloading_code(tmp_path, monkeypatch, bad_ref)` L133
+  - `class Api` L165
+    - (1 methods)
+  - `def run_bootstrap(tmp_path, monkeypatch, api, prompts, token_file)` L194
+  - `def test_default_token_path_is_the_crypto_secrets_folder()` L216
+  - `def test_first_run_asks_validates_then_writes_the_file(tmp_path, monkeypatch, capsys, existing)` L226
+  - `def test_valid_file_is_read_silently(tmp_path, monkeypatch, capsys)` L244
+  - `def test_bad_token_in_file_says_401_and_asks_again_and_overwrites_only_after_validation(tmp_path, monkeypatch, capsys)` L255
+  - `def test_a_token_without_access_to_the_repo_is_treated_like_a_bad_token(tmp_path, monkeypatch, capsys)` L276
+  - `def test_github_down_is_an_error_not_a_prompt_loop(tmp_path, monkeypatch)` L285
+  - `def test_token_file_with_several_lines_or_spaces_is_not_used_as_is(tmp_path, monkeypatch)` L293
 
 ### `tests/test_cross_asset.py` (482 lines)
 - PURPOSE: اختبارات نموذج اللوحة عبر العملات (سريعة، بيانات تركيبية، بلا Drive): python -m unittest tests.test_cross_asset -v (from docstring)

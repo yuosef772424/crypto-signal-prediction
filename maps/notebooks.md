@@ -82,7 +82,7 @@
 - title: Colab runner: one click per experiment
 - cells: 10 (5 code)
 - DEPENDS: tools
-- headings: Colab runner: one click per experiment · 1. Mount Drive, read the token, fetch the job and the runner code · 2. Validate the job, refuse finished jobs, check out the pinned commit, install · 3. Run the entry script (wall-clock guard, log streamed to a file) · 4. Validate outputs, push to `colab-results`, copy to Drive, print the status
+- headings: Colab runner: one click per experiment · 1. Mount Drive, get the token, fetch the job and the runner code · 2. Validate the job, refuse finished jobs, check out the pinned commit, install · 3. Run the entry script (wall-clock guard, log streamed to a file) · 4. Validate outputs, push to `colab-results`, copy to Drive, print the status
 
 ## `crypto_data_pipeline_v6.ipynb`
 - title: خط أنابيب تجهيز بيانات العملات الرقمية — دفتر موحّد (تاريخي + حيّ)
