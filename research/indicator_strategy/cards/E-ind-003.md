@@ -51,7 +51,7 @@ Run: `research/indicator_strategy/test_final.py`, executed ONCE on TEST (2024-01
 Rule: mean net R > 0 (+0.290 ✓), pf > 1.0 (1.66 ✓), at least 5 of 7 coins positive (6 ✓), t ≥ 2.0 (3.47 ✓). **Verdict: ACCEPTED as a candidate for out-of-time confirmation.**
 
 Where it succeeds and fails (TEST, chosen arm; figures in `figures/`):
-- By year: 2024 +0.41R (n=96), 2025 +0.26R (n=57), 2026 +0.10R (n=52). The edge is shrinking, and the last year is weakest.
+- By year: 2024 +0.41R (n=96), 2025 +0.26R (n=57), 2026 +0.10R (n=52). The edge is shrinking, and the last year is weakest. [Marker: this reading was retracted, see `cards/E-ind-003_correction.md`.]
 - By coin: DOGE +0.62R, XRP +0.45R, BNB +0.39R, BTC +0.26R, SOL +0.20R, ADA +0.13R, **ETH −0.05R**.
 - By ADX: below 20 +0.56R (n=70); 20–25 +0.15R; 25–30 +0.41R; 30–40 +0.29R; **above 40 −0.16R (n=35)**.
 - By trend: close above EMA200 +0.32R (n=155); below +0.19R (n=50).

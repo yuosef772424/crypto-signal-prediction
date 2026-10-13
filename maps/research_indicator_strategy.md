@@ -8,6 +8,7 @@ Documents:
 - `cards/E-ind-001.md` — Experiment card — E-ind-001: indicator screen on 4h and 1d, fixed ATR stop, target and time exit
 - `cards/E-ind-002.md` — Experiment card — E-ind-002: remove conditions from the daily breakouts (short side, blow-off ADX)
 - `cards/E-ind-003.md` — Experiment card — E-ind-003: final test of one configuration on TEST (run ONCE)
+- `cards/E-ind-003_correction.md` — E-ind-003 correction: the year-by-year "shrinking edge" reading is retracted
 
 ### `research/indicator_strategy/charts.py` (130 lines)
 - PURPOSE: Renders the analysis of the chosen configuration as images so that success and failure regions can be read visually: cumulative net R over DEV, VAL and TEST; mean net R by year, ADX bucket, trend and volatility quartile; and candlestick sa…
