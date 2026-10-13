@@ -15,7 +15,7 @@
   - `def day_clustered_t(x: np.ndarray, ts) -> float` L115
   - `def evaluate_filters(df: pd.DataFrame, filters: Dict[str, Optional[str]], bracket=0.01, direction=None, cost_rt: float=COST_RT, null_reps: int=200, seed: int=0, min_trades: int=30) -> pd.DataFrame` L124
 
-### `tools/build_lock.py` (381 lines)
+### `tools/build_lock.py` (391 lines)
 - PURPOSE: Builds the sealed-holdout lock of phase R0, deterministically: the pasted Colab manifest of history_15m (tools/data_manifest.py bundle) + the touched-data ledger (docs/research/plan/lock/touched.csv) + the salt -> docs/research/plan/lock/h…
 - TAGS: d-009, two-level holdout, lock, sealed holdout, salt, eligibility, touched ledger, buckets, deterministic build, manifest ingest, r0
 - PITFALLS: Level X (any intraday touch) is ineligible; level B (daily-only or non-price touches) is eligible and recorded; `unresolved:<name>` rules are recorded and touch nobody. `ingest --from-dir` takes a run folder (what a runner pushes), `--bundle` the pasted text. The salt must be the commit that first added lock/README.md (checked with git unless --no-repo-check, which is for fixtures only). A pull r…
@@ -24,17 +24,17 @@
   - `def rank_hash(salt, symbol)` L63
   - `def load_manifest(mdir)` L80
   - `def parse_touched(path)` L115
-  - `def resolve_touched(touched, rows, folders)` L151
-  - `def reasons_for(symbol, row, bases, touch)` L181
-  - `def bucket_accepts(bucket, symbol, derivs_touched)` L204
-  - `def assign_buckets(sealed_order, derivs_touched)` L209
-  - `def verify_salt(salt, repo_root=ROOT)` L222
-  - `def build(manifest_dir, touched_path, salt, *, repo_check=True, repo_root=ROOT)` L233
-  - `def dumps(d)` L289
-  - `def write_lock(d, out_dir)` L293
-  - `def ingest(text, dest_dir)` L306
-  - `def ingest_dir(src_dir, dest_dir)` L320
-  - `def main(argv=None)` L349
+  - `def resolve_touched(touched, rows, folders, missing=())` L151
+  - `def reasons_for(symbol, row, bases, touch)` L183
+  - `def bucket_accepts(bucket, symbol, derivs_touched)` L206
+  - `def assign_buckets(sealed_order, derivs_touched)` L211
+  - `def verify_salt(salt, repo_root=ROOT)` L224
+  - `def build(manifest_dir, touched_path, salt, *, repo_check=True, repo_root=ROOT)` L235
+  - `def dumps(d)` L299
+  - `def write_lock(d, out_dir)` L303
+  - `def ingest(text, dest_dir)` L316
+  - `def ingest_dir(src_dir, dest_dir)` L330
+  - `def main(argv=None)` L359
 
 ### `tools/build_map.py` (556 lines)
 - PURPOSE: Generate the layered repo map from the code with `ast` (modules are never imported): MAP.md (L0, small) and maps/<zone>.md (L1: cards, public signatures with line numbers, DEPENDS); enforces the card ratchet.
@@ -168,7 +168,7 @@
   - `def sequence(rows, seed)` L39
   - `def main(argv=None)` L46
 
-### `tools/data_manifest.py` (277 lines)
+### `tools/data_manifest.py` (285 lines)
 - PURPOSE: Colab script that lists the Drive folder history_15m (one row per <SYMBOL>.csv.gz: first/last bar open time, data rows, bytes, file sha256) and the file names of the other Drive folders named in its config (for the folder rules of the touc…
 - TAGS: data manifest, history_15m, drive listing, file sha256, paste bundle, colab, lock, r0, input fingerprint
 - PITFALLS: Everything is written as files in --out (manifest.json lists the sha256 of every output; a listing larger than one file is split into history_15m_manifest.partNN.csv files, each under the 300 KB contract limit), so a runner can push the folder as is; the stdout bundle is the same content for copy-and-paste. It reads only headers, first and last bars and counts rows (no prices are analysed). An un…
@@ -177,9 +177,9 @@
   - `def file_row(path, suffix)` L84
   - `def output_names(names, base)` L139
   - `def run(cfg, out_dir, max_minutes=50, clock=time.time, max_file_bytes=DEFAULT_FILE_BYTES)` L173
-  - `def bundle_text(out_dir)` L221
-  - `def parse_bundle(text)` L232
-  - `def main(argv=None)` L264
+  - `def bundle_text(out_dir)` L227
+  - `def parse_bundle(text)` L238
+  - `def main(argv=None)` L270
 
 ### `tools/data_manifest_colab_cell.py` (61 lines)
 - PURPOSE: Single paste-and-run Colab cell for phase R0: mount Drive, fetch tools/data_manifest.py (GitHub token or Drive copy), run it over history_15m, print the paste bundle and also save it to Drive as lock_manifest_bundle.txt.

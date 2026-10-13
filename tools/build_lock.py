@@ -148,7 +148,7 @@ def parse_touched(path):
     return out
 
 
-def resolve_touched(touched, rows, folders):
+def resolve_touched(touched, rows, folders, missing=()):
     """{manifest symbol: set of (touch_class, source)} from symbol rows and rules (a rule counts its whole universe).
     `unresolved:` rules touch nobody (they are recorded by the caller); time_seal_read rows are not touches."""
     hit = {}
@@ -168,6 +168,8 @@ def resolve_touched(touched, rows, folders):
                         add(s_, r)
             elif key.startswith("folder:"):
                 name = key.split(":", 1)[1]
+                if name in missing:                       # the manifest says this folder was not mounted: recorded by the caller
+                    continue
                 if not folders.get(name):
                     raise ValueError(f"rule {key}: folder {name!r} is missing or empty in the manifest bundle "
                                      f"(a rule is never skipped; add the folder to data_manifest extra_folders)")
@@ -241,9 +243,14 @@ def build(manifest_dir, touched_path, salt, *, repo_check=True, repo_root=ROOT):
     hashes["touched_csv_sha256"] = _sha256_file(touched_path)
     hashes["n_touched_rows"] = len(touched)
     bases = {_base(x) for x in rows}
-    touch = resolve_touched(touched, rows, folders)
+    missing = set(manifest.get("extra_folders_missing", []))
+    touch = resolve_touched(touched, rows, folders, missing)
     unresolved = [{"rule": r["symbol_or_rule"], "source": r["source"], "touch_class": r["touch_class"], "note": r["note"]}
                   for r in touched if r["kind"] == "rule" and r["symbol_or_rule"].startswith("unresolved:")]
+    unmounted = [r for r in touched if r["kind"] == "rule" and r["symbol_or_rule"].startswith("folder:")
+                 and r["symbol_or_rule"].split(":", 1)[1] in missing]
+    unresolved += [{"rule": r["symbol_or_rule"], "source": r["source"], "touch_class": r["touch_class"],
+                    "note": "folder not mounted (or empty) when the manifest was made; its coins are not marked level B"} for r in unmounted]
     ineligible = {}
     for sym in sorted(rows):
         why = reasons_for(sym, rows[sym], bases, touch)
@@ -262,6 +269,9 @@ def build(manifest_dir, touched_path, salt, *, repo_check=True, repo_root=ROOT):
                 for b, v in buckets.items() if len(v) < WARN_BUCKET_MIN]
     if k < WARN_SEALED_MIN:
         warnings.append(f"total sealed symbols {k} < {WARN_SEALED_MIN}: the R5 reopen condition (30 sealed coins) cannot be met")
+    for r in unmounted:
+        warnings.append(f"rule {r['symbol_or_rule']}: the folder was not mounted when the manifest was made, so its coins show as "
+                        f"level A instead of B (eligibility is not affected under D-009)")
     if not buckets["H3"]:
         warnings.append("bucket H3 (R2 funding/basis) is empty: every sealed coin has a funding/OI/metrics touch or none was sealed")
     return {

@@ -175,19 +175,25 @@ def run(cfg, out_dir, max_minutes=50, clock=time.time, max_file_bytes=DEFAULT_FI
     if max_file_bytes > FILE_LIMIT:
         raise ValueError(f"max_file_bytes {max_file_bytes} is over the {FILE_LIMIT} byte limit of the run contract")
     cfg = load_config(cfg)
-    for label, d in [("history_15m_dir", cfg["history_15m_dir"])] + [(f"extra_folders[{k}]", v) for k, v in cfg["extra_folders"].items()]:
-        if not os.path.isdir(d):
-            raise FileNotFoundError(f"{label}: {d} is not a directory")
+    if not os.path.isdir(cfg["history_15m_dir"]):
+        raise FileNotFoundError(f"history_15m_dir: {cfg['history_15m_dir']} is not a directory")
     suffix = cfg["suffix"]
     names = sorted(os.listdir(cfg["history_15m_dir"]))
     files = [n for n in names if n.endswith(suffix)]
     ignored = [n for n in names if not n.endswith(suffix)]
     if not files:
         raise ValueError(f"{cfg['history_15m_dir']}: no *{suffix} files")
-    folders = {k: sorted(n for n in os.listdir(v) if n.endswith(DATA_EXTS)) for k, v in cfg["extra_folders"].items()}
-    for k, v in folders.items():
-        if not v:
-            raise ValueError(f"extra folder {k}: no data files ({'/'.join(DATA_EXTS)})")
+    folders, warnings = {}, []
+    for k, v in cfg["extra_folders"].items():             # a folder shared from another account may not be mounted: warn, never crash
+        if not os.path.isdir(v):
+            warnings.append(f"extra folder {k}: {v} is not a directory (not mounted?); its coins are not listed")
+            continue
+        names_k = sorted(n for n in os.listdir(v) if n.endswith(DATA_EXTS))
+        if not names_k:
+            warnings.append(f"extra folder {k}: {v} holds no data files ({'/'.join(DATA_EXTS)}); its coins are not listed")
+            continue
+        folders[k] = names_k
+    missing = sorted(k for k in cfg["extra_folders"] if k not in folders)
     fp = hashlib.sha256()
     for n in files:
         fp.update(f"history_15m\t{n}\t{os.path.getsize(os.path.join(cfg['history_15m_dir'], n))}\n".encode())
@@ -205,12 +211,12 @@ def run(cfg, out_dir, max_minutes=50, clock=time.time, max_file_bytes=DEFAULT_FI
             break
         rows.append(file_row(os.path.join(cfg["history_15m_dir"], n), suffix))
     written = _write_parts(out_dir, OUT_CSV, CSV_COLUMNS, rows, max_file_bytes)
-    written += _write_parts(out_dir, OUT_FOLDERS, FOLDER_COLUMNS, [[k, _stem(n)] for k in cfg["extra_folders"] for n in folders[k]],
+    written += _write_parts(out_dir, OUT_FOLDERS, FOLDER_COLUMNS, [[k, _stem(n)] for k in cfg["extra_folders"] if k in folders for n in folders[k]],
                             max_file_bytes)
     outputs = {n: _sha256(os.path.join(out_dir, n)) for n in written}
     manifest = {"schema": SCHEMA, "git_sha": _git_sha(), "config": cfg, "input_fingerprint": fp.hexdigest(),
                 "complete": complete, "max_minutes": max_minutes, "n_files_total": len(files), "n_files_listed": len(rows),
-                "ignored_files": ignored, "n_bars_listed": sum(r["rows"] for r in rows),
+                "ignored_files": ignored, "warnings": warnings, "extra_folders_missing": missing, "n_bars_listed": sum(r["rows"] for r in rows),
                 "rows": {"history_15m_files": len(rows), "folders": {k: len(v) for k, v in folders.items()}},
                 "n_configurations_evaluated": 0, "runtime_seconds": round(clock() - t0, 3), "outputs": outputs}
     with open(os.path.join(out_dir, "manifest.json"), "w", encoding="utf-8", newline="") as f:
@@ -269,6 +275,8 @@ def main(argv=None):
     a = ap.parse_args(argv)
     m = run(a.config, a.out, max_minutes=a.max_minutes)
     print(bundle_text(a.out), end="")
+    for w in m["warnings"]:
+        print("WARNING:", w, file=sys.stderr)
     print(f"listed {m['n_files_listed']}/{m['n_files_total']} files in {m['runtime_seconds']} s; complete={m['complete']}", file=sys.stderr)
     return 0 if m["complete"] else 1
 
