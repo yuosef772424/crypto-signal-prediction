@@ -41,6 +41,7 @@ Drive data (sealed buckets, 800-coin universes) execute on Colab: one cell per r
   runtime, **number of configurations evaluated**, sha256 of every output) and outputs ≤ 300 KB in total;
 - prints a paste bundle (manifest + small CSVs) the owner pastes into the build session; the builder commits it
   verbatim as an `exp` commit under `research/<study>/results/<run_id>/`. The reviewer re-checks the sha256 values.
+- One-click Colab runner: instead of pasting a cell, queue a `job.json` on branch `colab-queue`; the owner clicks Run all in `colab_runner.ipynb`, and the bundle lands on branch `colab-results` (`docs/research/plan/COLAB_RUNNER.md`).
 
 **Costs.** Taker 0.05 % + 0.02 % slippage per side (0.14 % round trip) unless the card says otherwise; every trade
 result is also reported at 2× cost. Costs in R = round-trip cost / stop distance, per trade.

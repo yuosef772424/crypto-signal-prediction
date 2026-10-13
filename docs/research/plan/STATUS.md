@@ -28,7 +28,7 @@
 | Phase | State | PR | Verdict |
 |---|---|---|---|
 | T0 triage open PRs | #16, #15, #19 (H07 studies split from #13, F-0078/79) merged; #6, #14 closed; #13 restructuring: merge master + rtol fix + history note | #15, #16, #19 | in progress |
-| R0 lock (+M) | builder agent on `claude/r0-lock` | — | — |
+| R0 lock (+M) | built on `claude/r0-lock` (salt b4f3790); D-009 two-level holdout being added; next: manifest job via the Colab runner | — | — |
 | G2 gate-style features | next | — | — |
 | G gate-cli reverse + QC | waits for the owner's raw JSON | — | — |
 | R3 NATR range tool | not started | — | — |
@@ -51,4 +51,5 @@
    plus `kline --with-indicators` for BTC/ETH/SOL at 15m/1h/4h/1d with the largest `--size`, and gate's history depth.
 
 ## Known issues
+- Colab runner merged (#21, `colab_runner.ipynb`, `COLAB_RUNNER.md`): owner one-time setup = token file in Drive; first live job `smoke-001`.
 - Baseline checks on master: build_map --check OK, check_deps 0 errors, registry validate OK (79 rows); pytest 227 passed, 0 failed (13 min, CPU).

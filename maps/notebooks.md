@@ -78,6 +78,12 @@
   - `def plot_pattern_validation(rules_df: pd.DataFrame, save_dir: str=DEFAULT_OUTPUT_DIR) -> Optional[str]` cell 47 L242
   - `def run_input_output_pattern_discovery(model, test_dict: Dict, asset: str, timeframes: List[str], target_specs, feature_names: Optional[List[Optional[List[str]]]]=None, agg: Tuple[str, ...]=('last', 'mean', 'std'), validation_frac: float…` cell 48 L5
 
+## `colab_runner.ipynb`
+- title: Colab runner: one click per experiment
+- cells: 10 (5 code)
+- DEPENDS: tools
+- headings: Colab runner: one click per experiment · 1. Mount Drive, read the token, fetch the job and the runner code · 2. Validate the job, refuse finished jobs, check out the pinned commit, install · 3. Run the entry script (wall-clock guard, log streamed to a file) · 4. Validate outputs, push to `colab-results`, copy to Drive, print the status
+
 ## `crypto_data_pipeline_v6.ipynb`
 - title: خط أنابيب تجهيز بيانات العملات الرقمية — دفتر موحّد (تاريخي + حيّ)
 - cells: 74 (43 code)
