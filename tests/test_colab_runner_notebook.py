@@ -33,7 +33,7 @@ def test_notebook_is_small_and_constants_live_in_the_first_code_cell_only():
     for name in ("REPO", "TOKEN_PATH", "QUEUE_BRANCH", "RESULTS_BRANCH", "WORKDIR"):
         assert cs[0].count(f"{name} =") == 1 and all(f"{name} =" not in c for c in cs[1:])
     assert 'RESULTS_BRANCH = "colab-results"' in cs[0] and 'QUEUE_BRANCH = "colab-queue"' in cs[0]
-    assert "/content/drive/MyDrive/secrets/github_token.txt" in cs[0]
+    assert 'TOKEN_PATH = "/content/drive/MyDrive/crypto/secrets/github_token.txt"' in cs[0]
     for c in cs:
         compile(c, "<cell>", "exec")
     assert all(c["outputs"] == [] and c["execution_count"] is None for c in cells() if c["cell_type"] == "code")
@@ -43,7 +43,8 @@ def test_notebook_never_prints_or_embeds_the_token():
     text = "\n".join(code_cells())
     assert "print(_tok" not in text and "print(token" not in text and "@github.com" not in text
     assert "x-access-token" not in text and "?token=" not in text and "access_token" not in text
-    assert 'Authorization": "Bearer " + _tok' in text                       # header only
+    assert 'Authorization": "Bearer " + ' in text                           # header only
+    assert "getpass" in text and "print(_new" not in text and "print(_tok" not in text
 
 
 class FakeResponse(io.BytesIO):
@@ -85,6 +86,8 @@ def test_cells_run_end_to_end_against_a_fake_github(tmp_path, monkeypatch):
         url = req.full_url
         seen.append((url, dict(req.header_items())))
         assert TOKEN not in url
+        if url.endswith("/repos/yuosef772424/crypto-signal-prediction"):          # the one validation GET of the token
+            return FakeResponse(b"{}")
         if "/contents/job.json" in url:
             assert "ref=colab-queue" in url
             return FakeResponse(json.dumps(job).encode())
@@ -99,6 +102,7 @@ def test_cells_run_end_to_end_against_a_fake_github(tmp_path, monkeypatch):
     monkeypatch.setitem(sys.modules, "google", types.ModuleType("google"))
     monkeypatch.setitem(sys.modules, "google.colab", types.SimpleNamespace(drive=drive_mod))
     monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+    monkeypatch.setattr("getpass.getpass", lambda *a, **k: (_ for _ in ()).throw(AssertionError("must not ask: the file is valid")))
     monkeypatch.setattr(sys, "path", list(sys.path))
     monkeypatch.delitem(sys.modules, "colab_runner", raising=False)
 
@@ -149,3 +153,143 @@ def test_bootstrap_cell_refuses_a_bad_repo_ref_before_downloading_code(tmp_path,
     with pytest.raises(RuntimeError, match="40-hex"):
         exec(cs[1], ns)
     assert not any("colab_runner.py" in c for c in calls)
+
+
+# ------------------------------------------------------------------------- token file: first run, valid file, bad token
+GOOD, OLD = TOKEN, "gh" + "p_" + "Old9" * 9
+REPO_URL_END = "/repos/yuosef772424/crypto-signal-prediction"
+
+
+class Api:
+    """Fake GitHub API for the bootstrap cell: a token in `valid` is accepted, a token in `forbidden` gets 404, others 401;
+    `down` makes every call fail with a server error."""
+
+    def __init__(self, valid, forbidden=(), down=False):
+        self.valid, self.forbidden, self.down, self.calls = set(valid), set(forbidden), down, []
+
+    def __call__(self, req, timeout=None):
+        import urllib.error
+        url = req.full_url
+        auth = dict(req.header_items()).get("Authorization", "")
+        tok = auth.replace("Bearer ", "")
+        self.calls.append((url, tok))
+        assert tok not in url
+        if self.down:
+            raise urllib.error.HTTPError(url, 503, "down", {}, None)
+        if tok in self.forbidden:
+            raise urllib.error.HTTPError(url, 404, "Not Found", {}, None)
+        if tok not in self.valid:
+            raise urllib.error.HTTPError(url, 401, "Unauthorized", {}, None)
+        if url.endswith(REPO_URL_END):
+            return FakeResponse(b"{}")
+        if "/contents/job.json" in url:
+            return FakeResponse(json.dumps({"repo_ref": "master"}).encode())      # stops the cell right after the token step
+        if "/commits/" in url:
+            return FakeResponse(b"q" * 40)
+        raise AssertionError("unexpected request " + url)
+
+
+def run_bootstrap(tmp_path, monkeypatch, api, prompts, token_file):
+    asked = []
+
+    def fake_getpass(prompt="", stream=None):
+        asked.append(prompt)
+        return prompts[len(asked) - 1]
+
+    monkeypatch.setitem(sys.modules, "google", types.ModuleType("google"))
+    monkeypatch.setitem(sys.modules, "google.colab", types.SimpleNamespace(drive=types.SimpleNamespace(mount=lambda p: None)))
+    monkeypatch.setattr("urllib.request.urlopen", api)
+    monkeypatch.setattr("getpass.getpass", fake_getpass)
+    cs = code_cells()
+    ns = {"__name__": "nb"}
+    exec(cs[0], ns)
+    ns.update(TOKEN_PATH=str(token_file), WORKDIR=str(tmp_path / "work"))
+    try:
+        exec(cs[1], ns)
+    except RuntimeError as e:
+        return asked, e
+    return asked, None
+
+
+def test_default_token_path_is_the_crypto_secrets_folder():
+    ns = {}
+    exec(code_cells()[0], ns)
+    assert ns["TOKEN_PATH"] == "/content/drive/MyDrive/crypto/secrets/github_token.txt"
+    assert "MyDrive/secrets/" not in "\n".join(code_cells())
+    src = open(os.path.join(ROOT, "tools", "colab_runner.py"), encoding="utf-8").read()
+    assert "MyDrive/secrets" not in src
+
+
+@pytest.mark.parametrize("existing", [None, "", "\n", "  \n"])
+def test_first_run_asks_validates_then_writes_the_file(tmp_path, monkeypatch, capsys, existing):
+    token_file = tmp_path / "MyDrive" / "crypto" / "secrets" / "github_token.txt"
+    if existing is not None:
+        token_file.parent.mkdir(parents=True)
+        token_file.write_text(existing)
+    api = Api({GOOD})
+    asked, err = run_bootstrap(tmp_path, monkeypatch, api, [GOOD], token_file)
+    assert len(asked) == 1 and GOOD not in asked[0]
+    assert token_file.read_text() == GOOD + "\n"                                  # one line
+    if os.name == "posix":
+        assert (token_file.stat().st_mode & 0o777) == 0o600
+        assert (token_file.parent.stat().st_mode & 0o200)
+    repo_calls = [c for c in api.calls if c[0].endswith(REPO_URL_END)]
+    assert len(repo_calls) == 1 and repo_calls[0][1] == GOOD                      # one authenticated GET to validate
+    out = capsys.readouterr()
+    assert GOOD not in out.out + out.err and GOOD not in (str(err) if err else "")
+
+
+def test_valid_file_is_read_silently(tmp_path, monkeypatch, capsys):
+    token_file = tmp_path / "t.txt"
+    token_file.write_text(GOOD + "\n")
+    api = Api({GOOD})
+    asked, _ = run_bootstrap(tmp_path, monkeypatch, api, [], token_file)
+    assert asked == []
+    assert token_file.read_text() == GOOD + "\n"
+    out = capsys.readouterr()
+    assert GOOD not in out.out + out.err
+
+
+def test_bad_token_in_file_says_401_and_asks_again_and_overwrites_only_after_validation(tmp_path, monkeypatch, capsys):
+    token_file = tmp_path / "t.txt"
+    token_file.write_text(OLD + "\n")
+    bad = "gh" + "p_" + "Bad1" * 9
+    api = Api({GOOD})
+    asked, err = run_bootstrap(tmp_path, monkeypatch, api, [bad, GOOD], token_file)
+    assert len(asked) == 2
+    assert token_file.read_text() == GOOD + "\n"
+    out = capsys.readouterr().out
+    assert "401" in out and "rejected" in out.lower()
+    for t in (OLD, bad, GOOD):
+        assert t not in out
+    # the file kept the old token until the new one validated
+    token_file.write_text(OLD + "\n")
+    api2 = Api(set())
+    asked, err = run_bootstrap(tmp_path, monkeypatch, api2, [bad, bad, bad, bad], token_file)
+    assert isinstance(err, RuntimeError) and "token" in str(err).lower()
+    assert token_file.read_text() == OLD + "\n"
+    assert OLD not in str(err) and bad not in str(err)
+
+
+def test_a_token_without_access_to_the_repo_is_treated_like_a_bad_token(tmp_path, monkeypatch, capsys):
+    token_file = tmp_path / "t.txt"
+    other = "gh" + "p_" + "Oth3" * 9
+    api = Api({GOOD}, forbidden={other})
+    asked, _ = run_bootstrap(tmp_path, monkeypatch, api, [other, GOOD], token_file)
+    assert len(asked) == 2 and token_file.read_text() == GOOD + "\n"
+    assert other not in capsys.readouterr().out
+
+
+def test_github_down_is_an_error_not_a_prompt_loop(tmp_path, monkeypatch):
+    token_file = tmp_path / "t.txt"
+    token_file.write_text(GOOD + "\n")
+    asked, err = run_bootstrap(tmp_path, monkeypatch, Api({GOOD}, down=True), ["x"], token_file)
+    assert asked == [] and isinstance(err, RuntimeError) and "503" in str(err)
+    assert token_file.read_text() == GOOD + "\n"
+
+
+def test_token_file_with_several_lines_or_spaces_is_not_used_as_is(tmp_path, monkeypatch):
+    token_file = tmp_path / "t.txt"
+    token_file.write_text(GOOD + "\nsecond line\n")
+    asked, _ = run_bootstrap(tmp_path, monkeypatch, Api({GOOD}), [GOOD], token_file)
+    assert len(asked) == 1 and token_file.read_text() == GOOD + "\n"
