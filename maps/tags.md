@@ -20,6 +20,7 @@
 - addendum l: edge_discovery/31_wick_capture
 - addendum l.1: edge_discovery/32_breakout_stops
 - adverse selection: edge_discovery/31_wick_capture
+- adx: tools/indicator_reverse
 - adx trend: indicator_strategy/engine, tools/trade_engine
 - aggregate long/short: edge_discovery/11_more
 - aggregate oi change: edge_discovery/09_market_flush
@@ -45,6 +46,7 @@
 - bh over the campaign: strategy_discovery/grid2
 - binance api: tools/fetch_history_csv_concurrent
 - binance vision: tools/fetch_history_colab_cell
+- bollinger: tools/indicator_reverse
 - bollinger breakout: indicator_strategy/engine, tools/trade_engine
 - bracket: tools/bracket_eval
 - bracket table: cross_asset/report
@@ -61,6 +63,7 @@
 - candlestick sample: indicator_strategy/charts
 - cards: tools/build_map
 - causal alignment: tools/intraday_features
+- cci: tools/indicator_reverse
 - cells: tools/nb_cells
 - chart images: edge_discovery/25_image_cnn
 - chart patterns: edge_discovery/22_chart_rules
@@ -95,6 +98,7 @@
 - daily ic: cross_asset/report
 - daily panel: edge_discovery/tsbt
 - data bridge: tools/colab_bridge
+- data quality: tools/indicator_reverse
 - data rebuild: edge_discovery/data_tools/build_panel, edge_discovery/data_tools/dec, edge_discovery/data_tools/folder_index, edge_discovery/data_tools/sweep
 - data.binance.vision: tools/fetch_history_vision_colab
 - day grouping: cross_asset/data
@@ -200,6 +204,7 @@
 - gap report: tools/evaluate_trained_model
 - gaps report: tools/fetch_history_vision_colab
 - gate: indicator_strategy/engine, tools/trade_engine
+- gate-cli: tools/indicator_reverse
 - gates: strategy_discovery/grid
 - generalization gap: edge_discovery/26_h19_generalization
 - github dataset: tools/fetch_crypto_dataset
@@ -256,6 +261,7 @@
 - import direction: tools/check_deps
 - imports: tools/check_deps
 - include-delisted: tools/fetch_history_csv_concurrent
+- indicator: tools/indicator_reverse
 - indicator screen: indicator_strategy/engine, indicator_strategy/screen, tools/trade_engine
 - inject: tools/nb_cells
 - inside bar: edge_discovery/22_chart_rules
@@ -265,6 +271,7 @@
 - inverse: tests/test_real_price_modes
 - ipynb: tools/nb_cells
 - json format: tools/nb_cells
+- kdj: tools/indicator_reverse
 - keltner squeeze: strategy_discovery/grid2
 - key mask: cross_asset/model
 - klines: tools/fetch_history_csv_concurrent, tools/fetch_history_vision_colab
@@ -288,7 +295,7 @@
 - look-ahead: tests/test_no_lookahead
 - lr schedule: cross_asset/train
 - ls_acc: edge_discovery/features
-- macd: indicator_strategy/engine, strategy_discovery/intraday_macd, tools/trade_engine
+- macd: indicator_strategy/engine, strategy_discovery/intraday_macd, tools/indicator_reverse, tools/trade_engine
 - main.ipynb patched cells: tools/evaluate_trained_model
 - main.ipynb section 7-h: cross_asset/experiment
 - maker limit: edge_discovery/24_pullback_maker
@@ -310,6 +317,7 @@
 - missing_ids: edge_discovery/data_tools/folder_index
 - mixed timestamps: cross_asset/data
 - momentum: edge_discovery/features
+- moving average: tools/indicator_reverse
 - multiple testing: strategy_discovery/grid, strategy_discovery/grid2
 - multivariate: edge_discovery/02_fmb
 - mvrv: edge_discovery/20_onchain
@@ -333,6 +341,7 @@
 - out of sample: edge_discovery/16_h07_oos, strategy_discovery/forward
 - out-of-sample: strategy_discovery/oos
 - package exports: cross_asset/__init__
+- pandas-ta-classic: tools/indicator_reverse
 - panel data: cross_asset/data
 - panel evaluation: tools/evaluate_trained_model
 - panel experiment: cross_asset/experiment
@@ -399,12 +408,13 @@
 - return: tests/test_real_price_modes
 - return_close: tests/test_real_price_modes
 - reversal hedge: hedge_recovery/sim2
+- reverse engineering: tools/indicator_reverse
 - review correction: strategy_discovery/significance
 - robustness: edge_discovery/15_h07_robust, strategy_discovery/robustness, strategy_discovery/survivor_checks
 - rotation portfolio: strategy_discovery/rotation
 - round-trip: tools/nb_cells
 - rqa: edge_discovery/27_repr_info
-- rsi: indicator_strategy/engine, tools/trade_engine
+- rsi: indicator_strategy/engine, tools/indicator_reverse, tools/trade_engine
 - rsi2 pullback: strategy_discovery/grid
 - run_panel_experiment: cross_asset/__init__, cross_asset/experiment
 - run_panel_selftest: cross_asset/selftest
@@ -518,6 +528,7 @@
 - wavelet: edge_discovery/27_repr_info
 - weights: tools/evaluate_trained_model
 - wick capture: edge_discovery/31_wick_capture
+- williams: tools/indicator_reverse
 - win rate: edge_discovery/events
 - window sensitivity: edge_discovery/15_h07_robust
 - year stability: strategy_discovery/robustness
