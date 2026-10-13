@@ -15,17 +15,17 @@
 - The planner may merge a phase PR after review (D-002).
 
 ## Honest state (from master, 2026-10-13)
-- 63 closed failures (`docs/research/failure_registry.csv`); no tradeable edge found.
+- 77 closed failures (`docs/research/failure_registry.csv`); no tradeable edge found.
 - Survivors: H003 (NATR_14 forecasts next range **width**, IC ≈ +0.21 high / −0.20 low, 38/38 OOS windows; not
   direction); H07 (BTC/ETH 30-day trend filter, a drawdown reducer, medium confidence); MOM_ORTH_NATR (relative low, weak).
 - Untested: funding carry / basis; chart-structure confluence as overlapping zones.
 - Consumed: the edge_discovery 2026 holdout; MOM_ORTH_NATR's 38 OOS windows.
-- Open drafts not on master: #13, #14, #15 (F-0064/65 collide: #15 keeps them and adds F-0076/77 for S1/S3; #13 renumbers to F-0078/79).
+- Registry on master: 77 rows (F-0064..F-0077 from #15; S1/S3 not significant on unseen coins → F-0076/77). #13 open.
 
 ## Phases
 | Phase | State | PR | Verdict |
 |---|---|---|---|
-| T0 triage open PRs | #16 merged (tool defects → G row); #15 fix first (S1/S3 not significant); #6 closed (main fix already on master; funding/OI drop → R2 row); #13 split; #14 close after #15 | #16 | in progress |
+| T0 triage open PRs | #16, #15 merged; #6, #14 closed; #13 split: H07 studies → new branch `claude/h07-studies` (F-0078/79), restructuring stays on #13 | #15, #16 | in progress |
 | R0 lock (+M) | kickoff given | — | — |
 | G2 gate-style features | next | — | — |
 | G gate-cli reverse + QC | waits for the owner's raw JSON | — | — |
