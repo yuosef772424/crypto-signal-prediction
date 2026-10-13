@@ -168,9 +168,44 @@ class RunTests(Base):
         self.assertLess(m["n_files_listed"], 3)
         self.assertTrue(os.path.exists(os.path.join(self.out, "manifest.json")))
 
-    def test_oversized_outputs_are_refused(self):
+    def test_a_row_that_cannot_fit_the_file_limit_is_refused(self):
         with self.assertRaises(ValueError):
-            self.run_manifest(max_output_bytes=100)
+            self.run_manifest(max_file_bytes=100)
+
+    def test_the_file_limit_cannot_exceed_the_contract(self):
+        with self.assertRaises(ValueError):
+            self.run_manifest(max_file_bytes=300_001)
+
+    def test_large_listings_are_split_into_parts_each_under_the_limit(self):
+        for i in range(40):
+            write_gz(os.path.join(self.h15, f"P{i:02d}USDT.csv.gz"), HEADER + bar_lines(T0, 2))
+        m = self.run_manifest(max_file_bytes=1500)
+        parts = sorted(n for n in m["outputs"] if n.startswith("history_15m_manifest"))
+        self.assertGreater(len(parts), 1)
+        self.assertEqual(parts, [f"history_15m_manifest.part{i:02d}.csv" for i in range(1, len(parts) + 1)])
+        rows = []
+        for n in parts:
+            self.assertLessEqual(os.path.getsize(os.path.join(self.out, n)), 1500)
+            self.assertEqual(open(os.path.join(self.out, n), encoding="utf-8").readline().strip(), ",".join(dm.CSV_COLUMNS))
+            rows += list(csv.DictReader(open(os.path.join(self.out, n), encoding="utf-8")))
+        self.assertEqual([r["symbol"] for r in rows], sorted(r["symbol"] for r in rows))
+        self.assertEqual(len(rows), 43)
+        for name, digest in m["outputs"].items():
+            self.assertEqual(hashlib.sha256(open(os.path.join(self.out, name), "rb").read()).hexdigest(), digest)
+        self.assertEqual(set(dm.parse_bundle(dm.bundle_text(self.out))["sections"]), set(m["outputs"]))
+
+    def test_rerun_with_fewer_parts_does_not_leave_stale_outputs_listed(self):
+        for i in range(40):
+            write_gz(os.path.join(self.h15, f"P{i:02d}USDT.csv.gz"), HEADER + bar_lines(T0, 2))
+        many = self.run_manifest(max_file_bytes=1500)
+        few = self.run_manifest()
+        self.assertEqual(set(few["outputs"]), {"history_15m_manifest.csv", "folders_manifest.csv"})
+        self.assertGreater(len(many["outputs"]), len(few["outputs"]))
+        self.assertEqual(sorted(os.listdir(self.out)), sorted(list(few["outputs"]) + ["manifest.json"]))      # old parts removed
+
+    def test_everything_is_written_as_files_in_out(self):
+        m = self.run_manifest()
+        self.assertEqual(sorted(os.listdir(self.out)), sorted(list(m["outputs"]) + ["manifest.json"]))
 
     def test_unreadable_file_still_listed_with_error(self):
         open(os.path.join(self.h15, "BADUSDT.csv.gz"), "wb").write(b"junk")

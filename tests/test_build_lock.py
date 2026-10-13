@@ -4,6 +4,8 @@ Fixture manifests only (no Drive).
 """
 import contextlib
 import csv
+import datetime as dt
+import gzip
 import hashlib
 import io
 import json
@@ -23,24 +25,24 @@ import holdout_guard as hg  # noqa: E402
 SALT = "0123456789abcdef0123456789abcdef01234567"
 GOOD = ("2023-01-01T00:00:00Z", "2026-09-26T23:45:00Z")
 AFTER = "2026-10-08T23:45:00Z"                                              # a last bar after the seal (the span stops at the seal)
-TOUCH_HEADER = ["symbol_or_rule", "kind", "timeframe", "period", "source", "note"]
+TOUCH_HEADER = ["symbol_or_rule", "kind", "touch_class", "timeframe", "period", "source", "note"]
 
 
 def fixture_rows(n_ok=40):
     """(symbol, first, last, error) rows covering every ineligibility reason plus n_ok clean symbols."""
     rows = [(f"OK{i:02d}USDT",) + GOOD + ("",) for i in range(n_ok)]
-    rows += [("SHORTUSDT", "2025-06-01T00:00:00Z", GOOD[1], ""),            # < 2 years before the seal
-             ("EDGEUSDT", "2024-10-01T00:00:00Z", AFTER, ""),               # 729.99 days to the seal: too short
-             ("JUST2YUSDT", "2024-09-30T23:45:00Z", AFTER, ""),             # exactly 730 days to 2026-09-30T23:45: eligible
+    rows += [("SHORTUSDT", "2026-01-01T00:00:00Z", GOOD[1], ""),            # < 365 days before the seal
+             ("EDGEUSDT", "2025-10-01T00:00:00Z", AFTER, ""),               # 364 d 23:45 to the seal: too short
+             ("JUST1YUSDT", "2025-09-30T23:45:00Z", AFTER, ""),             # exactly 365 days to 2026-09-30T23:45: eligible
              ("STALEUSDT", GOOD[0], "2026-08-31T23:45:00Z", ""),
              ("FRESHUSDT", GOOD[0], "2026-09-01T00:00:00Z", ""),            # last bar exactly at the limit: eligible
              ("USDCUSDT",) + GOOD + ("",), ("ETHUPUSDT",) + GOOD + ("",), ("ETHDOWNUSDT",) + GOOD + ("",),
-             ("ETHUSDT",) + GOOD + ("",),                                    # touched below, and the base of ETHUP/ETHDOWN
+             ("ETHUSDT",) + GOOD + ("",),                                    # intraday-touched, and the base of ETHUP/ETHDOWN
              ("JUPUSDT",) + GOOD + ("",),                                    # ends in UP but J is not a symbol: eligible
              ("BTCDOMUSDT",) + GOOD + ("",),
              ("BADUSDT", "", "", "OSError: bad gzip"),
-             ("TOUCHEDUSDT",) + GOOD + ("",), ("FOLDERUSDT",) + GOOD + ("",),
-             ("OLDUSDT", "2019-12-01T00:00:00Z", GOOD[1], "")]              # touched by the first_bar_before rule
+             ("DAILYUSDT",) + GOOD + ("",), ("FOLDERUSDT",) + GOOD + ("",), ("DERIVUSDT",) + GOOD + ("",),
+             ("OLDUSDT", "2019-12-01T00:00:00Z", GOOD[1], "")]              # named only by an unresolved rule: level A
     return rows
 
 
@@ -66,11 +68,13 @@ def write_touched(path, rows):
             w.writerow(r)
 
 
-TOUCHED = [["ETHUSDT", "symbol", "1h", "2024", "src-eth", ""],
-           ["TOUCHEDUSDT", "symbol", "1d", "2023", "src-a", ""],
-           ["folder:history_1d", "rule", "1d", "2019-09..2026-09", "src-folder", "whole folder"],
-           ["first_bar_before:2020-01-01", "rule", "1d", "2018..2026", "src-coinmetrics", "proxy"],
-           ["OK00USDT", "time_seal_read", "1d", "2026-10-01..2026-10-03", "src-fwd", ""]]
+TOUCHED = [["ETHUSDT", "symbol", "intraday", "1h", "2024", "src-eth", ""],
+           ["ETHUSDT", "symbol", "daily", "1d", "2024", "src-eth-daily", ""],
+           ["DAILYUSDT", "symbol", "daily", "1d", "2023", "src-a", ""],
+           ["DERIVUSDT", "symbol", "derivs", "1h", "2024", "src-oi", ""],
+           ["folder:history_1d", "rule", "daily", "1d", "2019-09..2026-09", "src-folder", "whole folder"],
+           ["unresolved:coinmetrics-44", "rule", "daily", "1d", "2018..2026", "src-coinmetrics", "not listed"],
+           ["OK00USDT", "time_seal_read", "", "1d", "2026-10-01..2026-10-03", "src-fwd", ""]]
 
 
 class Base(unittest.TestCase):
@@ -100,16 +104,37 @@ class EligibilityTests(Base):
         self.assertEqual(why["ETHDOWNUSDT"], ["leveraged"])
         self.assertEqual(why["BTCDOMUSDT"], ["index_contract"])
         self.assertEqual(why["BADUSDT"], ["unreadable"])
-        self.assertEqual(why["ETHUSDT"], ["touched"])
-        self.assertEqual(why["TOUCHEDUSDT"], ["touched"])
-        self.assertEqual(why["FOLDERUSDT"], ["touched"])              # folder rule
-        self.assertEqual(why["OLDUSDT"], ["touched"])                 # first_bar_before rule
-        for ok in ("JUST2YUSDT", "FRESHUSDT", "JUPUSDT", "OK00USDT"):
+        self.assertEqual(why["ETHUSDT"], ["touched_intraday"])          # level X (also has a daily row)
+        for ok in ("JUST1YUSDT", "FRESHUSDT", "JUPUSDT", "OK00USDT", "DAILYUSDT", "FOLDERUSDT", "DERIVUSDT", "OLDUSDT"):
             self.assertNotIn(ok, why, ok)
-            self.assertIn(ok, d["eligible"])
+            self.assertIn(ok, d["eligible"], ok)
+
+    def test_history_is_365_days_before_the_seal(self):
+        why = self.build()["ineligible"]
+        self.assertIn("EDGEUSDT", why)              # 364 days 23:45
+        self.assertNotIn("JUST1YUSDT", why)         # exactly 365 days
+        self.assertIn("SHORTUSDT", why)
+
+    def test_levels_a_and_b(self):
+        d = self.build()
+        lv = d["levels"]
+        self.assertEqual(lv["OK00USDT"], "A")                 # only a time_seal_read row: not a touch
+        self.assertEqual(lv["OLDUSDT"], "A")                  # an unresolved rule touches nobody
+        for b in ("DAILYUSDT", "FOLDERUSDT", "DERIVUSDT"):
+            self.assertEqual(lv[b], "B", b)
+        self.assertEqual(set(lv), set(d["eligible"]))
+        self.assertNotIn("ETHUSDT", lv)                       # level X is not eligible
+        f = d["funnel"]
+        self.assertEqual(f["eligible_A"] + f["eligible_B"], f["eligible"])
+        self.assertEqual(f["eligible_B"], 3)
+
+    def test_unresolved_rules_are_recorded_and_touch_nobody(self):
+        d = self.build()
+        self.assertEqual([r["rule"] for r in d["unresolved_rules"]], ["unresolved:coinmetrics-44"])
+        self.assertNotIn("OLDUSDT", d["touched_sources"])
 
     def test_reasons_can_stack(self):
-        write_manifest(self.mdir, fixture_rows() + [("TUSDUSDT", "2025-06-01T00:00:00Z", "2026-08-01T00:00:00Z", "")])
+        write_manifest(self.mdir, fixture_rows() + [("TUSDUSDT", "2026-02-01T00:00:00Z", "2026-08-01T00:00:00Z", "")])
         d = self.build()
         self.assertEqual(d["ineligible"]["TUSDUSDT"], ["short_history", "stale", "stablecoin"])
 
@@ -118,11 +143,13 @@ class EligibilityTests(Base):
         self.assertIn("OK00USDT", d["eligible"])
         self.assertEqual(d["time_seal_reads"][0]["source"], "src-fwd")
 
-    def test_touched_sources_are_recorded(self):
+    def test_touching_sources_and_classes_are_recorded(self):
         d = self.build()
         self.assertEqual(d["touched_sources"]["FOLDERUSDT"], ["src-folder"])
-        self.assertEqual(d["touched_sources"]["OLDUSDT"], ["src-coinmetrics"])
-        self.assertEqual(d["touched_sources"]["ETHUSDT"], ["src-eth"])
+        self.assertEqual(d["touch_classes"]["FOLDERUSDT"], ["daily"])
+        self.assertEqual(d["touched_sources"]["ETHUSDT"], ["src-eth", "src-eth-daily"])
+        self.assertEqual(d["touch_classes"]["ETHUSDT"], ["daily", "intraday"])
+        self.assertEqual(d["touch_classes"]["DERIVUSDT"], ["derivs"])
 
     def test_funnel_counts(self):
         d = self.build()
@@ -131,8 +158,21 @@ class EligibilityTests(Base):
         self.assertEqual(f["eligible"], len(d["eligible"]))
         self.assertEqual(f["sealed"] + f["open_pool"], f["eligible"])
         self.assertEqual(f["ineligible"] + f["eligible"], f["manifest_symbols"])
-        self.assertEqual(f["failed_test"]["touched"], 4)
+        self.assertEqual(f["failed_test"]["touched_intraday"], 1)
         self.assertEqual(f["failed_test"]["short_history"], 2)
+
+
+def expected_buckets(order, blocked):
+    """Independent statement of the D-009 rule: nominal H(i mod 6 + 1); H3 refuses derivs-touched coins (they go on to H4)."""
+    out = {}
+    for i, sym in enumerate(order):
+        for k in range(6):
+            b = (i + k) % 6 + 1
+            if b == 3 and sym in blocked:
+                continue
+            out[sym] = f"H{b}"
+            break
+    return out
 
 
 class SealingTests(Base):
@@ -153,8 +193,8 @@ class SealingTests(Base):
         d = self.build()
         order = d["sealed_order"]
         self.assertEqual(order, self.rank(d["eligible"])[: d["funnel"]["sealed"]])
-        for i, s in enumerate(order):
-            self.assertEqual(d["sealed"][s], f"H{i % 6 + 1}")
+        blocked = {x for x, c in d["touch_classes"].items() if "derivs" in c}
+        self.assertEqual(d["sealed"], expected_buckets(order, blocked))
         for b, syms in d["buckets"].items():
             self.assertEqual(syms, sorted(s for s, bb in d["sealed"].items() if bb == b))
         self.assertEqual(d["bucket_phase"], {"H1": "R1b", "H2": "R3", "H3": "R2", "H4": "R5", "H5": "G2", "H6": "reserve (R6)"})
@@ -186,11 +226,84 @@ class SealingTests(Base):
         self.assertTrue(any("sealed symbols" in w for w in d["warnings"]))
 
 
+class BucketPredicateTests(unittest.TestCase):
+    """H3 (R2, funding/basis) accepts only coins with no funding/OI/basis/metrics touch (D-009)."""
+
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.mdir = os.path.join(self.tmp, "manifest")
+        self.touched = os.path.join(self.tmp, "touched.csv")
+        rows = [(f"AAA{i:02d}USDT",) + GOOD + ("",) for i in range(60)] + [(f"DRV{i:02d}USDT",) + GOOD + ("",) for i in range(60)]
+        write_manifest(self.mdir, rows, folders=(("history_1d", ["AAA00USDT"]),))
+        write_touched(self.touched, [[f"DRV{i:02d}USDT", "symbol", "derivs", "1h", "2024", "src-oi", ""] for i in range(60)] +
+                      [["folder:history_1d", "rule", "daily", "1d", "x", "src-folder", ""]])
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def test_h3_never_holds_a_derivs_touched_coin(self):
+        d = bl.build(self.mdir, self.touched, SALT, repo_check=False)
+        self.assertGreater(d["funnel"]["sealed"], 30)
+        blocked = {s for s, c in d["touch_classes"].items() if "derivs" in c}
+        self.assertTrue(blocked & set(d["sealed"]))                            # the test is not vacuous
+        self.assertEqual(set(d["buckets"]["H3"]) & blocked, set())
+        self.assertEqual(d["sealed"], expected_buckets(d["sealed_order"], blocked))
+
+    def test_refused_coin_goes_to_the_next_bucket_and_others_keep_their_nominal_bucket(self):
+        d = bl.build(self.mdir, self.touched, SALT, repo_check=False)
+        blocked = {s for s, c in d["touch_classes"].items() if "derivs" in c}
+        for i, s in enumerate(d["sealed_order"]):
+            nominal = f"H{i % 6 + 1}"
+            if nominal == "H3" and s in blocked:
+                self.assertEqual(d["sealed"][s], "H4", s)
+            else:
+                self.assertEqual(d["sealed"][s], nominal, s)
+
+    def test_h3_empty_when_every_coin_is_derivs_touched(self):
+        write_touched(self.touched, [[f"AAA{i:02d}USDT", "symbol", "derivs", "1h", "2024", "src-oi", ""] for i in range(60)] +
+                      [[f"DRV{i:02d}USDT", "symbol", "derivs", "1h", "2024", "src-oi", ""] for i in range(60)] +
+                      [["folder:history_1d", "rule", "daily", "1d", "x", "src-folder", ""]])
+        d = bl.build(self.mdir, self.touched, SALT, repo_check=False)
+        self.assertEqual(d["buckets"]["H3"], [])
+        self.assertTrue(any("H3" in w for w in d["warnings"]))
+        self.assertEqual(d["funnel"]["sealed"], sum(len(v) for v in d["buckets"].values()))
+
+    def test_daily_only_touch_does_not_block_h3(self):
+        write_touched(self.touched, [[f"AAA{i:02d}USDT", "symbol", "daily", "1d", "x", "src-d", ""] for i in range(60)] +
+                      [["folder:history_1d", "rule", "daily", "1d", "x", "src-folder", ""]])
+        d = bl.build(self.mdir, self.touched, SALT, repo_check=False)
+        for i, s in enumerate(d["sealed_order"]):
+            self.assertEqual(d["sealed"][s], f"H{i % 6 + 1}")
+
+    def test_levels_per_bucket_are_recorded(self):
+        d = bl.build(self.mdir, self.touched, SALT, repo_check=False)
+        for b, syms in d["buckets"].items():
+            self.assertEqual(d["funnel"]["bucket_levels"][b], {"A": sum(d["levels"][s] == "A" for s in syms),
+                                                              "B": sum(d["levels"][s] == "B" for s in syms)})
+
+
 class InputValidationTests(Base):
     def test_incomplete_manifest_is_refused(self):
         write_manifest(self.mdir, fixture_rows(), complete=False)
         with self.assertRaises(ValueError):
             self.build()
+
+    def test_split_manifest_files_are_concatenated(self):
+        src = os.path.join(self.tmp, "raw")
+        h15, h1d = os.path.join(self.tmp, "h15"), os.path.join(self.tmp, "h1d")
+        os.makedirs(h15), os.makedirs(h1d)
+        for sym, first, last, _ in fixture_rows()[:30]:
+            with gzip.open(os.path.join(h15, f"{sym}.csv.gz"), "wt") as f:
+                f.write("timestamp,datetime_utc\n")
+                f.write(f"{int(dt.datetime.strptime(first, '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=dt.timezone.utc).timestamp()) * 1000},x\n")
+                f.write(f"{int(dt.datetime.strptime(last, '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=dt.timezone.utc).timestamp()) * 1000},x\n")
+        open(os.path.join(h1d, "OK01USDT.csv"), "w").write("datetime_utc\n")
+        m = dm.run({"history_15m_dir": h15, "extra_folders": {"history_1d": h1d}}, src, max_file_bytes=1200)
+        self.assertGreater(len([n for n in m["outputs"] if n.startswith("history_15m_manifest")]), 1)
+        write_touched(self.touched, [["folder:history_1d", "rule", "daily", "1d", "x", "src-folder", ""]])
+        d = bl.build(src, self.touched, SALT, repo_check=False)
+        self.assertEqual(d["funnel"]["manifest_symbols"], 30)
+        self.assertEqual(d["levels"]["OK01USDT"], "B")
 
     def test_edited_csv_is_refused(self):
         p = os.path.join(self.mdir, dm.OUT_CSV)
@@ -209,12 +322,15 @@ class InputValidationTests(Base):
             self.build()
 
     def test_bad_touched_files_are_refused(self):
-        bad = [[["X", "weird", "", "", "s", ""]],                                  # unknown kind
-               [["folder:", "rule", "", "", "s", ""]],                             # bad rule
-               [["first_bar_before:2020", "rule", "", "", "s", ""]],
-               [["symbol:ABC", "rule", "", "", "s", ""]],
-               [["ABCUSDT", "symbol", "", "", "", ""]],                            # no source
-               [["", "symbol", "", "", "s", ""]]]
+        bad = [[["X", "weird", "", "", "", "s", ""]],                              # unknown kind
+               [["folder:", "rule", "daily", "", "", "s", ""]],                    # bad rule
+               [["first_bar_before:2020", "rule", "daily", "", "", "s", ""]],
+               [["symbol:ABC", "rule", "daily", "", "", "s", ""]],
+               [["ABCUSDT", "symbol", "daily", "", "", "", ""]],                   # no source
+               [["", "symbol", "daily", "", "", "s", ""]],
+               [["ABCUSDT", "symbol", "", "", "", "s", ""]],                       # no touch class
+               [["ABCUSDT", "symbol", "hourly", "", "", "s", ""]],                 # unknown touch class
+               [["ABCUSDT", "time_seal_read", "daily", "", "", "s", ""]]]          # a seal read has no class
         for rows in bad:
             write_touched(self.touched, rows)
             with self.assertRaises(ValueError, msg=rows):
@@ -229,8 +345,8 @@ class InputValidationTests(Base):
                 bl.build(self.mdir, self.touched, s, repo_check=False)
 
     def test_touched_symbols_are_normalised(self):
-        write_touched(self.touched, [[" ok01usdt ", "symbol", "1d", "x", "src", ""]])
-        self.assertEqual(self.build()["ineligible"]["OK01USDT"], ["touched"])
+        write_touched(self.touched, [[" ok01usdt ", "symbol", "intraday", "1d", "x", "src", ""]])
+        self.assertEqual(self.build()["ineligible"]["OK01USDT"], ["touched_intraday"])
 
 
 class OutputTests(Base):
@@ -286,6 +402,42 @@ class IngestTests(unittest.TestCase):
         touched = os.path.join(self.tmp, "touched.csv")
         write_touched(touched, TOUCHED)
         self.assertGreater(len(bl.build(dest, touched, SALT, repo_check=False)["eligible"]), 0)
+
+    def test_ingest_from_a_run_folder_is_the_same_as_from_text(self):
+        src = os.path.join(self.tmp, "src")
+        write_manifest(src, fixture_rows())
+        open(os.path.join(src, "runner_log.txt"), "w").write("extra file written by a runner")
+        a, b = os.path.join(self.tmp, "a"), os.path.join(self.tmp, "b")
+        bl.ingest_dir(src, a)
+        bl.ingest(dm.bundle_text(src), b)
+        self.assertEqual(sorted(os.listdir(a)), sorted(os.listdir(b)))             # the runner's extra file is not copied
+        for n in os.listdir(a):
+            self.assertEqual(open(os.path.join(a, n), "rb").read(), open(os.path.join(b, n), "rb").read())
+        with self.assertRaises(FileExistsError):
+            bl.ingest_dir(src, a)
+
+    def test_run_folder_with_an_edited_output_or_missing_manifest_is_refused(self):
+        src = os.path.join(self.tmp, "src")
+        write_manifest(src, fixture_rows())
+        open(os.path.join(src, dm.OUT_CSV), "a").write("X,1,2,3,4,5,\n")
+        with self.assertRaises(ValueError):
+            bl.ingest_dir(src, os.path.join(self.tmp, "a"))
+        with self.assertRaises(ValueError):
+            bl.ingest_dir(os.path.join(self.tmp, "empty"), os.path.join(self.tmp, "b"))
+        os.remove(os.path.join(src, dm.OUT_FOLDERS))
+        with self.assertRaises(ValueError):
+            bl.ingest_dir(src, os.path.join(self.tmp, "c"))
+
+    def test_cli_ingest_from_dir(self):
+        src = os.path.join(self.tmp, "src")
+        write_manifest(src, fixture_rows())
+        dest = os.path.join(self.tmp, "dest")
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(bl.main(["ingest", "--from-dir", src, "--dir", dest]), 0)
+        self.assertTrue(os.path.exists(os.path.join(dest, "manifest.json")))
+        with self.assertRaises(SystemExit):                                          # exactly one of --bundle / --from-dir
+            with contextlib.redirect_stderr(io.StringIO()):
+                bl.main(["ingest", "--dir", dest])
 
     def test_altered_bundle_is_refused(self):
         with self.assertRaises(ValueError):

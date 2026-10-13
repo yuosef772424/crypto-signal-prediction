@@ -32,28 +32,31 @@
   - `class EntryFeatureTableTests(unittest.TestCase)` L72
     - (1 methods)
 
-### `tests/test_build_lock.py` (355 lines)
+### `tests/test_build_lock.py` (507 lines)
 - PURPOSE: tools/build_lock.py: pasted manifest + touched.csv + salt -> holdout.json + holdout.sha256, deterministically. (from docstring)
 - DEPENDS: tools
 - API:
-  - `def fixture_rows(n_ok=40)` L29
-  - `def write_manifest(d, rows, folders=..., complete=True, extra=None)` L47
-  - `def write_touched(path, rows)` L61
-  - `class Base(unittest.TestCase)` L76
+  - `def fixture_rows(n_ok=40)` L31
+  - `def write_manifest(d, rows, folders=..., complete=True, extra=None)` L49
+  - `def write_touched(path, rows)` L63
+  - `class Base(unittest.TestCase)` L80
     - (3 methods)
-  - `class EligibilityTests(Base)` L91
-    - (5 methods)
-  - `class SealingTests(Base)` L138
+  - `class EligibilityTests(Base)` L95
     - (8 methods)
-  - `class InputValidationTests(Base)` L189
+  - `def expected_buckets(order, blocked)` L165
+  - `class SealingTests(Base)` L178
+    - (8 methods)
+  - `class BucketPredicateTests(unittest.TestCase)` L229
     - (7 methods)
-  - `class OutputTests(Base)` L236
+  - `class InputValidationTests(Base)` L285
+    - (8 methods)
+  - `class OutputTests(Base)` L352
     - (3 methods)
-  - `class IngestTests(unittest.TestCase)` L264
+  - `class IngestTests(unittest.TestCase)` L380
+    - (8 methods)
+  - `class SaltTests(unittest.TestCase)` L447
     - (5 methods)
-  - `class SaltTests(unittest.TestCase)` L295
-    - (5 methods)
-  - `class CliTests(Base)` L337
+  - `class CliTests(Base)` L489
     - (2 methods)
 
 ### `tests/test_cross_asset.py` (482 lines)
@@ -73,7 +76,7 @@
   - `class AuditRound1Tests(unittest.TestCase)` L400
     - (4 methods)
 
-### `tests/test_data_manifest.py` (260 lines)
+### `tests/test_data_manifest.py` (295 lines)
 - PURPOSE: tools/data_manifest.py: the Colab manifest of Drive history_15m (symbol, first/last bar, rows, file sha256) follows the run (from docstring)
 - DEPENDS: tools
 - API:
@@ -86,12 +89,12 @@
   - `class ConfigTests(Base)` L99
     - (6 methods)
   - `class RunTests(Base)` L133
-    - (6 methods)
-  - `class BundleTests(Base)` L182
+    - (10 methods)
+  - `class BundleTests(Base)` L217
     - (4 methods)
-  - `class CliTests(Base)` L215
+  - `class CliTests(Base)` L250
     - (3 methods)
-  - `class ColabCellTests(unittest.TestCase)` L242
+  - `class ColabCellTests(unittest.TestCase)` L277
     - (1 methods)
 
 ### `tests/test_disk_backed.py` (326 lines)
@@ -286,7 +289,7 @@
   - `class FetchDatasetTests(unittest.TestCase)` L45
     - (1 methods)
 
-### `tests/test_touched_ledger.py` (132 lines)
+### `tests/test_touched_ledger.py` (161 lines)
 - PURPOSE: tools/touched_ledger.py: the touched-data ledger (docs/research/plan/lock/touched.csv) is built from master, covers every registry (from docstring)
 - DEPENDS: tools
 - API:
@@ -296,8 +299,8 @@
   - `class UniverseTests(unittest.TestCase)` L43
     - (2 methods)
   - `class GeneratedRowsTests(unittest.TestCase)` L77
-    - (8 methods)
-  - `class CommittedFileTests(unittest.TestCase)` L122
+    - (10 methods)
+  - `class CommittedFileTests(unittest.TestCase)` L151
     - (1 methods)
 
 ### `tests/test_trade_engine.py` (83 lines)

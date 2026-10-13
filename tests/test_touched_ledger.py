@@ -97,7 +97,36 @@ class GeneratedRowsTests(unittest.TestCase):
 
     def test_rules(self):
         rules = {r["symbol_or_rule"] for r in self.rows if r["kind"] == "rule"}
-        self.assertEqual(rules, {"folder:history_1d", "first_bar_before:2021-01-01"})
+        self.assertEqual(rules, {"folder:history_1d", "unresolved:coinmetrics-44-assets-daily"})
+        self.assertFalse(any(r["symbol_or_rule"].startswith("first_bar_before") for r in self.rows))   # D-009 h: proxy dropped
+
+    def test_touch_classes_follow_d009(self):
+        by = {}
+        for r in self.rows:
+            if r["kind"] != "time_seal_read":
+                by.setdefault(r["source"], set()).add(r["touch_class"])
+        for r in self.rows:
+            if r["kind"] == "time_seal_read":
+                self.assertEqual(r["touch_class"], "")
+            else:
+                self.assertIn(r["touch_class"], ("intraday", "daily", "derivs"))
+        cls = {g["key"]: g["touch_class"] for g in tl.GROUPS}
+        self.assertEqual(cls, {"speirsy10": "intraday", "h002_5": "daily", "survey_14": "daily", "history_1d": "daily",
+                               "hourly_83": "intraday", "perps_195": "derivs", "listings": "derivs",
+                               "coinmetrics": "daily", "hl_copy": "derivs"})
+        for r in self.rows:                                              # rule (a): a sub-daily timeframe read by price studies is intraday
+            if r["symbol_or_rule"] in ("LTCUSDT", "LINKUSDT", "AVAXUSDT", "DOTUSDT") and r["kind"] == "symbol":
+                self.assertEqual(r["touch_class"], "intraday")
+
+    def test_only_documented_groups_list_a_subdaily_registry_timeframe_without_being_intraday(self):
+        with open(os.path.join(ROOT, "docs", "research", "failure_registry.csv"), encoding="utf-8", newline="") as f:
+            tf = {r["id"]: r["timeframe"] for r in csv.DictReader(f)}
+        sub = {"15m", "1h", "4h", "5m", "1m"}
+        odd = set()
+        for g in tl.GROUPS:
+            if g["touch_class"] != "intraday" and any(sub & set(tf[i].split(";")) for i in g["registry_ids"]):
+                odd.add(g["key"])
+        self.assertEqual(odd, {"perps_195", "hl_copy"})                  # hourly metrics/OI files: level B by D-009 (b)
 
     def test_time_sealed_reads_are_recorded(self):
         reads = [r for r in self.rows if r["kind"] == "time_seal_read"]
