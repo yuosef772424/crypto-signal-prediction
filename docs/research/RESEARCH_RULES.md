@@ -34,7 +34,7 @@ Every rejected or abandoned experiment adds one row to `docs/research/failure_re
 | `claim` | what was tried, one line |
 | `mechanism`, `timeframe`, `target`, `model_class` | **scope tags** (`;`-separated, `any` = all). They decide coverage — reuse existing spellings (`experiment_registry.py search`) |
 | `universe`, `period`, `cost_model` | rest of the scope, for humans |
-| `failure_level`, `failure_location` | where it failed (§1.1) |
+| `failure_level`, `failure_location` | where it failed (§1.1); `power` = the effect may be real but the data cannot separate it from noise (reopen with more data, never with more variants) |
 | `evidence` | metric vs null, numbers, artifact link |
 | `verified_cause`, `cause_test` | the cause and the test that verified it; if none was verified, status is `closed-unverified-cause` |
 | `invariants` | the facts that make it fail regardless of incidental details (e.g. "gross edge < round-trip cost at every horizon ≤ 8h"; "direction AUC ≤ 0.53 for any representation of 1h OHLCV windows") |

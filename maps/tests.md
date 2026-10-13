@@ -69,12 +69,12 @@
   - `class EntryRangeConsumerTests(unittest.TestCase)` L584
     - (5 methods)
 
-### `tests/test_experiment_registry.py` (84 lines)
+### `tests/test_experiment_registry.py` (90 lines)
 - PURPOSE: tools/experiment_registry.py: سجلّ الفشل وقاعدة «لا إعادة بلا سبب» — والسجلّ الحقيقي وكل بطاقات المستودع صالحة (CI). (from docstring)
 - DEPENDS: tools
 - API:
   - `class RegistryTests(unittest.TestCase)` L37
-    - (6 methods)
+    - (7 methods)
 
 ### `tests/test_indicator_reverse.py` (146 lines)
 - PURPOSE: tools/indicator_reverse.py: reverse-engineering of indicator definitions and identity checks. (from docstring)
