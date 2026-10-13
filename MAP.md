@@ -32,7 +32,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `research/strategy_discovery/` — strategy_discovery — البحث عن استراتيجية تداول قابلة للتحقق | 10 scripts, 15 data files (112 KB) → maps/research_strategy_discovery.md
 
 ## docs/research (legacy)
-- `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 42 md, 1 data files (94 KB) → maps/docs_research.md
+- `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 43 md, 1 data files (94 KB) → maps/docs_research.md
 - `docs/research/audit/` — Audit / Improvement Protocol (Auditor ↔ Builder) | 26 scripts, 5 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/plan/` — Phase kickoff: how the build session starts a phase | 0 scripts, 13 md, 2 data files (155 KB) → maps/docs_research.md
 - `docs/research/results/` — نتائج خطّة `capacity` على بيانات Drive (Colab T4، 2026-09-27) | 0 scripts, 6 md, 0 data files (0 B) → maps/docs_research.md
