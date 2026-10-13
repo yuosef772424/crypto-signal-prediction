@@ -207,6 +207,12 @@ Documents:
   - `def peers_cover_target(ps)` L71
   - `def auc_pair(aligned)` L90
 
+## `docs/research/notes/`
+- PR #13 restructuring: history facts (evil merges, move+modify commits, verbatim extraction) | 0 scripts, 1 md, 0 data files (0 B)
+
+Documents:
+- `pr13_restructuring_history.md` — PR #13 restructuring: history facts (evil merges, move+modify commits, verbatim extraction)
+
 ## `docs/research/plan/`
 - Phase kickoff: how the build session starts a phase | 0 scripts, 12 md, 0 data files (0 B)
 
