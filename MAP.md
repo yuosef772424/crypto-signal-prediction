@@ -19,7 +19,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 
 ## Code packages
 - `cross_asset/` — Package entry of the cross-asset 'panel' model (phase 1): one sample = a full UTC day with all coins, attention across same-day coins; re-exports PanelSplit, panel_split_from, VARIANTS, run_panel_experiment. | 7 modules, 0 data files (0 B) → maps/cross_asset.md
-- `tools/` — bracket_eval, build_map, check_deps, colab_bridge, evaluate_trained_model, experiment_registry, fet… | 12 modules, 0 data files (0 B) → maps/tools.md
+- `tools/` — bracket_eval, build_map, check_deps, colab_bridge, evaluate_trained_model, experiment_registry, fet… | 13 modules, 0 data files (0 B) → maps/tools.md
 
 ## Research studies (research/)
 - `research/edge_discovery/` — التقرير النهائي — البحث عن Edge قابل للاستغلال (2024-01 → 2026-09) | 41 scripts, 33 data files (788 KB) → maps/research_edge_discovery.md
@@ -35,6 +35,6 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `docs/research/templates/` — Experiment card — <id>: <one-line title> | 0 scripts, 1 md, 0 data files (0 B) → maps/docs_research.md
 
 ## Tests
-- `tests/` — test_audit_round2, test_bracket_eval, test_cross_asset, test_disk_backed, test_entry_range, test_ex… | 19 modules, 1 data files (30 KB) → maps/tests.md
+- `tests/` — test_audit_round2, test_bracket_eval, test_cross_asset, test_disk_backed, test_entry_range, test_ex… | 20 modules, 1 data files (30 KB) → maps/tests.md
 
 ## Where do I edit X? → `maps/tags.md` (TAGS → modules index)
