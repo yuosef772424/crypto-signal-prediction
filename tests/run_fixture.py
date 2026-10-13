@@ -96,12 +96,14 @@ def split_fp(split):
     return out
 
 
-def close(a, b, path="", rtol=1e-6):
+def close(a, b, path="", rtol=1e-5):
     """Recursive comparison of two fingerprint trees: numbers with a relative tolerance, everything else exactly. Returns a list of
-    human-readable differences (empty = equal). rtol=1e-6: on the machine of the recording the restructured code reproduces every
-    recorded fingerprint bit for bit (max difference 0.0 over all float leaves of the six scenarios), so any logic change shows up
-    far above this tolerance. GitHub's CI runners were once seen to differ by ~3e-6 on the 4h features (different CPU, same code);
-    if that recurs, justify a looser tolerance with a measured difference and the failing paths, not by loosening it blindly."""
+    human-readable differences (empty = equal). On the machine of the recording the restructured code reproduces every recorded
+    fingerprint bit for bit (max difference 0.0 over all float leaves of the six scenarios). GitHub's CI runners (different CPU,
+    same code) reproducibly differ on the 4h features of the two-timeframe fixture - identical values in runs 37505485060
+    (2026-10-06) and 38466772204 (2026-10-13), max relative difference 3.06e-6 on /splits/train/X/X_4h/sum
+    (-159.44909644126892 vs -159.44860816001892), 1.5e-6 on /val_batch/x/4h/sum and /val_batch/x/4h/sq - so rtol=1e-5 (~3x the
+    measured difference). A change of logic moves these sums far more; never loosen further without a new measurement."""
     diffs = []
     if isinstance(a, dict) and isinstance(b, dict):
         for k in sorted(set(a) | set(b), key=str):
