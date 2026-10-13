@@ -1,0 +1,7 @@
+survivor,config,test,n,mean_net_r,pf,coins_positive,coins_total,per_coin,verdict
+S1,1d|donchian20|adx25,A_unseen_assets_2024_2026_09,98,0.11583022808652199,1.2259261698581612,2.0,3,BCHUSDT=-0.386; TRXUSDT=+0.170; ZECUSDT=+0.335,PASS
+S1,1d|donchian20|adx25,B_fresh_2026_10,1,-1.0101020183586247,,,10,window end 2026-10-08 00:00:00+00:00,insufficient sample
+S2,1d|bb_break|adx25,A_unseen_assets_2024_2026_09,73,-0.11789231891735276,0.8032282278690162,1.0,3,BCHUSDT=-0.421; TRXUSDT=-0.123; ZECUSDT=+0.068,FAIL
+S2,1d|bb_break|adx25,B_fresh_2026_10,1,0.5586109337694017,,,10,window end 2026-10-08 00:00:00+00:00,insufficient sample
+S3,1d|donchian20|none,A_unseen_assets_2024_2026_09,158,0.1348837064743911,1.2688605056841962,2.0,3,BCHUSDT=-0.082; TRXUSDT=+0.155; ZECUSDT=+0.288,PASS
+S3,1d|donchian20|none,B_fresh_2026_10,1,-1.0101020183586247,,,10,window end 2026-10-08 00:00:00+00:00,insufficient sample
