@@ -163,15 +163,16 @@ class EligibilityTests(Base):
 
 
 def expected_buckets(order, blocked):
-    """Independent statement of the D-009 rule: nominal H(i mod 6 + 1); H3 refuses derivs-touched coins (they go on to H4)."""
-    out = {}
+    """Independent statement of the D-009 rule: nominal H(i mod 6 + 1); H3 refuses derivs-touched coins, and a refused coin goes
+    to the least-filled bucket that accepts it (counts so far, in rank order), ties broken H1..H6."""
+    out, count = {}, {f"H{k}": 0 for k in range(1, 7)}
     for i, sym in enumerate(order):
-        for k in range(6):
-            b = (i + k) % 6 + 1
-            if b == 3 and sym in blocked:
-                continue
-            out[sym] = f"H{b}"
-            break
+        nominal = f"H{i % 6 + 1}"
+        if nominal == "H3" and sym in blocked:
+            accepting = [b for b in count if b != "H3"]
+            nominal = min(accepting, key=lambda b: (count[b], b))
+        out[sym] = nominal
+        count[nominal] += 1
     return out
 
 
@@ -249,15 +250,32 @@ class BucketPredicateTests(unittest.TestCase):
         self.assertEqual(set(d["buckets"]["H3"]) & blocked, set())
         self.assertEqual(d["sealed"], expected_buckets(d["sealed_order"], blocked))
 
-    def test_refused_coin_goes_to_the_next_bucket_and_others_keep_their_nominal_bucket(self):
+    def test_refused_coin_goes_to_the_least_filled_accepting_bucket_and_others_keep_their_nominal_bucket(self):
         d = bl.build(self.mdir, self.touched, SALT, repo_check=False)
         blocked = {s for s, c in d["touch_classes"].items() if "derivs" in c}
+        count = {f"H{k}": 0 for k in range(1, 7)}
+        moved = 0
         for i, s in enumerate(d["sealed_order"]):
             nominal = f"H{i % 6 + 1}"
             if nominal == "H3" and s in blocked:
-                self.assertEqual(d["sealed"][s], "H4", s)
+                want = min((b for b in count if b != "H3"), key=lambda b: (count[b], b))
+                self.assertEqual(d["sealed"][s], want, s)
+                moved += 1
             else:
                 self.assertEqual(d["sealed"][s], nominal, s)
+            count[d["sealed"][s]] += 1
+        self.assertGreater(moved, 0)                                           # not vacuous
+        sizes = [len(v) for k, v in d["buckets"].items() if k != "H3"]
+        self.assertLessEqual(max(sizes) - min(sizes), 1 + moved // 5 + 1)       # refused coins are spread, not piled on H4
+
+    def test_ties_break_in_bucket_order(self):
+        self.assertEqual(bl.assign_buckets(["A", "B", "C"], {"C"}), {"A": "H1", "B": "H2", "C": "H4"})   # H4, H5, H6 are empty: tie -> H4
+        self.assertEqual(bl.assign_buckets(["A", "B", "C", "D", "E", "F"], {"C"}),
+                         {"A": "H1", "B": "H2", "C": "H4", "D": "H4", "E": "H5", "F": "H6"})
+        order = [f"S{i:02d}" for i in range(12)]                     # C refused at i=2 and i=8: counts decide, not position
+        got = bl.assign_buckets(order, {"S02", "S08"})
+        self.assertEqual(got["S02"], "H4")
+        self.assertEqual(got["S08"], "H5")                           # after S02: H4=2 (S02,S03), H5=1 (S04), H6=1 (S05) -> least filled tie H5/H6 -> H5
 
     def test_h3_empty_when_every_coin_is_derivs_touched(self):
         write_touched(self.touched, [[f"AAA{i:02d}USDT", "symbol", "derivs", "1h", "2024", "src-oi", ""] for i in range(60)] +

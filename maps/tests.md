@@ -32,7 +32,7 @@
   - `class EntryFeatureTableTests(unittest.TestCase)` L72
     - (1 methods)
 
-### `tests/test_build_lock.py` (507 lines)
+### `tests/test_build_lock.py` (525 lines)
 - PURPOSE: tools/build_lock.py: pasted manifest + touched.csv + salt -> holdout.json + holdout.sha256, deterministically. (from docstring)
 - DEPENDS: tools
 - API:
@@ -44,19 +44,19 @@
   - `class EligibilityTests(Base)` L95
     - (8 methods)
   - `def expected_buckets(order, blocked)` L165
-  - `class SealingTests(Base)` L178
+  - `class SealingTests(Base)` L179
     - (8 methods)
-  - `class BucketPredicateTests(unittest.TestCase)` L229
-    - (7 methods)
-  - `class InputValidationTests(Base)` L285
+  - `class BucketPredicateTests(unittest.TestCase)` L230
     - (8 methods)
-  - `class OutputTests(Base)` L352
+  - `class InputValidationTests(Base)` L303
+    - (8 methods)
+  - `class OutputTests(Base)` L370
     - (3 methods)
-  - `class IngestTests(unittest.TestCase)` L380
+  - `class IngestTests(unittest.TestCase)` L398
     - (8 methods)
-  - `class SaltTests(unittest.TestCase)` L447
+  - `class SaltTests(unittest.TestCase)` L465
     - (5 methods)
-  - `class CliTests(Base)` L489
+  - `class CliTests(Base)` L507
     - (2 methods)
 
 ### `tests/test_cross_asset.py` (482 lines)
