@@ -3,14 +3,15 @@
 > Read this first in every session (planner and build). Update it in the same PR that changes the state.
 > Keep it under 60 lines.
 
-**Phase:** plan approved by the owner (2026-10-13); no phase started. **Next:** T0 (reviewer reviews #15, #16, #13;
-closes #14/#6 after telling the owner), then the R0 kickoff.
+**Phase:** plan merged (#17). T0 review of #13/#15/#16 running; R0 kickoff given (does not wait for T0).
+**Next:** R0 build → review → G2.
 
 ## Scope (owner, 2026-10-13)
 - Goal (D-001): find or reject, with honest evidence, information that adds something real; a survivor feeds a
   model (feature/target → full model, R6) and/or a bot2 code-computed tool. New docs in English.
 - Planner/reviewer session plans and reviews; a separate build session implements one phase per PR.
-- Heavy runs on Colab, ≤ 1 h per phase (D-003); data on Drive = `history_15m`, 800+ coins, compressed (D-004).
+- ≤ 1 h compute per phase (D-003). Data: Drive `history_15m` 800+ coins (D-004, Colab; sealed buckets come from it);
+  10 touched coins at 1m–1w via `tools/fetch_crypto_dataset.py`, usable in the cloud session (D-007).
 - The planner may merge a phase PR after review (D-002).
 
 ## Honest state (from master, 2026-10-13)
@@ -25,8 +26,9 @@ closes #14/#6 after telling the owner), then the R0 kickoff.
 | Phase | State | PR | Verdict |
 |---|---|---|---|
 | T0 triage open PRs | waiting for D-006 | — | — |
-| R0 lock (+M) | not started | — | — |
-| G gate-cli QC | not started (stage 0 = owner) | — | — |
+| R0 lock (+M) | kickoff given | — | — |
+| G2 gate-style features | next | — | — |
+| G gate-cli reverse + QC | waits for the owner's raw JSON | — | — |
 | R3 NATR range tool | not started | — | — |
 | R1 confluence map 🔒 | not started | — | — |
 | R1b confluence confirm 🔒 | not started | — | — |
@@ -36,15 +38,14 @@ closes #14/#6 after telling the owner), then the R0 kickoff.
 | R6 model integration 🔒 | waits for a survivor | — | — |
 
 ## Holdout
-- Not locked yet (R0). Buckets H1 (R1b), H2 (R3), H3 (R2), H4 (R5); time seal ≥ 2026-10-01. Access log: none.
+- Not locked yet (R0). Buckets H1 (R1b), H2 (R3), H3 (R2), H4 (R5), H5 (G2), H6 (reserve); time seal ≥ 2026-10-01. Access log: none.
 
 ## Owner decisions (`decisions/`)
-- All accepted: D-001 goal (revised) · D-002 merge after review · D-003 Colab ≤ 1 h/phase
-- D-004 data = history_15m 800+ coins · D-005 phase order · D-006 open-PR triage
+- All accepted: D-001 goal (revised) · D-002 merge after review · D-003 ≤ 1 h/phase · D-004 Drive history_15m
+- D-005 phase order (amended by D-008) · D-006 open-PR triage · D-007 5m fetch source · D-008 G2 gate-style features
 
 ## Open questions for the owner 🔒
-1. Is BTC/ETH/SOL 5m data also on Drive? Is anything else there (1d history, hourly futures metrics)?
-2. G stage 0: save the raw gate-cli JSON straight to files (no `head -c`, no LLM summary) — the nine calls of #16 §3
+1. G stage 0: save the raw gate-cli JSON straight to files (no `head -c`, no LLM summary) — the nine calls of #16 §3
    plus `kline --with-indicators` for BTC/ETH/SOL at 15m/1h/4h/1d with the largest `--size`, and gate's history depth.
 
 ## Known issues
