@@ -3,7 +3,7 @@
 > Read this first in every session (planner and build). Update it in the same PR that changes the state.
 > Keep it under 60 lines.
 
-**Phase:** plan merged (#17). T0 review of #13/#15/#16 running; R0 kickoff given (does not wait for T0).
+**Phase:** plan merged (#17). T0 nearly done (only #13 restructuring left); R0 kickoff given (does not wait for T0).
 **Next:** R0 build → review → G2.
 
 ## Scope (owner, 2026-10-13)
@@ -15,17 +15,18 @@
 - The planner may merge a phase PR after review (D-002).
 
 ## Honest state (from master, 2026-10-13)
-- 63 closed failures (`docs/research/failure_registry.csv`); no tradeable edge found.
+- 79 closed failures (`docs/research/failure_registry.csv`); no tradeable edge found.
 - Survivors: H003 (NATR_14 forecasts next range **width**, IC ≈ +0.21 high / −0.20 low, 38/38 OOS windows; not
   direction); H07 (BTC/ETH 30-day trend filter, a drawdown reducer, medium confidence); MOM_ORTH_NATR (relative low, weak).
 - Untested: funding carry / basis; chart-structure confluence as overlapping zones.
 - Consumed: the edge_discovery 2026 holdout; MOM_ORTH_NATR's 38 OOS windows.
-- Open drafts not on master: #6, #13, #14, #15, #16 (#13's H07 registry rows were F-0064/65, colliding with #15's; resolved: the H07 rows are F-0078/F-0079 on master via PR #19).
+- Registry on master: 79 rows (F-0064..F-0077 from #15, S1/S3 not significant on unseen coins → F-0076/77; F-0078/79 H07 vol-sizing
+  rejected and H07 combos `power`, from #19). #13 (restructuring only) being fixed.
 
 ## Phases
 | Phase | State | PR | Verdict |
 |---|---|---|---|
-| T0 triage open PRs | waiting for D-006 | — | — |
+| T0 triage open PRs | #16, #15, #19 (H07 studies split from #13, F-0078/79) merged; #6, #14 closed; #13 restructuring: merge master + rtol fix + history note | #15, #16, #19 | in progress |
 | R0 lock (+M) | kickoff given | — | — |
 | G2 gate-style features | next | — | — |
 | G gate-cli reverse + QC | waits for the owner's raw JSON | — | — |
@@ -50,4 +51,4 @@
 
 ## Known issues
 - Build branch name (`<BUILD_BRANCH>`): unknown until the build session's first report.
-- Baseline checks on master: build_map --check OK, check_deps 0 errors, registry validate OK (63 rows); pytest 190 passed, 0 failed (12 min, CPU).
+- Baseline checks on master: build_map --check OK, check_deps 0 errors, registry validate OK (79 rows); pytest 227 passed, 0 failed (13 min, CPU).
