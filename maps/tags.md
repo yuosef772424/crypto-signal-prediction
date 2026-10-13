@@ -272,6 +272,7 @@
 - hold length: strategy_discovery/seasonality15m
 - holdout: edge_discovery/14_holdout, tools/holdout_guard
 - holdout flag: edge_discovery/13_listing_stops
+- holdout lock: tools/touched_ledger
 - hour of day: edge_discovery/06_seasonality, strategy_discovery/seasonality15m
 - hourly index: edge_discovery/data_tools/build_panel
 - hourly_4h_overrides: tests/test_no_lookahead
@@ -302,7 +303,7 @@
 - klines: tools/fetch_history_csv_concurrent, tools/fetch_history_vision_colab
 - lead-lag: edge_discovery/11_more
 - leakage: tests/test_no_lookahead
-- ledger: tools/experiment_registry, tools/h07_forward
+- ledger: tools/experiment_registry, tools/h07_forward, tools/touched_ledger
 - lfs: tools/fetch_crypto_dataset
 - limit orders: edge_discovery/21_range_fade, edge_discovery/31_wick_capture
 - lint: tools/check_deps
@@ -403,6 +404,7 @@
 - previous candle: edge_discovery/21_range_fade
 - profit factor: indicator_strategy/screen
 - profit target: hedge_recovery/sim2
+- provenance: tools/touched_ledger
 - pullback: edge_discovery/24_pullback_maker
 - pump: edge_discovery/05_events
 - px proxy: edge_discovery/data_tools/build_panel
@@ -412,7 +414,7 @@
 - quintile spread: edge_discovery/04_screen_mean
 - quintiles: edge_discovery/03_quintiles
 - r multiple: edge_discovery/22_chart_rules, indicator_strategy/engine, tools/trade_engine
-- r0: tools/build_lock, tools/data_manifest, tools/data_manifest_colab_cell, tools/holdout_guard
+- r0: tools/build_lock, tools/data_manifest, tools/data_manifest_colab_cell, tools/holdout_guard, tools/touched_ledger
 - random control: hedge_recovery/sim, hedge_recovery/sim2
 - random-direction null: tools/bracket_eval
 - range fade: edge_discovery/21_range_fade
@@ -428,6 +430,7 @@
 - redundancy: edge_discovery/02_fmb
 - regime: indicator_strategy/engine, tools/trade_engine
 - region bars: indicator_strategy/charts
+- registry: tools/touched_ledger
 - relative direction: edge_discovery/18_h13_pr7_signal
 - reopen conditions: tools/experiment_registry
 - representation information: edge_discovery/27_repr_info
@@ -457,7 +460,7 @@
 - scaled: tests/test_real_price_modes
 - scaling in: edge_discovery/24_pullback_maker
 - screen_disc_mean.csv: edge_discovery/04_screen_mean
-- sealed coins: tools/holdout_guard
+- sealed coins: tools/holdout_guard, tools/touched_ledger
 - sealed holdout: tools/build_lock
 - seasonality: edge_discovery/06_seasonality, strategy_discovery/seasonality15m
 - seed spread: edge_discovery/26_h19_generalization
@@ -490,6 +493,7 @@
 - stats: edge_discovery/tsbt
 - stop loss: edge_discovery/13_listing_stops, tools/bracket_eval
 - stress test: edge_discovery/17_h07_break
+- strict side: tools/touched_ledger
 - summarize: cross_asset/report
 - supertrend: strategy_discovery/grid2
 - survivor: edge_discovery/07_trend
@@ -524,6 +528,7 @@
 - top traders: edge_discovery/19_hl_copy
 - top-50 big: edge_discovery/lib
 - torch: edge_discovery/25_image_cnn
+- touched data: tools/touched_ledger
 - touched ledger: tools/build_lock
 - tp sl: edge_discovery/29_path_envelope
 - tp_room: tools/bracket_eval
@@ -547,7 +552,7 @@
 - turnover: edge_discovery/03_quintiles, edge_discovery/18_h13_pr7_signal
 - turnover cost: edge_discovery/tsbt, strategy_discovery/rotation
 - unit tests: cross_asset/selftest
-- universe: h07_combos/01_combos
+- universe: h07_combos/01_combos, tools/touched_ledger
 - universe mask: edge_discovery/lib
 - unseen assets: strategy_discovery/oos, strategy_discovery/significance, strategy_discovery/survivor_checks
 - untouched coins: edge_discovery/24_pullback_maker

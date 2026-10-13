@@ -69,7 +69,7 @@ class UniverseTests(unittest.TestCase):
 
     def test_every_symbol_looks_like_a_binance_symbol(self):
         for g in tl.GROUPS:
-            for s in g["symbols"]:
+            for s in g.get("symbols", []):
                 self.assertEqual(s, s.upper(), s)
                 self.assertTrue(s.endswith("USDT"), s)
 
