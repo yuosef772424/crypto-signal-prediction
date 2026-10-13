@@ -13,22 +13,28 @@ session, reviewed by the planner (KICKOFF.md), merged only when its DoD holds an
 Phases marked 🔒 need an explicit owner decision before they start.
 
 ```
-T0 triage open PRs ─▶ R0 lock (+M) ─▶ G gate-cli QC ─▶ R3 NATR range tool ─▶ R1 confluence map 🔒─▶ R1b confirm
+T0 triage open PRs (in parallel) ‖ R0 lock (+M) ─▶ G2 gate-style features ─▶ G gate-cli reverse + QC ─▶ R3 NATR range tool
+   ─▶ R1 confluence map 🔒─▶ R1b confirm
                                   └─▶ R5 confirm E-disc S1/S3 (optional, cheap)            R2 funding/basis 🔒 (data first)
                                                                                            R4 H07 forward (parked)
-Survivors of G / R2 / R3 / R1b / R5 ─▶ R6 model integration (🔒 starts when ≥ 1 new input survives)
+Survivors of G2 / G / R2 / R3 / R1b / R5 ─▶ R6 model integration (🔒 starts when ≥ 1 new input survives)
 ```
 Order accepted by the owner (D-005).
 
 ## Common contracts
 
-**Data (D-004).** Drive holds `history_15m` (800+ coins, compressed). Coarser bars (1h/4h/1d) are resampled from 15m
-inside the scripts (UTC, label = bar open, a bar is used only after it closes). There is no 5m path for most coins:
-intrabar order inside a 15m bar is unknown, so every bracket uses **stop-first** on ambiguity (the honest lower bound,
-as in `tools/bracket_eval.py`). No funding/basis history is on Drive (R2 starts with an acquisition step).
+**Data (D-004, D-007).** Two sources. (1) Drive `history_15m`: 800+ coins, compressed, read on Colab — the only source
+of untouched coins, so every sealed bucket comes from it; intrabar order inside a 15m bar is unknown, so brackets on it
+use **stop-first** on ambiguity (the honest lower bound, as in `tools/bracket_eval.py`). (2) `tools/fetch_crypto_dataset.py`
+(Speirsy11, Binance spot): 10 coins (ADA BCH BNB BTC DOGE ETH SOL TRX XRP ZEC), every interval from 1m to 1w,
+2017-08..now, ~9 s per coin per interval, reachable from the cloud session. All 10 coins are already touched, so they
+serve exploration and selection only, never confirmation; fetch with `--end "2026-09-30 23:55"` (time seal).
+Coarser bars are resampled inside the scripts (UTC, label = bar open, a bar is used only after it closes).
+No funding/basis history is available yet (R2 starts with an acquisition step).
 
-**Colab run contract (D-003, ≤ 1 h per phase).** The builder delivers scripts + tests on small fixtures (CPU, no Drive).
-The owner runs one Colab cell per run. Every run script:
+**Run contract (D-003, ≤ 1 h per phase).** Runs on the 10-coin dataset may execute in the build session itself (it can
+fetch them); the planner re-runs the same command and compares the output sha256 values (reproduction check). Runs on
+Drive data (sealed buckets, 800-coin universes) execute on Colab: one cell per run, by the owner. Every run script:
 - takes `--config <json>` (unknown keys raise) and `--out <dir>`, and stops cleanly at `--max-minutes` (default 50);
 - reads data only through `tools/holdout_guard.py` (after R0);
 - writes `manifest.json` (git SHA, config, input fingerprint = sha256 of the sorted input file list + sizes, row counts,
@@ -43,7 +49,7 @@ result is also reported at 2× cost. Costs in R = round-trip cost / stop distanc
 of trades; per-coin consistency (share of coins with ≥ 20 trades whose mean has the same sign); every configuration
 tried is counted (BH-FDR or Holm as the card states; Deflated Sharpe where a Sharpe is claimed).
 
-**Holdout (R0 onwards).** Sealed coins are split into four disjoint buckets H1–H4, one per confirmation phase. A bucket
+**Holdout (R0 onwards).** Sealed coins are split into six disjoint buckets H1–H6, one per confirmation phase. A bucket
 is read once, by the single frozen confirmation step of its phase, through `holdout_guard.open_holdout(card)`, which
 appends a row to `docs/research/plan/lock/holdout_access_log.csv`. Bars with open time ≥ 2026-10-01 are time-sealed
 for every coin (forward data, for R4 and later re-checks). The edge_discovery 2026 holdout is consumed and not reused.
@@ -73,12 +79,15 @@ for every coin (forward data, for R4 and later re-checks). The edge_discovery 20
 - **Goal:** decide, before any new result, which coins and periods nobody may read, and make code refuse them.
 - **Inputs:** a coin manifest of `history_15m` produced on Colab by the builder's `tools/data_manifest.py`
   (symbol, first/last bar, rows, file sha256); a touched-data ledger built from the repo (registry `universe`/`period`
-  columns, `research/*/README.md`, merged T0 PRs): `docs/research/plan/lock/touched.csv` (symbol or rule, timeframe,
-  period, source).
+  columns, `research/*/README.md`) **and from the open PR branches** (#13, #14, #15, #16; `git show <branch>:<path>`),
+  so R0 does not wait for T0: `docs/research/plan/lock/touched.csv` (symbol or rule, timeframe, period, source). A
+  universe described only as a rule ("top-50 by OI", "195 perps with metrics", "222 assets history_1d") is resolved to
+  symbols where the repo lists them; where it cannot be resolved, the rule's whole universe counts as touched for the
+  periods it names (strict side).
 - **Reviewer decisions:** eligible = ≥ 2 years of 15m history, last bar ≥ 2026-09-01, not a stablecoin / leveraged token,
   **not touched at any timeframe**. Sealed = 40 % of eligible coins ranked by `sha256(salt + symbol)`, where `salt` = the
   40-char SHA of the commit that adds the R0 card (committed before the manifest is pasted). Sealed coins → buckets
-  H1 (R1b), H2 (R3), H3 (R2), H4 (R5) by the same hash, round-robin. Time seal: open time ≥ 2026-10-01, all coins.
+  H1 (R1b), H2 (R3), H3 (R2), H4 (R5), H5 (G2), H6 (reserve, R6) by the same hash, round-robin. Time seal: open time ≥ 2026-10-01, all coins.
 - **Deliverables:** `tools/holdout_guard.py` (card + test): `load_unsealed(...)`, `assert_unsealed(symbols, start, end)`,
   `open_holdout(card_path, bucket)` (refuses a second open of a bucket, refuses a card without `confirmation: true` and
   a frozen-rules hash); `docs/research/plan/lock/holdout.json` + `holdout.sha256`; empty `holdout_access_log.csv` with a header.
@@ -87,12 +96,54 @@ for every coin (forward data, for R4 and later re-checks). The edge_discovery 20
   except appended access-log rows.
 - **Card:** none (infrastructure). **Registry:** none. **Colab:** one run of `data_manifest.py` (~5 min).
 
-## G — gate-cli: reverse-engineer its derived fields, rebuild them, QC the rest (from PR #16)
+## G2 — Gate-style derived technical states as model inputs (owner direction, D-008)
+- **Goal:** the gate agent (a known exchange's agent) feeds its users derived *states*, not raw indicators: per
+  timeframe `ma_alignment`, `rsi_zone`, `macd_signal`, KDJ, SAR side, BOLL position, ADX/DI, WR/CCI zones, and one
+  multi-timeframe `signal`. Raw single indicators are closed (F-0002, F-0004, F-0009, F-0026, F-0027) and are not
+  recomputed. What is new and tested here is the construction: categorical states, multi-timeframe (15m/1h/4h/1d) at
+  one decision time, and their aggregation — as a feature set for a model and as a verdict on whether a gate-like
+  `signal` deserves bot2's trust.
+- **Build (`tools/gate_features.py`, card + tests):** causal states from closed bars only; missing or insufficient
+  history = NaN, never 0 (the gate bugs); each state definition is versioned `gate-style-v1, unverified` until G
+  recovers gate's exact definition (then a new card changes one definition at a time). Candidate definitions fixed in
+  the card: `ma_alignment` A = MA7 > MA30 > MA120 bullish / reverse bearish / else neutral, B = A plus MA200; same for
+  EMA; `rsi_zone` 30/70 (RSI 14, Wilder); `macd_signal` = golden/dead cross of (12,26,9) within the last 3 bars, else
+  none, plus histogram sign; KDJ (9,3,3) zone 20/80 and K/D cross; SAR (0.02, 0.2) side; BOLL (20, 2) %B zone (< 0,
+  0–1, > 1) and bandwidth percentile over 120 bars; ADX(14) bucket (< 20, 20–40, > 40) × DI dominance; WR(14) zone
+  −80/−20; CCI(20) zone ±100. Aggregate = bullish count − bearish count per timeframe and over all; gate-like `signal`
+  = sign of the aggregate.
+- **Test (card `research/gate_features/cards/E-gate-001.md`, before any result):** decision every closed 1h bar on the
+  10-coin 5m dataset; entry at the next bar's open. Targets: direction of the 4h and 24h forward return; magnitude =
+  next 4h and 24h range in NATR units. Models: logistic (one-hot) and a GBM. Capacity controls of RESEARCH_RULES §2.1
+  are mandatory: effective sample size, k-sweep k = 1, 3, 5, 10, 20, all (ranked on train only), learning curve
+  25/50/100 %, shuffled-label null (≥ 20 shuffles), and the comparison old vs new set (raw indicator values vs the
+  state set, same model) that F-0027 R2 asks for. Baselines: intercept (direction), NATR-only (magnitude). Splits:
+  train 2018-01..2022-12, val 2023-01..2024-12 (selects), 2025-01..2026-09 compares only (already touched by earlier
+  studies); confirmation once on sealed bucket H5 (Drive 15m, Colab).
+- **Accept rule (fixed now):** direction — val AUC ≥ 0.53 at a horizon AND above the shuffled null's 99th percentile
+  AND gain over the intercept in ≥ 4 of the 5 calendar years 2021–2025 AND the k-sweep peak is not matched by the
+  shuffled-label fit; then, economics level: top-decile gross per-trade move > the 0.14 % round trip at 1× and 2×
+  (F-0036's invariant: 1h direction information existed but cost ate it). Magnitude — ≥ 2 % relative improvement in
+  pinball loss over NATR-only on val, same sign every year. Anything else → registry rows with the level where it failed.
+- **Registry:** expected `reopens` — F-0027:R1 (the 15m archive of 800+ coins, used for the H5 confirmation) and
+  F-0027:R2 (old vs new set inside a model), F-0056:R2 (capacity controls run), F-0039:R2 (capacity sweep),
+  F-0009:R2 (BOLL bandwidth against a future-volatility target); `not_covered_by` for F-0036 / F-0054 and every other
+  row `covering` lists must name a concrete scope difference. Tags from the vocabulary (`indicator-signal;
+  trend-following; momentum; mean-reversion; volatility-structure`, `timeframe: 1h`, `target: direction; magnitude`,
+  `model_class: logistic; gbm`).
+- **DoD:** `tools/gate_features.py` with look-ahead perturbation tests (changing bars after t leaves states at t
+  unchanged) and NaN-not-0 tests; card committed first; run bundle (in the build session) reproduced by the planner;
+  verdict per target; if a set is accepted, it is registered as an R6 model input and (for direction only after the
+  economics check) a bot2 tool spec `get_tech_states(symbol)`; the bot2 note says whether a gate-like `signal` carried
+  information (with the AUC and its null).
+- **Compute:** build session (10 coins, ≤ 40 min) + one Colab confirmation (H5, ≤ 20 min).
+
+## G — gate-cli: reverse-engineer its derived fields, rebuild them, QC the rest (from PR #16; needs the owner's raw JSON)
 - **Goal:** the gate agent's data quotes indicators and summary fields (`technical_view` per timeframe: `ma_alignment`,
   `macd_signal`, `rsi_zone`, the aggregate `signal`; kline indicators: MA/EMA 7/30/120/200, BOLL, MACD, KDJ, RSI, WR,
   CCI, ADX/DI, SAR). (1) Recover their exact definitions with `tools/indicator_reverse.py` (PR #16): parameters,
   windows, and the rule that maps indicators to `signal`. (2) Rebuild them as our own code-computed features from our
-  OHLCV (`tools/gate_features.py`), so neither a model nor bot2 depends on gate's delivery bugs (zero-as-missing,
+  OHLCV (`tools/gate_features.py`, created in G2: G replaces its `gate-style-v1` candidates by recovered definitions), so neither a model nor bot2 depends on gate's delivery bugs (zero-as-missing,
   wrong symbol match, frozen series). (3) For fields we cannot rebuild (funding, OI, long/short ratios, taker volume,
   exchange flows/reserves, ETF flows), a field-level QC verdict (`ok/suspect/invalid/unverifiable`, #16 rules R01–R19).
 - **Inputs (stage 0, owner):** raw gate-cli JSON saved to files directly by the CLI (`> file.json`, no `head -c`, no
@@ -151,7 +202,9 @@ for every coin (forward data, for R4 and later re-checks). The edge_discovery 20
   zone timeframes = 164 cells. Lift = cell metric − best member's metric on touches where that member is alone.
 - **Null:** random zones with the same count, widths and `valid_from`, placed uniformly within ±3 ATR of price at
   `valid_from` (20 seeded repetitions).
-- **Universe / periods:** the 20 unsealed coins with the highest median quote volume; P1 2022-01..2024-04, P2 2024-05..2026-09.
+- **Universe / periods:** the 10-coin dataset with the exact 5m path (1m where a 5m bar touches both levels); P1
+  2019-01..2022-12, P2 2023-01..2026-09. Runs in the build session. R1b confirms on sealed Drive coins (15m, stop-first),
+  so the R1 report also gives every candidate's metrics under stop-first on 15m bars, to show the confirmation's handicap.
 - **Pre-registered "worth continuing" bar (fixed now):** a cell is a candidate iff n ≥ 300 touches on ≥ 8 coins; gross
   mean R above the null's 95th percentile by ≥ 0.10R; net mean R > 0 at 1× cost; lift ≥ +0.05R; same sign in P1 and P2;
   and it survives BH-FDR q = 0.10 over all 164 cells on P(+1R first) vs the null. No candidate → the phase closes with
@@ -164,8 +217,8 @@ for every coin (forward data, for R4 and later re-checks). The edge_discovery 20
   level definition), F-0062, F-0060/F-0061, F-0019 (`reopens: F-0019:R1` only if covered: structure from the intraday
   path), plus #15's F-0068/F-0073/F-0074 once merged. The reviewer rejects any declaration that is not concrete.
 - **DoD:** detector look-ahead tests (perturbing bars after `valid_from` changes nothing up to `valid_from`), touch/outcome
-  tests on hand-built fixtures, the map (CSV + markdown heatmap) from one Colab run, the candidate list mechanically
-  checked against the bar. **Colab:** 1 run, ≤ 50 min.
+  tests on hand-built fixtures, the map (CSV + markdown heatmap) from one run, the candidate list mechanically
+  checked against the bar. **Compute:** build session, ≤ 50 min; reproduced by the planner.
 
 ## R1b — Confluence: refine and confirm (🔒 starts only if R1 has candidates and the owner says go)
 - **Goal:** at most 3 rules chosen from R1 candidates on P1/P2 only, frozen in the card (parameters + sha256 of the rule

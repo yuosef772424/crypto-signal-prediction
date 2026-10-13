@@ -11,3 +11,5 @@ Do not re-argue an accepted decision; supersede it with a new file.
 | [D-004](D-004-data-on-drive.md) | Data on Drive: history_15m, 800+ coins | Accepted |
 | [D-005](D-005-phase-order.md) | Phase order | Accepted |
 | [D-006](D-006-open-pr-triage.md) | Triage of open draft PRs | Accepted |
+| [D-007](D-007-five-minute-source.md) | 5m data from the fetch tool (10 coins) | Accepted |
+| [D-008](D-008-gate-style-features.md) | Gate-style derived features (G2) | Accepted |

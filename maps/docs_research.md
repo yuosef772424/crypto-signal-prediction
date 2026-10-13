@@ -200,7 +200,7 @@ Documents:
   - `def auc_pair(aligned)` L90
 
 ## `docs/research/plan/`
-- Phase kickoff: how the build session starts a phase | 0 scripts, 10 md, 0 data files (0 B)
+- Phase kickoff: how the build session starts a phase | 0 scripts, 12 md, 0 data files (0 B)
 
 Documents:
 - `KICKOFF.md` — Phase kickoff: how the build session starts a phase
@@ -212,6 +212,8 @@ Documents:
 - `decisions/D-004-data-on-drive.md` — D-004: Data on Drive
 - `decisions/D-005-phase-order.md` — D-005: Phase order
 - `decisions/D-006-open-pr-triage.md` — D-006: Triage of the open draft PRs
+- `decisions/D-007-five-minute-source.md` — D-007: 5m (and 1m–1w) data from the repo's fetch tool
+- `decisions/D-008-gate-style-features.md` — D-008: Build gate-style derived features and test them as model inputs
 - `decisions/README.md` — Owner decisions (ADR style)
 
 ## `docs/research/results/`
