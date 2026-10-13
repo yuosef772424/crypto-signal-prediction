@@ -15,7 +15,7 @@
   - `def day_clustered_t(x: np.ndarray, ts) -> float` L115
   - `def evaluate_filters(df: pd.DataFrame, filters: Dict[str, Optional[str]], bracket=0.01, direction=None, cost_rt: float=COST_RT, null_reps: int=200, seed: int=0, min_trades: int=30) -> pd.DataFrame` L124
 
-### `tools/build_lock.py` (380 lines)
+### `tools/build_lock.py` (381 lines)
 - PURPOSE: Builds the sealed-holdout lock of phase R0, deterministically: the pasted Colab manifest of history_15m (tools/data_manifest.py bundle) + the touched-data ledger (docs/research/plan/lock/touched.csv) + the salt -> docs/research/plan/lock/h…
 - TAGS: d-009, two-level holdout, lock, sealed holdout, salt, eligibility, touched ledger, buckets, deterministic build, manifest ingest, r0
 - PITFALLS: Level X (any intraday touch) is ineligible; level B (daily-only or non-price touches) is eligible and recorded; `unresolved:<name>` rules are recorded and touch nobody. `ingest --from-dir` takes a run folder (what a runner pushes), `--bundle` the pasted text. The salt must be the commit that first added lock/README.md (checked with git unless --no-repo-check, which is for fixtures only). A pull r…
@@ -28,13 +28,13 @@
   - `def reasons_for(symbol, row, bases, touch)` L181
   - `def bucket_accepts(bucket, symbol, derivs_touched)` L204
   - `def assign_buckets(sealed_order, derivs_touched)` L209
-  - `def verify_salt(salt, repo_root=ROOT)` L221
-  - `def build(manifest_dir, touched_path, salt, *, repo_check=True, repo_root=ROOT)` L232
-  - `def dumps(d)` L288
-  - `def write_lock(d, out_dir)` L292
-  - `def ingest(text, dest_dir)` L305
-  - `def ingest_dir(src_dir, dest_dir)` L319
-  - `def main(argv=None)` L348
+  - `def verify_salt(salt, repo_root=ROOT)` L222
+  - `def build(manifest_dir, touched_path, salt, *, repo_check=True, repo_root=ROOT)` L233
+  - `def dumps(d)` L289
+  - `def write_lock(d, out_dir)` L293
+  - `def ingest(text, dest_dir)` L306
+  - `def ingest_dir(src_dir, dest_dir)` L320
+  - `def main(argv=None)` L349
 
 ### `tools/build_map.py` (556 lines)
 - PURPOSE: Generate the layered repo map from the code with `ast` (modules are never imported): MAP.md (L0, small) and maps/<zone>.md (L1: cards, public signatures with line numbers, DEPENDS); enforces the card ratchet.

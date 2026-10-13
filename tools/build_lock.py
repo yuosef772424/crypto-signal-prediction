@@ -207,14 +207,15 @@ def bucket_accepts(bucket, symbol, derivs_touched):
 
 
 def assign_buckets(sealed_order, derivs_touched):
-    """Symbol i (rank order) is nominally in H(i mod 6 + 1); a refusing bucket passes the coin to the next one in order."""
-    out = {}
+    """Symbol i (rank order) is nominally in H(i mod 6 + 1). A coin its nominal bucket refuses goes to the least-filled
+    bucket that accepts it (counts so far, in rank order); ties are broken H1..H6."""
+    out, count = {}, {b: 0 for b in BUCKETS}
     for i, sym in enumerate(sealed_order):
-        for k in range(len(BUCKETS)):
-            b = BUCKETS[(i + k) % len(BUCKETS)]
-            if bucket_accepts(b, sym, derivs_touched):
-                out[sym] = b
-                break
+        b = BUCKETS[i % len(BUCKETS)]
+        if not bucket_accepts(b, sym, derivs_touched):
+            b = min((x for x in BUCKETS if bucket_accepts(x, sym, derivs_touched)), key=lambda x: (count[x], x))
+        out[sym] = b
+        count[b] += 1
     return out
 
 
