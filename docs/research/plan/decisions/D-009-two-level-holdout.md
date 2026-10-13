@@ -17,7 +17,7 @@ cannot have taught anything about 15m path behaviour.
    stablecoin and leveraged-token exclusions unchanged; time seal at 2026-10-01 for all coins unchanged.
 4. Sealed = 40 % of eligible (A and B together), ranked by `sha256(salt + symbol)`, as before.
 5. Buckets stay round-robin by the same hash, except H3 (R2, funding/basis) accepts only coins with no
-   funding/OI/basis/metrics touch; a coin refused by a bucket goes to the next bucket in order.
+   funding/OI/basis/metrics touch; a coin refused by a bucket goes to the least-filled bucket that accepts it, ties H1..H6 (review change of 2026-10-13, before any manifest; the first wording was "the next bucket in order").
 6. `holdout.json` records the level (A or B) of each coin and its touching sources.
 7. The CoinMetrics proxy rule `first_bar_before:2021-01-01` is dropped: a daily-only touch never excludes a coin. Its rows
    stay in `touched.csv` as level-B evidence (the 44 assets are not listed in the repo, so they stay unresolved).

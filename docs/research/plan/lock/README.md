@@ -131,10 +131,13 @@ this section governs.
    stablecoin, leveraged and index-contract tests are unchanged.
 4. **Sealed set.** 40 % of the eligible coins (A and B together), `floor(2n / 5)`, ranked by `sha256(salt + symbol)` as in
    section 5.
-5. **Buckets.** The sealed symbols in rank order are indexed `i = 0, 1, ...`. The nominal bucket is `H(i mod 6 + 1)`. The
-   coin goes to the first bucket, starting at the nominal one and moving in order H1..H6 and back to H1, whose predicate
-   accepts it. Every bucket accepts every coin except **H3** (R2, funding/basis), which refuses a coin with any
-   `derivs` row in its touching sources; such a coin nominally in H3 goes to H4.
+5. **Buckets.** The sealed symbols in rank order are indexed `i = 0, 1, ...`. The nominal bucket is `H(i mod 6 + 1)`. Every
+   bucket accepts every coin except **H3** (R2, funding/basis), which refuses a coin with any `derivs` row in its touching
+   sources. A coin whose nominal bucket refuses it goes to the **least-filled bucket that accepts it** (counts of the
+   coins already placed, in rank order); ties are broken in the order H1..H6. (This replaces the first wording, "next bucket
+   in order", which sent every refused coin to H4; the review changed it on 2026-10-13, before any manifest.) Because most
+   coins have a funding/OI/metrics touch, H3 may stay small: R2's confirmation relies on the time seal (open time >=
+   2026-10-01, all coins) plus whatever coins H3 gets.
 6. **Record.** `holdout.json` lists the level of each eligible coin (`levels`: A or B), its touching sources
    (`touched_sources`) and touch classes (`touch_classes`), the unresolved rules, and the funnel counts per level.
 7. **Time seal.** Unchanged: open time >= 2026-10-01 for all coins.
