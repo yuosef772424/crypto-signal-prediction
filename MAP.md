@@ -24,14 +24,15 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 ## Research studies (research/)
 - `research/edge_discovery/` — التقرير النهائي — البحث عن Edge قابل للاستغلال (2024-01 → 2026-09) | 41 scripts, 33 data files (788 KB) → maps/research_edge_discovery.md
 - `research/gate_data_qc/` — تدقيق بيانات gate-cli — التحقق من التقرير وخطة التطبيق والاختبار | 0 scripts, 0 data files (0 B) → maps/research_gate_data_qc.md
-- `research/h07_combos/` — H07 + قواعد أخرى — هل يتحسّن مرشّح الاتجاه بالدمج؟ | 0 scripts, 0 data files (0 B) → maps/research_h07_combos.md
-- `research/h07_volsizing/` — H07 + تحجيم بالتقلّب المتوقَّع (تعلّم آلي للمقدار لا للاتجاه) | 0 scripts, 0 data files (0 B) → maps/research_h07_volsizing.md
+- `research/h07_combos/` — H07 + قواعد أخرى — هل يتحسّن مرشّح الاتجاه بالدمج؟ | 1 scripts, 1 data files (2 KB) → maps/research_h07_combos.md
+- `research/h07_forward/` — H07 — تداول ورقي على بيانات لم يرها أحد (من 2026-10-01) | 0 scripts, 3 data files (3 KB) → maps/research_h07_forward.md
+- `research/h07_volsizing/` — H07 + تحجيم بالتقلّب المتوقَّع (تعلّم آلي للمقدار لا للاتجاه) | 1 scripts, 3 data files (7 KB) → maps/research_h07_volsizing.md
 - `research/hedge_recovery/` — hedge_recovery — دراسة الصفقات المتحوّطة (تجارب E-hedge) | 2 scripts, 2 data files (69 KB) → maps/research_hedge_recovery.md
 - `research/indicator_strategy/` — indicator_strategy — دراسة المؤشرات والشروط على الفريمات 4h و1d | 5 scripts, 5 data files (148 KB) → maps/research_indicator_strategy.md
 - `research/strategy_discovery/` — strategy_discovery — البحث عن استراتيجية تداول قابلة للتحقق | 10 scripts, 15 data files (112 KB) → maps/research_strategy_discovery.md
 
 ## docs/research (legacy)
-- `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 42 md, 1 data files (91 KB) → maps/docs_research.md
+- `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 42 md, 1 data files (94 KB) → maps/docs_research.md
 - `docs/research/audit/` — Audit / Improvement Protocol (Auditor ↔ Builder) | 26 scripts, 5 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/plan/` — Phase kickoff: how the build session starts a phase | 0 scripts, 12 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/results/` — نتائج خطّة `capacity` على بيانات Drive (Colab T4، 2026-09-27) | 0 scripts, 6 md, 0 data files (0 B) → maps/docs_research.md
