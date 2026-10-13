@@ -32,8 +32,9 @@
   - `class EntryFeatureTableTests(unittest.TestCase)` L72
     - (1 methods)
 
-### `tests/test_colab_runner.py` (658 lines)
+### `tests/test_colab_runner.py` (677 lines)
 - PURPOSE: tools/colab_runner.py (one-click Colab experiment runner: job validation, output validation, bundle, token masking, (from docstring)
+- DEPENDS: tools
 - API:
   - `def good_job(**over)` L25
   - `def test_valid_job_is_normalised()` L34
@@ -97,6 +98,7 @@
   - `def test_smoke_script_writes_a_valid_contract_bundle(tmp_path)` L626
   - `def test_smoke_script_rejects_unknown_config_keys(tmp_path)` L641
   - `def test_smoke_script_is_deterministic(tmp_path)` L649
+  - `def test_check_job_cli(tmp_path, capsys)` L662
 
 ### `tests/test_cross_asset.py` (482 lines)
 - PURPOSE: اختبارات نموذج اللوحة عبر العملات (سريعة، بيانات تركيبية، بلا Drive): python -m unittest tests.test_cross_asset -v (from docstring)

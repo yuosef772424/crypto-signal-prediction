@@ -101,7 +101,7 @@ def test_mask_covers_plain_urlencoded_and_basic_auth_forms():
     odd = TOKEN + "+/=x y"
     b64 = base64.b64encode(("x-access-token:" + odd).encode()).decode()
     text = f"a {odd} b {urllib.parse.quote(odd)} c {b64} d {TOKEN}"
-    out = cr.mask(text, [odd])
+    out = cr.mask(text, [odd, TOKEN])
     for leak in (odd, urllib.parse.quote(odd), b64, TOKEN):
         assert leak not in out
     assert out.count("***") >= 4
@@ -558,7 +558,7 @@ def test_end_to_end_ok_then_refuse_then_rerun(tmp_path):
     assert git(remote, "rev-parse", "colab-results") == before                  # nothing pushed
 
     res3 = run_all(make_runner(tmp_path, remote), dict(job, rerun=True))
-    assert res3["status"] == "OK" and res3["results_sha"] != before
+    assert res3["status"] == "OK" and res3["results_sha"] != before, res3["message"]
 
 
 def test_end_to_end_failing_job_still_pushes_fail_log(tmp_path):
@@ -656,3 +656,22 @@ def test_smoke_script_is_deterministic(tmp_path):
         outs.append(cr.sha256_file(str(tmp_path / name / "smoke.csv")))
     assert outs[0] == outs[1]
     shutil.rmtree(tmp_path / "a")
+
+
+# ----------------------------------------------------------------------------------------------------- check-job CLI
+def test_check_job_cli(tmp_path, capsys):
+    repo = tmp_path / "r"
+    repo.mkdir()
+    sha = init_repo(repo, {"tools/colab_runner.py": "x=1\n", "tools/colab_smoke.py": "x=1\n"})
+    jf = tmp_path / "job.json"
+    jf.write_text(json.dumps(good_job(repo_ref=sha)))
+    assert cr.main(["check-job", str(jf), "--repo", str(repo)]) == 0 and "OK: job smoke-001" in capsys.readouterr().out
+    jf.write_text(json.dumps(good_job(repo_ref="c" * 40)))
+    with pytest.raises(SystemExit, match="not a commit"):
+        cr.main(["check-job", str(jf), "--repo", str(repo)])
+    jf.write_text(json.dumps(good_job(repo_ref=sha, entry="tools/nothere.py")))
+    with pytest.raises(SystemExit, match="does not exist"):
+        cr.main(["check-job", str(jf), "--repo", str(repo)])
+    jf.write_text(json.dumps(good_job(repo_ref=sha, entry="docs/x.py")))
+    with pytest.raises(cr.JobError):
+        cr.main(["check-job", str(jf), "--repo", str(repo)])
