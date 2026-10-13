@@ -1,19 +1,20 @@
 {
- "args": [
-  "--sleep",
-  "0"
- ],
+ "args": [],
  "config": {
-  "rows": 5,
-  "seed": 7
+  "extra_folders": {
+   "history_1d": "/content/drive/MyDrive/history_1d"
+  },
+  "history_15m_dir": "/content/drive/MyDrive/history_15m"
  },
- "entry": "tools/colab_smoke.py",
+ "entry": "tools/data_manifest.py",
  "expected_outputs": [
-  "smoke.csv"
+  "history_15m_manifest.csv",
+  "folders_manifest.csv",
+  "manifest.json"
  ],
- "job_id": "smoke-001",
- "max_minutes": 5,
- "needs_drive": false,
- "note": "Sample smoke job: runs tools/colab_smoke.py, which writes smoke.csv and a run-contract manifest.json. Queue a new job_id for the next run.",
- "repo_ref": "3227aa3a2c42bf37248f2f5e0e4f6e7286919044"
+ "job_id": "r0-manifest-001",
+ "max_minutes": 50,
+ "needs_drive": true,
+ "note": "R0 lock: list Drive history_15m (symbol, first/last bar, rows, file sha256) and the history_1d file names. Read-only on Drive. A missing history_1d folder is only a warning in manifest.json.",
+ "repo_ref": "1b0c87f5ab2b3846734a5cbfa9aef23c33b29139"
 }
