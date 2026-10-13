@@ -20,7 +20,7 @@
   direction); H07 (BTC/ETH 30-day trend filter, a drawdown reducer, medium confidence); MOM_ORTH_NATR (relative low, weak).
 - Untested: funding carry / basis; chart-structure confluence as overlapping zones.
 - Consumed: the edge_discovery 2026 holdout; MOM_ORTH_NATR's 38 OOS windows.
-- Open drafts not on master: #6, #13, #14, #15, #16 (registry rows F-0064.. collide between #13 and #15).
+- Open drafts not on master: #6, #13, #14, #15, #16 (#13's H07 registry rows were F-0064/65, colliding with #15's; resolved: the H07 rows are F-0078/F-0079 on master via PR #19).
 
 ## Phases
 | Phase | State | PR | Verdict |
