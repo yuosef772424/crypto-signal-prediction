@@ -6,6 +6,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 
 ## Root notebooks → maps/notebooks.md
 - `chicks_v4_5_input_output_patterns.ipynb` — 📓 دفتر تقييم النموذج — نسخة مُحسّنة (v4.1) (70 public defs)
+- `colab_runner.ipynb` — Colab runner: one click per experiment (0 public defs)
 - `crypto_data_pipeline_v6.ipynb` — خط أنابيب تجهيز بيانات العملات الرقمية — دفتر موحّد (تاريخي + حيّ) (152 public defs)
 - `hypothesis_h001_short_term_reversal.ipynb` — H001 — الانعكاس قصير المدى (Short-Term Reversal) (2 public defs)
 - `hypothesis_h002_classification_head.ipynb` — H002 — رأس التصنيف الثنائي في `NIG-TimeNet v2` (1 public defs)
@@ -42,6 +43,6 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `docs/research/templates/` — Experiment card — <id>: <one-line title> | 0 scripts, 1 md, 0 data files (0 B) → maps/docs_research.md
 
 ## Tests
-- `tests/` — test_audit_round2, test_bracket_eval, test_colab_runner, test_cross_asset, test_disk_backed, test_e… | 24 modules, 1 data files (30 KB) → maps/tests.md
+- `tests/` — test_audit_round2, test_bracket_eval, test_colab_runner, test_colab_runner_notebook, test_cross_ass… | 25 modules, 1 data files (30 KB) → maps/tests.md
 
 ## Where do I edit X? → `maps/tags.md` (TAGS → modules index)
