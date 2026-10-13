@@ -1,5 +1,7 @@
 # strategy_discovery — البحث عن استراتيجية تداول قابلة للتحقق
 
+> Pre-registration caveat: every card of this PR was committed together with its results, so all results are exploration, not confirmation. See `research/strategy_discovery/PREREGISTRATION_NOTE.md`.
+
 ## الهدف والقيد الأساسي
 البحث عن إشارة أو مجموعة شروط تحقق ربحاً صافياً بعد التكلفة، مع **عدم الادعاء بربح** قبل أن تجتاز الإشارة الاختبارات الثلاثة:
 متانة على العملات الأصلية، ثم عملات لم تُستخدم، ثم بيانات طازجة. أي نتيجة هنا مرشح، لا استراتيجية مثبتة.

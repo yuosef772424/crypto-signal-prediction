@@ -1,5 +1,7 @@
 # indicator_strategy — دراسة المؤشرات والشروط على الفريمات 4h و1d
 
+> Pre-registration caveat: every card of this PR was committed together with its results, so all results are exploration, not confirmation. See `research/strategy_discovery/PREREGISTRATION_NOTE.md`.
+
 ## السؤال
 أي إشارات من المؤشرات الفنية تستحق المتابعة بعد التكلفة، وما الشروط التي تحسّن النتيجة أو تضعفها؟
 

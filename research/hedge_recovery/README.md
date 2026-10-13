@@ -1,5 +1,7 @@
 # hedge_recovery — دراسة الصفقات المتحوّطة (تجارب E-hedge)
 
+> Pre-registration caveat: every card of this PR was committed together with its results, so all results are exploration, not confirmation. See `research/strategy_discovery/PREREGISTRATION_NOTE.md`.
+
 ## الفكرة
 استراتيجيات تتعامل مع الصفقة الخاسرة بفتح صفقة معاكسة (تحوّط) بدل إغلاقها، ثم تغلق المراكز عند أهداف ربح أو عند إشارة معاكسة.
 
