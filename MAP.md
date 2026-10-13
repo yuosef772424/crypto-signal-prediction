@@ -23,6 +23,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 
 ## Research studies (research/)
 - `research/edge_discovery/` — التقرير النهائي — البحث عن Edge قابل للاستغلال (2024-01 → 2026-09) | 41 scripts, 33 data files (788 KB) → maps/research_edge_discovery.md
+- `research/gate_data_qc/` — تدقيق بيانات gate-cli — التحقق من التقرير وخطة التطبيق والاختبار | 0 scripts, 0 data files (0 B) → maps/research_gate_data_qc.md
 
 ## docs/research (legacy)
 - `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 42 md, 1 data files (74 KB) → maps/docs_research.md
