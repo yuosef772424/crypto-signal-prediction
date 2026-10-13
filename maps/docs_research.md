@@ -200,7 +200,7 @@ Documents:
   - `def auc_pair(aligned)` L90
 
 ## `docs/research/plan/`
-- Phase kickoff: how the build session starts a phase | 0 scripts, 12 md, 0 data files (0 B)
+- Phase kickoff: how the build session starts a phase | 0 scripts, 13 md, 0 data files (0 B)
 
 Documents:
 - `KICKOFF.md` — Phase kickoff: how the build session starts a phase
@@ -215,6 +215,7 @@ Documents:
 - `decisions/D-007-five-minute-source.md` — D-007: 5m (and 1m–1w) data from the repo's fetch tool
 - `decisions/D-008-gate-style-features.md` — D-008: Build gate-style derived features and test them as model inputs
 - `decisions/README.md` — Owner decisions (ADR style)
+- `lock/README.md` — Lock: sealed-holdout specification (phase R0)
 
 ## `docs/research/results/`
 - نتائج خطّة `capacity` على بيانات Drive (Colab T4، 2026-09-27) | 0 scripts, 6 md, 0 data files (0 B)
