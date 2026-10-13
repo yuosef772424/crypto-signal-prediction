@@ -42,7 +42,8 @@
 - Not locked yet: `holdout.json` waits for the Colab manifest. Spec `docs/research/plan/lock/README.md`; salt = `b4f3790287a2e12d6e5cb3fa20b2ea81998566e5`
   (merge the PR with a merge commit, never squash). `touched.csv` 747 rows; guard `tools/holdout_guard.py`. Buckets H1 (R1b), H2 (R3),
   H3 (R2), H4 (R5), H5 (G2), H6 (reserve); time seal ≥ 2026-10-01. Access log: none.
-- Risk: the strict ledger may leave very few eligible coins (a preview on the 860-coin snapshot, before the history_1d rule, gave 38 eligible, 15 sealed).
+- D-009 (two-level holdout, before any manifest): level A untouched / level B daily-only touched both eligible, 365-day history, H3 takes no
+  funding/OI-touched coin. Preview on the 860-coin snapshot: 459 eligible (39 A, 420 B), 183 sealed; H3 is thin (3), H4 absorbs its refusals (58).
 
 ## Owner decisions (`decisions/`)
 - All accepted: D-001 goal (revised) · D-002 merge after review · D-003 ≤ 1 h/phase · D-004 Drive history_15m
