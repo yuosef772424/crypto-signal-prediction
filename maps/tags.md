@@ -79,6 +79,7 @@
 - copy trading: edge_discovery/19_hl_copy
 - cost in r: edge_discovery/23_chart_rules_gross, indicator_strategy/engine, strategy_discovery/intraday_macd, tools/trade_engine
 - cost stress: edge_discovery/15_h07_robust, edge_discovery/17_h07_break, strategy_discovery/robustness
+- cost x2: strategy_discovery/significance
 - cost_big cost_small: edge_discovery/03_quintiles
 - count balancing: hedge_recovery/sim2
 - crash: edge_discovery/05_events
@@ -98,7 +99,7 @@
 - data.binance.vision: tools/fetch_history_vision_colab
 - day grouping: cross_asset/data
 - day of week: edge_discovery/06_seasonality
-- day-clustered t: edge_discovery/events, tools/bracket_eval
+- day-clustered t: edge_discovery/events, strategy_discovery/significance, tools/bracket_eval
 - day_pearson: cross_asset/train
 - decay: edge_discovery/20_onchain
 - decile long-short: edge_discovery/18_h13_pr7_signal
@@ -133,10 +134,10 @@
 - dsr: edge_discovery/17_h07_break
 - e-disc-001: strategy_discovery/grid
 - e-disc-002: strategy_discovery/robustness
-- e-disc-003: strategy_discovery/oos
+- e-disc-003: strategy_discovery/oos, strategy_discovery/significance
 - e-disc-004: strategy_discovery/rotation
 - e-disc-005: strategy_discovery/grid2
-- e-disc-006: strategy_discovery/survivor_checks
+- e-disc-006: strategy_discovery/significance, strategy_discovery/survivor_checks
 - e-fwd-001: strategy_discovery/forward
 - e-hedge-001: hedge_recovery/sim
 - e-hedge-002: hedge_recovery/sim2
@@ -398,6 +399,7 @@
 - return: tests/test_real_price_modes
 - return_close: tests/test_real_price_modes
 - reversal hedge: hedge_recovery/sim2
+- review correction: strategy_discovery/significance
 - robustness: edge_discovery/15_h07_robust, strategy_discovery/robustness, strategy_discovery/survivor_checks
 - rotation portfolio: strategy_discovery/rotation
 - round-trip: tools/nb_cells
@@ -425,6 +427,7 @@
 - signal families: strategy_discovery/grid
 - signals file: cross_asset/report
 - signatures: tools/build_map
+- significance: strategy_discovery/significance
 - single touch: edge_discovery/14_holdout
 - size vs direction: edge_discovery/29_path_envelope
 - skew: edge_discovery/04_screen_mean
@@ -477,7 +480,7 @@
 - tp sl: edge_discovery/29_path_envelope
 - tp_room: tools/bracket_eval
 - trade engine: tools/trade_engine
-- trade log: indicator_strategy/screen, indicator_strategy/test_final
+- trade log: indicator_strategy/screen, indicator_strategy/test_final, strategy_discovery/significance
 - trade simulator: indicator_strategy/engine, tools/trade_engine
 - trades: tools/bracket_eval
 - train<=2021 val 2022 test 2023-26: edge_discovery/27_repr_info
@@ -486,6 +489,7 @@
 - trend following: edge_discovery/07_trend
 - trend pullback: hedge_recovery/sim
 - trend_disc_val.csv: edge_discovery/07_trend
+- trimmed mean: strategy_discovery/significance
 - trunk_drop: cross_asset/model
 - ts_screen_disc.csv: edge_discovery/08_ts_screen
 - tsmom: edge_discovery/07_trend
@@ -495,7 +499,7 @@
 - turnover cost: edge_discovery/tsbt, strategy_discovery/rotation
 - unit tests: cross_asset/selftest
 - universe mask: edge_discovery/lib
-- unseen assets: strategy_discovery/oos, strategy_discovery/survivor_checks
+- unseen assets: strategy_discovery/oos, strategy_discovery/significance, strategy_discovery/survivor_checks
 - untouched coins: edge_discovery/24_pullback_maker
 - up_share: cross_asset/report
 - v0-v4: edge_discovery/21_range_fade
