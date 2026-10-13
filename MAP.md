@@ -19,7 +19,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 
 ## Code packages
 - `cross_asset/` — Package entry of the cross-asset 'panel' model (phase 1): one sample = a full UTC day with all coins, attention across same-day coins; re-exports PanelSplit, panel_split_from, VARIANTS, run_panel_experiment. | 7 modules, 0 data files (0 B) → maps/cross_asset.md
-- `tools/` — bracket_eval, build_map, check_deps, colab_bridge, evaluate_trained_model, experiment_registry, fet… | 15 modules, 0 data files (0 B) → maps/tools.md
+- `tools/` — bracket_eval, build_map, check_deps, colab_bridge, evaluate_trained_model, experiment_registry, fet… | 16 modules, 0 data files (0 B) → maps/tools.md
 
 ## Research studies (research/)
 - `research/edge_discovery/` — التقرير النهائي — البحث عن Edge قابل للاستغلال (2024-01 → 2026-09) | 41 scripts, 33 data files (788 KB) → maps/research_edge_discovery.md
@@ -34,7 +34,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 ## docs/research (legacy)
 - `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 42 md, 1 data files (94 KB) → maps/docs_research.md
 - `docs/research/audit/` — Audit / Improvement Protocol (Auditor ↔ Builder) | 26 scripts, 5 md, 0 data files (0 B) → maps/docs_research.md
-- `docs/research/plan/` — Phase kickoff: how the build session starts a phase | 0 scripts, 13 md, 0 data files (0 B) → maps/docs_research.md
+- `docs/research/plan/` — Phase kickoff: how the build session starts a phase | 0 scripts, 13 md, 1 data files (72 B) → maps/docs_research.md
 - `docs/research/results/` — نتائج خطّة `capacity` على بيانات Drive (Colab T4، 2026-09-27) | 0 scripts, 6 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/scripts/` — سكربتات إعادة إنتاج تدقيق التطبيع | 9 scripts, 1 md, 1 data files (10 KB) → maps/docs_research.md
 - `docs/research/scripts/entry_range_eval/` — entry_range_eval — تقييم نموذج entry_range المُدرَّب (`crypto_model_v1_entry_range_s100_am`) | 5 scripts, 1 md, 7 data files (127 KB) → maps/docs_research.md

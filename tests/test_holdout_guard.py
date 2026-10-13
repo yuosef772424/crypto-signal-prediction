@@ -44,7 +44,7 @@ def write_bars(data_dir, symbol, start="2026-09-29", end="2026-10-02", gz=True):
     idx = pd.date_range(start, end, freq="15min", tz="UTC", inclusive="left")
     rng = np.random.default_rng(1)
     px = 100 + np.cumsum(rng.normal(0, 0.1, len(idx)))
-    df = pd.DataFrame({"timestamp": idx.asi8 // 10**6, "datetime_utc": idx.strftime("%Y-%m-%d %H:%M:%S"),
+    df = pd.DataFrame({"timestamp": idx.as_unit("ms").asi8, "datetime_utc": idx.strftime("%Y-%m-%d %H:%M:%S"),
                        "open": px, "high": px + 0.1, "low": px - 0.1, "close": px, "volume": 1.0})
     os.makedirs(data_dir, exist_ok=True)
     path = os.path.join(data_dir, f"{symbol}.csv.gz")

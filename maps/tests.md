@@ -87,6 +87,7 @@
 
 ### `tests/test_holdout_guard.py` (323 lines)
 - PURPOSE: tools/holdout_guard.py: a sealed symbol or a time-sealed bar raises through every public loader, and a bucket opens once. (from docstring)
+- DEPENDS: tools
 - API:
   - `def write_lock(lock_dir, sealed=None, salt=SALT, tamper=False, seal='2026-10-01T00:00:00Z')` L27
   - `def write_bars(data_dir, symbol, start='2026-09-29', end='2026-10-02', gz=True)` L42

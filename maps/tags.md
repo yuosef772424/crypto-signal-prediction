@@ -12,6 +12,7 @@
 - 5m path: edge_discovery/21_range_fade
 - a.2: edge_discovery/13_listing_stops
 - accept rule: indicator_strategy/screen, indicator_strategy/test_final, strategy_discovery/oos
+- access log: tools/holdout_guard
 - addendum b: edge_discovery/14_holdout
 - addendum d: edge_discovery/20_onchain
 - addendum i: edge_discovery/27_repr_info
@@ -79,6 +80,7 @@
 - colab cell: tools/fetch_history_colab_cell
 - combo signal: edge_discovery/03_quintiles
 - compare: cross_asset/report
+- confirmation: tools/holdout_guard
 - conflict leg: hedge_recovery/sim2
 - consistency check: indicator_strategy/variants
 - cooldown: edge_discovery/09_market_flush, edge_discovery/events
@@ -102,6 +104,7 @@
 - daily ic: cross_asset/report
 - daily panel: edge_discovery/tsbt
 - data bridge: tools/colab_bridge
+- data loader guard: tools/holdout_guard
 - data quality: tools/indicator_reverse
 - data rebuild: edge_discovery/data_tools/build_panel, edge_discovery/data_tools/dec, edge_discovery/data_tools/folder_index, edge_discovery/data_tools/sweep
 - data.binance.vision: tools/fetch_history_vision_colab
@@ -177,6 +180,7 @@
 - evaluate trained model: tools/evaluate_trained_model
 - evaluate_k_coins: cross_asset/experiment
 - evaluation: cross_asset/report, tools/bracket_eval
+- evaluation integrity: tools/holdout_guard
 - event list: edge_discovery/10_flush_curve
 - event study: edge_discovery/05_events, edge_discovery/events
 - event_stats: edge_discovery/events
@@ -259,7 +263,7 @@
 - history_1d: tools/colab_bridge
 - hl_positions: edge_discovery/19_hl_copy
 - hold length: strategy_discovery/seasonality15m
-- holdout: edge_discovery/14_holdout
+- holdout: edge_discovery/14_holdout, tools/holdout_guard
 - holdout flag: edge_discovery/13_listing_stops
 - hour of day: edge_discovery/06_seasonality, strategy_discovery/seasonality15m
 - hourly index: edge_discovery/data_tools/build_panel
@@ -299,6 +303,7 @@
 - listing_trades.csv: edge_discovery/13_listing_stops
 - load panel: edge_discovery/lib
 - local cache: tools/colab_bridge
+- lock: tools/holdout_guard
 - logistic: edge_discovery/18_h13_pr7_signal
 - london breakout: edge_discovery/22_chart_rules
 - long-only: edge_discovery/07_trend
@@ -397,6 +402,7 @@
 - quintile spread: edge_discovery/04_screen_mean
 - quintiles: edge_discovery/03_quintiles
 - r multiple: edge_discovery/22_chart_rules, indicator_strategy/engine, tools/trade_engine
+- r0: tools/holdout_guard
 - random control: hedge_recovery/sim, hedge_recovery/sim2
 - random-direction null: tools/bracket_eval
 - range fade: edge_discovery/21_range_fade
@@ -440,6 +446,7 @@
 - scaled: tests/test_real_price_modes
 - scaling in: edge_discovery/24_pullback_maker
 - screen_disc_mean.csv: edge_discovery/04_screen_mean
+- sealed coins: tools/holdout_guard
 - seasonality: edge_discovery/06_seasonality, strategy_discovery/seasonality15m
 - seed spread: edge_discovery/26_h19_generalization
 - selective trading: tools/bracket_eval
@@ -496,6 +503,7 @@
 - test auc: edge_discovery/26_h19_generalization
 - tests/test_cross_asset: cross_asset/selftest
 - time of day: strategy_discovery/seasonality15m
+- time seal: tools/holdout_guard
 - time-series screen: edge_discovery/08_ts_screen
 - timeframe resample: indicator_strategy/engine, tools/trade_engine
 - token language: edge_discovery/28_token_decompose
