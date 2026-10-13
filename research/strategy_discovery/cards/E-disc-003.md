@@ -5,7 +5,7 @@ timeframe: 1d
 target: pnl
 model_class: rule
 reopens: F-0054:R1
-not_covered_by: F-0072=volume-confirmed Donchian on unseen assets, a different trigger and filter from this card; F-0070=the momentum rotation of E-disc-004, this card applies breakout survivors to unseen assets; F-0071=this card is the source of F-0071 (its own result); F-0069=daily ADX>40 removal and short-side removal from E-ind-002, this card applies the E-disc-001 survivors unchanged to new assets; F-0061=stop orders at predicted candle extremes, no predicted level here; F-0062=regime filters on wick-capture fills, the ADX gate here is an entry condition on the breakout trigger
+not_covered_by: F-0072=volume-confirmed Donchian on unseen assets, a different trigger and filter from this card; F-0070=the momentum rotation of E-disc-004, this card applies breakout survivors to unseen assets; F-0071=this card is the source of F-0071 (its own result); F-0069=daily ADX>40 removal and short-side removal from E-ind-002, this card applies the E-disc-001 survivors unchanged to new assets; F-0061=stop orders at predicted candle extremes, no predicted level here; F-0062=regime filters on wick-capture fills, the ADX gate here is an entry condition on the breakout trigger; F-0076=this card is the source of F-0076 (its own S1 result, re-examined with significance statistics in results/E-disc-003_significance.md); F-0077=this card is the source of F-0077 (its own S3 result, re-examined with significance statistics in results/E-disc-003_significance.md)
 ---
 # Experiment card — E-disc-003: the three robust survivors on UNSEEN assets (BCH, TRX, ZEC) and on fresh bars
 

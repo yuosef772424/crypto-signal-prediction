@@ -5,7 +5,7 @@ timeframe: 1d
 target: pnl
 model_class: rule
 reopens: F-0054:R1
-not_covered_by: F-0072=this card is the source of F-0072 (its own result, not a different scope); F-0069=daily ADX>40 and short-side refinements of Bollinger and Donchian, a different test; F-0070=cross-sectional momentum rotation, a portfolio with turnover costs; F-0071=Bollinger breakout with ADX gate on unseen assets, a different trigger and gate; F-0061=stop orders at predicted candle extremes, no predicted level here
+not_covered_by: F-0072=this card is the source of F-0072 (its own result, not a different scope); F-0069=daily ADX>40 and short-side refinements of Bollinger and Donchian, a different test; F-0070=cross-sectional momentum rotation, a portfolio with turnover costs; F-0071=Bollinger breakout with ADX gate on unseen assets, a different trigger and gate; F-0061=stop orders at predicted candle extremes, no predicted level here; F-0076=tests the volume-confirmed Donchian on the unseen assets, a different trigger from S1 - its significance numbers are reported next to S1 in the same table; F-0077=tests the volume-confirmed Donchian on the unseen assets, a different trigger from S3 - its significance numbers are reported next to S3 in the same table
 ---
 # Experiment card — E-disc-006: robustness, unseen assets and fresh bars for the new survivor `1d|volume_donchian|none`
 

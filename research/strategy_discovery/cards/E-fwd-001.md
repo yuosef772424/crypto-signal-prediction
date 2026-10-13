@@ -5,7 +5,7 @@ timeframe: 1d
 target: pnl
 model_class: rule
 reopens:
-not_covered_by: F-0069=daily ADX>40 and short-side refinements of Bollinger and Donchian, this card keeps both sides and has no ADX cut; F-0071=Bollinger breakout with ADX gate on unseen assets, a different trigger and gate; F-0072=Donchian with a volume filter, this card has no volume condition; F-0070=cross-sectional rotation, a portfolio, not single-asset trades
+not_covered_by: F-0069=daily ADX>40 and short-side refinements of Bollinger and Donchian, this card keeps both sides and has no ADX cut; F-0071=Bollinger breakout with ADX gate on unseen assets, a different trigger and gate; F-0072=Donchian with a volume filter, this card has no volume condition; F-0070=cross-sectional rotation, a portfolio, not single-asset trades; F-0076=forward bars after 2026-10-08 on the original coins, not the 2024-2026 unseen-asset test that F-0076 closes - it tests the no-gate variant and cannot reopen F-0076; F-0077=forward bars after 2026-10-08 on the original coins, not the 2024-2026 unseen-asset test that F-0077 closes - a short forward window cannot meet the F-0077 reopen condition (30 sealed coins, 375 trades) so it does not reopen it
 ---
 # Experiment card — E-fwd-001: forward test of ONE frozen hypothesis (daily Donchian 20, no gate, long and short)
 
