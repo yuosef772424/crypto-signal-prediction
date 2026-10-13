@@ -200,9 +200,10 @@ Documents:
   - `def auc_pair(aligned)` L90
 
 ## `docs/research/plan/`
-- Phase kickoff: how the build session starts a phase | 0 scripts, 12 md, 0 data files (0 B)
+- Colab runner: one click per experiment | 0 scripts, 13 md, 0 data files (0 B)
 
 Documents:
+- `COLAB_RUNNER.md` — Colab runner: one click per experiment
 - `KICKOFF.md` — Phase kickoff: how the build session starts a phase
 - `ROADMAP.md` — Research roadmap (2026-10 →)
 - `STATUS.md` — STATUS: research plan hand-off
