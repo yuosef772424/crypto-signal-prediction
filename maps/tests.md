@@ -51,6 +51,7 @@
 
 ### `tests/test_data_manifest.py` (260 lines)
 - PURPOSE: tools/data_manifest.py: the Colab manifest of Drive history_15m (symbol, first/last bar, rows, file sha256) follows the run (from docstring)
+- DEPENDS: tools
 - API:
   - `def write_gz(path, text)` L25
   - `def bar_lines(start_ms, n, step_ms=900000, with_ms=True)` L30

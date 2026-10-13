@@ -76,8 +76,8 @@
 - ci guard: tests/test_no_lookahead
 - cnn: edge_discovery/25_image_cnn
 - coinmetrics: edge_discovery/16_h07_oos, edge_discovery/20_onchain
-- colab: edge_discovery/25_image_cnn, tools/colab_bridge
-- colab cell: tools/fetch_history_colab_cell
+- colab: edge_discovery/25_image_cnn, tools/colab_bridge, tools/data_manifest
+- colab cell: tools/data_manifest_colab_cell, tools/fetch_history_colab_cell
 - combo signal: edge_discovery/03_quintiles
 - compare: cross_asset/report
 - confirmation: tools/holdout_guard
@@ -105,6 +105,7 @@
 - daily panel: edge_discovery/tsbt
 - data bridge: tools/colab_bridge
 - data loader guard: tools/holdout_guard
+- data manifest: tools/data_manifest, tools/data_manifest_colab_cell
 - data quality: tools/indicator_reverse
 - data rebuild: edge_discovery/data_tools/build_panel, edge_discovery/data_tools/dec, edge_discovery/data_tools/folder_index, edge_discovery/data_tools/sweep
 - data.binance.vision: tools/fetch_history_vision_colab
@@ -141,7 +142,8 @@
 - drive copy: tools/colab_bridge
 - drive download: edge_discovery/data_tools/dec
 - drive index: edge_discovery/data_tools/folder_index
-- drive mount: tools/fetch_history_colab_cell
+- drive listing: tools/data_manifest
+- drive mount: tools/data_manifest_colab_cell, tools/fetch_history_colab_cell
 - drive-root: tools/fetch_history_csv_concurrent
 - dsr: edge_discovery/17_h07_break
 - e-disc-001: strategy_discovery/grid
@@ -200,6 +202,7 @@
 - feature panel: edge_discovery/features
 - features: edge_discovery/01_screen, edge_discovery/features
 - figures: indicator_strategy/charts
+- file sha256: tools/data_manifest
 - fileid: edge_discovery/data_tools/folder_index
 - filters: tools/bracket_eval
 - filters c0-c3: edge_discovery/25_image_cnn
@@ -260,6 +263,7 @@
 - hash ribbon: edge_discovery/20_onchain
 - hedge recovery: hedge_recovery/sim
 - histgradientboosting: edge_discovery/29_path_envelope
+- history_15m: tools/data_manifest, tools/data_manifest_colab_cell
 - history_1d: tools/colab_bridge
 - hl_positions: edge_discovery/19_hl_copy
 - hold length: strategy_discovery/seasonality15m
@@ -281,6 +285,7 @@
 - indicator: tools/indicator_reverse
 - indicator screen: indicator_strategy/engine, indicator_strategy/screen, tools/trade_engine
 - inject: tools/nb_cells
+- input fingerprint: tools/data_manifest
 - inside bar: edge_discovery/22_chart_rules
 - integrity checks: cross_asset/data
 - intraday: strategy_discovery/intraday_macd
@@ -303,7 +308,7 @@
 - listing_trades.csv: edge_discovery/13_listing_stops
 - load panel: edge_discovery/lib
 - local cache: tools/colab_bridge
-- lock: tools/holdout_guard
+- lock: tools/data_manifest, tools/data_manifest_colab_cell, tools/holdout_guard
 - logistic: edge_discovery/18_h13_pr7_signal
 - london breakout: edge_discovery/22_chart_rules
 - long-only: edge_discovery/07_trend
@@ -374,6 +379,7 @@
 - paper trading: tools/h07_forward
 - parquet: edge_discovery/data_tools/build_panel
 - partial ic: cross_asset/report
+- paste bundle: tools/data_manifest, tools/data_manifest_colab_cell
 - path envelope: edge_discovery/29_path_envelope
 - per-coin consistency: indicator_strategy/screen
 - per-coin events: edge_discovery/events
@@ -402,7 +408,7 @@
 - quintile spread: edge_discovery/04_screen_mean
 - quintiles: edge_discovery/03_quintiles
 - r multiple: edge_discovery/22_chart_rules, indicator_strategy/engine, tools/trade_engine
-- r0: tools/holdout_guard
+- r0: tools/data_manifest, tools/data_manifest_colab_cell, tools/holdout_guard
 - random control: hedge_recovery/sim, hedge_recovery/sim2
 - random-direction null: tools/bracket_eval
 - range fade: edge_discovery/21_range_fade
@@ -468,7 +474,7 @@
 - sl_room: tools/bracket_eval
 - slippage: edge_discovery/32_breakout_stops
 - smart-minus-retail: edge_discovery/features
-- source github/drive: tools/fetch_history_colab_cell
+- source github/drive: tools/data_manifest_colab_cell, tools/fetch_history_colab_cell
 - speirsy11: tools/fetch_crypto_dataset
 - split-dates: tools/evaluate_trained_model
 - spot: tools/fetch_crypto_dataset
