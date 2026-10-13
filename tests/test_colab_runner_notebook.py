@@ -137,6 +137,8 @@ def test_bootstrap_cell_refuses_a_bad_repo_ref_before_downloading_code(tmp_path,
 
     def fake_urlopen(req, timeout=None):
         calls.append(req.full_url)
+        if req.full_url.endswith("/repos/yuosef772424/crypto-signal-prediction"):
+            return FakeResponse(b"{}")                                              # the token validation GET
         if "/contents/job.json" in req.full_url:
             return FakeResponse(json.dumps({"repo_ref": bad_ref}).encode())
         if "/commits/" in req.full_url:
