@@ -1,6 +1,6 @@
 # D-006: Triage of the open draft PRs
 
-**Status:** Proposed (2026-10-13), pending the owner's approval to close any PR.
+**Status:** Accepted (owner approved the plan, 2026-10-13). Closing #14 and #6 is announced to the owner first.
 
 **Context.** Five drafts are open: #6 (loader path, old), #13 (H07 vol-sizing/forward/combos + notebooks → `workflow/`,
 236 files), #14 (hedge recovery), #15 (strategy discovery, contains #14's commits, adds `tools/trade_engine.py`),

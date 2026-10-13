@@ -1,8 +1,11 @@
 # Research roadmap (2026-10 →)
 
-Goal (D-001): find or reject, with honest evidence, signals worth exposing to the bot2 trading agent as
-code-computed tools. Anything that survives gets a hand-off note for bot2 (`ai_agent/docs/TOOLS.md` format there).
+Goal (D-001): find or reject, with honest evidence, information that adds something real. A survivor has two
+possible outlets, chosen per phase: (a) a **model input or target** (pipeline feature with a card and a test, then
+trained under `MODEL_DEV_PROTOCOL.md` and, if it beats seed noise, shipped as a full model), and/or (b) a
+**code-computed tool for the bot2 agent** (hand-off note in bot2's `ai_agent/docs/TOOLS.md` format).
 A rejected phase is a valid result: it is closed with `failure_registry.csv` rows (verified cause + `reopen_if`).
+All new plans, cards and docs are written in English.
 
 Rules that apply to every phase: `CLAUDE.md`, `docs/research/RESEARCH_RULES.md`, `docs/research/MODEL_DEV_PROTOCOL.md`
 (model phases only), `docs/research/audit/PROTOCOL.md`. Each phase is **one branch → one PR**, built by the build
@@ -13,8 +16,9 @@ Phases marked 🔒 need an explicit owner decision before they start.
 T0 triage open PRs ─▶ R0 lock (+M) ─▶ G gate-cli QC ─▶ R3 NATR range tool ─▶ R1 confluence map 🔒─▶ R1b confirm
                                   └─▶ R5 confirm E-disc S1/S3 (optional, cheap)            R2 funding/basis 🔒 (data first)
                                                                                            R4 H07 forward (parked)
+Survivors of G / R2 / R3 / R1b / R5 ─▶ R6 model integration (🔒 starts when ≥ 1 new input survives)
 ```
-Order is the planner's proposal (D-005, pending owner confirmation).
+Order accepted by the owner (D-005).
 
 ## Common contracts
 
@@ -83,20 +87,35 @@ for every coin (forward data, for R4 and later re-checks). The edge_discovery 20
   except appended access-log rows.
 - **Card:** none (infrastructure). **Registry:** none. **Colab:** one run of `data_manifest.py` (~5 min).
 
-## G — gate-cli data QC (from PR #16's plan)
-- **Goal:** a field-level QC verdict (`ok/suspect/invalid/unverifiable`) for gate-cli responses, so no bot2 tool or
-  study consumes a broken field (zero-as-missing indicators, wrong symbol match, `avg_mid_price_1d` = depth/2, stale data).
-- **Inputs:** `research/gate_data_qc/README.md` (§3–§6). Stage 0 is the owner's: re-run the nine calls without `head -c`
-  and paste the raw JSON (the build session commits them under `research/gate_data_qc/fixtures/raw/`).
-- **Reviewer decisions:** QC rules are not experiments — no experiment cards per rule (the #16 plan's §5 stage 2 card
-  step is dropped); thresholds measured on fixtures are recorded in `contract.json`; registry rows only if a study later
-  fails because of a field. Agent-side rules (#16 §5 stage 6) go to bot2 as a hand-off note, not into this repo.
-- **DoD:** `contract.json` (unknown keys raise), `tools/gate_qc.py` R01–R19 as registered functions (unregistered name
-  raises), tests per #16 §6 (positive + negative per rule, recall 100 % on confirmed items, truncated JSON raises);
-  false-positive rate per rule < 1 % on a clean 30-day BTC/ETH/SOL fixture; bot2 hand-off note.
-- **Card / registry / holdout:** none. **Colab:** none (gate-cli runs on the owner's machine).
+## G — gate-cli: reverse-engineer its derived fields, rebuild them, QC the rest (from PR #16)
+- **Goal:** the gate agent's data quotes indicators and summary fields (`technical_view` per timeframe: `ma_alignment`,
+  `macd_signal`, `rsi_zone`, the aggregate `signal`; kline indicators: MA/EMA 7/30/120/200, BOLL, MACD, KDJ, RSI, WR,
+  CCI, ADX/DI, SAR). (1) Recover their exact definitions with `tools/indicator_reverse.py` (PR #16): parameters,
+  windows, and the rule that maps indicators to `signal`. (2) Rebuild them as our own code-computed features from our
+  OHLCV (`tools/gate_features.py`), so neither a model nor bot2 depends on gate's delivery bugs (zero-as-missing,
+  wrong symbol match, frozen series). (3) For fields we cannot rebuild (funding, OI, long/short ratios, taker volume,
+  exchange flows/reserves, ETF flows), a field-level QC verdict (`ok/suspect/invalid/unverifiable`, #16 rules R01–R19).
+- **Inputs (stage 0, owner):** raw gate-cli JSON saved to files directly by the CLI (`> file.json`, no `head -c`, no
+  LLM summary — a pasted model summary is not evidence): the nine calls of #16 §3, plus `kline --with-indicators` for
+  BTC, ETH, SOL at 15m/1h/4h/1d with the largest `--size` allowed, and the matching `technical_view` calls at the same
+  minute. The build session commits them under `research/gate_data_qc/fixtures/raw/`.
+- **Reviewer decisions:** a definition is "recovered" only if it reproduces the provider's values on ≥ 95 % of
+  non-missing bars within 1e-4 relative error (the provider's own bars as OHLCV, so no exchange mismatch); the
+  `signal` rule counts as recovered only if it reproduces every observed `signal` value — otherwise it is recorded as
+  "not reproducible" and never rebuilt or used. QC rules are not experiments (no card per rule); thresholds live in
+  `contract.json`. Agent-side rules (#16 §5 stage 6) go to bot2 as a note.
+- **What this does and does not add:** rebuilt OHLCV indicators are a clean tool, not new information — single standard
+  indicators are already closed as signals (F-0002, F-0004, F-0009, F-0026, F-0027). The non-OHLCV fields are new
+  information; they become R2-style candidates only once enough point-in-time history exists (gate history depth, or
+  bot2's recorder), each with its own card.
+- **DoD:** fit report per indicator × timeframe (recovered / not reproducible, with error); `tools/gate_features.py`
+  (card + round-trip tests against the raw fixtures); `contract.json` (unknown keys raise) and `tools/gate_qc.py`
+  R01–R19 as registered functions (unregistered name raises); tests per #16 §6 (positive + negative per rule, recall
+  100 % on confirmed items, truncated JSON raises); false-positive rate per rule < 1 % on a clean fixture; a list of the
+  non-OHLCV fields with their available history depth.
+- **Card / registry / holdout:** none (no signal claim). **Colab:** none (gate-cli runs on the owner's machine).
 
-## R3 — NATR range forecast with a calibration report → bot2 tool spec
+## R3 — NATR range forecast with a calibration report → model feature/target and bot2 tool spec
 - **Goal:** turn the one robust survivor (H003: NATR_14 forecasts next range *width*, not direction) into a calibrated
   forecast: p10/p50/p90 of the next bar's range (percent of close), plus separate up- and down-excursion, at 1h and 1d.
 - **Method (fixed in the card):** quantile regression of log next-range on log NATR_14 (one model per timeframe, pooled
@@ -112,7 +131,8 @@ for every coin (forward data, for R4 and later re-checks). The edge_discovery 20
   the card; if accepted, `research/natr_range/BOT2_HANDOFF.md`: tool `get_range_forecast(symbol, interval)` →
   `{p10, p50, p90, up_p50, down_p50 (percent), natr_pct, natr_decile, model_version, calibration_asof}`, units in percent
   as bot2 uses them, and how it differs from bot2's existing `range_pct` / `natr` (a forecast with stated coverage, not a
-  current measure). Not a direction signal (bot2 ADR 0003).
+  current measure). Not a direction signal (bot2 ADR 0003). The same forecast is registered as a candidate model
+  feature / sizing target for R6 (pipeline column with a card and a test).
 - **Colab:** 2 runs (val; holdout once), ≤ 20 min each.
 
 ## R1 — Chart-structure confluence, stage 1: exploration map (🔒 stop for the owner after it)
@@ -179,3 +199,14 @@ for every coin (forward data, for R4 and later re-checks). The edge_discovery 20
 - **Waits for:** T0 decision on #13 (its H07 forward/vol-sizing work) and enough forward data.
 - **DoD:** report vs buy-and-hold (Sharpe, max drawdown, 2× cost); bot2 hand-off note as an exposure filter (bot2
   already has a `tsmom` indicator — the note states the validated parameters and limits).
+
+## R6 — Model integration of survivors (🔒 starts when at least one new input survives)
+- **Goal:** add every surviving input (e.g. R3 range forecast as a feature or target, R2 funding features, G's
+  non-OHLCV fields once they have history) to the model pipeline and test whether the model improves.
+- **Method:** `MODEL_DEV_PROTOCOL.md`: one card per change, ≥ 3 seeds, feature-count sweep, learning curve, simple
+  (logistic/ridge) baseline, the per-layer health report; the predicted diagnostic must move. Training runs on Colab
+  within D-003 (a small model; larger runs need an owner decision).
+- **Holdout:** a bucket not used by the input's own confirmation (assigned at R6 kickoff from unopened buckets or the
+  time seal).
+- **DoD:** accepted / rejected / unexplained per card; accepted → the model ships with its card, or a bot2 tool spec
+  wrapping its output; rejected → registry rows.

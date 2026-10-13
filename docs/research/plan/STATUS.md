@@ -3,12 +3,12 @@
 > Read this first in every session (planner and build). Update it in the same PR that changes the state.
 > Keep it under 60 lines.
 
-**Phase:** plan written (this PR, draft); no phase started. **Next:** owner approves the plan and confirms the order
-(D-005) and the open-PR triage (D-006); then T0 (reviewer) and the R0 kickoff.
+**Phase:** plan approved by the owner (2026-10-13); no phase started. **Next:** T0 (reviewer reviews #15, #16, #13;
+closes #14/#6 after telling the owner), then the R0 kickoff.
 
 ## Scope (owner, 2026-10-13)
-- Goal (D-001, to confirm): find or reject, with honest evidence, signals worth exposing to bot2 as code-computed
-  tools; survivors get a bot2 hand-off note.
+- Goal (D-001): find or reject, with honest evidence, information that adds something real; a survivor feeds a
+  model (feature/target → full model, R6) and/or a bot2 code-computed tool. New docs in English.
 - Planner/reviewer session plans and reviews; a separate build session implements one phase per PR.
 - Heavy runs on Colab, ≤ 1 h per phase (D-003); data on Drive = `history_15m`, 800+ coins, compressed (D-004).
 - The planner may merge a phase PR after review (D-002).
@@ -33,19 +33,19 @@
 | R2 funding/basis 🔒 | not started (data first) | — | — |
 | R5 E-disc S1/S3 confirm | optional | — | — |
 | R4 H07 forward | parked | — | — |
+| R6 model integration 🔒 | waits for a survivor | — | — |
 
 ## Holdout
 - Not locked yet (R0). Buckets H1 (R1b), H2 (R3), H3 (R2), H4 (R5); time seal ≥ 2026-10-01. Access log: none.
 
 ## Owner decisions (`decisions/`)
-- D-001 goal (proposed) · D-002 merge after review (accepted) · D-003 Colab ≤ 1 h/phase (accepted)
-- D-004 data = history_15m 800+ coins (accepted) · D-005 phase order (proposed) · D-006 open-PR triage (proposed)
+- All accepted: D-001 goal (revised) · D-002 merge after review · D-003 Colab ≤ 1 h/phase
+- D-004 data = history_15m 800+ coins · D-005 phase order · D-006 open-PR triage
 
 ## Open questions for the owner 🔒
-1. Confirm the goal (D-001) and the order T0 → R0 → G → R3 → R1 → R1b → R2, R5/R4 optional (D-005).
-2. Approve the triage of #6/#13/#14/#15/#16 (D-006).
-3. Is BTC/ETH/SOL 5m data also on Drive? Is anything else there (1d history, hourly futures metrics)?
-4. G stage 0: can you re-run the nine gate-cli calls without `head -c` and paste the JSON?
+1. Is BTC/ETH/SOL 5m data also on Drive? Is anything else there (1d history, hourly futures metrics)?
+2. G stage 0: save the raw gate-cli JSON straight to files (no `head -c`, no LLM summary) — the nine calls of #16 §3
+   plus `kline --with-indicators` for BTC/ETH/SOL at 15m/1h/4h/1d with the largest `--size`, and gate's history depth.
 
 ## Known issues
 - Build branch name (`<BUILD_BRANCH>`): unknown until the build session's first report.
