@@ -1,0 +1,7 @@
+{"job_id": "gate001-h5-confirm-DO-NOT-QUEUE", "repo_ref": "<40-hex SHA of the pushed branch head, fill when queued>",
+ "entry": "research/gate_features/run_gate001.py", "args": [],
+ "config": {"data_dir": "/content/drive/MyDrive/history_15m", "pattern": "{symbol}.csv.gz", "coins": ["<H5 bucket symbols from holdout.json, via holdout_guard.open_holdout(card, 'H5')>"],
+            "n_null": 20, "horizons": [4, 24]},
+ "max_minutes": 50, "needs_drive": true, "expected_outputs": ["manifest.json", "results.json"],
+ "note": "Prepared, not queued. Only worth running if a rule first passes the economics gate on val (E-gate-001 did not: F-0080). Needs a 15m adaptation of the runner and a confirmation card with confirmation: true and frozen_rules_sha256.",
+ "rerun": false, "pip": []}

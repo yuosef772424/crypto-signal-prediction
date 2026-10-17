@@ -33,7 +33,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 ## Research studies (research/)
 - `research/edge_discovery/` — التقرير النهائي — البحث عن Edge قابل للاستغلال (2024-01 → 2026-09) | 41 scripts, 33 data files (788 KB) → maps/research_edge_discovery.md
 - `research/gate_data_qc/` — تدقيق بيانات gate-cli — التحقق من التقرير وخطة التطبيق والاختبار | 0 scripts, 0 data files (0 B) → maps/research_gate_data_qc.md
-- `research/gate_features/` — (no README) | 1 scripts, 12 data files (25 KB) → maps/research_gate_features.md
+- `research/gate_features/` — gate_features — E-gate-001 (phase G2): gate-style derived technical states as model inputs | 1 scripts, 13 data files (26 KB) → maps/research_gate_features.md
 - `research/h07_combos/` — H07 + قواعد أخرى — هل يتحسّن مرشّح الاتجاه بالدمج؟ | 1 scripts, 1 data files (2 KB) → maps/research_h07_combos.md
 - `research/h07_forward/` — H07 — تداول ورقي على بيانات لم يرها أحد (من 2026-10-01) | 0 scripts, 3 data files (3 KB) → maps/research_h07_forward.md
 - `research/h07_volsizing/` — H07 + تحجيم بالتقلّب المتوقَّع (تعلّم آلي للمقدار لا للاتجاه) | 1 scripts, 3 data files (7 KB) → maps/research_h07_volsizing.md
@@ -42,7 +42,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `research/strategy_discovery/` — strategy_discovery — البحث عن استراتيجية تداول قابلة للتحقق | 10 scripts, 15 data files (112 KB) → maps/research_strategy_discovery.md
 
 ## docs/research (legacy)
-- `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 44 md, 1 data files (94 KB) → maps/docs_research.md
+- `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 44 md, 1 data files (98 KB) → maps/docs_research.md
 - `docs/research/audit/` — Audit / Improvement Protocol (Auditor ↔ Builder) | 26 scripts, 5 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/notes/` — PR #13 restructuring: history facts (evil merges, move+modify commits, verbatim extraction) | 0 scripts, 1 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/plan/` — Colab runner: one click per experiment | 0 scripts, 16 md, 6 data files (547 KB) → maps/docs_research.md
