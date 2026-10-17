@@ -201,7 +201,7 @@ Documents:
   - `def auc_pair(aligned)` L90
 
 ## `docs/research/plan/`
-- Colab runner: one click per experiment | 0 scripts, 16 md, 5 data files (282 KB)
+- Colab runner: one click per experiment | 0 scripts, 16 md, 6 data files (547 KB)
 
 Documents:
 - `COLAB_RUNNER.md` — Colab runner: one click per experiment
@@ -222,7 +222,7 @@ Documents:
 - `lock/README.md` — Lock: sealed-holdout specification (phase R0)
 
 Data / other files (counts only):
-- `lock/`: csv×2 — 161 KB
+- `lock/`: csv×2, json×1, sha256×1 — 426 KB
 - `lock/manifest/`: csv×2, json×1 — 121 KB
 
 ## `docs/research/results/`
