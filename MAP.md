@@ -21,7 +21,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 ## Code packages
 - `core/` — Tier-0 package: the pure constants and schema names that several packages used to copy (last_candles column schema, price target columns, target-mode names, NIG alpha floor). Normal Python package, no side effects, imports nothing from thi… | 3 modules, 0 data files (0 B) → maps/core.md
 - `cross_asset/` — Package entry of the cross-asset 'panel' model (phase 1): one sample = a full UTC day with all coins, attention across same-day coins; re-exports PanelSplit, panel_split_from, VARIANTS, run_panel_experiment. | 7 modules, 0 data files (0 B) → maps/cross_asset.md
-- `tools/` — bracket_eval, build_lock, build_map, check_deps, colab_bridge, colab_runner, colab_smoke, data_mani… | 24 modules, 1 data files (8 KB) → maps/tools.md
+- `tools/` — bracket_eval, build_lock, build_map, check_deps, colab_bridge, colab_runner, colab_smoke, data_mani… | 25 modules, 1 data files (8 KB) → maps/tools.md
 - `data/` — Package holding ALL data-preparation code of the project (formerly the cells of crypto_data_pipeline_v6.ipynb): `import data` gives the whole pipeline (data.CONFIG, data.build_dataset, data.split_data, ...) in this package's namespace, loa… | 29 modules, 1 data files (289 B) → maps/data.md
 - `model/` — Package holding the NIG-TimeNet v2 model code (formerly the cells of model_v2 (1).ipynb): `import model` gives the whole model (model.build_model_fn, model.MODEL_CONFIG, model.diagnose_model, ...) in this package's namespace, loaded lazily… | 15 modules, 0 data files (0 B) → maps/model.md
 - `trainer/` — Package holding the generic training framework (formerly the cells of trainer_framework_v2.ipynb): `import trainer` gives the whole framework (trainer.build_training_system, trainer.build_config, trainer.GenericTrainer, ...) in this packag… | 20 modules, 0 data files (0 B) → maps/trainer.md
@@ -38,6 +38,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `research/h07_volsizing/` — H07 + تحجيم بالتقلّب المتوقَّع (تعلّم آلي للمقدار لا للاتجاه) | 1 scripts, 3 data files (7 KB) → maps/research_h07_volsizing.md
 - `research/hedge_recovery/` — hedge_recovery — دراسة الصفقات المتحوّطة (تجارب E-hedge) | 2 scripts, 2 data files (69 KB) → maps/research_hedge_recovery.md
 - `research/indicator_strategy/` — indicator_strategy — دراسة المؤشرات والشروط على الفريمات 4h و1d | 5 scripts, 5 data files (148 KB) → maps/research_indicator_strategy.md
+- `research/stale_bars/` — stale_bars — dead-coin tails vs exact-zero close_reg | 0 scripts, 1 data files (720 B) → maps/research_stale_bars.md
 - `research/strategy_discovery/` — strategy_discovery — البحث عن استراتيجية تداول قابلة للتحقق | 10 scripts, 15 data files (112 KB) → maps/research_strategy_discovery.md
 
 ## docs/research (legacy)

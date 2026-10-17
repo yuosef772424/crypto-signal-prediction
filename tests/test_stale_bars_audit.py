@@ -202,5 +202,32 @@ class SplitLayoutTests(unittest.TestCase):
         self.assertIn("y_close_reg", merged["y"])
 
 
+class ColabJobTests(unittest.TestCase):
+    def test_job_runs_on_synthetic_drive_dir_and_meets_contract(self):
+        import json
+        import subprocess
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            data = os.path.join(d, "history_15m")
+            os.makedirs(data)
+            for name, df in FRAMES.items():
+                x = df.copy()
+                x.insert(0, "timestamp", x.index.as_unit("ns").asi8 // 10 ** 6)
+                x.to_csv(os.path.join(data, f"{name}.csv.gz"), index=False)
+            cfg = {"data_dir": data, "timeframes": ["1h"], "horizon": 1, "min_run": None, "quantile": 1.0, "floor": 2,
+                   "train_pct": 0.8, "val_pct": 0.1, "max_coins": None}
+            json.dump(cfg, open(os.path.join(d, "cfg.json"), "w"))
+            root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            r = subprocess.run([sys.executable, os.path.join(root, "tools", "stale_bars_colab_job.py"), "--config",
+                                os.path.join(d, "cfg.json"), "--out", os.path.join(d, "out")], capture_output=True, text=True)
+            self.assertEqual(r.returncode, 0, r.stderr)
+            summ = json.load(open(os.path.join(d, "out", "summary.json")))
+            self.assertEqual(summ["1h"]["n_dead"], 1)
+            self.assertIn("DEADUSDT", summ["1h"]["dead_coins_by_tail"])
+            pooled = pd.read_csv(os.path.join(d, "out", "splits_pooled_1h.csv"))
+            self.assertTrue((pooled["zero_share_on"] <= pooled["zero_share_off"] + 1e-12).all())
+            self.assertTrue(os.path.exists(os.path.join(d, "out", "manifest.json")))
+
+
 if __name__ == "__main__":
     unittest.main()

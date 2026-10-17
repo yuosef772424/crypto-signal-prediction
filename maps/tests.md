@@ -500,7 +500,7 @@
   - `class HarnessSelfCheckTests(_CausalityMixin, unittest.TestCase)` L153
     - (1 methods)
 
-### `tests/test_stale_bars_audit.py` (206 lines)
+### `tests/test_stale_bars_audit.py` (233 lines)
 - PURPOSE: tools/stale_bars_audit.py + CONFIG['stale_bars']: dead-coin tails and long zero-volume flat runs. (from docstring)
 - DEPENDS: tools
 - API:
@@ -514,6 +514,8 @@
   - `class PipelineTests(unittest.TestCase)` L139
     - (5 methods)
   - `class SplitLayoutTests(unittest.TestCase)` L192
+    - (1 methods)
+  - `class ColabJobTests(unittest.TestCase)` L205
     - (1 methods)
 
 ### `tests/test_three_tf.py` (39 lines)
