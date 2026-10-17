@@ -21,7 +21,7 @@ sys.path.insert(0, ROOT)
 import colab_runner as cr  # noqa: E402
 import holdout_guard as hg  # noqa: E402
 import natr_range as nr  # noqa: E402
-from tests.test_natr_range import TestEvaluateTimeframe  # noqa: E402
+from tests import test_natr_range as tnr  # noqa: E402
 from tests.test_holdout_guard import write_bars, write_card, write_lock  # noqa: E402
 
 STUDY = os.path.join(ROOT, "research", "natr_range")
@@ -36,7 +36,7 @@ def _load(name):
 
 class TestEvaluateFrozen(unittest.TestCase):
     def test_same_numbers_as_evaluate_timeframe(self):
-        rows = TestEvaluateTimeframe._rows()
+        rows = tnr.TestEvaluateTimeframe._rows()
         tr, va = rows[rows["tgt_open"] < "2024-04-15"], rows[rows["tgt_open"] >= "2024-04-15"]
         full = nr.evaluate_timeframe(tr, va)
         fz = nr.evaluate_frozen(full["models"], full["edges"], va)

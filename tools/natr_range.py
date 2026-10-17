@@ -173,11 +173,9 @@ def _mean_pinball(y, q):
     return float(np.mean([pinball(y, q[:, i], t).mean() for i, t in enumerate(TAUS)]))
 
 
-def evaluate_timeframe(train, val):
-    """Fit on `train` rows, evaluate on `val` rows (both from build_rows, optional `coin` column). Returns the models, edges,
-    decile / month / slice tables, extras and the accept-rule verdict."""
-    models = fit_models(train)
-    edges = decile_edges(train["natr"])
+def evaluate_frozen(models, edges, val):
+    """Evaluate FROZEN `models` and decile `edges` on `val` rows (build_rows output, optional `coin` column): decile / month /
+    slice tables, extras and the accept-rule verdict. Nothing is fitted here (used by the H2 confirmation)."""
     need = [f"b_{tg}_{qname(t)}" for tg in TARGETS for t in TAUS]
     v = val.dropna(subset=need).copy()
     q, ncross = predict_quantiles(models, "range", v["natr"])
@@ -219,6 +217,17 @@ def evaluate_timeframe(train, val):
         bb = _baseline_matrix(v, tg)
         extras[f"{tg}_p50_pinball_model"] = float(pinball(yy, qq[:, 1], 0.5).mean())
         extras[f"{tg}_p50_pinball_baseline"] = float(pinball(yy, bb[:, 1], 0.5).mean())
+    return {"models": models, "edges": edges, "deciles": deciles, "months": months, "slices": pd.DataFrame(srows), "verdict": verdict,
+            "n_crossed": ncross, "extras": extras}
+
+
+def evaluate_timeframe(train, val):
+    """Fit on `train` rows, evaluate on `val` rows (both from build_rows, optional `coin` column). Returns the models, edges,
+    decile / month / slice tables, extras (with the in-sample train coverage) and the accept-rule verdict."""
+    models = fit_models(train)
+    edges = decile_edges(train["natr"])
+    res = evaluate_frozen(models, edges, val)
+    extras = res["extras"]
     qt, nct = predict_quantiles(models, "range", train["natr"])
     ytr = train["y_range"].to_numpy(dtype=float)
     ctr = (ytr >= qt[:, 0]) & (ytr <= qt[:, 2])
@@ -227,5 +236,4 @@ def evaluate_timeframe(train, val):
     extras["train_coverage_by_year"] = {int(yr): float(ctr[tyear == yr].mean()) for yr in sorted(set(tyear))}
     extras["train_n"] = int(len(train))
     extras["n_crossed_train"] = nct
-    return {"models": models, "edges": edges, "deciles": deciles, "months": months, "slices": pd.DataFrame(srows), "verdict": verdict,
-            "n_crossed": ncross, "extras": extras}
+    return res

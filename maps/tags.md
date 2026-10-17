@@ -217,6 +217,7 @@
 - colab: data/drive, edge_discovery/25_image_cnn, tools/colab_bridge, tools/colab_runner, tools/colab_smoke, tools/data_manifest … (+1)
 - colab cell: tools/data_manifest_colab_cell, tools/fetch_history_colab_cell
 - colab disconnect: trainer/epoch_callbacks
+- colab job: natr_range/run_natr_confirm
 - colab-queue: tools/colab_runner
 - colab-results: tools/colab_runner
 - collect_signals: workflow/selective_eval
@@ -388,6 +389,7 @@
 - e-ind-002: indicator_strategy/variants
 - e-ind-003: indicator_strategy/charts, indicator_strategy/test_final
 - e-natr-001: natr_range/run_natr_range, tools/natr_range
+- e-natr-002: natr_range/freeze_rules, natr_range/run_natr_confirm
 - e-srch-002: strategy_discovery/intraday_macd
 - e-srch-003: strategy_discovery/seasonality15m
 - early stopping: cross_asset/train, trainer/best_tracker
@@ -510,6 +512,7 @@
 - from __future__ annotations: signal_eval/common
 - frozen dataclass: workflow/settings
 - frozen hypothesis: strategy_discovery/forward
+- frozen rules: natr_range/freeze_rules, natr_range/run_natr_confirm
 - full analysis: evaluation/full_analysis
 - funding: tools/fetch_history_vision_colab
 - funding features: tools/intraday_features
@@ -576,6 +579,7 @@
 - h18: edge_discovery/24_pullback_maker
 - h19: edge_discovery/25_image_cnn, edge_discovery/26_h19_generalization, tools/fetch_crypto_dataset
 - h19_log.txt: edge_discovery/26_h19_generalization
+- h2 confirmation: natr_range/freeze_rules, natr_range/run_natr_confirm
 - h20: edge_discovery/27_repr_info, edge_discovery/28_token_decompose
 - h21: edge_discovery/29_path_envelope
 - h22: edge_discovery/30_envelope_direction
@@ -600,7 +604,7 @@
 - history_1d: tools/colab_bridge
 - hl_positions: edge_discovery/19_hl_copy
 - hold length: strategy_discovery/seasonality15m
-- holdout: data/split, edge_discovery/14_holdout, tools/holdout_guard
+- holdout: data/split, edge_discovery/14_holdout, natr_range/run_natr_confirm, tools/holdout_guard
 - holdout flag: edge_discovery/13_listing_stops
 - holdout lock: tools/touched_ledger
 - holdout_start: data/defaults
@@ -849,7 +853,7 @@
 - n_display: evaluation/unified
 - naive baseline: evaluation/integrity
 - natr: data/cross_sectional_features, tools/natr_range
-- natr range forecast: natr_range/run_natr_range
+- natr range forecast: natr_range/run_natr_confirm, natr_range/run_natr_range
 - natr regime exit: hedge_recovery/sim
 - navigation: tools/build_map
 - negative results: tools/experiment_registry
@@ -1018,7 +1022,7 @@
 - quintiles: edge_discovery/03_quintiles
 - r multiple: edge_discovery/22_chart_rules, indicator_strategy/engine, tools/trade_engine
 - r0: tools/build_lock, tools/data_manifest, tools/data_manifest_colab_cell, tools/holdout_guard, tools/touched_ledger
-- r3: natr_range/run_natr_range, tools/natr_range
+- r3: natr_range/freeze_rules, natr_range/run_natr_confirm, natr_range/run_natr_range, tools/natr_range
 - ram: data/disk_backed
 - ram cap: data/parallel
 - random control: hedge_recovery/sim, hedge_recovery/sim2
@@ -1110,7 +1114,7 @@
 - rsi2 pullback: strategy_discovery/grid
 - rsi_zone: tools/gate_features
 - rule_cpos: workflow/candle_baseline
-- run contract: gate_features/run_gate001, natr_range/run_natr_range, tools/colab_runner, tools/colab_smoke
+- run contract: gate_features/run_gate001, natr_range/run_natr_confirm, natr_range/run_natr_range, tools/colab_runner, tools/colab_smoke
 - run fixture: tests/run_fixture
 - run_batch_and_register: discovery/__init__, discovery/batch_runner
 - run_chicks: workflow/run
@@ -1179,7 +1183,7 @@
 - selftests: signal_eval/selftests
 - settings: data/defaults, workflow/settings
 - settings interval start funding open_interest: tools/fetch_history_colab_cell
-- sha256: tools/colab_runner
+- sha256: natr_range/freeze_rules, tools/colab_runner
 - shadowing: tools/implicit_deps
 - shap: discovery/phase3_tools
 - shared constants: core/__init__

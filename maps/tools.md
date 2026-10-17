@@ -428,7 +428,7 @@
   - `def load_intraday_daily(root: Union[str, Path], symbol: str, subdir: str='history_15m', pattern: str='{name}.csv.gz', **kw) -> Optional[pd.DataFrame]` L427
   - `def fill_neutral(frame: pd.DataFrame, flag_cols: Iterable[str]=()) -> pd.DataFrame` L436
 
-### `tools/natr_range.py` (231 lines)
+### `tools/natr_range.py` (239 lines)
 - PURPOSE: Calibrated next-bar range forecast from NATR_14 (phase R3, card E-natr-001): causal NATR and next-range targets (range, up and down excursion, percent of the decision close), an exact pooled quantile regression log(range_{t+1}) = a + b log…
 - TAGS: natr, range forecast, quantile regression, calibration, coverage, pinball loss, trailing quantile baseline, volatility clustering, h003, r3, e-natr-001, bot2 get_range_forecast
 - PITFALLS: A bar exists only if ALL its source members exist and is used only after it closed; row t = decision at the close of bar t, target = bar t+1 divided by the close of bar t. The baseline needs 90 consecutive valid bars (NaN otherwise) and rows without it are dropped from model AND baseline in the comparison. Deciles come from train only. Forecast quantiles are sorted across tau (rearrangement); the…
@@ -446,7 +446,8 @@
   - `def coverage(y, lo, hi)` L137
   - `def monthly_ic(index, x, y)` L142
   - `def evaluate_rule(cov, cov_dec, pin_model, pin_base, ic)` L150
-  - `def evaluate_timeframe(train, val)` L176
+  - `def evaluate_frozen(models, edges, val)` L176
+  - `def evaluate_timeframe(train, val)` L224
 
 ### `tools/nb_cells.py` (100 lines)
 - PURPOSE: Edit notebook code/markdown cells as plain files and write them back without reformatting the .ipynb: list cells, extract chosen cells to <dir>/<nb>_<i>.py, inject them back, insert new cells. Preserves the notebook's own JSON layout (comp…
