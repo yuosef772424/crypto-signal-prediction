@@ -28,7 +28,7 @@
 | Phase | State | PR | Verdict |
 |---|---|---|---|
 | T0 triage open PRs | #16, #15, #19 (H07 studies split from #13, F-0078/79) merged; #6, #14 closed; #13 restructuring: merge master + rtol fix + history note | #15, #16, #19 | in progress |
-| R0 lock (+M) | built on `claude/r0-lock` (salt b4f3790); D-009 two-level holdout being added; next: manifest job via the Colab runner | — | — |
+| R0 lock (+M) | lock built; holdout.json sha256 70322ba699d5068e4fbe7f8b014f85492aeebf15d3c743551fbf1062cd889b2c (860 coins, 459 eligible: 14 A / 445 B, 183 sealed; H3 = 3) | branch `claude/r0-lock` | — |
 | G2 gate-style features | next | — | — |
 | G gate-cli reverse + QC | waits for the owner's raw JSON | — | — |
 | R3 NATR range tool | not started | — | — |
