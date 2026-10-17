@@ -21,7 +21,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 ## Code packages
 - `core/` — Tier-0 package: the pure constants and schema names that several packages used to copy (last_candles column schema, price target columns, target-mode names, NIG alpha floor). Normal Python package, no side effects, imports nothing from thi… | 3 modules, 0 data files (0 B) → maps/core.md
 - `cross_asset/` — Package entry of the cross-asset 'panel' model (phase 1): one sample = a full UTC day with all coins, attention across same-day coins; re-exports PanelSplit, panel_split_from, VARIANTS, run_panel_experiment. | 7 modules, 0 data files (0 B) → maps/cross_asset.md
-- `tools/` — bracket_eval, build_lock, build_map, check_deps, colab_bridge, colab_runner, colab_smoke, data_mani… | 23 modules, 1 data files (8 KB) → maps/tools.md
+- `tools/` — bracket_eval, build_lock, build_map, check_deps, colab_bridge, colab_runner, colab_smoke, data_mani… | 24 modules, 1 data files (8 KB) → maps/tools.md
 - `data/` — Package holding ALL data-preparation code of the project (formerly the cells of crypto_data_pipeline_v6.ipynb): `import data` gives the whole pipeline (data.CONFIG, data.build_dataset, data.split_data, ...) in this package's namespace, loa… | 29 modules, 1 data files (289 B) → maps/data.md
 - `model/` — Package holding the NIG-TimeNet v2 model code (formerly the cells of model_v2 (1).ipynb): `import model` gives the whole model (model.build_model_fn, model.MODEL_CONFIG, model.diagnose_model, ...) in this package's namespace, loaded lazily… | 15 modules, 0 data files (0 B) → maps/model.md
 - `trainer/` — Package holding the generic training framework (formerly the cells of trainer_framework_v2.ipynb): `import trainer` gives the whole framework (trainer.build_training_system, trainer.build_config, trainer.GenericTrainer, ...) in this packag… | 20 modules, 0 data files (0 B) → maps/trainer.md
@@ -33,6 +33,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 ## Research studies (research/)
 - `research/edge_discovery/` — التقرير النهائي — البحث عن Edge قابل للاستغلال (2024-01 → 2026-09) | 41 scripts, 33 data files (788 KB) → maps/research_edge_discovery.md
 - `research/gate_data_qc/` — تدقيق بيانات gate-cli — التحقق من التقرير وخطة التطبيق والاختبار | 0 scripts, 0 data files (0 B) → maps/research_gate_data_qc.md
+- `research/gate_features/` — gate_features — E-gate-001 (phase G2): gate-style derived technical states as model inputs | 1 scripts, 13 data files (26 KB) → maps/research_gate_features.md
 - `research/h07_combos/` — H07 + قواعد أخرى — هل يتحسّن مرشّح الاتجاه بالدمج؟ | 1 scripts, 1 data files (2 KB) → maps/research_h07_combos.md
 - `research/h07_forward/` — H07 — تداول ورقي على بيانات لم يرها أحد (من 2026-10-01) | 0 scripts, 3 data files (3 KB) → maps/research_h07_forward.md
 - `research/h07_volsizing/` — H07 + تحجيم بالتقلّب المتوقَّع (تعلّم آلي للمقدار لا للاتجاه) | 1 scripts, 3 data files (7 KB) → maps/research_h07_volsizing.md
@@ -41,7 +42,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `research/strategy_discovery/` — strategy_discovery — البحث عن استراتيجية تداول قابلة للتحقق | 10 scripts, 15 data files (112 KB) → maps/research_strategy_discovery.md
 
 ## docs/research (legacy)
-- `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 44 md, 1 data files (94 KB) → maps/docs_research.md
+- `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 44 md, 1 data files (98 KB) → maps/docs_research.md
 - `docs/research/audit/` — Audit / Improvement Protocol (Auditor ↔ Builder) | 26 scripts, 5 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/notes/` — PR #13 restructuring: history facts (evil merges, move+modify commits, verbatim extraction) | 0 scripts, 1 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/plan/` — Colab runner: one click per experiment | 0 scripts, 16 md, 6 data files (547 KB) → maps/docs_research.md
@@ -52,6 +53,6 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `docs/research/templates/` — Experiment card — <id>: <one-line title> | 0 scripts, 1 md, 0 data files (0 B) → maps/docs_research.md
 
 ## Tests
-- `tests/` — run_fixture, test_audit_round2, test_bracket_eval, test_build_lock, test_colab_runner, test_colab_r… | 42 modules, 2 data files (228 KB) → maps/tests.md
+- `tests/` — run_fixture, test_audit_round2, test_bracket_eval, test_build_lock, test_colab_runner, test_colab_r… | 44 modules, 2 data files (228 KB) → maps/tests.md
 
 ## Where do I edit X? → `maps/tags.md` (TAGS → modules index)
