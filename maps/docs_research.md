@@ -201,7 +201,7 @@ Documents:
   - `def auc_pair(aligned)` L90
 
 ## `docs/research/plan/`
-- Colab runner: one click per experiment | 0 scripts, 16 md, 2 data files (161 KB)
+- Colab runner: one click per experiment | 0 scripts, 16 md, 5 data files (282 KB)
 
 Documents:
 - `COLAB_RUNNER.md` — Colab runner: one click per experiment
@@ -223,6 +223,7 @@ Documents:
 
 Data / other files (counts only):
 - `lock/`: csv×2 — 161 KB
+- `lock/manifest/`: csv×2, json×1 — 121 KB
 
 ## `docs/research/results/`
 - نتائج خطّة `capacity` على بيانات Drive (Colab T4، 2026-09-27) | 0 scripts, 6 md, 0 data files (0 B)

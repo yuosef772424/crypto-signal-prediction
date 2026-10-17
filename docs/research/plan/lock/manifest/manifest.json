@@ -1,0 +1,32 @@
+{
+ "complete": true,
+ "config": {
+  "extra_folders": {
+   "history_1d": "/content/drive/MyDrive/history_1d"
+  },
+  "history_15m_dir": "/content/drive/MyDrive/history_15m",
+  "suffix": ".csv.gz"
+ },
+ "extra_folders_missing": [],
+ "git_sha": "1b0c87f5ab2b3846734a5cbfa9aef23c33b29139",
+ "ignored_files": [],
+ "input_fingerprint": "17fe3fea7dbec7a5f71c01ee870895181b409f77fe77e5b8e1ce2e64b94eafc7",
+ "max_minutes": 50.0,
+ "n_bars_listed": 63189999,
+ "n_configurations_evaluated": 0,
+ "n_files_listed": 860,
+ "n_files_total": 860,
+ "outputs": {
+  "folders_manifest.csv": "63f2c609113b7918f24436e4cb35bfb0f7ec6fce6a3cc04cbe334cd8bf4e3676",
+  "history_15m_manifest.csv": "b16742796620c2e0c5d17cafc4a3f55cf15308925b67572a9fc96434d06c9192"
+ },
+ "rows": {
+  "folders": {
+   "history_1d": 527
+  },
+  "history_15m_files": 860
+ },
+ "runtime_seconds": 134.963,
+ "schema": "data_manifest/1",
+ "warnings": []
+}
