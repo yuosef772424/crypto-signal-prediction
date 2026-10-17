@@ -46,7 +46,7 @@
 - addendum l: edge_discovery/31_wick_capture
 - addendum l.1: edge_discovery/32_breakout_stops
 - adverse selection: edge_discovery/31_wick_capture
-- adx: tools/indicator_reverse
+- adx: tools/gate_features, tools/indicator_reverse
 - adx trend: indicator_strategy/engine, tools/trade_engine
 - aggregate long/short: edge_discovery/11_more
 - aggregate oi change: edge_discovery/09_market_flush
@@ -118,6 +118,7 @@
 - binary_classification: model/heads
 - binomial test: evaluation/io_patterns
 - block bootstrap: h07_combos/01_combos, h07_volsizing/01_volsizing
+- boll: tools/gate_features
 - bollinger: tools/indicator_reverse
 - bollinger breakout: indicator_strategy/engine, tools/trade_engine
 - bonferroni: h07_combos/01_combos
@@ -174,10 +175,11 @@
 - capacity_thresholds: workflow/capacity
 - capacity_verdict: workflow/capacity
 - cards: tools/build_map
+- categorical states: tools/gate_features
 - causal: model/decomposition
 - causal alignment: tools/intraday_features
 - causalmultiscaledecomp: model/decomposition
-- cci: tools/indicator_reverse
+- cci: tools/gate_features, tools/indicator_reverse
 - cells: tools/nb_cells
 - chart images: edge_discovery/25_image_cnn
 - chart patterns: edge_discovery/22_chart_rules
@@ -204,7 +206,7 @@
 - clean_reg_target: discovery/__init__, discovery/evaluation
 - clear_checkpoint: data/checkpoints
 - clip_abs: data/normalize
-- closed bars: data/align
+- closed bars: data/align, tools/gate_features
 - cnn: edge_discovery/25_image_cnn
 - coin categories: data/defaults
 - coinmetrics: edge_discovery/16_h07_oos, edge_discovery/20_onchain
@@ -312,6 +314,7 @@
 - deflated sharpe: edge_discovery/14_holdout, edge_discovery/17_h07_break
 - delay: edge_discovery/19_hl_copy
 - dependencies: tools/check_deps
+- derived features: tools/gate_features
 - derivedmetrics: trainer/metrics
 - describe: data/runtime
 - descriptive: edge_discovery/28_token_decompose
@@ -509,11 +512,13 @@
 - futures symbols: data/binance_client
 - futures_metrics: edge_discovery/data_tools/build_panel, tools/fetch_history_vision_colab
 - futures_metrics folder: edge_discovery/data_tools/folder_index
+- g2: tools/gate_features
 - gap: workflow/generalization
 - gap report: tools/evaluate_trained_model
 - gaps report: tools/fetch_history_vision_colab
-- gate: indicator_strategy/engine, tools/trade_engine
+- gate: indicator_strategy/engine, tools/gate_features, tools/trade_engine
 - gate-cli: tools/indicator_reverse
+- gate-style-v1: tools/gate_features
 - gatedfusion: model/readout
 - gates: strategy_discovery/grid
 - gdown: signal_eval/bootstrap
@@ -648,7 +653,7 @@
 - job.json: tools/colab_runner, tools/colab_smoke
 - json format: tools/nb_cells
 - k-fold: trainer/kfold
-- kdj: tools/indicator_reverse
+- kdj: tools/gate_features, tools/indicator_reverse
 - keep_asset_test_separate: signal_eval/integration
 - keltner squeeze: strategy_discovery/grid2
 - keras 2/3: trainer/env
@@ -728,7 +733,9 @@
 - low_class: workflow/candle_baseline
 - lr schedule: cross_asset/train, trainer/schedules
 - ls_acc: edge_discovery/features
+- ma_alignment: tools/gate_features
 - macd: indicator_strategy/engine, strategy_discovery/intraday_macd, tools/indicator_reverse, tools/trade_engine
+- macd_signal: tools/gate_features
 - mae: evaluation/metrics
 - magnitude: workflow/retarget
 - main notebook: workflow/__init__
@@ -821,6 +828,7 @@
 - multi timeframe input: workflow/splits
 - multi-task: trainer/trainer
 - multi-timeframe: model/builder
+- multi-timeframe signal: tools/gate_features
 - multiclass_classification: model/heads
 - multiple testing: strategy_discovery/grid, strategy_discovery/grid2
 - multivariate: edge_discovery/02_fmb
@@ -843,6 +851,7 @@
 - nigts: model/common
 - niguncertainty: model/nig_layers
 - no future: tests/test_no_lookahead
+- no look-ahead: tools/gate_features
 - no-repeat: tools/experiment_registry
 - no_relative_bases: core/schema
 - normalization: data/normalize
@@ -1081,6 +1090,7 @@
 - rr_trading_report: workflow/selective_eval
 - rsi: indicator_strategy/engine, tools/indicator_reverse, tools/trade_engine
 - rsi2 pullback: strategy_discovery/grid
+- rsi_zone: tools/gate_features
 - rule_cpos: workflow/candle_baseline
 - run contract: tools/colab_runner, tools/colab_smoke
 - run fixture: tests/run_fixture
@@ -1117,6 +1127,7 @@
 - sample size guard: strategy_discovery/oos, strategy_discovery/survivor_checks
 - sample_filters: data/windows
 - sample_idx_key: trainer/training_diagnostics
+- sar: tools/gate_features
 - save load: model/selftests
 - save_config: data/runtime
 - save_data_to_drive: data/storage
@@ -1263,6 +1274,7 @@
 - task_registry: trainer/tasks
 - taskweightupdater: trainer/metrics
 - tearsheet: evaluation/tearsheet
+- technical states: tools/gate_features
 - tempfile: signal_eval/registry_selftests
 - template: trainer/example
 - tensorflow: model/common
@@ -1391,6 +1403,7 @@
 - workflow: workflow/__init__
 - workflow package: workflow/_loader
 - workflow.run steps: tools/evaluate_trained_model
+- wr: tools/gate_features
 - xla: trainer/perf
 - year stability: strategy_discovery/robustness
 - z-score: strategy_discovery/forward

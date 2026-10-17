@@ -68,7 +68,7 @@ class TestKnownShapes(unittest.TestCase):
     def test_downtrend_states(self):
         raw, st = gf.tf_features(self.dn)
         last = st.iloc[-1]
-        for c in ("sma_A", "sma_B", "ema_A", "ema_B", "sar_side", "macd_hist_sign", "di_dom"):
+        for c in ("sma_A", "sma_B", "ema_A", "ema_B", "sar_side", "di_dom"):   # macd hist of a decaying price shrinks toward 0: not asserted
             self.assertEqual(last[c], -1, c)
         self.assertEqual(last["rsi_zone"], -1)
         self.assertLess(raw["rsi14"].iloc[-1], 1)

@@ -285,6 +285,7 @@
 
 ### `tests/test_gate_features.py` (181 lines)
 - PURPOSE: tools/gate_features.py (gate-style-v1, unverified): causal categorical states, NaN never 0, closed bars only. (from docstring)
+- DEPENDS: tools
 - API:
   - `class TestVersion(unittest.TestCase)` L26
     - (1 methods)
