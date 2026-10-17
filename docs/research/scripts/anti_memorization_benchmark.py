@@ -64,12 +64,12 @@ NS = {}
 
 def project():
     if "GenericTrainer" not in NS:
+        if REPO not in sys.path:
+            sys.path.insert(0, REPO)
+        import model, trainer           # packages model/ and trainer/ (ex model_v2 / trainer_framework_v2 notebooks)
         with contextlib.redirect_stdout(io.StringIO()):
-            load_notebook(os.path.join(REPO, "model_v2 (1).ipynb"), NS)
-            nb = json.load(open(os.path.join(REPO, "trainer_framework_v2.ipynb"), encoding="utf-8"))
-            smoke = next(i for i, c in enumerate(nb["cells"])
-                         if c["cell_type"] == "code" and "def _dummy_model_builder" in "".join(c["source"]))
-            load_notebook(os.path.join(REPO, "trainer_framework_v2.ipynb"), NS, stop_at=smoke)
+            model.load_into(NS)
+            trainer.load_into(NS, exclude=("smoke_test", "example", "kfold", "ensemble"))   # = the cells before the smoke test
     return NS
 
 

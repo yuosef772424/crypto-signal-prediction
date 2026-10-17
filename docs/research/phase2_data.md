@@ -64,18 +64,18 @@
 | `use_futures_metrics` (USE_FUTURES_METRICS) | `"auto"` | `True` إن وُجد أيٌّ من `funding_rate/` أو `open_interest/` أو `futures_metrics/` |
 | `data_root` | `None` | `None` يعني `/content/drive/MyDrive`، ويمكن وضع أي مسار يحوي المجلدات |
 | `min_coverage`, `trades_z_window`, `topk_bars`, `max_age` | 0.75, 30, 4, `"1D"` | عتبة تغطية اليوم، ونافذة `ITD_TRADES_Z`، وk لـ `ITD_VOL_TOPK`، وأقصى عمر مقبول للقيمة |
-| `module_dirs` | `/content/crypto-signal-prediction`, `/content/drive/MyDrive/crypto` | أين يُبحث عن `tools/intraday_features.py`، إضافةً إلى مجلد العمل الحالي |
+| `module_dirs` | `/content/crypto-signal-prediction`, `/content/drive/MyDrive/crypto` | أين يُبحث عن `tools/intraday_features.py`، بعد جذر المستودع الحاوي لحزمة `data/` (أولاً، مهما كان مجلد العمل) ثم مجلد العمل الحالي |
 
 القيمة `"auto"` تُثبَّت إلى True أو False في بداية `build_dataset*` عبر `resolve_phase2_toggles`، فتتطابق `feature_order` مع ما تضيفه الخطافات فعلاً. من دون المجلدات أو الوحدة، يبقى المسار اليومي كما كان حرفياً: نفس الميزات ونفس القيم، والاختبار الذاتي `t_phase2_toggles_off_leave_pipeline_unchanged` يتحقّق من ذلك. بصمة نقاط الاستئناف تتغيّر فقط عند تفعيل أحد المفتاحين.
 
 ## التشغيل على Colab
 
-1. شغّل `main.ipynb` من خليته الأولى كالمعتاد. الخلية 2 تركّب Drive وتسحب المستودع، والخلية 3 تنفّذ `%run "crypto_data_pipeline_v6.ipynb"`. بذلك يصير مجلد العمل هو المستودع، فتُوجد `tools/intraday_features.py` تلقائياً. يجب أن ترى في خرج الاختبارات الذاتية: `✅ t_phase2_hooks_from_drive_files`.
-   إن فتحت دفتر الأنابيب وحده، فاستنسخ المستودع إلى `/content/crypto-signal-prediction` (أو ضعه في `MyDrive/crypto`)، أو أضف مساره إلى `phase2_data['module_dirs']`.
+1. شغّل `main.ipynb` من خليته الأولى كالمعتاد. الخلية 2 تركّب Drive وتسحب المستودع، والخلية 3 تنفّذ `%run "crypto_data_pipeline_v6.ipynb"`. بذلك يصير مجلد العمل هو المستودع (والمُشغِّل يضعه على `sys.path` ليستورد الحزمة `data/`)، فتُوجد `tools/intraday_features.py` تلقائياً (تُبحث أولاً تحت جذر المستودع الحاوي لـ`data/`). يجب أن ترى في خرج الاختبارات الذاتية: `✅ t_phase2_hooks_from_drive_files`.
+   إن فتحت دفتر الأنابيب وحده، فاستنسخ المستودع (يحتاج مجلد `data/` أيضاً بجانب الدفتر) إلى `/content/crypto-signal-prediction` (أو ضعه في `MyDrive/crypto`)، أو أضف مساره إلى `phase2_data['module_dirs']`.
 2. لا يلزم أي إعداد آخر: المجلدات موجودة في `MyDrive`، فيتحوّل `"auto"` إلى True. للتحكّم الصريح نفّذ قبل البناء:
    ```python
    update_config(phase2_data={'use_intraday_15m': True, 'use_futures_metrics': True})   # أو False
    ```
 3. ابنِ البيانات كما في القسم 20 (الخلية 56): `mount_drive()`، ثم `registry = load_asset_registry()` و`configs = filter_desired_coins(...)`، ثم `dataset = build_dataset(configs, load_asset_fn=load_asset, resample_fn=make_resample_fn(CONFIG), config=CONFIG, checkpoint_dir=...)`، ثم `save_data_to_drive(dataset)`. عند البداية سيُطبع سطر `🧩 المرحلة ٢: USE_INTRADAY_15M=True | USE_FUTURES_METRICS=True`.
 4. **الزمن والذاكرة:** قراءة ملف 15m لست سنوات (نحو 13MB مضغوطاً، 210 آلاف شمعة) وحساب ميزاته يستغرقان نحو ثانيتين محلياً، وذروة الذاكرة نحو 100MB لكل خيط، ثم تُخزَّن النتيجة مؤقتاً لآخر 32 عملة. على Colab، ومع القراءة من Drive، التقدير نحو 3 إلى 6 ثوانٍ لكل عملة، أي زيادة تقارب 10 إلى 30 دقيقة لنحو 600 عملة مع الخيوط الافتراضية. ملفات التمويل والـ metrics صغيرة (نحو 1MB). الرام الإضافية لكل خيط نحو 150MB، و`default_workers` يحدّ عدد الخيوط بالرام أصلاً.
-5. بعد الحفظ، يقرأ `main.ipynb` (الخلية 7) الملف `preprocessing_output_latest.pkl.gz` الجديد كما هو. عدد الميزات تغيّر، فيلزم تدريب جديد، ولا تُستخدم نماذج قديمة.
+5. بعد الحفظ، يقرأ `main.ipynb` (الخلية 8 بعد إضافة خلية تحميل `workflow/`؛ كانت 7) الملف `preprocessing_output_latest.pkl.gz` الجديد كما هو. عدد الميزات تغيّر، فيلزم تدريب جديد، ولا تُستخدم نماذج قديمة.

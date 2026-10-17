@@ -24,6 +24,8 @@ import tempfile
 import numpy as np
 import pandas as pd
 
+from core.schema import LAST_COLUMN_INDEX as LC
+
 from .data import DAY_NS, PanelSplit
 
 BASELINE_COLS = ["asset", "timestamp", "entry", "last_high", "last_low", "fut_close", "fut_high", "fut_low",
@@ -56,9 +58,10 @@ def synthetic_split(n_assets=30, n_days=60, seq_len=8, n_features=5, start_day=1
     rh, rl = np.abs(rng.normal(scale=0.02, size=n)), np.abs(rng.normal(scale=0.02, size=n))
     lc = np.stack([close * (1 + rh), close * (1 - rl), close, rows["day"].to_numpy().astype("float64") * DAY_NS,
                    close * (1 + r), close * (1 + np.minimum(r, 0) - rl), close * (1 + np.maximum(r, 0) + rh)], 1)
-    ts = lc[:, 3]
+    ts = lc[:, LC["timestamp"]]
     y = {}
-    for t, fut, last in (("close", 4, 2), ("low", 5, 1), ("high", 6, 0)):
+    for t, fut, last in (("close", LC["future_close"], LC["last_close"]), ("low", LC["future_low_min"], LC["last_low"]),
+                         ("high", LC["future_high_max"], LC["last_high"])):
         raw = lc[:, fut] / lc[:, last] - 1
         med = pd.Series(raw).groupby(ts).transform("median").to_numpy()
         y[f"y_{t}_reg"] = np.clip(raw - med, -1, 1).astype("float32")
@@ -88,7 +91,7 @@ def test_grouping():
         _check(pd.Series(ps.yrank[ii]).corr(pd.Series(ps.yreg[ii, 2]), method="spearman") > 0.999, "yrank ليست رتبة")
     # طابع مُزاح ساعة + تكرار (عملة، يوم) يُكشفان
     lc = ps.lc.copy()
-    lc[0, 3] += 3600 * 10**9
+    lc[0, LC["timestamp"]] += 3600 * 10**9
     assets = ps.assets.copy()
     j = next(i for i in range(1, ps.n) if ps.day_key[i] == ps.day_key[0] and assets[i] != assets[0])
     assets[j] = assets[0]

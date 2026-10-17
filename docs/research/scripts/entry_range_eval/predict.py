@@ -2,7 +2,7 @@
 weights and dump raw model outputs for VAL and TEST only.
 
 Why a separate script: main.ipynb is being edited by another agent, so the model code is executed read-only
-from model_v2 (1).ipynb (same cells main.ipynb %run's) and the MODEL_OVERRIDES logic is re-stated here
+from the model/ package (ex model_v2 (1).ipynb, what main.ipynb %run's) and the MODEL_OVERRIDES logic is re-stated here
 (TARGET_MODE=entry_range => close head enabled, enforce_order off, ANTI_MEMORIZATION_CONFIG on).
 
 Holdout safety: rows with timestamp >= holdout_start - embargo are dropped right after loading the pickle,
@@ -16,6 +16,7 @@ import json
 import os
 import pickle
 import re
+import sys
 
 import numpy as np
 import pandas as pd
@@ -24,16 +25,12 @@ REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..",
 
 
 def load_model_v2():
-    """Executes the code cells of model_v2 (1).ipynb, skipping its top-level self-test call."""
-    nb = json.load(open(os.path.join(REPO, "model_v2 (1).ipynb"), encoding="utf-8"))
+    """Loads the model package model/ (ex model_v2 (1).ipynb), skipping its import-time self test (module selftests)."""
+    if REPO not in sys.path:
+        sys.path.insert(0, REPO)
+    import model
     ns = {"__name__": "model_v2"}
-    for c in nb["cells"]:
-        if c["cell_type"] != "code":
-            continue
-        src = "".join(c["source"])
-        src = "\n".join(l for l in src.splitlines() if not re.match(r"^\s*(%|!)", l))
-        src = re.sub(r"^run_model_selftests\(.*\)\s*$", "pass", src, flags=re.M)
-        exec(compile(src, "model_v2_cell", "exec"), ns)
+    model.load_into(ns, exclude=("selftests",))
     return ns
 
 

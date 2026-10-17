@@ -12,9 +12,11 @@ planner/builder ──push job.json──▶ colab-queue ──(Run all)──�
 
 ## Owner setup (once)
 1. GitHub > Settings > Developer settings > Fine-grained tokens > new: repository access **only this repo**, permission **Contents: read and write** (nothing else), expiry 90 days.
-2. In Drive create `MyDrive/secrets/github_token.txt` holding the token as a single line.
-3. Open `https://colab.research.google.com/github/yuosef772424/crypto-signal-prediction/blob/master/colab_runner.ipynb` (or the branch the notebook is on), then **Runtime > Run all**. Allow the Drive prompt.
-4. Read the last block printed (job id, OK/FAIL, results commit). When the token expires, replace the line in the file; no cell changes.
+2. Open `https://colab.research.google.com/github/yuosef772424/crypto-signal-prediction/blob/master/colab_runner.ipynb` (or the branch the notebook is on), then
+   **Runtime > Run all** once and allow the Drive prompt. When asked, **paste the token** (it is not echoed). The notebook checks it with one
+   request to the repo, creates `MyDrive/crypto/secrets/` and saves the token there as one line (mode 600 where Drive allows it).
+3. From then on Run all reads the token silently. If GitHub rejects the saved token (expired or revoked, HTTP 401), the notebook says so and asks
+   again; the file is overwritten only after the new token is accepted. Read the last block printed (job id, OK/FAIL, results commit).
 
 ## Queueing a job (planner or builder)
 One commit on `colab-queue`, which holds only `job.json`. The code to run must already be pushed, and `repo_ref` must be a commit
@@ -59,7 +61,7 @@ env and summary (status FAIL). The builder copies an OK bundle verbatim under `r
 the reviewer re-checks the sha256 values. Drive keeps the same folder at `MyDrive/crypto_runs/<job_id>/`.
 
 ## Security notes
-- The token lives only in the Drive file. It reaches git through a `GIT_ASKPASS` script that reads it from the environment of the git child
+- The token lives only in the Drive file `MyDrive/crypto/secrets/github_token.txt`. It reaches git through a `GIT_ASKPASS` script that reads it from the environment of the git child
   process; it is never in a URL, a command line, `.git/config`, the notebook source, or the job's environment, and every printed line
   and exception is masked. The notebook's one HTTP bootstrap sends it in an `Authorization` header.
 - Fine-grained, one-repo, Contents-only: a leaked token can rewrite this repo's branches (including `master` unless it is protected)

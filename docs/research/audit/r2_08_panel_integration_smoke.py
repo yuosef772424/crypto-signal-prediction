@@ -35,17 +35,9 @@ for sp in (train, val, *test.values()):
 F = len(ds["feature_order"])
 assert F == 43 and ds["X_1h"].shape[1] == 32
 
-# model_v2 runs its self-tests on import; load all cells but neutralise that call
-import json  # noqa: E402
-nb = json.load(open(os.path.join(ROOT, "model_v2 (1).ipynb")))
-mv = {"__name__": "audit_nb"}
-for cell in nb["cells"]:
-    if cell["cell_type"] != "code":
-        continue
-    src = "".join(cell["source"])
-    lines = [ln for ln in src.splitlines() if not ln.lstrip().startswith(("!", "%")) and ln.strip() != "run_model_selftests()"]
-    with contextlib.redirect_stdout(io.StringIO()):
-        exec(compile("\n".join(lines), "model_v2", "exec"), mv)
+# model (package model/, ex model_v2) runs its self-tests on load; load every module but that one
+import _nbload  # noqa: E402
+mv = _nbload.load_model({"__name__": "audit_nb"})
 overrides = dict(mv["ANTI_MEMORIZATION_CONFIG"])
 overrides.update(price_targets=("high", "low"), head_types={t: ["nig_regression", "binary_classification"] for t in ("high", "low")})
 builder = lambda: mv["build_model_fn"](32, F, config=overrides)  # noqa: E731

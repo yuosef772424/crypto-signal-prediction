@@ -263,15 +263,13 @@ class DiskBackedTests(unittest.TestCase):
 
 
 class MainLazyBatchTests(unittest.TestCase):
-    """دوال تكوين الدفعات في main.ipynb (القسم ٥) مع X memmap: نفس الدفعات والقيم، float32 عند التكوين."""
+    """دوال تكوين الدفعات في workflow/batches.py (من main.ipynb القسم ٥) مع X memmap: نفس الدفعات والقيم، float32 عند التكوين."""
 
     @classmethod
     def setUpClass(cls):
         import tensorflow as tf
-        with open(os.path.join(ROOT, "main.ipynb"), encoding="utf-8") as f:
-            cells = json.load(f)["cells"]
-        src = next("".join(c["source"]) for c in cells
-                   if c["cell_type"] == "code" and "def make_shuffled_dataset" in "".join(c["source"]))
+        with open(os.path.join(ROOT, "workflow", "batches.py"), encoding="utf-8") as f:     # كود main (القسم ٥) في workflow/batches.py
+            src = f.read()
         tree = ast.parse(src)
         want = {"make_shuffled_dataset", "_to_float32_inputs", "make_eval_dataset"}
         body = [n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name in want]

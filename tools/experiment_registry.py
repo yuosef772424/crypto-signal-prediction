@@ -114,11 +114,15 @@ def _overlap(a, b):
 
 
 def covering(meta, rows):
-    """Active closed failures whose scope overlaps the card on every tag field."""
+    """Active closed failures whose scope overlaps the card on every tag field (a row whose `source` names this card's
+    id is the card's own result, not a prior failure covering it)."""
     superseded = set().union(*[tags(r.get("supersedes")) for r in rows]) if rows else set()
+    card_id = (meta.get("id") or "").strip()
     out = []
     for r in rows:
         if r["status"].strip() == "reopened" or r["id"].lower() in superseded:
+            continue
+        if card_id and re.search(rf"(?<![\w-]){re.escape(card_id)}(?![\w-])", r.get("source") or ""):
             continue
         if all(_overlap(tags(meta.get(f)), tags(r.get(f))) for f in TAG_FIELDS):
             out.append(r)

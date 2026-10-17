@@ -1,5 +1,8 @@
 # تجربة التطبيع النسبي الهندسي للأسعار (`price_norm_mode='pct_change'`)
 
+> **ملاحظة (S7 — `main.ipynb` مُوجَّه بالإعدادات):** المتغيّرات المذكورة بأسمائها القديمة في خطوات Colab أدناه (`TARGET_MODE`، `ENTRY_CLOSE_REG`، `MODEL_TFS`، `DATA_FILENAME_BASE`، `RUN_MAIN_TRAINING`، `PANEL_MODE`، `PANEL_PRESET`، `PANEL_*`...) صارت حقولاً في `settings` (خلية «٢) الإعدادات»):
+> `target.target_mode`، `target.entry_close_reg`، `data.model_tfs`، `data.filename_base`، `train.run_main_training`، `panel.enabled`، `panel.preset`، `panel.*`. الجدول الكامل: [`main_lab_code_layout.md`](main_lab_code_layout.md) («كان / صار»). الخطوات نفسها والمجلدات نفسها (`run_dir_for`)، والنتائج المسجَّلة أدناه لم تتغيّر.
+
 ## الفكرة
 
 أعمدة `price_level` في X (`close`، و`open`/`high`/`low` والمتوسطات ونطاقات بولنجر حين تُفعَّل) كانت تُطبَّع بمرجع النافذة:
@@ -41,7 +44,7 @@ x_{t−1} = x_t / (1 + r_t / 100)          (للخلف من المرساة؛ أ�
 تغيير واحد فقط عن 1h_s8 (`PCT_CHANGE_OVERRIDES = {**HOURLY_W32_S8_OVERRIDES, "price_norm_mode": "pct_change"}`): نفس العملات
 والنافذة والـstride والأفق والتقسيم والـholdout، فتُقارَن النتائج ببيانات 1h_s8 مباشرة.
 
-1. خط الأنابيب (`crypto_data_pipeline_v6`، القسم 20-د):
+1. خط الأنابيب (`crypto_data_pipeline_v6`، القسم 20-د؛ الكود في `data/presets.py`):
    `dataset = build_hourly_pct_dataset(checkpoint_dir="/content/drive/MyDrive/crypto_model/ckpt_1h_w32_s8_pct")`
    يطبع تدقيق التطبيع وفحص الفكّ، ويحفظ باسم `HOURLY_PCT_NAME = "preprocessing_output_1h_w32_s8_h1_pct"`.
 2. `main.ipynb`: `DATA_FILENAME_BASE = HOURLY_PCT_NAME`. يقرأ `price_norm_mode` من البيانات نفسها ويطبعه.

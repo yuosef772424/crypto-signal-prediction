@@ -22,12 +22,12 @@ PITFALLS: Groups mixing different timestamps let cross-asset attention read peer
 import numpy as np
 import pandas as pd
 
-TARGETS = ("high", "low", "close")
+from core.schema import LAST_COLUMN_INDEX, TARGET_COLUMNS
+
+TARGETS = TARGET_COLUMNS
 DAY_NS = 86_400 * 10**9
-# LAST_COLUMNS في خط الأنابيب: ['last_high', 'last_low', 'last_close', 'timestamp', 'future_close',
-#                               'future_low_min', 'future_high_max']
-LC = {"last_high": 0, "last_low": 1, "last_close": 2, "timestamp": 3,
-      "future_close": 4, "future_low_min": 5, "future_high_max": 6}
+# اسم عمود last_candles -> فهرسه (LAST_COLUMNS في خط الأنابيب؛ المصدر الوحيد core/schema.py)
+LC = LAST_COLUMN_INDEX
 
 
 class PanelSplit:
