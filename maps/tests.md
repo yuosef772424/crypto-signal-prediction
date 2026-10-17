@@ -418,7 +418,7 @@
   - `class PanelMultiTFTests(unittest.TestCase)` L453
     - (4 methods)
 
-### `tests/test_natr_range.py` (307 lines)
+### `tests/test_natr_range.py` (308 lines)
 - PURPOSE: tools/natr_range.py + research/natr_range/run_natr_range.py (E-natr-001): causal NATR range quantile forecast, exact quantile (from docstring)
 - DEPENDS: tools
 - API:
@@ -426,15 +426,15 @@
     - (2 methods)
   - `class TestNatrAndRows(unittest.TestCase)` L46
     - (5 methods)
-  - `class TestQuantileFit(unittest.TestCase)` L93
+  - `class TestQuantileFit(unittest.TestCase)` L94
     - (4 methods)
-  - `class TestDecilesAndMetrics(unittest.TestCase)` L124
+  - `class TestDecilesAndMetrics(unittest.TestCase)` L125
     - (3 methods)
-  - `class TestAcceptRule(unittest.TestCase)` L152
+  - `class TestAcceptRule(unittest.TestCase)` L153
     - (6 methods)
-  - `class TestEvaluateTimeframe(unittest.TestCase)` L209
+  - `class TestEvaluateTimeframe(unittest.TestCase)` L210
     - (2 methods)
-  - `class TestRunner(unittest.TestCase)` L256
+  - `class TestRunner(unittest.TestCase)` L257
     - (3 methods)
 
 ### `tests/test_nig_calibration.py` (362 lines)

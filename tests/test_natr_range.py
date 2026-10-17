@@ -84,7 +84,8 @@ class TestNatrAndRows(unittest.TestCase):
         self.assertTrue(np.isnan(r.loc[b.index[60], "b_range_q90"]) if b.index[60] in r.index else True)
 
     def test_gap_drops_rows(self):
-        b = _bars(300, seed=3).drop(index=lambda ix: ix[[150]])
+        b = _bars(300, seed=3)
+        b = b.drop(b.index[150])
         r = nr.build_rows(b, 60)
         self.assertNotIn(b.index[0] + pd.Timedelta(hours=149), r.index)    # target bar 150 missing
         self.assertNotIn(b.index[0] + pd.Timedelta(hours=150), r.index)    # decision bar 150 missing
@@ -142,7 +143,7 @@ class TestDecilesAndMetrics(unittest.TestCase):
         idx = pd.date_range("2025-01-01", periods=90, freq="D", tz="UTC")
         x = np.arange(90.0)
         y = x.copy()
-        y[60:] = -x[60:]                                                   # March reversed
+        y[59:] = -x[59:]                                                   # March reversed
         m = nr.monthly_ic(idx, x, y)
         self.assertEqual(list(m.index.strftime("%Y-%m")), ["2025-01", "2025-02", "2025-03"])
         self.assertAlmostEqual(m.iloc[0], 1.0)
