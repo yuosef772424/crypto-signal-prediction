@@ -31,7 +31,7 @@
 | R0 lock (+M) | lock built; holdout.json sha256 70322ba699d5068e4fbe7f8b014f85492aeebf15d3c743551fbf1062cd889b2c (860 coins, 459 eligible: 14 A / 445 B, 183 sealed; H3 = 3) | branch `claude/r0-lock` | — |
 | G2 gate-style features | built on `claude/g2-gate-features`, awaiting review | — | direction: info yes (val AUC 0.545/0.534 > null 0.514/0.504) but economics NO (top-decile gross 0.134%/0.181% < 0.28% at 2x) F-0080; magnitude NO F-0081; states = raw values; H5 not opened |
 | G gate-cli reverse + QC | waits for the owner's raw JSON | — | — |
-| R3 NATR range tool | not started | — | — |
+| R3 NATR range tool | built on `claude/r3-range-tool`, awaiting review | — | 1h accepted on exploration (coverage 80.0%, deciles 77.2-80.4, pinball 10/10, IC 21/21); 1d rejected, decile 4 at 86.13% F-0082; H2 job prepared, NOT queued; bot2 spec `research/natr_range/bot2_tool_spec.md` |
 | R1 confluence map 🔒 | not started | — | — |
 | R1b confluence confirm 🔒 | not started | — | — |
 | R2 funding/basis 🔒 | not started (data first) | — | — |
