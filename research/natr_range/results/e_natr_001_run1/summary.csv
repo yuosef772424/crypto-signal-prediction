@@ -1,0 +1,3 @@
+timeframe,coverage,overall_ok,deciles_ok,pinball_deciles_better,pinball_ok,ic_months,ic_positive_months,ic_ok,accepted,n_val_rows,n_val_rows_dropped_no_baseline,baseline_coverage,pinball_model,pinball_baseline,up_p50_pinball_model,up_p50_pinball_baseline,down_p50_pinball_model,down_p50_pinball_baseline,train_coverage,train_n,n_crossed_train,n_crossed_val
+1h,0.800042,True,True,10,True,21,21,True,True,149356,2068,0.754171,0.133942,0.148837,0.172609,0.17945,0.17411,0.179114,0.8,432520,0,0
+1d,0.825481,True,False,10,True,19,19,True,False,5306,934,0.774783,0.770392,0.799551,0.9599,0.98442,0.938476,0.970192,0.799899,17741,0,0
