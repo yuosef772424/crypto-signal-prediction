@@ -18,13 +18,17 @@ Usage (e.g. in main.ipynb after model.predict on the test split):
     table = be.evaluate_filters(df, {"all": None, "natr>1": "NATR_14 > 1", "adx>20": "ADX_14 > 20",
                                      "room": "tp_room >= bracket and sl_room < bracket"}, bracket=0.01)
 """
+import os
+import sys
 from typing import Dict, Optional
 
 import numpy as np
 import pandas as pd
 
-#: Columns of the pipeline's last_candles array (crypto_data_pipeline_v6, LAST_COLUMNS).
-LAST_COLUMNS = ['last_high', 'last_low', 'last_close', 'timestamp', 'future_close', 'future_low_min', 'future_high_max']
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)   # core/ sits next to tools/ (the script is imported with only tools/ on the path)
+from core.schema import LAST_COLUMNS  # noqa: E402,F401  columns of the pipeline's last_candles array (single source: core/schema.py)
 COST_RT = 0.0014                                    # 0.07% per side taker, as in the edge-discovery studies
 
 
@@ -52,7 +56,7 @@ def frame_from_split(split, preds: Optional[Dict[str, np.ndarray]] = None, reg_s
     frames = []
     for name, s in parts:
         lc = np.asarray(s['last_candles'], dtype='float64')
-        d = pd.DataFrame(lc, columns=LAST_COLUMNS)
+        d = pd.DataFrame(lc, columns=list(LAST_COLUMNS))
         d.insert(0, 'asset', name)
         d['ts'] = pd.to_datetime(d.pop('timestamp').astype('int64'), utc=True)
         frames.append(d)

@@ -1,5 +1,8 @@
 # بيانات فريم الساعة (1h): تدقيق، نماذج high/low، ومحاكاة استراتيجيات أوامر محدّدة
 
+> **ملاحظة (S7 — `main.ipynb` مُوجَّه بالإعدادات):** المتغيّرات المذكورة بأسمائها القديمة في خطوات Colab أدناه (`TARGET_MODE`، `ENTRY_CLOSE_REG`، `MODEL_TFS`، `DATA_FILENAME_BASE`، `RUN_MAIN_TRAINING`، `PANEL_MODE`، `PANEL_PRESET`، `PANEL_*`...) صارت حقولاً في `settings` (خلية «٢) الإعدادات»):
+> `target.target_mode`، `target.entry_close_reg`، `data.model_tfs`، `data.filename_base`، `train.run_main_training`، `panel.enabled`، `panel.preset`، `panel.*`. الجدول الكامل: [`main_lab_code_layout.md`](main_lab_code_layout.md) («كان / صار»). الخطوات نفسها والمجلدات نفسها (`run_dir_for`)، والنتائج المسجَّلة أدناه لم تتغيّر.
+
 **الحالة:** أُجري على CPU بأربع أنوية (2026-09-28). البيانات: `preprocessing_output_1h_h32_s32_h4_latest.pkl.gz`، وهي
 مخرَج خط الأنابيب بعد تعديل التسميات إلى 1/0. السكربتات في [`scripts/hourly_1h/`](scripts/hourly_1h)، ومسار البيانات
 فيها يُمرَّر عبر `H1_DATA`. هدف close مُعلَّق بقرار المستخدم (`SUSPENDED_TARGETS` في main)، لذلك يرد هنا بسطر واحد فقط.
@@ -192,8 +195,8 @@
 
 ### الخطوات
 
-1. **البناء (`crypto_data_pipeline_v6.ipynb`):**
-   - شغّل كل الخلايا حتى 20-ب، والأخيرة منها تعريفات فقط.
+1. **البناء (`crypto_data_pipeline_v6.ipynb`، كودها في `data/presets.py`):**
+   - شغّل خلايا المُشغِّل حتى القسم 2 (تحميل الحزمة `data/`؛ تعريفات 20-ب في `data/presets.py` بلا تنفيذ تلقائي).
    - في خلية جديدة:
      ```python
      dataset = build_hourly_w32_s8_dataset(checkpoint_dir="/content/drive/MyDrive/crypto_model/ckpt_1h_w32_s8")
@@ -364,7 +367,7 @@ LightGBM على ميزات التقلّب وحدها IC 0.326 / 0.302 على `up
 
 ### الخطوات على Colab
 
-1. **البناء (`crypto_data_pipeline_v6.ipynb`):** شغّل الخلايا حتى 20-ج (تعريفات وسطر اختبار سريع يطبع ✅ مرتين)، ثم في خلية جديدة:
+1. **البناء (`crypto_data_pipeline_v6.ipynb`، كودها في `data/presets.py`):** شغّل خلايا المُشغِّل حتى القسم 2 (تحميل الحزمة `data/`؛ تعريفات 20-ج وسطر اختبارها السريع الذي يطبع ✅ مرتين يُنفَّذان ضمن التحميل)، ثم في خلية جديدة:
    ```python
    dataset = build_hourly_4h_dataset(checkpoint_dir="/content/drive/MyDrive/crypto_model/ckpt_1h_4h_w32_s8")
    ```
@@ -409,7 +412,7 @@ LightGBM على ميزات التقلّب وحدها IC 0.326 / 0.302 على `up
 
 **المشكلة:** بناء 1h+4h كان يجمع كل العملات في قوائم ثم `np.concatenate`، فذروته ≈ 2.1× حجم X (≈ 5.3 GB لـ X float16 بـ2.5 GB، وأكثر بكثير بـfloat32)، وتنمو خطياً مع عدد العملات. الآن الذروة لا تتبع حجم البيانات.
 
-**التصميم** (`crypto_data_pipeline_v6.ipynb`، الخلايا 35/36/40/48):
+**التصميم** (`data/checkpoints.py` و`data/disk_backed.py` و`data/pipeline.py` و`data/split.py` و`data/storage.py`؛ كانت خلايا 35/36/40/48 في `crypto_data_pipeline_v6.ipynb` قبل نقلها إلى الحزمة `data/`):
 1. **تسريب لكل عملة.** بعد معالجة كل عملة (داخل الخيط العامل) تُكتب نوافذها `X_{tf}` وأهدافها `y_*` و`base_params` و`last_candles` ملفات `.npy` غير مضغوطة (مصفوفة لكل ملف، بنوع التخزين نفسه: float16 في 1h+4h) تحت `<scratch_dir>/<بصمة الإعدادات>/parts/<عملة>/`، ثم تُحرَّر من الرام (`gc` + `malloc_trim`). الرام = عملة واحدة لكل خيط. مجلد البصمة يُفرَّغ عند كل بناء. نقطة استئناف Drive (`checkpoint_dir`، npz) بلا تغيير: حمولة مُحمَّلة منها تمرّ عبر التسريب نفسه. هي **متينة** (Drive) وهذا **مؤقت** (محلي).
 2. **الميزات العابرة للأصول** (`MKT_BREADTH_` و`MOM_ORTH_NATR_` و`MOM_RANK_`): مرور أول يحمّل high/low/close لكل عملة، يُحرَّر الإطار الخام فور أخذ الأعمدة الثلاثة ولا يبقى إلا النتائج. الافتراضي float64 (مطابق بايتاً)؛ `cross_asset_dtype="float32"` اختياري (يغيّر الميزات في ~1e-7 فتنقلب بعض تقريبات float16، لذا ليس الافتراضي).
 3. **دمج على القرص.** بعد آخر عملة: N الكلي لكل مصفوفة، `np.lib.format.open_memmap` في `<scratch>/merged/`، نسخ أجزاء العملات بالترتيب نفسه (قراءة `mmap_mode='r'`، دفعات 32 MB، `flush` بعد كل عملة، حذف كل جزء بعد نسخه). القاموس النهائي فيه `np.memmap` للقراءة فقط للمصفوفات الكبيرة؛ الأصغر من 64 MB (`SMALL_ARRAY_BYTES`: y وbase_params وlast_candles) تُحمَّل للرام. المخرج مطابق بايتاً لمسار الرام.

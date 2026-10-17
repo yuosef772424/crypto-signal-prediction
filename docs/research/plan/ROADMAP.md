@@ -64,6 +64,8 @@ for every coin (forward data, for R4 and later re-checks). The edge_discovery 20
   QC plan + `tools/indicator_reverse.py`).
 - **Known conflict:** #13 and #15 both add `F-0064`/`F-0065`. Whichever merges second renumbers its rows (and every
   reference) in a `fix` commit on its own branch before merge; rows already on master are never edited.
+  *Resolved:* #15 merged first; the H07 rows (once `F-0064`/`F-0065` on #13) are `F-0078`/`F-0079` on master via PR #19, and
+  #13 carries no registry rows of its own.
 - **Proposed (D-006, pending owner):** review and merge #15, close #14 as included; review #16 (docs + tool); review #13
   last (largest; split request if the restructuring breaks the suite); close #6 if stale.
 - **DoD:** each PR merged or closed with a one-line reason; `experiment_registry.py validate` passes on master; STATUS updated.

@@ -17,3 +17,7 @@ pytest~=9.1.1
 
 # tools/fetch_crypto_dataset.py (research data download) reads/writes parquet.
 pyarrow~=25.0.1
+
+# The pipeline's fetch self-tests (data/selftests.py t_fetch_*, run when the pipeline runner notebook is executed, e.g. by
+# tools/evaluate_trained_model.py in tests/test_run_tool.py) mock the client but import binance.exceptions.
+python-binance~=1.0.37

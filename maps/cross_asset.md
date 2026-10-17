@@ -12,6 +12,7 @@
 - PURPOSE: Data layer of the panel model: groups split_data samples by UTC day (index lists only) and builds multi-day flat batches (x, day, pos).
 - TAGS: panel data, panelsplit, panel_split_from, day grouping, batching, batch shape, mixed timestamps, target scale, entry_range_to_prices, integrity checks
 - PITFALLS: Groups mixing different timestamps let cross-asset attention read peers' future candles (look-ahead): see mixed_timestamp_groups / check(allow_mixed_timestamps) - leave it False except in an experiment that measures the leak.
+- DEPENDS: core
 - API:
   - `class PanelSplit` L33
     - `.__init__(self, X, y, last_candles, assets=None, name='', targets=TARGETS, day_ns=DAY_NS, target_scale=1.0, target_mode=None, entry_close_reg=None)` L51
@@ -79,34 +80,36 @@
   - `def compare(runs, first_touch=None, B=0.05, verbose=True, group_ns=None, target_mode=None)` L217
   - `def up_share_table(brackets)` L233
 
-### `cross_asset/selftest.py` (252 lines)
+### `cross_asset/selftest.py` (255 lines)
 - PURPOSE: Fast self-tests of the panel model on synthetic data (grouping, batching, masking, IC loss, short training and export), no Drive needed.
 - TAGS: selftest, unit tests, synthetic data, masking test, grouping test, ic loss test, run_panel_selftest, tests/test_cross_asset
+- DEPENDS: core
 - API:
-  - `def synthetic_split(n_assets=30, n_days=60, seq_len=8, n_features=5, start_day=18000, seed=0, signal=0.0, name='syn', shuffle_rows=True, day_shift=0.0)` L34
-  - `def test_grouping()` L74
-  - `def test_batching()` L103
-  - `def test_masking(encoder=None, seq_len=8, n_features=5)` L123
-  - `def test_ic_loss()` L152
-  - `def test_training(encoder_builder=None, seq_len=8, n_features=5, epochs=None, strict=True)` L165
-  - `def run_panel_selftest(encoder_builder=None, seq_len=8, n_features=5, verbose=True, train=True, strict=True)` L233
+  - `def synthetic_split(n_assets=30, n_days=60, seq_len=8, n_features=5, start_day=18000, seed=0, signal=0.0, name='syn', shuffle_rows=True, day_shift=0.0)` L36
+  - `def test_grouping()` L77
+  - `def test_batching()` L106
+  - `def test_masking(encoder=None, seq_len=8, n_features=5)` L126
+  - `def test_ic_loss()` L155
+  - `def test_training(encoder_builder=None, seq_len=8, n_features=5, epochs=None, strict=True)` L168
+  - `def run_panel_selftest(encoder_builder=None, seq_len=8, n_features=5, verbose=True, train=True, strict=True)` L236
 
-### `cross_asset/train.py` (439 lines)
+### `cross_asset/train.py` (442 lines)
 - PURPOSE: Trains the panel model: per-day losses (BCE + Huber + optional daily IC term), resumable training loop, prediction and signal export.
 - TAGS: panel training, paneltrainer, panel_loss, ic loss, lr schedule, ema weights, early stopping, resume, export_signals, asym_score, day_pearson
 - PITFALLS: Resuming from a run_dir with no data fingerprint cannot verify the data is the same (warns); defaults mirror main's anti-memorization config, change them explicitly.
+- DEPENDS: core
 - API:
-  - `def lr_at_epoch(cfg, epoch)` L51
-  - `def robust_scales(yreg)` L69
-  - `def day_pearson(pred, target, day, n_days, min_n)` L78
-  - `def panel_loss(out, batch, cfg, reg_scale, targets=('high', 'low', 'close'))` L98
-  - `class PanelTrainer` L129
-    - `.__init__(self, model, cfg, run_dir, reg_scale, seq_len, n_features, fingerprint=None, verbose=True, data_fingerprint=None)` L138
-    - `.evaluate(self, ps, use_ema=True)` L209
-    - `.predict(self, ps, use_ema=False, groups=None)` L243
-    - `.load_best(self)` L307
-    - `.fit(self, train_ps, val_ps)` L311
-  - `def realized_return(ps)` L366
-  - `def asym_score(ps, mu)` L372
-  - `def group_ic(ps, score, target, min_n=10)` L389
-  - `def export_signals(ps, logit, mu, split_name, targets=('high', 'low', 'close'))` L401
+  - `def lr_at_epoch(cfg, epoch)` L53
+  - `def robust_scales(yreg)` L71
+  - `def day_pearson(pred, target, day, n_days, min_n)` L80
+  - `def panel_loss(out, batch, cfg, reg_scale, targets=('high', 'low', 'close'))` L100
+  - `class PanelTrainer` L131
+    - `.__init__(self, model, cfg, run_dir, reg_scale, seq_len, n_features, fingerprint=None, verbose=True, data_fingerprint=None)` L140
+    - `.evaluate(self, ps, use_ema=True)` L211
+    - `.predict(self, ps, use_ema=False, groups=None)` L245
+    - `.load_best(self)` L309
+    - `.fit(self, train_ps, val_ps)` L313
+  - `def realized_return(ps)` L368
+  - `def asym_score(ps, mu)` L374
+  - `def group_ic(ps, score, target, min_n=10)` L391
+  - `def export_signals(ps, logit, mu, split_name, targets=('high', 'low', 'close'))` L403

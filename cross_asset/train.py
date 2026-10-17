@@ -27,6 +27,8 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 
+from core.schema import LAST_COLUMN_INDEX as LC
+
 from .data import entry_range_to_prices
 
 keras = tf.keras
@@ -366,7 +368,7 @@ class PanelTrainer:
 def realized_return(ps):
     """عائد close المحقَّق لكل عيّنة (future_close ÷ last_close − 1) — من last_candles لا من y، فيبقى معرّفاً حين
     يُعلَّق هدف close."""
-    return ps.lc[:, 4] / ps.lc[:, 2] - 1.0
+    return ps.lc[:, LC["future_close"]] / ps.lc[:, LC["last_close"]] - 1.0
 
 
 def asym_score(ps, mu):
@@ -381,8 +383,8 @@ def asym_score(ps, mu):
     mu = np.asarray(mu, dtype="float64") / getattr(ps, "target_scale", 1.0)
     if getattr(ps, "target_mode", None) == "entry_range":
         return mu[:, t.index("high")] - mu[:, t.index("low")]
-    up = np.maximum(lc[:, 0] * (1.0 + mu[:, t.index("high")]) / lc[:, 2] - 1.0, 1e-5)
-    dn = np.maximum(1.0 - lc[:, 1] * (1.0 + mu[:, t.index("low")]) / lc[:, 2], 1e-5)
+    up = np.maximum(lc[:, LC["last_high"]] * (1.0 + mu[:, t.index("high")]) / lc[:, LC["last_close"]] - 1.0, 1e-5)
+    dn = np.maximum(1.0 - lc[:, LC["last_low"]] * (1.0 + mu[:, t.index("low")]) / lc[:, LC["last_close"]], 1e-5)
     return np.log(up + 1e-3) - np.log(dn + 1e-3)
 
 
@@ -408,8 +410,9 @@ def export_signals(ps, logit, mu, split_name, targets=("high", "low", "close")):
     mu = np.asarray(mu, dtype="float64") / getattr(ps, "target_scale", 1.0)
     df = pd.DataFrame({
         "asset": ps.assets if ps.assets is not None else np.array(["all"] * ps.n, dtype=object),
-        "timestamp": lc[:, 3], "entry": lc[:, 2], "last_high": lc[:, 0], "last_low": lc[:, 1],
-        "fut_close": lc[:, 4], "fut_high": lc[:, 6], "fut_low": lc[:, 5],
+        "timestamp": lc[:, LC["timestamp"]], "entry": lc[:, LC["last_close"]], "last_high": lc[:, LC["last_high"]],
+        "last_low": lc[:, LC["last_low"]], "fut_close": lc[:, LC["future_close"]], "fut_high": lc[:, LC["future_high_max"]],
+        "fut_low": lc[:, LC["future_low_min"]],
     })
     p = 1.0 / (1.0 + np.exp(-logit.astype("float64")))
     for i, t in enumerate(targets):
