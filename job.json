@@ -1,20 +1,35 @@
 {
+ "job_id": "stale-bars-001",
+ "repo_ref": "de20d964c25b23b9b7ade30b5e91291efb7a0ee7",
+ "entry": "tools/stale_bars_colab_job.py",
  "args": [],
  "config": {
-  "extra_folders": {
-   "history_1d": "/content/drive/MyDrive/history_1d"
-  },
-  "history_15m_dir": "/content/drive/MyDrive/history_15m"
+  "data_dir": "history_15m",
+  "timeframes": [
+   "1h",
+   "4h",
+   "1D"
+  ],
+  "horizon": 1,
+  "min_run": null,
+  "quantile": 0.99,
+  "floor": 2,
+  "train_pct": 0.8,
+  "val_pct": 0.1,
+  "max_coins": null
  },
- "entry": "tools/data_manifest.py",
- "expected_outputs": [
-  "history_15m_manifest.csv",
-  "folders_manifest.csv",
-  "manifest.json"
- ],
- "job_id": "r0-manifest-001",
- "max_minutes": 50,
+ "max_minutes": 40,
  "needs_drive": true,
- "note": "R0 lock: list Drive history_15m (symbol, first/last bar, rows, file sha256) and the history_1d file names. Read-only on Drive. A missing history_1d folder is only a warning in manifest.json.",
- "repo_ref": "1b0c87f5ab2b3846734a5cbfa9aef23c33b29139"
+ "expected_outputs": [
+  "summary.json",
+  "coins_1h.csv",
+  "coins_4h.csv",
+  "coins_1D.csv",
+  "splits_pooled_1h.csv",
+  "splits_pooled_4h.csv",
+  "splits_pooled_1D.csv"
+ ],
+ "note": "Stale/zero-target audit (claude/zero-target-fix de20d96): zero share per split OFF/ON, dead coins.",
+ "rerun": false,
+ "pip": []
 }
