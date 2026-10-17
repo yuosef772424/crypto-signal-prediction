@@ -375,6 +375,7 @@
 - e-disc-005: strategy_discovery/grid2
 - e-disc-006: strategy_discovery/significance, strategy_discovery/survivor_checks
 - e-fwd-001: strategy_discovery/forward
+- e-gate-001: gate_features/run_gate001
 - e-h07comb-1: h07_combos/01_combos
 - e-h07vs-1: h07_volsizing/01_volsizing
 - e-hedge-001: hedge_recovery/sim
@@ -512,11 +513,12 @@
 - futures symbols: data/binance_client
 - futures_metrics: edge_discovery/data_tools/build_panel, tools/fetch_history_vision_colab
 - futures_metrics folder: edge_discovery/data_tools/folder_index
-- g2: tools/gate_features
+- g2: gate_features/run_gate001, tools/gate_features
 - gap: workflow/generalization
 - gap report: tools/evaluate_trained_model
 - gaps report: tools/fetch_history_vision_colab
 - gate: indicator_strategy/engine, tools/gate_features, tools/trade_engine
+- gate features: gate_features/run_gate001
 - gate-cli: tools/indicator_reverse
 - gate-style-v1: tools/gate_features
 - gatedfusion: model/readout
@@ -653,6 +655,7 @@
 - job.json: tools/colab_runner, tools/colab_smoke
 - json format: tools/nb_cells
 - k-fold: trainer/kfold
+- k-sweep: gate_features/run_gate001
 - kdj: tools/gate_features, tools/indicator_reverse
 - keep_asset_test_separate: signal_eval/integration
 - keltner squeeze: strategy_discovery/grid2
@@ -663,6 +666,7 @@
 - kmeans: evaluation/patterns
 - lab: discovery/selftest
 - label checks: workflow/verification
+- label-shift null: gate_features/run_gate001
 - label_smoothing: workflow/training_config
 - lag scan: evaluation/integrity
 - last n samples: evaluation/live
@@ -686,6 +690,7 @@
 - leaderboard: discovery/scanner
 - leakage: tests/test_no_lookahead
 - leakage check: workflow/permutation_control
+- learning curve: gate_features/run_gate001
 - learning_curve: workflow/capacity
 - ledger: tools/experiment_registry, tools/h07_forward, tools/touched_ledger
 - legacy report: evaluation/legacy_assets, evaluation/legacy_uncertainty
@@ -874,6 +879,7 @@
 - oi change: edge_discovery/features
 - oi features: tools/intraday_features
 - oi flush: edge_discovery/05_events, edge_discovery/09_market_flush, edge_discovery/10_flush_curve
+- old vs new feature set: gate_features/run_gate001
 - on-chain: edge_discovery/20_onchain
 - one click: tools/colab_runner
 - one-shot: indicator_strategy/test_final
@@ -1092,7 +1098,7 @@
 - rsi2 pullback: strategy_discovery/grid
 - rsi_zone: tools/gate_features
 - rule_cpos: workflow/candle_baseline
-- run contract: tools/colab_runner, tools/colab_smoke
+- run contract: gate_features/run_gate001, tools/colab_runner, tools/colab_smoke
 - run fixture: tests/run_fixture
 - run_batch_and_register: discovery/__init__, discovery/batch_runner
 - run_chicks: workflow/run

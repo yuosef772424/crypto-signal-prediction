@@ -1,0 +1,126 @@
+{
+ "capacity": {
+  "H24": {
+   "effective_samples": 2985.3638130327095,
+   "features_all_state_set": 78,
+   "independent_coins": 1.6412115519696038,
+   "mean_cross_coin_corr_daily_first_ret": 0.5658955244915181,
+   "ratio_eff_per_feature": 38.27389503888089,
+   "rows_compare": 149910,
+   "rows_train_fit": 89703,
+   "rows_val": 174940,
+   "train_base_rate_up": 0.5020227337993103,
+   "train_days": 1819
+  },
+  "H4": {
+   "effective_samples": 2797.832447339605,
+   "features_all_state_set": 78,
+   "independent_coins": 1.5330588752545782,
+   "mean_cross_coin_corr_daily_first_ret": 0.6136562993554968,
+   "ratio_eff_per_feature": 35.86964676076417,
+   "rows_compare": 150989,
+   "rows_train_fit": 90852,
+   "rows_val": 175340,
+   "train_base_rate_up": 0.5011878250002064,
+   "train_days": 1825
+  }
+ },
+ "configurations": {
+  "direction": 48,
+  "magnitude": 48,
+  "null_refits": 520
+ },
+ "configurations_total_evaluated": 616,
+ "direction": {
+  "H24": {
+   "H": 24,
+   "auc_compare": 0.5203226060156019,
+   "auc_val": 0.5334828216990739,
+   "best_raw_auc_val": 0.5361981505398916,
+   "k": 10,
+   "model": "gbm",
+   "n_null": 20,
+   "null_mean_all": 0.49483552709595285,
+   "null_model_peak_max": 0.5025735447910624,
+   "null_p99_normal": 0.5073638045552264,
+   "null_peak_max": 0.5038494126328432,
+   "null_peak_mean": 0.49984746764062216,
+   "null_peak_sd": 0.003225895671504007,
+   "real_model_peak_val": 0.5334828216990739,
+   "years_gain_positive": 4
+  },
+  "H4": {
+   "H": 4,
+   "auc_compare": 0.5157945269303744,
+   "auc_val": 0.5447020965633014,
+   "best_raw_auc_val": 0.5451608569106863,
+   "k": 78,
+   "model": "gbm",
+   "n_null": 20,
+   "null_mean_all": 0.5014808925366586,
+   "null_model_peak_max": 0.5138736211300653,
+   "null_p99_normal": 0.5159389751639956,
+   "null_peak_max": 0.5138736211300653,
+   "null_peak_mean": 0.5056671138435933,
+   "null_peak_sd": 0.004408524171846478,
+   "real_model_peak_val": 0.5447020965633014,
+   "years_gain_positive": 4
+  }
+ },
+ "magnitude": {
+  "H24": {
+   "H": 24,
+   "baseline": "natr_ridge",
+   "best_raw_rel_improve_val": 0.002963877939539783,
+   "k": 78,
+   "model": "gbm",
+   "null_rel_improve_max": -0.03985424941216831,
+   "null_rel_improve_mean": -0.04556063535630499,
+   "rel_improve_val": -0.005121796924584254,
+   "years_improve_positive": 2
+  },
+  "H4": {
+   "H": 4,
+   "baseline": "natr_ridge",
+   "best_raw_rel_improve_val": 0.0015785937699066555,
+   "k": 78,
+   "model": "gbm",
+   "null_rel_improve_max": -0.024663243175486738,
+   "null_rel_improve_mean": -0.025758771728653908,
+   "rel_improve_val": -0.003063844909259039,
+   "years_improve_positive": 1
+  }
+ },
+ "magnitude_baselines": {
+  "H24": {
+   "best": "natr_ridge",
+   "const": 1.043322768550531,
+   "natr_gbm": 1.0083976333182385,
+   "natr_ridge": 0.9977827691605242
+  },
+  "H4": {
+   "best": "natr_ridge",
+   "const": 0.3870611539347147,
+   "natr_gbm": 0.3829763309432712,
+   "natr_ridge": 0.37764500267968154
+  }
+ },
+ "n_raw_cols": 88,
+ "n_state_cols": 78,
+ "rows": 691414,
+ "rows_per_coin": {
+  "ADAUSDT": 73870,
+  "BCHUSDT": 59758,
+  "BNBUSDT": 76376,
+  "BTCUSDT": 76379,
+  "DOGEUSDT": 63252,
+  "ETHUSDT": 76379,
+  "SOLUSDT": 53620,
+  "TRXUSDT": 72539,
+  "XRPUSDT": 73454,
+  "ZECUSDT": 65787
+ },
+ "runtime_min": 24.59,
+ "stage": "done",
+ "truncated": false
+}
