@@ -283,7 +283,7 @@
   - `class RegistryTests(unittest.TestCase)` L37
     - (8 methods)
 
-### `tests/test_gate_features.py` (181 lines)
+### `tests/test_gate_features.py` (194 lines)
 - PURPOSE: tools/gate_features.py (gate-style-v1, unverified): causal categorical states, NaN never 0, closed bars only. (from docstring)
 - DEPENDS: tools
 - API:
@@ -292,12 +292,12 @@
   - `class TestResample(unittest.TestCase)` L31
     - (2 methods)
   - `class TestKnownShapes(unittest.TestCase)` L49
-    - (6 methods)
-  - `class TestNaNNeverZero(unittest.TestCase)` L116
+    - (7 methods)
+  - `class TestNaNNeverZero(unittest.TestCase)` L129
     - (3 methods)
-  - `class TestNoLookAhead(unittest.TestCase)` L140
+  - `class TestNoLookAhead(unittest.TestCase)` L153
     - (2 methods)
-  - `class TestOverallSignal(unittest.TestCase)` L171
+  - `class TestOverallSignal(unittest.TestCase)` L184
     - (1 methods)
 
 ### `tests/test_h07_forward.py` (88 lines)

@@ -73,6 +73,19 @@ class TestKnownShapes(unittest.TestCase):
         self.assertEqual(last["rsi_zone"], -1)
         self.assertLess(raw["rsi14"].iloc[-1], 1)
 
+    def test_downtrend_macd_matches_reference(self):
+        # 0.997**n decay: MACD line is negative (-0.6711 price units) but the histogram is +0.008176 (> 0) because the
+        # absolute MACD shrinks as the price decays, so the line rises above its signal (-0.6793): hist sign +1 is correct.
+        raw, st = gf.tf_features(self.dn)
+        m = self.dn["close"]
+        line = m.ewm(span=12, adjust=False).mean() - m.ewm(span=26, adjust=False).mean()
+        sig = line.ewm(span=9, adjust=False).mean()
+        c = m.iloc[-1]
+        self.assertLess(raw["macd_line"].iloc[-1], 0)
+        self.assertAlmostEqual(raw["macd_line"].iloc[-1] * c, line.iloc[-1], places=9)
+        self.assertAlmostEqual(raw["macd_hist"].iloc[-1] * c, (line - sig).iloc[-1], places=9)
+        self.assertEqual(st["macd_hist_sign"].iloc[-1], 1.0)
+
     def test_aggregate_orientation(self):
         _, up = gf.tf_features(self.up)
         _, dn = gf.tf_features(self.dn)
