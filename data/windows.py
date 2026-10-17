@@ -102,6 +102,34 @@ def sample_filter_mask(df: pd.DataFrame, filters: Optional[List[dict]] = None,
     return mask
 
 
+def _stale_bars_module():
+    """يحمّل tools/stale_bars_audit.py (التعريف الوحيد للشمعة الراكدة) من جذر المستودع الحاوي لحزمة data/."""
+    import importlib.util as ilu
+    import sys as _s
+    if 'stale_bars_audit' in _s.modules:
+        return _s.modules['stale_bars_audit']
+    from data._loader import REPO_ROOT
+    path = Path(REPO_ROOT) / 'tools' / 'stale_bars_audit.py'
+    spec = ilu.spec_from_file_location('stale_bars_audit', path)
+    mod = ilu.module_from_spec(spec)
+    _s.modules['stale_bars_audit'] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def stale_bars_min_run(config: Optional[dict] = None) -> Optional[int]:
+    """``CONFIG['stale_bars']`` → ``min_run`` (int) أو ``None`` (الافتراضي = مُطفأ، السلوك القديم حرفياً).
+
+    الشكل الوحيد المقبول: ``{"min_run": <int >= 2>}`` — مفتاح مجهول أو قيمة غير صالحة يرفعان ``ValueError``."""
+    config = CONFIG if config is None else config
+    cfg = config.get('stale_bars')
+    if cfg is None:
+        return None
+    if not isinstance(cfg, dict) or set(cfg) != {'min_run'}:
+        raise ValueError(f"CONFIG['stale_bars']: None أو {{'min_run': int >= 2}} — لا {cfg!r}")
+    return _stale_bars_module().check_min_run(cfg['min_run'])
+
+
 def _sample_filters_signature(filters: List[dict]) -> List[dict]:
     """الفلاتر كما تدخل البصمة: دوال ``fn`` المسجّلة بمصدرها (تعديل جسم الدالة يُبطل نقاط الاستئناف)."""
     import hashlib
@@ -176,6 +204,12 @@ def prepare_single_asset(
     feat_dfs = {tf: dfs[tf][features] for tf in tf_order}
     # فلاتر العيّنات (CONFIG['sample_filters']): قناع شمعة الدخول على الإطار الخام للفريم الأساسي، مرة واحدة لكل عملة.
     entry_ok = sample_filter_mask(price_df, config=config)
+    # الشموع الراكدة (CONFIG['stale_bars']، مُطفأ افتراضياً): ذيل ما بعد آخر تداول حقيقي لعملة ميتة/مشطوبة + أشواط OHLC متطابقة
+    # بحجم صفر ≥ min_run. تُحذف العيّنة إن كانت شمعة دخولها أو أيّ شمعة من أفقها راكدة (cs = مجموع تراكمي، طوله T+1).
+    _min_run = stale_bars_min_run(config)
+    stale_cs = None
+    if _min_run is not None:
+        stale_cs = np.r_[0, np.cumsum(_stale_bars_module().stale_bar_mask(price_df, _min_run).astype(np.int64))]
 
     windows, end_times = align_multi_timeframes_time_based(
         dfs=feat_dfs, tf_order=tf_order, window_sizes=window_sizes,
@@ -243,6 +277,9 @@ def prepare_single_asset(
             keep[i] = False
             continue
         if not entry_ok[end_idx]:            # شمعة الدخول لا تحقّق sample_filters
+            keep[i] = False
+            continue
+        if stale_cs is not None and stale_cs[fe] - stale_cs[end_idx] > 0:   # دخول/أفق على شموع راكدة
             keep[i] = False
             continue
 

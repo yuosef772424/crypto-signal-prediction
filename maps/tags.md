@@ -204,6 +204,7 @@
 - clean_reg_target: discovery/__init__, discovery/evaluation
 - clear_checkpoint: data/checkpoints
 - clip_abs: data/normalize
+- close_reg: tools/stale_bars_audit
 - closed bars: data/align
 - cnn: edge_discovery/25_image_cnn
 - coin categories: data/defaults
@@ -274,6 +275,7 @@
 - data manifest: tools/data_manifest, tools/data_manifest_colab_cell
 - data pipeline: data/__init__
 - data quality: tools/indicator_reverse
+- data quality audit: tools/stale_bars_audit
 - data rebuild: edge_discovery/data_tools/build_panel, edge_discovery/data_tools/dec, edge_discovery/data_tools/folder_index, edge_discovery/data_tools/sweep
 - data.binance.vision: tools/fetch_history_vision_colab
 - dataprocess.ipynb: signal_eval/bootstrap
@@ -285,6 +287,7 @@
 - day of week: edge_discovery/06_seasonality
 - day-clustered t: edge_discovery/events, strategy_discovery/significance, tools/bracket_eval
 - day_pearson: cross_asset/train
+- dead coins: tools/stale_bars_audit
 - decay: edge_discovery/20_onchain
 - decile: signal_eval/core
 - decile long-short: edge_discovery/18_h13_pr7_signal
@@ -311,6 +314,7 @@
 - defaults: data/defaults
 - deflated sharpe: edge_discovery/14_holdout, edge_discovery/17_h07_break
 - delay: edge_discovery/19_hl_copy
+- delisted coins: tools/stale_bars_audit
 - dependencies: tools/check_deps
 - derivedmetrics: trainer/metrics
 - describe: data/runtime
@@ -438,6 +442,7 @@
 - events_disc.csv: edge_discovery/05_events
 - evidential: model/nig_layers
 - evidential_task_loss: trainer/tasks
+- exact-zero targets: tools/stale_bars_audit
 - example: trainer/example
 - example run script: tools/colab_smoke
 - exchange supply: edge_discovery/20_onchain
@@ -484,6 +489,7 @@
 - finite checks: workflow/verification
 - fit_confidence_calibrators: evaluation/trust_calibration
 - fix-gaps: tools/fetch_history_vision_colab
+- flat bars: tools/stale_bars_audit
 - flat dataframe: evaluation/flat
 - flatten_coins_by_category: data/sources
 - float16: evaluation/legacy_uncertainty, workflow/batches
@@ -492,6 +498,7 @@
 - forward reference: tools/implicit_deps
 - forward return: edge_discovery/lib
 - forward test: strategy_discovery/forward, tools/h07_forward
+- forward-fill: tools/stale_bars_audit
 - frac_significant: signal_eval/windows
 - fractal: data/custom
 - free names: tools/implicit_deps
@@ -661,6 +668,7 @@
 - label_smoothing: workflow/training_config
 - lag scan: evaluation/integrity
 - last n samples: evaluation/live
+- last real trade: tools/stale_bars_audit
 - last_candles: core/schema, data/windows
 - last_close reference: discovery/evaluation
 - last_column_index: core/schema
@@ -1205,6 +1213,8 @@
 - squeeze breakout: strategy_discovery/grid
 - stablecoin: edge_discovery/20_onchain
 - stage-2 logistic: edge_discovery/30_envelope_direction
+- stale bars: tools/stale_bars_audit
+- stale_bars: tools/stale_bars_audit
 - state_entries: trainer/checkpoints
 - stats: edge_discovery/tsbt
 - stats_mode: model/input_norm
@@ -1225,6 +1235,7 @@
 - survivor check: strategy_discovery/robustness
 - survivor checks: strategy_discovery/survivor_checks
 - survivor test: strategy_discovery/oos
+- survivorship: tools/stale_bars_audit
 - sweep: edge_discovery/22_chart_rules, edge_discovery/data_tools/sweep
 - swiglu: model/transformer
 - symbols.txt: tools/fetch_history_vision_colab
@@ -1395,6 +1406,8 @@
 - year stability: strategy_discovery/robustness
 - z-score: strategy_discovery/forward
 - zero cost: edge_discovery/23_chart_rules_gross
+- zero share: tools/stale_bars_audit
+- zero volume: tools/stale_bars_audit
 - zones: tools/check_deps
 - zscore: data/cross_sectional_norm
 - اتجاه الاعتماد: tools/check_deps

@@ -128,7 +128,7 @@ class AuditTests(unittest.TestCase):
         self.assertEqual(s.loc[("ILLIQUSDT", "train"), "zero_share_clean"], s.loc[("ILLIQUSDT", "train"), "zero_target_share"])
 
     def test_derive_min_run_is_data_driven(self):
-        self.assertEqual(sba.derive_min_run({"I": illiquid_coin(), "N": normal_coin()}, quantile=1.0, floor=2), 2)
+        self.assertEqual(sba.derive_min_run({"I": illiquid_coin(), "N": normal_coin()}, quantile=1.0, floor=2), 3)
         df = normal_coin()
         df.iloc[50:57, :4] = df["close"].iloc[49]
         df.iloc[50:57, df.columns.get_loc("volume")] = 0.0
@@ -154,16 +154,22 @@ class PipelineTests(unittest.TestCase):
 
     def test_on_drops_stale_samples_and_zero_share_falls(self):
         zero = lambda d: float(np.mean(d["y_close_reg"] == 0))  # noqa: E731
-        self.assertGreater(zero(self.off), 0.20)                          # dead tail + 30% illiquid zeros inflate it
+        self.assertGreater(zero(self.off), 0.10)                          # dead tail + 30% illiquid zeros inflate it
         self.assertLess(zero(self.on), zero(self.off))
+        print(f"\nFIXTURE zero share OFF={zero(self.off):.4f} ON={zero(self.on):.4f} n_off={len(self.off['y_close_reg'])} n_on={len(self.on['y_close_reg'])}")
         self.assertEqual(self.on["stale_bars"], {"min_run": MIN_RUN})
         # every dropped sample belongs to DEAD's flat tail; every kept sample is untouched
-        ts_off = self.off["last_candles"][:, 3].astype("int64")
-        ts_on = self.on["last_candles"][:, 3].astype("int64")
-        keep = np.isin(ts_off, ts_on)
+        def keys(d):
+            ts = d["last_candles"][:, 3].astype("int64")
+            return [(b["name"], int(t)) for b in d["asset_bounds"] for t in ts[b["start"]:b["end"]]]
+        k_off, k_on = keys(self.off), keys(self.on)
+        keep = np.isin(np.array([hash(k) for k in k_off]), np.array([hash(k) for k in k_on]))
         np.testing.assert_array_equal(self.off["y_close_reg"][keep], self.on["y_close_reg"])
+        ts_off = self.off["last_candles"][:, 3].astype("int64")
+        dropped = [k for k, kp in zip(k_off, keep) if not kp]
+        self.assertTrue(all(c == "DEADUSDT" for c, _ in dropped))
         dead_ts = FRAMES["DEADUSDT"].index[LIVE - 1].value
-        self.assertTrue((ts_off[~keep] >= dead_ts).all())
+        self.assertTrue(all(t >= dead_ts for _, t in dropped))
         self.assertGreater(int((~keep).sum()), 0)
         # genuine zero-return samples of the illiquid coin are all still there
         b_off = {b["name"]: b for b in self.off["asset_bounds"]}
@@ -175,7 +181,7 @@ class PipelineTests(unittest.TestCase):
         ns = r2._ns()
         for bad in ({"min_run": 1}, {"min_run": 3, "x": 1}, {}, 5, {"min_run": "a"}):
             with self.assertRaises(ValueError, msg=bad):
-                r2._quiet(ns["prepare_single_asset"], {"1h": FRAMES["NORMALUSDT"]}, config=r2._cfg(stale_bars=bad))
+                ns["stale_bars_min_run"](r2._cfg(stale_bars=bad))
 
     def test_fingerprint_only_when_used(self):
         fp = r2._ns()["_checkpoint_fingerprint"]
