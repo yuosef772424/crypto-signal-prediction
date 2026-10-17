@@ -31,6 +31,7 @@
 - a.2: edge_discovery/13_listing_stops
 - abstention: data/heads
 - accept rule: indicator_strategy/screen, indicator_strategy/test_final, strategy_discovery/oos
+- access log: tools/holdout_guard
 - accumulator: data/pipeline
 - activations: model/diagnostics
 - add_custom_features: data/custom
@@ -128,7 +129,7 @@
 - breakout stops: edge_discovery/32_breakout_stops
 - breakout_stops_results.csv: edge_discovery/32_breakout_stops
 - btc: data/market_context, tools/h07_forward
-- buckets: evaluation/output_conditioned
+- buckets: evaluation/output_conditioned, tools/build_lock
 - build: edge_discovery/features
 - build panel: edge_discovery/data_tools/build_panel
 - build_candidate_dicts: discovery/survey
@@ -208,8 +209,8 @@
 - coin categories: data/defaults
 - coinmetrics: edge_discovery/16_h07_oos, edge_discovery/20_onchain
 - coins_by_category: data/defaults
-- colab: data/drive, edge_discovery/25_image_cnn, tools/colab_bridge, tools/colab_runner, tools/colab_smoke, trainer/env
-- colab cell: tools/fetch_history_colab_cell
+- colab: data/drive, edge_discovery/25_image_cnn, tools/colab_bridge, tools/colab_runner, tools/colab_smoke, tools/data_manifest … (+1)
+- colab cell: tools/data_manifest_colab_cell, tools/fetch_history_colab_cell
 - colab disconnect: trainer/epoch_callbacks
 - colab-queue: tools/colab_runner
 - colab-results: tools/colab_runner
@@ -230,6 +231,7 @@
 - config: data/__init__, data/runtime
 - config keys: data/defaults
 - config_fingerprint: trainer/config
+- confirmation: tools/holdout_guard
 - conflict leg: hedge_recovery/sim2
 - consistency check: indicator_strategy/variants
 - consistent_sign: signal_eval/windows
@@ -262,11 +264,14 @@
 - cumulative r: indicator_strategy/charts
 - custom features: data/custom
 - custom_feature_names: data/custom
+- d-009: tools/build_lock
 - daily: tools/h07_forward
 - daily breakout: indicator_strategy/variants
 - daily ic: cross_asset/report
 - daily panel: edge_discovery/tsbt
 - data bridge: tools/colab_bridge
+- data loader guard: tools/holdout_guard
+- data manifest: tools/data_manifest, tools/data_manifest_colab_cell
 - data pipeline: data/__init__
 - data quality: tools/indicator_reverse
 - data rebuild: edge_discovery/data_tools/build_panel, edge_discovery/data_tools/dec, edge_discovery/data_tools/folder_index, edge_discovery/data_tools/sweep
@@ -311,6 +316,7 @@
 - describe: data/runtime
 - descriptive: edge_discovery/28_token_decompose
 - detect_success_failure_patterns: evaluation/patterns
+- deterministic build: tools/build_lock
 - dev val: strategy_discovery/grid, strategy_discovery/grid2, strategy_discovery/intraday_macd, strategy_discovery/seasonality15m
 - dev val split: indicator_strategy/screen
 - diag_sections: model/diagnostics
@@ -347,8 +353,9 @@
 - drive copy: tools/colab_bridge
 - drive download: edge_discovery/data_tools/dec
 - drive index: edge_discovery/data_tools/folder_index
+- drive listing: tools/data_manifest
 - drive mirror: trainer/epoch_callbacks
-- drive mount: tools/fetch_history_colab_cell
+- drive mount: tools/data_manifest_colab_cell, tools/fetch_history_colab_cell
 - drive root: data/drive
 - drive shortcut: workflow/dataset_io
 - drive-root: tools/fetch_history_csv_concurrent
@@ -380,6 +387,7 @@
 - edge_data: edge_discovery/lib
 - edit notebook: tools/nb_cells
 - effective_sample_size: workflow/capacity
+- eligibility: tools/build_lock
 - ema weights: cross_asset/train
 - ema20: edge_discovery/24_pullback_maker
 - ema200 pullback: indicator_strategy/engine, tools/trade_engine
@@ -422,6 +430,7 @@
 - evaluate_predictions_v4: evaluation/metrics
 - evaluate_windows: signal_eval/__init__, signal_eval/windows
 - evaluation: cross_asset/report, tools/bracket_eval
+- evaluation integrity: tools/holdout_guard
 - evaluation package: evaluation/_loader
 - event list: edge_discovery/10_flush_curve
 - event study: edge_discovery/05_events, edge_discovery/events
@@ -464,6 +473,7 @@
 - features: data/features, edge_discovery/01_screen, edge_discovery/features
 - fetch_data: data/binance_client
 - figures: evaluation/plots, indicator_strategy/charts
+- file sha256: tools/data_manifest
 - fileid: edge_discovery/data_tools/folder_index
 - film: model/readout
 - filter_desired_coins: data/sources
@@ -572,11 +582,13 @@
 - high_low_close_order_penalty: trainer/example
 - higher_tf_mode: data/align
 - histgradientboosting: edge_discovery/29_path_envelope
+- history_15m: tools/data_manifest, tools/data_manifest_colab_cell
 - history_1d: tools/colab_bridge
 - hl_positions: edge_discovery/19_hl_copy
 - hold length: strategy_discovery/seasonality15m
-- holdout: data/split, edge_discovery/14_holdout
+- holdout: data/split, edge_discovery/14_holdout, tools/holdout_guard
 - holdout flag: edge_discovery/13_listing_stops
+- holdout lock: tools/touched_ledger
 - holdout_start: data/defaults
 - homoscedastic uncertainty: trainer/task_weighting
 - hour of day: edge_discovery/06_seasonality, strategy_discovery/seasonality15m
@@ -613,6 +625,7 @@
 - inference: data/live, trainer/ensemble
 - information coefficient: signal_eval/core
 - inject: tools/nb_cells
+- input fingerprint: tools/data_manifest
 - input normalisation: model/input_norm
 - input patterns: evaluation/io_patterns
 - input_clip: model/input_norm
@@ -669,7 +682,7 @@
 - leakage: tests/test_no_lookahead
 - leakage check: workflow/permutation_control
 - learning_curve: workflow/capacity
-- ledger: tools/experiment_registry, tools/h07_forward
+- ledger: tools/experiment_registry, tools/h07_forward, tools/touched_ledger
 - legacy report: evaluation/legacy_assets, evaluation/legacy_uncertainty
 - length_sweep: discovery/survey
 - level_passthrough: model/input_norm
@@ -700,6 +713,7 @@
 - load_preprocessed_data_from_drive: signal_eval/bootstrap
 - loader: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, trainer/_loader … (+1)
 - local cache: tools/colab_bridge
+- lock: tools/build_lock, tools/data_manifest, tools/data_manifest_colab_cell, tools/holdout_guard
 - log_vars: trainer/task_weighting
 - logistic: edge_discovery/18_h13_pr7_signal
 - london breakout: edge_discovery/22_chart_rules
@@ -741,6 +755,7 @@
 - make_training_diagnostics: workflow/diagnostics
 - maker limit: edge_discovery/24_pullback_maker
 - manifest: tools/colab_runner, tools/colab_smoke
+- manifest ingest: tools/build_lock
 - map: tools/build_map
 - mark-to-market drawdown: hedge_recovery/sim
 - market adjusted: edge_discovery/events
@@ -892,6 +907,7 @@
 - parquet: edge_discovery/data_tools/build_panel
 - partial ic: cross_asset/report
 - pass: signal_eval/selftests
+- paste bundle: tools/data_manifest, tools/data_manifest_colab_cell
 - patch_len: model/patches
 - patchembedding: model/patches
 - path envelope: edge_discovery/29_path_envelope
@@ -962,6 +978,7 @@
 - profit factor: indicator_strategy/screen
 - profit target: hedge_recovery/sim2
 - projectsettings: workflow/settings
+- provenance: tools/touched_ledger
 - psar: data/custom
 - pullback: edge_discovery/24_pullback_maker
 - pump: edge_discovery/05_events
@@ -975,6 +992,7 @@
 - quintile spread: edge_discovery/04_screen_mean
 - quintiles: edge_discovery/03_quintiles
 - r multiple: edge_discovery/22_chart_rules, indicator_strategy/engine, tools/trade_engine
+- r0: tools/build_lock, tools/data_manifest, tools/data_manifest_colab_cell, tools/holdout_guard, tools/touched_ledger
 - ram: data/disk_backed
 - ram cap: data/parallel
 - random control: hedge_recovery/sim, hedge_recovery/sim2
@@ -1013,7 +1031,7 @@
 - register_keras_serializable: model/common
 - register_sample_filter: data/windows
 - register_task_type: trainer/tasks
-- registry: discovery/batch_runner
+- registry: discovery/batch_runner, tools/touched_ledger
 - registry selftests: signal_eval/registry_selftests
 - registry.json: signal_eval/registry
 - registry_statuses: signal_eval/registry
@@ -1095,6 +1113,7 @@
 - runsettings: tests/run_fixture, tools/evaluate_trained_model, workflow/settings
 - runsettings steps: workflow/run
 - safe load: discovery/axis_loader
+- salt: tools/build_lock
 - sample size guard: strategy_discovery/oos, strategy_discovery/survivor_checks
 - sample_filters: data/windows
 - sample_idx_key: trainer/training_diagnostics
@@ -1114,6 +1133,8 @@
 - schema: core/__init__, core/schema
 - scratch: data/disk_backed
 - screen_disc_mean.csv: edge_discovery/04_screen_mean
+- sealed coins: tools/holdout_guard, tools/touched_ledger
+- sealed holdout: tools/build_lock
 - seasonality: edge_discovery/06_seasonality, strategy_discovery/seasonality15m
 - section 7 reports: workflow/__init__
 - seed: signal_eval/core
@@ -1167,7 +1188,7 @@
 - snapshot ensemble: trainer/snapshot
 - snapshotensemble: trainer/snapshot
 - softmax: evaluation/decode
-- source github/drive: tools/fetch_history_colab_cell
+- source github/drive: tools/data_manifest_colab_cell, tools/fetch_history_colab_cell
 - sources: data/sources
 - spearman: signal_eval/core
 - speirsy11: tools/fetch_crypto_dataset
@@ -1192,6 +1213,7 @@
 - storage: data/storage
 - stress test: edge_discovery/17_h07_break
 - strict config: workflow/settings
+- strict side: tools/touched_ledger
 - stride: model/patches
 - stumpy: discovery/phase3_tools
 - summarize: cross_asset/report
@@ -1257,6 +1279,7 @@
 - threads: data/parallel
 - tier 0: core/__init__
 - time of day: strategy_discovery/seasonality15m
+- time seal: tools/holdout_guard
 - time-series screen: edge_discovery/08_ts_screen
 - time_hour: data/custom
 - timeframe resample: indicator_strategy/engine, tools/trade_engine
@@ -1270,6 +1293,8 @@
 - top traders: edge_discovery/19_hl_copy
 - top-50 big: edge_discovery/lib
 - torch: edge_discovery/25_image_cnn
+- touched data: tools/touched_ledger
+- touched ledger: tools/build_lock
 - tp sl: edge_discovery/29_path_envelope
 - tp_room: tools/bracket_eval
 - trade engine: tools/trade_engine
@@ -1307,6 +1332,7 @@
 - tt_pos: edge_discovery/features
 - turnover: edge_discovery/03_quintiles, edge_discovery/18_h13_pr7_signal
 - turnover cost: edge_discovery/tsbt, strategy_discovery/rotation
+- two-level holdout: tools/build_lock
 - typevar: data/common
 - typing: data/common, signal_eval/common
 - uncertainty: evaluation/legacy_uncertainty
@@ -1314,7 +1340,7 @@
 - uncertaintyweightedloss: trainer/task_weighting
 - unified pipeline: evaluation/unified
 - unit tests: cross_asset/selftest
-- universe: h07_combos/01_combos
+- universe: h07_combos/01_combos, tools/touched_ledger
 - universe mask: edge_discovery/lib
 - unseen assets: strategy_discovery/oos, strategy_discovery/significance, strategy_discovery/survivor_checks
 - untouched coins: edge_discovery/24_pullback_maker

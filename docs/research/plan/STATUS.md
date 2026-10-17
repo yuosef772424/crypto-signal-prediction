@@ -3,8 +3,8 @@
 > Read this first in every session (planner and build). Update it in the same PR that changes the state.
 > Keep it under 60 lines.
 
-**Phase:** plan merged (#17). T0 nearly done (only #13 restructuring left); R0 kickoff given (does not wait for T0).
-**Next:** R0 build → review → G2.
+**Phase:** plan merged (#17). T0 nearly done (only #13 restructuring left); R0 built on `claude/r0-lock`, waiting for the Colab manifest.
+**Next:** owner runs `tools/data_manifest_colab_cell.py` and pastes the bundle → `build_lock ingest/build` → R0 review → G2.
 
 ## Scope (owner, 2026-10-13)
 - Goal (D-001): find or reject, with honest evidence, information that adds something real; a survivor feeds a
@@ -28,7 +28,7 @@
 | Phase | State | PR | Verdict |
 |---|---|---|---|
 | T0 triage open PRs | #16, #15, #19 (H07 studies split from #13, F-0078/79) merged; #6, #14 closed; #13 restructuring: merge master + rtol fix + history note | #15, #16, #19 | in progress |
-| R0 lock (+M) | built on `claude/r0-lock` (salt b4f3790); D-009 two-level holdout being added; next: manifest job via the Colab runner | — | — |
+| R0 lock (+M) | lock built; holdout.json sha256 70322ba699d5068e4fbe7f8b014f85492aeebf15d3c743551fbf1062cd889b2c (860 coins, 459 eligible: 14 A / 445 B, 183 sealed; H3 = 3) | branch `claude/r0-lock` | — |
 | G2 gate-style features | next | — | — |
 | G gate-cli reverse + QC | waits for the owner's raw JSON | — | — |
 | R3 NATR range tool | not started | — | — |
@@ -40,7 +40,11 @@
 | R6 model integration 🔒 | waits for a survivor | — | — |
 
 ## Holdout
-- Not locked yet (R0). Buckets H1 (R1b), H2 (R3), H3 (R2), H4 (R5), H5 (G2), H6 (reserve); time seal ≥ 2026-10-01. Access log: none.
+- Not locked yet: `holdout.json` waits for the Colab manifest. Spec `docs/research/plan/lock/README.md`; salt = `b4f3790287a2e12d6e5cb3fa20b2ea81998566e5`
+  (merge the PR with a merge commit, never squash). `touched.csv` 747 rows; guard `tools/holdout_guard.py`. Buckets H1 (R1b), H2 (R3),
+  H3 (R2), H4 (R5), H5 (G2), H6 (reserve); time seal ≥ 2026-10-01. Access log: none.
+- D-009 (two-level holdout, before any manifest): level A untouched / level B daily-only touched both eligible, 365-day history, H3 takes no
+  funding/OI-touched coin. Preview on the 860-coin snapshot: 459 eligible (39 A, 420 B), 183 sealed; H3 is thin (3), H4 absorbs its refusals (58).
 
 ## Owner decisions (`decisions/`)
 - All accepted: D-001 goal (revised) · D-002 merge after review · D-003 ≤ 1 h/phase · D-004 Drive history_15m

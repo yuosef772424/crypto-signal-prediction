@@ -130,6 +130,7 @@
 | [مرحلة ٣ — Matrix Profile/SHAP/عنقدة](discovery_lab_phase3.md) | ❌ مرفوضة (117 تجربة) | يشمل اختبار WIDEHIST (كامل التاريخ المتاح، لا عيّنة صغيرة). |
 | [معمارية مشتركة بين الأصول](cross_asset_architecture.md) | ⏸️ مؤجَّل | اختبار IC رخيص خطي لا يدعم الفكرة بصيغتها البسيطة. |
 | [H003 — انعكاس التقلّب (`NATR_14`)](h003_volatility_reversal.md) | ✅ مقبولة | أول فرضية مقبولة رسمياً في تاريخ المشروع؛ عيّنة موسّعة 50 أصلاً. `Fractal_reversal_w5` (سؤال مفتوح ٢) اختُبِر فعلياً — مرفوض، يدعم أن الأثر خاص بالتقلّب لا انعكاساً هندسياً عاماً. |
+| [H003 wording correction](h003_volatility_reversal_correction.md) | ✅ added 2026-10-13 | High `NATR_14` precedes a **wider** next range (IC about +0.21 on next high, -0.20 on next low, 38/38 out-of-sample windows): volatility clustering, not reversal or contraction. The original text is unchanged. |
 | [مراجعة الاختبارات المتعددة لـH003](h003_multiple_testing_review.md) | ✅ أُغلِق بنتيجة قاطعة | سؤال H003 المفتوح ١: اختبار تبديل مشترك حقيقي (500 تكرار) — صفر اكتشافات كاذبة على الإطلاق مقابل 4 حقيقية؛ احتمال الصدفة <0.6%. تصحيح فيشر التقليدي فشل منهجياً (درس موثَّق). |
 | [مرشّحو pandas_ta المؤجَّلون سابقاً](pandas_ta_deferred_candidates.md) | ❌ مرفوضة (27 تجربة) | CCI/WILLR/Vortex/DX/UO/CTI/SKEW/FISHER/RVI — high/low متاحة الآن، ولا إشارة جديدة. |
 | [الدفعة الثانية من مرشّحي pandas_ta](pandas_ta_batch2_candidates.md) | ❌ مرفوضة (39) نهائياً | `CVI_14`/high و`ENTROPY_14`/low عبرا معيار المحور على عيّنة صغيرة — فشلا لاحقاً في ترقية H003. |
