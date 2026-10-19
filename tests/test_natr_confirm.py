@@ -45,6 +45,68 @@ class TestEvaluateFrozen(unittest.TestCase):
         self.assertNotIn("train_coverage", fz["extras"])
 
 
+SPARSE = {"sparse_rule": {"min_decile_n": 200, "min_evaluable_deciles": 6, "pinball_win_frac": 0.8}}
+
+
+def _fake_ev(ns, covs, better_mask, overall_ok=True, ic_ok=True):
+    """Synthetic evaluate_frozen output: per-decile n, coverage and (model, baseline) pinball."""
+    pm = [0.9 if b else 1.1 for b in better_mask]
+    d = pd.DataFrame({"decile": range(10), "n": ns, "coverage": covs, "pinball_model": pm, "pinball_baseline": [1.0] * 10})
+    return {"deciles": d, "verdict": {"overall_ok": overall_ok, "ic_ok": ic_ok, "accepted": True, "coverage": 0.8}}
+
+
+class TestSparseVerdict(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.m = _load("run_natr_confirm")
+
+    def test_two_empty_deciles_pass_when_rest_fine(self):
+        ev = _fake_ev([0, 5] + [1000] * 8, [float("nan"), 0.1] + [0.8] * 8, [False, False] + [True] * 8)
+        v = self.m.sparse_verdict(ev, SPARSE)
+        self.assertTrue(v["accepted"])
+        self.assertEqual(v["n_evaluable_deciles"], 8)
+        self.assertEqual(v["pinball_needed"], 7)           # ceil(0.8 * 8)
+        self.assertEqual(v["sparse_deciles"], [0, 1])
+
+    def test_pinball_threshold_scales_with_evaluable(self):
+        ev = _fake_ev([0, 0] + [1000] * 8, [float("nan")] * 2 + [0.8] * 8, [False, False] + [True] * 6 + [False] * 2)
+        self.assertFalse(self.m.sparse_verdict(ev, SPARSE)["accepted"])       # 6 of 8 < 7
+        ev = _fake_ev([0, 0] + [1000] * 8, [float("nan")] * 2 + [0.8] * 8, [False, False] + [True] * 7 + [False])
+        self.assertTrue(self.m.sparse_verdict(ev, SPARSE)["accepted"])
+
+    def test_five_evaluable_fails(self):
+        ev = _fake_ev([0] * 5 + [1000] * 5, [float("nan")] * 5 + [0.8] * 5, [False] * 5 + [True] * 5)
+        v = self.m.sparse_verdict(ev, SPARSE)
+        self.assertFalse(v["accepted"])
+        self.assertEqual(v["reason"], "too few evaluable deciles")
+        ev = _fake_ev([0] * 4 + [1000] * 6, [float("nan")] * 4 + [0.8] * 6, [False] * 4 + [True] * 6)
+        self.assertTrue(self.m.sparse_verdict(ev, SPARSE)["accepted"])        # 6 evaluable is enough
+
+    def test_evaluable_decile_coverage_still_ruled(self):
+        ev = _fake_ev([0, 0] + [1000] * 8, [float("nan")] * 2 + [0.8] * 7 + [0.5], [False] * 2 + [True] * 8)
+        self.assertFalse(self.m.sparse_verdict(ev, SPARSE)["deciles_ok"])
+
+    def test_all_ten_evaluable_identical_to_old_rule(self):
+        rng = np.random.default_rng(0)
+        for _ in range(200):
+            covs = list(0.8 + rng.uniform(-0.09, 0.09, 10))
+            pm = rng.uniform(0.8, 1.2, 10)
+            ic = rng.normal(0.1, 0.1, 12)
+            old = nr.evaluate_rule(0.8 + rng.uniform(-0.05, 0.05), covs, pm, np.ones(10), ic)
+            ev = {"deciles": pd.DataFrame({"decile": range(10), "n": [500] * 10, "coverage": covs, "pinball_model": pm,
+                                           "pinball_baseline": np.ones(10)}), "verdict": old}
+            new = self.m.sparse_verdict(ev, SPARSE)
+            for k in ("deciles_ok", "pinball_ok", "pinball_deciles_better", "accepted"):
+                self.assertEqual(old[k], new[k], k)
+
+    def test_r3_default_path_unchanged(self):
+        rows = tnr.TestEvaluateTimeframe._rows()
+        tr, va = rows[rows["tgt_open"] < "2024-04-15"], rows[rows["tgt_open"] >= "2024-04-15"]
+        full = nr.evaluate_timeframe(tr, va)
+        self.assertNotIn("n_evaluable_deciles", full["verdict"])             # shared code untouched; amended rule lives in the runner
+        self.assertEqual(nr.MIN_PINBALL_DECILES, 8)
+
+
 class TestFrozenFilesInRepo(unittest.TestCase):
     def test_frozen_rules_match_run1_and_card(self):
         fr_path = os.path.join(STUDY, "frozen_rules.json")
@@ -82,6 +144,7 @@ class TestFrozenFilesInRepo(unittest.TestCase):
 
 def _frozen(path, **over):
     base = json.load(open(os.path.join(STUDY, "frozen_rules.json")))
+    base.setdefault("sparse_rule", {"min_decile_n": 200, "min_evaluable_deciles": 6, "pinball_win_frac": 0.8})
     base.update({"eval_start": "2025-01-01", "eval_end": "2025-03-01", "min_coins": 1})
     base.update(over)
     with open(path, "w") as f:

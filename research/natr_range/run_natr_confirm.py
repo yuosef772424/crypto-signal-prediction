@@ -1,7 +1,7 @@
 """
 PURPOSE:  E-natr-002 (phase R3, confirmation step; PREPARED, NOT QUEUED): the single frozen H2 run of the 1h NATR range forecast.
           Checks the frozen rules against the card, opens bucket H2 ONCE through holdout_guard.open_holdout, resamples Drive
-          history_15m to 1h, evaluates the frozen coefficients and decile edges (no refit) with the fixed accept rule and writes
+          history_15m to 1h, evaluates the frozen coefficients and decile edges (no refit) with the fixed accept rule (sparse-decile amendment) and writes
           the run-contract bundle plus access_log_row.csv (the log row appended in the clone, for the reviewer to commit).
 TAGS:     H2 confirmation, E-natr-002, R3, frozen rules, holdout, Colab job, NATR range forecast, run contract
 PITFALLS: Everything that can fail cheaply (config keys, frozen-file hash vs card, rule constants vs tools/natr_range.py) is checked
@@ -71,7 +71,40 @@ def _check_frozen(cfg):
     edges = np.asarray(fr["edges"], dtype=float)
     if len(edges) != 9:
         raise ValueError("frozen file needs 9 decile edges")
+    if set(fr.get("sparse_rule", {})) != SPARSE_KEYS:
+        raise ValueError(f"frozen file needs sparse_rule with keys {sorted(SPARSE_KEYS)}")
     return fr, models, edges, sha
+
+
+SPARSE_KEYS = {"min_decile_n", "min_evaluable_deciles", "pinball_win_frac"}
+
+
+def sparse_verdict(ev, fr):
+    """E-natr-002 amended rule (sparse deciles reported, not ruled). `ev` is nr.evaluate_frozen output, `fr` the frozen file.
+    A decile with n < min_decile_n is reported only; fewer than min_evaluable_deciles evaluable ones fails the run; the decile
+    coverage rule applies to every evaluable decile; pinball must win in >= ceil(pinball_win_frac * n_evaluable) of them.
+    With all 10 evaluable this equals nr.evaluate_rule. Overall coverage and monthly IC verdicts are taken from ev['verdict']."""
+    sp = fr["sparse_rule"]
+    d = ev["deciles"]
+    base = ev["verdict"]
+    n_min = int(sp["min_decile_n"])
+    evaluable = (d["n"] >= n_min).to_numpy()
+    n_eval = int(evaluable.sum())
+    eps = 1e-12
+    cov = d["coverage"].to_numpy(dtype=float)[evaluable]
+    pm, pb = d["pinball_model"].to_numpy(dtype=float)[evaluable], d["pinball_baseline"].to_numpy(dtype=float)[evaluable]
+    deciles_ok = bool(n_eval > 0 and np.isfinite(cov).all() and (np.abs(cov - nr.COVER_TARGET) <= nr.DECILE_TOL + eps).all())
+    better = int(np.sum(np.isfinite(pm) & np.isfinite(pb) & (pm < pb)))
+    need = -((-int(round(float(sp["pinball_win_frac"]) * 100)) * n_eval) // 100)      # ceil(frac * n_eval) in integers
+    pinball_ok = bool(n_eval > 0 and better >= need)
+    enough_ok = bool(n_eval >= int(sp["min_evaluable_deciles"]))
+    out = {**base, "deciles_ok": deciles_ok, "pinball_deciles_better": better, "pinball_ok": pinball_ok, "n_evaluable_deciles": n_eval,
+           "pinball_needed": int(need), "enough_deciles_ok": enough_ok,
+           "sparse_deciles": [int(x) for x in d["decile"].to_numpy()[~evaluable]]}
+    out["accepted"] = bool(base["overall_ok"] and base["ic_ok"] and deciles_ok and pinball_ok and enough_ok)
+    if not enough_ok:
+        out["reason"] = "too few evaluable deciles"
+    return out
 
 
 def run(cfg, out_dir, max_minutes, lock=None):
@@ -120,7 +153,7 @@ def run(cfg, out_dir, max_minutes, lock=None):
     if parts and not truncated:
         val = pd.concat(parts)
         ev = nr.evaluate_frozen(models, edges, val)
-        verdict = dict(ev["verdict"])
+        verdict = sparse_verdict(ev, fr)
         verdict["coins_ok"] = bool(len(used) >= fr["min_coins"])
         verdict["accepted"] = bool(verdict["accepted"] and verdict["coins_ok"])
         res.update({"verdict": verdict, "extras": ev["extras"], "n_crossed": ev["n_crossed"], "n_coins_used": len(used)})
