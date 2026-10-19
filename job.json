@@ -1,18 +1,27 @@
 {
- "job_id": "trim-tails-001",
- "repo_ref": "85453cd68db7706b8325901e796d3de987bb85bb",
- "entry": "tools/trim_dead_tails_colab_job.py",
+ "job_id": "natr002-h2-confirm",
+ "repo_ref": "cf395ff5466d19024162f634c55ddea848e04c31",
+ "entry": "research/natr_range/run_natr_confirm.py",
  "args": [],
  "config": {
-  "data_dir": "history_15m",
-  "dry_run": false
+  "data_dir": "/content/drive/MyDrive/history_15m",
+  "card": "research/natr_range/cards/E-natr-002.md",
+  "frozen_rules": "research/natr_range/frozen_rules.json",
+  "pattern": "{symbol}.csv.gz",
+  "load_start": "2024-10-01"
  },
- "max_minutes": 50,
+ "max_minutes": 20,
  "needs_drive": true,
  "expected_outputs": [
   "manifest.json",
-  "summary.json",
-  "trimmed_coins.csv"
+  "results.json",
+  "summary.csv",
+  "deciles.csv",
+  "months.csv",
+  "slices.csv",
+  "access_log_row.csv"
  ],
- "note": "MODIFIES Drive: trims dead tails of history_15m in place; removed rows in history_15m_tails (restorable via tools/trim_dead_tails.py restore). Run trim-tails-001-dry first. Not queued."
+ "note": "E-natr-002 H2 confirmation (sparse-decile amendment, frozen sha a441aec5). Runs on history_15m after trim-tails-001. Opens H2 once.",
+ "rerun": false,
+ "pip": []
 }
