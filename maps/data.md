@@ -46,14 +46,14 @@
   - `def save_funding_open_interest(symbols: List[str], funding_limit: int=3000, oi_limit: int=720, oi_period: str='1h', config: Optional[dict]=None, verbose: bool=True) -> None` L413
   - `def load_funding_open_interest(symbol: str, kind: str='funding_rate', config: Optional[dict]=None) -> Optional[pd.DataFrame]` L461
 
-### `data/checkpoints.py` (215 lines)
+### `data/checkpoints.py` (218 lines)
 - PURPOSE: Per-asset resume checkpoints for build_dataset_from_loader, guarded by a fingerprint of every setting that changes the output.
 - TAGS: checkpoints, resume, checkpoint_dir, fingerprint, clear_checkpoint, _checkpoint_fingerprint
 - PITFALLS: A setting that changes the data must enter _checkpoint_fingerprint, or an old checkpoint is silently merged with new-shape data. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
 - USES: align, normalize, phase2*, windows
 - USED BY: pipeline, selftests
 - API:
-  - `def clear_checkpoint(checkpoint_dir, names: Optional[List[str]]=None) -> int` L194
+  - `def clear_checkpoint(checkpoint_dir, names: Optional[List[str]]=None) -> int` L197
 
 ### `data/common.py` (24 lines)
 - PURPOSE: Shared imports (numpy, pandas, typing, concurrency) and the TypeVars T/R used by every other pipeline module.
@@ -98,7 +98,7 @@
   - `def add_custom_features(data: pd.DataFrame, settings: Optional[dict]=None, config: Optional[dict]=None) -> pd.DataFrame` L177
   - `def custom_feature_names(settings: Optional[dict]=None, config: Optional[dict]=None) -> List[str]` L546
 
-### `data/defaults.py` (575 lines)
+### `data/defaults.py` (581 lines)
 - PURPOSE: PIPELINE_DEFAULT_CONFIG (alias DEFAULT_CONFIG) — the single source of truth for every pipeline/model/training setting — plus COINS_BY_CATEGORY, STATIC_INDICATORS_FULL and DEFAULT_ENABLED_CATEGORIES.
 - TAGS: pipeline_default_config, default_config, defaults, settings, config keys, coins_by_category, coin categories, indicator_settings, phase2_data, module_dirs, split_dates, holdout_start, الإعدادات
 - PITFALLS: A new key's default must reproduce the old behaviour exactly (checkpoints and recorded results stay valid). Never edit PIPELINE_DEFAULT_CONFIG at run time: use update_config() on CONFIG. Pipeline code must use PIPELINE_DEFAULT_CONFIG, never the bare DEFAULT_CONFIG: trainer/config.py binds a different DEFAULT_CONFIG (6 sections) and the two meet in main.ipynb's namespace. Executed into the one sha…
@@ -258,16 +258,16 @@
   - `def add_intraday_15m_features(dfs: Dict[str, pd.DataFrame], symbol: str, config: Optional[dict]=None) -> Dict[str, pd.DataFrame]` L227
   - `def futures_metrics_columns(config: Optional[dict]=None) -> List[str]` L249
 
-### `data/pipeline.py` (592 lines)
+### `data/pipeline.py` (594 lines)
 - PURPOSE: Dataset assembly across all assets: build_dataset (loader or preloaded), exclusions, cross-asset first pass, accumulation; both sources delegate to prepare_single_asset.
 - TAGS: pipeline, build_dataset, build_dataset_from_loader, build_dataset_from_preloaded, accumulator, asset_bounds, skip_labels
 - PITFALLS: Golden digests (tests/test_multi_tf.py::test_old_presets_byte_identical) cover this path: any output change must be deliberate. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
 - USES: align, checkpoints, cross_sectional_features, disk_backed, features, funding_oi*, heads, market_context, normalize, parallel, phase2*, runtime, sources, windows
 - USED BY: live, presets, selftests
 - API:
-  - `def build_dataset_from_loader(configs: List[Dict], load_asset_fn: Callable, resample_fn: Callable, tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_hori…` L312
-  - `def build_dataset_from_preloaded(configs: List[Dict], data: Dict[str, Dict[str, pd.DataFrame]], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_horizon: O…` L474
-  - `def build_dataset(configs: List[Dict], *, data: Optional[Dict]=None, load_asset_fn: Optional[Callable]=None, resample_fn: Optional[Callable]=None, **kwargs) -> Dict` L572
+  - `def build_dataset_from_loader(configs: List[Dict], load_asset_fn: Callable, resample_fn: Callable, tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_hori…` L314
+  - `def build_dataset_from_preloaded(configs: List[Dict], data: Dict[str, Dict[str, pd.DataFrame]], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_horizon: O…` L476
+  - `def build_dataset(configs: List[Dict], *, data: Optional[Dict]=None, load_asset_fn: Optional[Callable]=None, resample_fn: Optional[Callable]=None, **kwargs) -> Dict` L574
 
 ### `data/presets.py` (445 lines)
 - PURPOSE: Hourly presets: 20-b (1h w168 s32 h4, and 1h w32 s8 h1), 20-c (1h + 4h context, float16) with its contract self-test, 20-d (pct_change price normalisation) — overrides, names and one-call builders.
@@ -365,7 +365,7 @@
   - `def load_data_from_drive(project_name: Optional[str]=None, data_type: str='preprocessed_data', filename_base: str='preprocessing_output', filename: Optional[str]=None, config: Optional[dict]=None, fmt: str='auto', mmap: boo…` L239
   - `def load_preprocessed_data_from_drive(file_id: str, output_filename: str='preprocessing_output.pkl.gz', download_dir: str='.', quiet: bool=False, cleanup: bool=False) -> Any` L290
 
-### `data/windows.py` (451 lines)
+### `data/windows.py` (489 lines)
 - PURPOSE: Windows and targets for one asset (prepare_single_asset), LAST_COLUMNS/last_candles, sample filters, invert_reg_predictions and decode_price_window.
 - TAGS: windows, targets, prepare_single_asset, last_candles, last_columns, ts_col, sample_filters, register_sample_filter, invert_reg_predictions, decode_price_window, entry_feature_table, reg_target_mode
 - PITFALLS: LAST_COLUMNS, TS_COL, LAST_DTYPE and TARGET_COLUMNS are defined once in core/schema.py and only re-bound here. last_candles is float64 (ns timestamps lose ~12 s in float32). Sample filters must be causal. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
@@ -375,10 +375,11 @@
 - API:
   - `def register_sample_filter(name: str, fn: Callable[[pd.DataFrame], Any]) -> None` L42
   - `def sample_filter_mask(df: pd.DataFrame, filters: Optional[List[dict]]=None, config: Optional[dict]=None) -> np.ndarray` L86
-  - `def prepare_single_asset(dfs: Dict[str, pd.DataFrame], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_horizon: Optional[int]=None, stride: Option…` L133
-  - `def invert_reg_predictions(preds: np.ndarray, head: str, last_candles: Optional[np.ndarray]=None, bases: Optional[np.ndarray]=None, config: Optional[dict]=None, scale: Optional[float]=None) -> np.ndarray` L348
-  - `def decode_price_window(data: Dict, column: str='close', tf: Optional[str]=None, anchor: Optional[np.ndarray]=None, feature_order: Optional[List[str]]=None, mode: Optional[str]=None) -> np.ndarray` L394
-  - `def entry_feature_table(data: Dict, columns: List[str], load_asset_fn: Optional[Callable]=None, config: Optional[dict]=None) -> pd.DataFrame` L425
+  - `def stale_bars_min_run(config: Optional[dict]=None, base_tf: Optional[str]=None) -> Optional[int]` L120
+  - `def prepare_single_asset(dfs: Dict[str, pd.DataFrame], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_horizon: Optional[int]=None, stride: Option…` L162
+  - `def invert_reg_predictions(preds: np.ndarray, head: str, last_candles: Optional[np.ndarray]=None, bases: Optional[np.ndarray]=None, config: Optional[dict]=None, scale: Optional[float]=None) -> np.ndarray` L386
+  - `def decode_price_window(data: Dict, column: str='close', tf: Optional[str]=None, anchor: Optional[np.ndarray]=None, feature_order: Optional[List[str]]=None, mode: Optional[str]=None) -> np.ndarray` L432
+  - `def entry_feature_table(data: Dict, columns: List[str], load_asset_fn: Optional[Callable]=None, config: Optional[dict]=None) -> pd.DataFrame` L463
 
 Data / other files (counts only):
 - `crypto_data/`: csv×1 — 289 B

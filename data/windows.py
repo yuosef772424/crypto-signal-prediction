@@ -102,6 +102,35 @@ def sample_filter_mask(df: pd.DataFrame, filters: Optional[List[dict]] = None,
     return mask
 
 
+def _stale_bars_module():
+    """يحمّل tools/stale_bars_audit.py (التعريف الوحيد للشمعة الراكدة) من جذر المستودع الحاوي لحزمة data/."""
+    import importlib.util as ilu
+    import sys as _s
+    if 'stale_bars_audit' in _s.modules:
+        return _s.modules['stale_bars_audit']
+    from data._loader import REPO_ROOT
+    path = Path(REPO_ROOT) / 'tools' / 'stale_bars_audit.py'
+    spec = ilu.spec_from_file_location('stale_bars_audit', path)
+    mod = ilu.module_from_spec(spec)
+    _s.modules['stale_bars_audit'] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def stale_bars_min_run(config: Optional[dict] = None, base_tf: Optional[str] = None) -> Optional[int]:
+    """``CONFIG['stale_bars']`` → ``min_run`` بالشموع (int) أو ``None`` (الافتراضي = مُطفأ، السلوك القديم حرفياً).
+
+    الشكلان المقبولان (مفتاح واحد بالضبط): ``{"min_run": <int >= 2>}`` أو ``{"min_run_hours": <رقم > 0>}`` (زمني:
+    ``ceil(H / ساعات_الشمعة)`` بحدّ أدنى 2، بفريم ``base_tf`` أو ``config['base_tf']`` أو أول ``tf_order``) — مفتاح مجهول
+    أو قيمة غير صالحة يرفعان ``ValueError``."""
+    config = CONFIG if config is None else config
+    cfg = config.get('stale_bars')
+    if cfg is None:
+        return None
+    tf = base_tf or config.get('base_tf') or (config.get('tf_order') or [None])[0]
+    return _stale_bars_module().resolve_min_run(cfg, tf)
+
+
 def _sample_filters_signature(filters: List[dict]) -> List[dict]:
     """الفلاتر كما تدخل البصمة: دوال ``fn`` المسجّلة بمصدرها (تعديل جسم الدالة يُبطل نقاط الاستئناف)."""
     import hashlib
@@ -176,6 +205,12 @@ def prepare_single_asset(
     feat_dfs = {tf: dfs[tf][features] for tf in tf_order}
     # فلاتر العيّنات (CONFIG['sample_filters']): قناع شمعة الدخول على الإطار الخام للفريم الأساسي، مرة واحدة لكل عملة.
     entry_ok = sample_filter_mask(price_df, config=config)
+    # الشموع الراكدة (CONFIG['stale_bars']، مُطفأ افتراضياً): ذيل ما بعد آخر تداول حقيقي لعملة ميتة/مشطوبة + أشواط OHLC متطابقة
+    # بحجم صفر ≥ min_run. تُحذف العيّنة إن كانت شمعة دخولها أو أيّ شمعة من أفقها راكدة (cs = مجموع تراكمي، طوله T+1).
+    _min_run = stale_bars_min_run(config, base_tf)
+    stale_cs = None
+    if _min_run is not None:
+        stale_cs = np.r_[0, np.cumsum(_stale_bars_module().stale_bar_mask(price_df, _min_run).astype(np.int64))]
 
     windows, end_times = align_multi_timeframes_time_based(
         dfs=feat_dfs, tf_order=tf_order, window_sizes=window_sizes,
@@ -243,6 +278,9 @@ def prepare_single_asset(
             keep[i] = False
             continue
         if not entry_ok[end_idx]:            # شمعة الدخول لا تحقّق sample_filters
+            keep[i] = False
+            continue
+        if stale_cs is not None and stale_cs[fe] - stale_cs[end_idx] > 0:   # دخول/أفق على شموع راكدة
             keep[i] = False
             continue
 
