@@ -28,6 +28,12 @@ COVER_TARGET, OVERALL_TOL, DECILE_TOL = 0.80, 0.03, 0.06
 MIN_PINBALL_DECILES = 8
 MIN_IC_MONTH_SHARE_PCT = 90          # integer percent: positives * 100 >= 90 * months
 BTC_ETH = ("BTCUSDT", "ETHUSDT")
+# E-natr-003 (high-NATR calibration): constants of the card, not parameters
+TRAIN_END = pd.Timestamp("2025-01-01", tz="UTC")   # nothing at or after this open time may be used for fitting (exploration val starts here)
+TOP_DECILE = 9
+CORR_MIN_N = 200                                    # a decile with fewer calibration rows keeps factor 1 (reported)
+LOC_STATIC_POOLED_MAX, LOC_STATIC_FOLD_MAX, LOC_STATIC_MIN_FOLDS = 0.78, 0.79, 3
+LOC_DRIFT_POOLED_MIN, LOC_VAL_UNDER = 0.79, 0.78
 
 
 def qname(tau):
@@ -106,21 +112,26 @@ def fit_quantile(x, y, tau):
     return float(np.quantile(y - b * x, tau)), b
 
 
-def fit_models(train):
-    """{(target, tau): (a, b)} for log y = a + b log natr, fitted on `train` rows only."""
+def fit_models(train, targets=TARGETS):
+    """{(target, tau): (a, b)} for log y = a + b log natr, fitted on `train` rows only (`targets` default = all three)."""
     lx = np.log(train["natr"].to_numpy(dtype=float))
     models = {}
-    for tg in TARGETS:
+    for tg in targets:
         ly = np.log(np.maximum(train[f"y_{tg}"].to_numpy(dtype=float), EPS_PCT))
         for t in TAUS:
             models[(tg, t)] = fit_quantile(lx, ly, t)
     return models
 
 
-def predict_quantiles(models, target, natr):
-    """(n, 3) forecast quantiles in percent, sorted across tau; second value = number of rows that were crossed."""
+def predict_quantiles(models, target, natr, corrections=None):
+    """(n, 3) forecast quantiles in percent, sorted across tau; second value = number of rows that were crossed.
+    `corrections` (default None = E-natr-001 behaviour): {target: {"edges": 9 NATR cut points, "factors": (10, 3) array}}; the raw
+    quantile of a row in NATR decile d is multiplied by factors[d] (before the rearrangement) for that target."""
     lx = np.log(np.asarray(natr, dtype=float))
     raw = np.column_stack([np.exp(models[(target, t)][0] + models[(target, t)][1] * lx) for t in TAUS])
+    c = (corrections or {}).get(target)
+    if c is not None:
+        raw = raw * np.asarray(c["factors"], dtype=float)[assign_decile(np.asarray(natr, dtype=float), c["edges"])]
     crossed = int((np.diff(raw, axis=1) < 0).any(axis=1).sum())
     return np.sort(raw, axis=1), crossed
 
@@ -173,12 +184,13 @@ def _mean_pinball(y, q):
     return float(np.mean([pinball(y, q[:, i], t).mean() for i, t in enumerate(TAUS)]))
 
 
-def evaluate_frozen(models, edges, val):
+def evaluate_frozen(models, edges, val, corrections=None):
     """Evaluate FROZEN `models` and decile `edges` on `val` rows (build_rows output, optional `coin` column): decile / month /
-    slice tables, extras and the accept-rule verdict. Nothing is fitted here (used by the H2 confirmation)."""
+    slice tables, extras and the accept-rule verdict. Nothing is fitted here (used by the H2 confirmation). `corrections`: see
+    predict_quantiles (default None = unchanged)."""
     need = [f"b_{tg}_{qname(t)}" for tg in TARGETS for t in TAUS]
     v = val.dropna(subset=need).copy()
-    q, ncross = predict_quantiles(models, "range", v["natr"])
+    q, ncross = predict_quantiles(models, "range", v["natr"], corrections)
     base = _baseline_matrix(v, "range")
     y = v["y_range"].to_numpy(dtype=float)
     dec = assign_decile(v["natr"], edges)
@@ -212,7 +224,7 @@ def evaluate_frozen(models, edges, val):
     extras = {"n_val_rows": int(len(v)), "n_val_rows_dropped_no_baseline": int(len(val) - len(v)), "baseline_coverage": float(bcovered.mean()),
               "pinball_model": _mean_pinball(y, q), "pinball_baseline": _mean_pinball(y, base)}
     for tg in ("up", "down"):
-        qq, _ = predict_quantiles(models, tg, v["natr"])
+        qq, _ = predict_quantiles(models, tg, v["natr"], corrections)
         yy = v[f"y_{tg}"].to_numpy(dtype=float)
         bb = _baseline_matrix(v, tg)
         extras[f"{tg}_p50_pinball_model"] = float(pinball(yy, qq[:, 1], 0.5).mean())
@@ -237,3 +249,112 @@ def evaluate_timeframe(train, val):
     extras["train_n"] = int(len(train))
     extras["n_crossed_train"] = nct
     return res
+
+
+# ------------------------------------------------------------------ E-natr-003: high-NATR calibration (train-only)
+def drop_stale_runs(df, min_run_hours=168, source_minutes=15):
+    """Self-contained stale-bar mask: drops source bars inside runs of >= min_run_hours of CONSECUTIVE flat zero-volume bars
+    (volume == 0 and high == low; padded history of dead / migrated coins). Shorter zero-volume stretches are real quiet bars and
+    stay. A run breaks at a missing timestamp. Dropped rows leave a hole, so every 1h bar that touches them is not built.
+    Needs a `volume` column; the original bars are not modified."""
+    if "volume" not in df.columns:
+        raise KeyError("drop_stale_runs needs a volume column")
+    need = int(round(min_run_hours * 60 / source_minutes))
+    flat = ((df["volume"] == 0) & (df["high"] == df["low"])).to_numpy()
+    step = pd.Timedelta(minutes=source_minutes)
+    gap = np.r_[True, np.asarray((df.index[1:] - df.index[:-1]) != step)]
+    run_id = np.cumsum(gap | np.r_[True, flat[1:] != flat[:-1]])    # a new run starts at a gap or where flat / non-flat changes
+    key = pd.Series(run_id, index=df.index)
+    size = key.groupby(key).transform("size").to_numpy()
+    return df[~(flat & (size >= need))]
+
+
+def _assert_fit_window(rows, end, what):
+    end = pd.Timestamp(end)
+    end = end.tz_localize("UTC") if end.tzinfo is None else end
+    if end > TRAIN_END:
+        raise ValueError(f"{what}: fit window end {end} is after the train end {TRAIN_END} (no 2025+ data may be used for fitting)")
+    if len(rows) and pd.DatetimeIndex(rows["tgt_open"]).max() >= end:
+        raise ValueError(f"{what}: rows with target open time >= {end} (the fit window end) are not allowed")
+
+
+def fit_models_until(rows, end):
+    """fit_models on `rows`, refusing any row whose target open time is at or after `end` (<= TRAIN_END)."""
+    _assert_fit_window(rows, end, "fit_models_until")
+    return fit_models(rows)
+
+
+def fit_decile_corrections(models, edges, calib, fit_end, min_n=CORR_MIN_N):
+    """Per-NATR-decile multiplicative split-conformal (CQR-style, ratio form) correction of the range p10 / p90, TRAIN ONLY.
+    On the calibration rows of decile d: c90_d = the ceil((n+1)*0.9)-th smallest of y / q90, c10_d = the floor((n+1)*0.1)-th smallest of
+    y / q10 (raw, rearranged forecasts of `models`); factors row = [c10_d, 1, c90_d]. A decile with n < min_n keeps [1, 1, 1].
+    `fit_end` (<= TRAIN_END) is required and every calibration row must open before it. Returns {"range": {"edges", "factors", "n"}}."""
+    _assert_fit_window(calib, fit_end, "fit_decile_corrections")
+    q, _ = predict_quantiles(models, "range", calib["natr"])
+    y = calib["y_range"].to_numpy(dtype=float)
+    dec = assign_decile(calib["natr"], edges)
+    factors = np.ones((10, 3))
+    ns = np.zeros(10, dtype=int)
+    for d in range(10):
+        m = dec == d
+        n = int(m.sum())
+        ns[d] = n
+        if n < min_n:
+            continue
+        k_hi = min(n, int(math.ceil((n + 1) * 0.9)))
+        k_lo = max(1, int(math.floor((n + 1) * 0.1)))
+        factors[d, 2] = np.sort(y[m] / q[m, 2])[k_hi - 1]
+        factors[d, 0] = np.sort(y[m] / q[m, 0])[k_lo - 1]
+    return {"range": {"edges": np.asarray(edges, dtype=float), "factors": factors, "n": ns}}
+
+
+def decile_year_coverage(models, edges, val, corrections=None):
+    """DataFrame year x decile: n and [p10, p90] coverage of the (optionally corrected) range forecast on `val` rows."""
+    q, _ = predict_quantiles(models, "range", val["natr"], corrections)
+    y = val["y_range"].to_numpy(dtype=float)
+    cov = (y >= q[:, 0]) & (y <= q[:, 2])
+    dec = assign_decile(val["natr"], edges)
+    year = pd.DatetimeIndex(val["tgt_open"]).year.to_numpy()
+    rows = []
+    for yr in sorted(set(year)):
+        for d in range(10):
+            m = (year == yr) & (dec == d)
+            rows.append({"year": int(yr), "decile": d, "n": int(m.sum()), "coverage": float(cov[m].mean()) if m.any() else float("nan")})
+    return pd.DataFrame(rows)
+
+
+def oof_decile_diagnostic(rows, first_year=2021, last_year=2024, start_year=2020):
+    """Forward-chain out-of-fold decile coverage inside the train period: fold Y fits (models + decile edges) on target years
+    start_year..Y-1 and covers year Y. Rows at or after TRAIN_END are refused. Columns: fold, decile, n, coverage."""
+    _assert_fit_window(rows, TRAIN_END, "oof_decile_diagnostic")
+    year = pd.DatetimeIndex(rows["tgt_open"]).year.to_numpy()
+    out = []
+    for fy in range(first_year, last_year + 1):
+        fit, test = rows[(year >= start_year) & (year < fy)], rows[year == fy]
+        if len(fit) == 0 or len(test) == 0:
+            continue
+        models, edges = fit_models(fit, targets=("range",)), decile_edges(fit["natr"])
+        t = decile_year_coverage(models, edges, test)
+        out.append(t.rename(columns={"year": "fold"}))
+    return pd.concat(out, ignore_index=True) if out else pd.DataFrame(columns=["fold", "decile", "n", "coverage"])
+
+
+def classify_localization(oof, control_val_top):
+    """Pre-registered localization of the top-decile under-coverage (card E-natr-003). `oof` = oof_decile_diagnostic output,
+    `control_val_top` = {val year: top-decile coverage of the UNCORRECTED base model}.
+    static: pooled OOF top-decile coverage <= 78.0 % AND >= 3 folds <= 79.0 %;  drift: pooled OOF >= 79.0 % AND the control's top decile is
+    < 78.0 % in at least one val year;  not_reproduced: pooled OOF >= 79.0 % and no val year < 78.0 %;  mixed: anything else."""
+    t = oof[oof["decile"] == TOP_DECILE]
+    n = float(t["n"].sum())
+    pooled = float((t["coverage"] * t["n"]).sum() / n) if n > 0 else float("nan")
+    folds_low = int((t["coverage"] <= LOC_STATIC_FOLD_MAX + 1e-12).sum())
+    val_low = any(v < LOC_VAL_UNDER for v in control_val_top.values())
+    if np.isfinite(pooled) and pooled <= LOC_STATIC_POOLED_MAX + 1e-12 and folds_low >= LOC_STATIC_MIN_FOLDS:
+        label = "static"
+    elif np.isfinite(pooled) and pooled >= LOC_DRIFT_POOLED_MIN - 1e-12:
+        label = "drift" if val_low else "not_reproduced"
+    else:
+        label = "mixed"
+    return {"label": label, "pooled_oof_top_coverage": pooled, "folds_at_or_below_79": folds_low, "n_folds": int(len(t)),
+            "oof_top_by_fold": {int(f): float(c) for f, c in zip(t["fold"], t["coverage"])},
+            "control_val_top_by_year": {int(k): float(v) for k, v in control_val_top.items()}}

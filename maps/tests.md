@@ -418,20 +418,20 @@
   - `class PanelMultiTFTests(unittest.TestCase)` L453
     - (4 methods)
 
-### `tests/test_natr_calibrate.py` (280 lines)
+### `tests/test_natr_calibrate.py` (281 lines)
 - PURPOSE: E-natr-003 (high-NATR calibration of the 1h range forecast): per-decile train-only correction, train-only enforcement, stale-run mask, (from docstring)
 - DEPENDS: tools
 - API:
   - `def hetero_rows(n=120000, seed=3)` L36
   - `class TestCorrection(unittest.TestCase)` L56
     - (6 methods)
-  - `class TestStaleRuns(unittest.TestCase)` L112
+  - `class TestStaleRuns(unittest.TestCase)` L113
     - (3 methods)
-  - `class TestLocalization(unittest.TestCase)` L160
+  - `class TestLocalization(unittest.TestCase)` L161
     - (5 methods)
-  - `class TestRunner(unittest.TestCase)` L201
+  - `class TestRunner(unittest.TestCase)` L202
     - (6 methods)
-  - `class TestCardAndJob(unittest.TestCase)` L263
+  - `class TestCardAndJob(unittest.TestCase)` L264
     - (2 methods)
 
 ### `tests/test_natr_confirm.py` (216 lines)

@@ -106,7 +106,8 @@ class TestCorrection(unittest.TestCase):
             nr.fit_models_until(self.val, "2025-01-01")
         with self.assertRaises(ValueError):
             nr.oof_decile_diagnostic(pd.concat([self.cal, self.val.head(5)]))
-        self.assertEqual(len(nr.fit_models_until(self.base, "2024-01-01")), 9)
+        full = self.base.assign(y_up=self.base["y_range"], y_down=self.base["y_range"])
+        self.assertEqual(len(nr.fit_models_until(full, "2024-01-01")), 9)
 
 
 class TestStaleRuns(unittest.TestCase):
