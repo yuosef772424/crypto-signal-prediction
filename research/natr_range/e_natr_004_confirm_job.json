@@ -1,0 +1,8 @@
+{"job_id": "e-natr-004-confirm", "repo_ref": "74931d64f0f184a05e781231dbd8eda286c5a9d8",
+ "entry": "research/natr_range/run_natr_confirm_forward.py", "args": [],
+ "config": {"data_dir": "/content/drive/MyDrive/history_15m", "pattern": "{symbol}.csv.gz", "source_minutes": 15, "history_start": "2025-06-01",
+            "forward_end": "2027-01-01", "stale_min_run_hours": 168, "min_coins": 8},
+ "max_minutes": 30, "needs_drive": true,
+ "expected_outputs": ["manifest.json", "results.json", "summary.csv", "deciles.csv", "quarters.csv", "monthly_factors.csv", "months.csv", "access_log_row.csv"],
+ "note": "Prepared, NOT queued (R3, E-natr-004-confirm Stage B). not_before: 2027-01-01 (the runner refuses when forward_end is in the future; the only other allowed forward_end is 2027-04-01 after the card's one 3-month extension, evaluated not before 2027-04-01). Reads the 10 open coins; forward bars (open >= 2026-10-01) only through holdout_guard.load_forward, one FWD row in the access log (access_log_row.csv, committed by the reviewer). Frozen config research/natr_range/frozen/frozen_stage_b.json sha256 7493a719559b636962273c1211060fa472cc46e1307db74ac06805b2b6b6c8e7. repo_ref = the feat commit.",
+ "rerun": false, "pip": []}

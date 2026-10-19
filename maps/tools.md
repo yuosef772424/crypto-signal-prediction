@@ -351,22 +351,23 @@
   - `def fetch_closes_github(start='2026-06-01', coins=('BTC', 'ETH')) -> pd.DataFrame` L113
   - `def main(argv=None)` L131
 
-### `tools/holdout_guard.py` (276 lines)
+### `tools/holdout_guard.py` (344 lines)
 - PURPOSE: The only door to market data in a research phase after R0. Refuses (raises) a request for a sealed symbol, or for any bar with open time >= 2026-10-01 (the time seal, every coin), and opens each sealed bucket H1..H6 exactly once, through `…
 - TAGS: holdout, sealed coins, time seal, lock, data loader guard, confirmation, access log, evaluation integrity, r0
 - PITFALLS: Fails closed: with no holdout.json (or a holdout.sha256 that does not match it) every loader raises LockError. Requests are half-open [start, end) over bar OPEN times and `end` is required (no silent default). A symbol is matched after upper-casing, with and without a trailing USDT. An opened bucket still never returns a bar at or after the seal, and a refused card does not burn the bucket (only…
 - API:
-  - `class GuardError(Exception)` L44
-  - `class LockError(GuardError)` L48
-  - `class SealedAccessError(GuardError)` L52
-  - `class HoldoutOpenError(GuardError)` L56
-  - `class Lock` L61
-  - `def load_lock(lock_dir=None)` L77
-  - `def assert_unsealed(symbols, start, end, *, lock=None)` L139
-  - `def load_unsealed(data_dir, symbol, start, end, *, pattern=DEFAULT_PATTERN, lock=None)` L181
-  - `class HoldoutHandle` L214
-    - `.load(self, data_dir, symbol, start, end, *, pattern=DEFAULT_PATTERN)` L222
-  - `def open_holdout(card_path, bucket, *, lock=None)` L228
+  - `class GuardError(Exception)` L48
+  - `class LockError(GuardError)` L52
+  - `class SealedAccessError(GuardError)` L56
+  - `class HoldoutOpenError(GuardError)` L60
+  - `class Lock` L65
+  - `def load_lock(lock_dir=None)` L81
+  - `def assert_unsealed(symbols, start, end, *, lock=None)` L143
+  - `def load_unsealed(data_dir, symbol, start, end, *, pattern=DEFAULT_PATTERN, lock=None)` L185
+  - `def load_forward(data_dir, coins, start, end, card_path, *, pattern=DEFAULT_PATTERN, lock=None)` L217
+  - `class HoldoutHandle` L282
+    - `.load(self, data_dir, symbol, start, end, *, pattern=DEFAULT_PATTERN)` L290
+  - `def open_holdout(card_path, bucket, *, lock=None)` L296
 
 ### `tools/implicit_deps.py` (404 lines)
 - PURPOSE: Reconstruct the IMPLICIT dependency graph of the shared-namespace packages (data, model, trainer, evaluation, signal_eval, workflow, discovery) with `symtable`/`ast`: per module, the free names it uses and which module defines each (same p…
