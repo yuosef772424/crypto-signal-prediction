@@ -1,0 +1,18 @@
+{
+ "job_id": "trim-tails-001-dry",
+ "repo_ref": "85453cd68db7706b8325901e796d3de987bb85bb",
+ "entry": "tools/trim_dead_tails_colab_job.py",
+ "args": [],
+ "config": {
+  "data_dir": "history_15m",
+  "dry_run": true
+ },
+ "max_minutes": 50,
+ "needs_drive": true,
+ "expected_outputs": [
+  "manifest.json",
+  "summary.json",
+  "trimmed_coins.csv"
+ ],
+ "note": "Dry run: counts dead zero-volume tails per coin, writes nothing to Drive. Not queued."
+}
