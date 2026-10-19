@@ -4,7 +4,7 @@ Card: `cards/E-natr-001.md` (committed before any result, accept rule from ROADM
 `run_natr_range.py` + `config_e_natr_001.json` (run); bundle `results/e_natr_001_run1/` (manifest.json, 4 CSVs + results.json, 32 KB, verbatim).
 H003 is read as corrected (`docs/research/h003_volatility_reversal_correction.md`): high NATR_14 precedes a **wider** next range, no direction.
 
-## Verdict (exploration data, val 2025-01..2026-09, 10 coins): 1h ACCEPTED (provisional), 1d REJECTED (F-0082)
+## Verdict (exploration data, val 2025-01..2026-09, 10 coins): 1h ACCEPTED (provisional; NOT confirmed on H2, see below), 1d REJECTED (F-0082)
 Model: `log(next range %) = a + b log(NATR_14 %)`, pooled over 10 coins, tau 0.1/0.5/0.9, exact quantile fit on train 2020-01..2024-12, no tuning.
 Baseline: per-coin empirical quantiles of the last 90 bars. Run: 9 s, 18 quantile fits (2 timeframes x 3 targets x 3 tau), 2 accept-rule decisions, not truncated.
 
@@ -31,7 +31,10 @@ Baseline: per-coin empirical quantiles of the last 90 bars. Run: 9 s, 18 quantil
 - Reproduce: `python tools/fetch_crypto_dataset.py --out /tmp/r3data --interval 5m --coins ADAUSDT BCHUSDT BNBUSDT BTCUSDT DOGEUSDT ETHUSDT SOLUSDT TRXUSDT XRPUSDT ZECUSDT --end "2026-09-30 23:55"`, then
   `python research/natr_range/run_natr_range.py --config research/natr_range/config_e_natr_001.json --out <dir>`. Manifest `git_sha` 05963754dcc22af15b1b244a07cba7b36bd44154; output sha256 values are in the manifest.
 
-## H2 confirmation: prepared, NOT run, NOT queued
+## H2 confirmation (E-natr-002): REJECTED 2026-10-19 (F-0083), H2 burned
+Result bundle `results/e_natr_002_h2/`. 36/36 H2 coins (after trim-tails-001), 440,834 rows. Overall coverage 79.37 % PASS, pinball 10/10 deciles (0.2483 vs 0.2703) PASS, monthly IC > 0 21/21 PASS; per-decile coverage FAIL: top NATR decile 9 = 73.78 % (< 74.0 by 0.22 pp; 76.6 % in 2025, 68.6 % in 2026; decile 8 = 75.8 % in 2026). R3 1h is NOT confirmed; the 1h band under-covers at the highest NATR, as flagged on exploration data. 1d stays rejected.
+
+Preparation notes (written before the run):
 `cards/E-natr-002.md` (`confirmation: true`, `holdout_bucket: H2`, `frozen_rules_sha256` of `frozen_rules.json`, which `freeze_rules.py` writes from run1: 1h coefficients and decile edges), `run_natr_confirm.py` (opens H2 once via
 `open_holdout`, reads Drive `history_15m`, resamples 15m to 1h, no refit, same rule plus >= 20 coins) and `h2_job.json` (id carries DO-NOT-QUEUE; `repo_ref` to be filled). 1d is not confirmed.
 Sparse deciles: settled by the 2026-10-19 amendment of the card (deciles with n < 200 are reported, not ruled; >= 6 evaluable deciles required; pinball wins in ceil(0.8 * n_evaluable)), re-frozen before any H2 access.
