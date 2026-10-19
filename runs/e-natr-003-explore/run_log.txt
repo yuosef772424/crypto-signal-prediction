@@ -1,0 +1,17 @@
+# colab_runner log for e-natr-003-explore started 2026-10-19T21:44:40Z
+== checkout ok: 49ecd4acc9a0a51f151fe7bc8d75ff77b2c35cef
+== install -q --disable-pip-version-check -r requirements-ci.txt
+== run: /usr/bin/python3 research/natr_range/run_natr_calibrate.py --config /content/csp_runner/tmp/e-natr-003-explore.config.json --out /content/csp_runner/out/e-natr-003-explore --max-minutes 30
+{
+ "corrections.csv": "2785ab35368ae9e0c188c7e89a48db1324055fab6e7727495967c9131d08e9d8",
+ "deciles.csv": "2ef255b22ab7cab0d79df28397b41aab40ca523fee99aea33c70b13230959795",
+ "frozen_stage_b.json": "5a04d54fc48dd2cad5e5bca1aa0fd96ecf93bee3c68307a98eedc3b2f86ad330",
+ "months.csv": "cdea39c478d3d50690f7daf9aaf0f3768d691aa27a6caf241adced3c2269e6bf",
+ "oof_diagnostic.csv": "b2cb8d62088411ae756a7878be4e1bd392ce4861c4bc1743d392c0fe4f31ac32",
+ "results.json": "0fe1cdd6ee21e68d604c754eee69052282b202c9a44d477037e309ca34df0851",
+ "summary.csv": "837c5bbae296fb26f6642d09147cc5760025d15145bfb936650956f1f7685d13",
+ "year_deciles.csv": "a1797887ba378f8aa56b0133c93e20086cef98335a20c263c4764128c06229f0"
+}
+truncated: False minutes: 0.4
+localization: "drift"
+{"coverage": 0.8017678759200841, "overall_ok": true, "deciles_ok": true, "pinball_deciles_better": 10, "pinball_ok": true, "ic_months": 21, "ic_positive_months": 21, "ic_ok": true, "n_evaluable_deciles": 10, "pinball_needed": 8, "enough_deciles_ok": true, "sparse_deciles": [], "top_decile_year_ok": true, "top_decile_closer_than_control_ok": true, "coins_ok": true, "localization_static_ok": false, "rules_1_to_4_ok": true, "accepted": false}
