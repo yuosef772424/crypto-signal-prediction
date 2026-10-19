@@ -351,22 +351,23 @@
   - `def fetch_closes_github(start='2026-06-01', coins=('BTC', 'ETH')) -> pd.DataFrame` L113
   - `def main(argv=None)` L131
 
-### `tools/holdout_guard.py` (276 lines)
+### `tools/holdout_guard.py` (344 lines)
 - PURPOSE: The only door to market data in a research phase after R0. Refuses (raises) a request for a sealed symbol, or for any bar with open time >= 2026-10-01 (the time seal, every coin), and opens each sealed bucket H1..H6 exactly once, through `…
 - TAGS: holdout, sealed coins, time seal, lock, data loader guard, confirmation, access log, evaluation integrity, r0
 - PITFALLS: Fails closed: with no holdout.json (or a holdout.sha256 that does not match it) every loader raises LockError. Requests are half-open [start, end) over bar OPEN times and `end` is required (no silent default). A symbol is matched after upper-casing, with and without a trailing USDT. An opened bucket still never returns a bar at or after the seal, and a refused card does not burn the bucket (only…
 - API:
-  - `class GuardError(Exception)` L44
-  - `class LockError(GuardError)` L48
-  - `class SealedAccessError(GuardError)` L52
-  - `class HoldoutOpenError(GuardError)` L56
-  - `class Lock` L61
-  - `def load_lock(lock_dir=None)` L77
-  - `def assert_unsealed(symbols, start, end, *, lock=None)` L139
-  - `def load_unsealed(data_dir, symbol, start, end, *, pattern=DEFAULT_PATTERN, lock=None)` L181
-  - `class HoldoutHandle` L214
-    - `.load(self, data_dir, symbol, start, end, *, pattern=DEFAULT_PATTERN)` L222
-  - `def open_holdout(card_path, bucket, *, lock=None)` L228
+  - `class GuardError(Exception)` L48
+  - `class LockError(GuardError)` L52
+  - `class SealedAccessError(GuardError)` L56
+  - `class HoldoutOpenError(GuardError)` L60
+  - `class Lock` L65
+  - `def load_lock(lock_dir=None)` L81
+  - `def assert_unsealed(symbols, start, end, *, lock=None)` L143
+  - `def load_unsealed(data_dir, symbol, start, end, *, pattern=DEFAULT_PATTERN, lock=None)` L185
+  - `def load_forward(data_dir, coins, start, end, card_path, *, pattern=DEFAULT_PATTERN, lock=None)` L217
+  - `class HoldoutHandle` L282
+    - `.load(self, data_dir, symbol, start, end, *, pattern=DEFAULT_PATTERN)` L290
+  - `def open_holdout(card_path, bucket, *, lock=None)` L296
 
 ### `tools/implicit_deps.py` (404 lines)
 - PURPOSE: Reconstruct the IMPLICIT dependency graph of the shared-namespace packages (data, model, trainer, evaluation, signal_eval, workflow, discovery) with `symtable`/`ast`: per module, the free names it uses and which module defines each (same p…
@@ -428,26 +429,37 @@
   - `def load_intraday_daily(root: Union[str, Path], symbol: str, subdir: str='history_15m', pattern: str='{name}.csv.gz', **kw) -> Optional[pd.DataFrame]` L427
   - `def fill_neutral(frame: pd.DataFrame, flag_cols: Iterable[str]=()) -> pd.DataFrame` L436
 
-### `tools/natr_range.py` (239 lines)
+### `tools/natr_range.py` (475 lines)
 - PURPOSE: Calibrated next-bar range forecast from NATR_14 (phase R3, card E-natr-001): causal NATR and next-range targets (range, up and down excursion, percent of the decision close), an exact pooled quantile regression log(range_{t+1}) = a + b log…
 - TAGS: natr, range forecast, quantile regression, calibration, coverage, pinball loss, trailing quantile baseline, volatility clustering, h003, r3, e-natr-001, bot2 get_range_forecast
 - PITFALLS: A bar exists only if ALL its source members exist and is used only after it closed; row t = decision at the close of bar t, target = bar t+1 divided by the close of bar t. The baseline needs 90 consecutive valid bars (NaN otherwise) and rows without it are dropped from model AND baseline in the comparison. Deciles come from train only. Forecast quantiles are sorted across tau (rearrangement); the…
 - API:
-  - `def qname(tau)` L33
-  - `def resample_bars(df, minutes, source_minutes=5)` L38
-  - `def natr_pct(bars, step_minutes, period=NATR_PERIOD)` L58
-  - `def build_rows(bars, step_minutes, period=NATR_PERIOD, window=BASELINE_WINDOW)` L67
-  - `def pinball(y, q, tau)` L88
-  - `def fit_quantile(x, y, tau)` L93
-  - `def fit_models(train)` L109
-  - `def predict_quantiles(models, target, natr)` L120
-  - `def decile_edges(natr_train)` L129
-  - `def assign_decile(natr, edges)` L133
-  - `def coverage(y, lo, hi)` L137
-  - `def monthly_ic(index, x, y)` L142
-  - `def evaluate_rule(cov, cov_dec, pin_model, pin_base, ic)` L150
-  - `def evaluate_frozen(models, edges, val)` L176
-  - `def evaluate_timeframe(train, val)` L224
+  - `def qname(tau)` L45
+  - `def resample_bars(df, minutes, source_minutes=5)` L50
+  - `def natr_pct(bars, step_minutes, period=NATR_PERIOD)` L70
+  - `def build_rows(bars, step_minutes, period=NATR_PERIOD, window=BASELINE_WINDOW)` L79
+  - `def pinball(y, q, tau)` L100
+  - `def fit_quantile(x, y, tau)` L105
+  - `def fit_models(train, targets=TARGETS)` L121
+  - `def predict_quantiles(models, target, natr, corrections=None)` L132
+  - `def decile_edges(natr_train)` L151
+  - `def assign_decile(natr, edges)` L155
+  - `def coverage(y, lo, hi)` L159
+  - `def monthly_ic(index, x, y)` L164
+  - `def evaluate_rule(cov, cov_dec, pin_model, pin_base, ic)` L172
+  - `def evaluate_frozen(models, edges, val, corrections=None)` L198
+  - `def evaluate_timeframe(train, val)` L247
+  - `def drop_stale_runs(df, min_run_hours=168, source_minutes=15)` L266
+  - `def fit_models_until(rows, end)` L292
+  - `def fit_decile_corrections(models, edges, calib, fit_end, min_n=CORR_MIN_N)` L298
+  - `def decile_year_coverage(models, edges, val, corrections=None)` L322
+  - `def oof_decile_diagnostic(rows, first_year=2021, last_year=2024, start_year=2020)` L337
+  - `def classify_localization(oof, control_val_top)` L353
+  - `def rolling_window(rows, month_start, window_months=ROLL_WINDOW_MONTHS, step_minutes=ROLL_STEP_MINUTES)` L388
+  - `def fit_month_factors(models, edges, window, month_start, min_n=ROLL_MIN_N, step_minutes=ROLL_STEP_MINUTES)` L400
+  - `def rolling_row_factors(models, edges, rows, val, window_months=ROLL_WINDOW_MONTHS, min_n=ROLL_MIN_N, step_minutes=ROLL_STEP_MINUTES)` L429
+  - `def factor_stability(table)` L450
+  - `def quarter_top_coverage(models, edges, val, corrections=None)` L463
 
 ### `tools/nb_cells.py` (100 lines)
 - PURPOSE: Edit notebook code/markdown cells as plain files and write them back without reformatting the .ipynb: list cells, extract chosen cells to <dir>/<nb>_<i>.py, inject them back, insert new cells. Preserves the notebook's own JSON layout (comp…

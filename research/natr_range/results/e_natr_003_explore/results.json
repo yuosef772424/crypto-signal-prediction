@@ -1,0 +1,121 @@
+{
+ "card": "research/natr_range/cards/E-natr-003.md",
+ "control_verdict_reported_not_ruled": {
+  "accepted": true,
+  "coverage": 0.8023330704521556,
+  "deciles_ok": true,
+  "enough_deciles_ok": true,
+  "ic_months": 21,
+  "ic_ok": true,
+  "ic_positive_months": 21,
+  "n_evaluable_deciles": 10,
+  "overall_ok": true,
+  "pinball_deciles_better": 10,
+  "pinball_needed": 8,
+  "pinball_ok": true,
+  "sparse_deciles": []
+ },
+ "extras_control": {
+  "baseline_coverage": 0.7550736067297581,
+  "down_p50_pinball_baseline": 0.18116964110103234,
+  "down_p50_pinball_model": 0.17609322338443376,
+  "n_val_rows": 152160,
+  "n_val_rows_dropped_no_baseline": 0,
+  "pinball_baseline": 0.1503857585700609,
+  "pinball_model": 0.1356010211200712,
+  "up_p50_pinball_baseline": 0.17962682655930973,
+  "up_p50_pinball_model": 0.17286518840743914
+ },
+ "extras_corrected": {
+  "baseline_coverage": 0.7550736067297581,
+  "down_p50_pinball_baseline": 0.18116964110103234,
+  "down_p50_pinball_model": 0.17609322338443376,
+  "n_val_rows": 152160,
+  "n_val_rows_dropped_no_baseline": 0,
+  "pinball_baseline": 0.1503857585700609,
+  "pinball_model": 0.13558903999576374,
+  "up_p50_pinball_baseline": 0.17962682655930973,
+  "up_p50_pinball_model": 0.17286518840743914
+ },
+ "localization": {
+  "control_val_top_by_year": {
+   "2025": 0.7559918408975013,
+   "2026": 0.7814761215629522
+  },
+  "folds_at_or_below_79": 2,
+  "label": "drift",
+  "n_folds": 4,
+  "oof_top_by_fold": {
+   "2021": 0.8260428670200507,
+   "2022": 0.8175548589341692,
+   "2023": 0.756687898089172,
+   "2024": 0.7614699331848552
+  },
+  "pooled_oof_top_coverage": 0.8137267904509283
+ },
+ "n_base_rows": 336217,
+ "n_calib_rows": 87840,
+ "n_coins_all_windows": 10,
+ "n_crossed_val": {
+  "control": 0,
+  "corrected": 0
+ },
+ "n_fit_rows_at_or_after_2025": 0,
+ "n_val_rows": 152160,
+ "n_val_rows_dropped_no_baseline": 0,
+ "runtime_min": 0.4,
+ "skipped_coins": {},
+ "stale_source_rows_dropped": {
+  "ADAUSDT": 0,
+  "BCHUSDT": 0,
+  "BNBUSDT": 0,
+  "BTCUSDT": 0,
+  "DOGEUSDT": 0,
+  "ETHUSDT": 0,
+  "SOLUSDT": 0,
+  "TRXUSDT": 0,
+  "XRPUSDT": 0,
+  "ZECUSDT": 0
+ },
+ "top_decile_control": {
+  "2025": 0.7559918408975013,
+  "2026": 0.7814761215629522
+ },
+ "top_decile_corrected": {
+  "2025": {
+   "coverage": 0.7916879143294238,
+   "n": 3922
+  },
+  "2026": {
+   "coverage": 0.8111432706222865,
+   "n": 1382
+  }
+ },
+ "truncated": false,
+ "verdict": {
+  "accepted": false,
+  "coins_ok": true,
+  "coverage": 0.8017678759200841,
+  "deciles_ok": true,
+  "enough_deciles_ok": true,
+  "ic_months": 21,
+  "ic_ok": true,
+  "ic_positive_months": 21,
+  "localization_static_ok": false,
+  "n_evaluable_deciles": 10,
+  "overall_ok": true,
+  "pinball_deciles_better": 10,
+  "pinball_needed": 8,
+  "pinball_ok": true,
+  "rules_1_to_4_ok": true,
+  "sparse_deciles": [],
+  "top_decile_closer_than_control_ok": true,
+  "top_decile_year_ok": true
+ },
+ "windows": {
+  "base_end": "2024-01-01 00:00:00+00:00",
+  "calib_end": "2025-01-01 00:00:00+00:00",
+  "fit_start": "2020-01-01 00:00:00+00:00",
+  "val_end": "2026-10-01 00:00:00+00:00"
+ }
+}
