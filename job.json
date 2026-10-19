@@ -30,6 +30,6 @@
   "splits_pooled_1D.csv"
  ],
  "note": "Stale/zero-target audit (claude/zero-target-fix de20d96): zero share per split OFF/ON, dead coins.",
- "rerun": false,
+ "rerun": true,
  "pip": []
 }
