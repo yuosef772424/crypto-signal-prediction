@@ -5,11 +5,12 @@ PURPOSE:  Colab run-contract entry that runs tools/stale_bars_audit.py on the Dr
           tails, or by genuine zero-return bars of live coins?
 TAGS:     colab job, stale bars, delisted coins, zero share, close_reg, run contract, history_15m, audit
 PITFALLS: Reads Drive (needs_drive=true); data_dir is relative to CSP_DRIVE_ROOT unless absolute. Every output <= 300 KB (checked, the run
-          fails otherwise). min_run null = derived from the data per timeframe (derive_min_run), the value used is written to summary.json.
+          fails otherwise). min_run null = derived from the data per timeframe (derive_min_run); min_run_hours (optional, exclusive with min_run) = time-based,
+          ceil(H / bar hours) per timeframe. The value used is written to summary.json.
           Split cuts are pooled-timestamp quantiles (approximation of the pipeline's global_time split, no embargo). Not queued: see job.json.
 
 Usage:  python tools/stale_bars_colab_job.py --config cfg.json --out DIR --max-minutes N
-cfg = {"data_dir": "history_15m", "timeframes": ["1h","4h","1D"], "horizon": 1, "min_run": null, "quantile": 0.99, "floor": 2,
+cfg = {"data_dir": "history_15m", "timeframes": ["1h","4h","1D"], "horizon": 1, "min_run": null, "min_run_hours": null (optional), "quantile": 0.99, "floor": 2,
        "train_pct": 0.8, "val_pct": 0.1, "max_coins": null}
 """
 import argparse
@@ -23,15 +24,22 @@ import colab_runner  # noqa: E402
 import stale_bars_audit as sba  # noqa: E402
 
 CONFIG_KEYS = ("data_dir", "timeframes", "horizon", "min_run", "quantile", "floor", "train_pct", "val_pct", "max_coins")
+OPTIONAL_KEYS = ("min_run_hours",)     # absent == null; at most one of min_run / min_run_hours is non-null
 MAX_BYTES = 300 * 1024
 
 
 def load_config(path):
     with open(path, encoding="utf-8") as fh:
         cfg = json.load(fh)
-    missing, unknown = sorted(set(CONFIG_KEYS) - set(cfg)), sorted(set(cfg) - set(CONFIG_KEYS))
+    allowed = set(CONFIG_KEYS) | set(OPTIONAL_KEYS)
+    missing, unknown = sorted(set(CONFIG_KEYS) - set(cfg)), sorted(set(cfg) - allowed)
     if missing or unknown:
-        raise SystemExit(f"config keys: missing {missing}, unknown {unknown}; allowed {list(CONFIG_KEYS)}")
+        raise SystemExit(f"config keys: missing {missing}, unknown {unknown}; allowed {sorted(allowed)}")
+    cfg.setdefault("min_run_hours", None)
+    if cfg["min_run"] is not None and cfg["min_run_hours"] is not None:
+        raise SystemExit("config: min_run and min_run_hours are mutually exclusive (set at most one)")
+    if cfg["min_run_hours"] is not None:
+        sba.check_min_run_hours(cfg["min_run_hours"])
     if not cfg["timeframes"] or not all(isinstance(t, str) for t in cfg["timeframes"]):
         raise SystemExit("timeframes must be a non-empty list of strings")
     return cfg
@@ -48,7 +56,12 @@ def run(cfg, out_dir, deadline):
         if time.time() > deadline:
             raise SystemExit("max-minutes reached before all timeframes finished")
         frames = sba.load_dir(data_dir, tf, cfg["max_coins"])
-        min_run = cfg["min_run"] if cfg["min_run"] is not None else sba.derive_min_run(frames, cfg["quantile"], cfg["floor"])
+        if cfg["min_run_hours"] is not None:
+            min_run = sba.min_run_from_hours(cfg["min_run_hours"], tf)
+        elif cfg["min_run"] is not None:
+            min_run = cfg["min_run"]
+        else:
+            min_run = sba.derive_min_run(frames, cfg["quantile"], cfg["floor"])
         coins, per = sba.audit_frames(frames, min_run=min_run, horizon=cfg["horizon"],
                                       splits=sba.split_bounds(frames, cfg["horizon"], cfg["train_pct"], cfg["val_pct"]))
         z = per.groupby("coin")[["zero_target_rows", "zero_rows_from_stale", "n_rows"]].sum()
@@ -60,7 +73,7 @@ def run(cfg, out_dir, deadline):
         pooled.insert(0, "min_run", min_run)
         pooled.round(6).to_csv(os.path.join(out_dir, f"splits_pooled_{tf}.csv"), index=False)
         dead = coins[coins["dead"]].sort_values("tail_bars", ascending=False)
-        summary[tf] = {"min_run": int(min_run), "n_coins": int(len(coins)), "n_dead": int(len(dead)),
+        summary[tf] = {"min_run": int(min_run), "min_run_hours": cfg["min_run_hours"], "n_coins": int(len(coins)), "n_dead": int(len(dead)),
                        "dead_coins_by_tail": dict(zip(dead["coin"].head(40), dead["tail_bars"].head(40).astype(int))),
                        "tail_bars_quantiles": {str(q): float(coins["tail_bars"].quantile(q)) for q in (0.5, 0.9, 0.99, 1.0)},
                        "rows_total": int(per["n_rows"].sum()), "zero_rows_total": int(per["zero_target_rows"].sum()),

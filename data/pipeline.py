@@ -215,8 +215,8 @@ class _Accumulator:
         if config.get('sample_filters'):
             out['sample_filters'] = deepcopy(list(config['sample_filters']))
             print(f"   🎯 فلاتر العيّنات: {out['sample_filters']}")
-        if stale_bars_min_run(config) is not None:
-            out['stale_bars'] = {'min_run': stale_bars_min_run(config)}
+        if stale_bars_min_run(config, base_tf) is not None:
+            out['stale_bars'] = {'min_run': stale_bars_min_run(config, base_tf)}
         for tf in self.tf_order:
             out[f'X_{tf}'] = X_final[tf]
         for h in self.target_heads:

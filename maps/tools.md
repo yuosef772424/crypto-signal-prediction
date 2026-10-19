@@ -426,34 +426,38 @@
 - API:
   - `def main(argv=None)` L52
 
-### `tools/stale_bars_audit.py` (244 lines)
+### `tools/stale_bars_audit.py` (295 lines)
 - PURPOSE: Audit (and mask) stale bars of per-coin OHLCV frames: the last real trade, the flat/zero-volume tail of a delisted or dead coin, runs of identical OHLC with zero volume, and the share of target rows (close(t+h)/close(t)-1) that come from s…
 - TAGS: stale bars, delisted coins, dead coins, forward-fill, zero volume, flat bars, exact-zero targets, close_reg, zero share, last real trade, stale_bars, data quality audit, survivorship
 - PITFALLS: "Real trade" = volume > 0 AND a price change (high > low, or close != previous close). A bar with volume > 0 and no price change is NOT stale (genuine zero return of an illiquid live coin); it only counts as stale if it lies in the dead tail. A tail shorter than min_run is NOT dropped (a live coin's last few flat bars). Dropping uses the whole coin history (last real trade), so it is a dataset-cl…
 - API:
-  - `def check_min_run(min_run) -> int` L34
-  - `def flat_zero_volume(df: pd.DataFrame) -> np.ndarray` L45
-  - `def real_trade_mask(df: pd.DataFrame) -> np.ndarray` L52
-  - `def tail_start(df: pd.DataFrame) -> int` L70
-  - `def stale_bar_mask(df: pd.DataFrame, min_run: int) -> np.ndarray` L76
-  - `def stale_row_mask(stale: np.ndarray, horizon: int) -> np.ndarray` L94
-  - `def derive_min_run(frames: Mapping[str, pd.DataFrame], quantile: float=0.99, floor: int=2) -> int` L104
-  - `def audit_coin(df: pd.DataFrame, name: str, *, min_run: int, horizon: int, splits: Mapping[str, Tuple[pd.Timestamp, pd.Timestamp]])` L118
-  - `def audit_frames(frames: Mapping[str, pd.DataFrame], *, min_run: int, horizon: int, splits: Mapping[str, Tuple[pd.Timestamp, pd.Timestamp]])` L161
-  - `def pool_splits(splits_df: pd.DataFrame) -> pd.DataFrame` L172
-  - `def split_bounds(frames: Mapping[str, pd.DataFrame], horizon: int, train_pct: float=0.8, val_pct: float=0.1)` L184
-  - `def load_ohlcv(path: str, timeframe: Optional[str]=None) -> pd.DataFrame` L193
-  - `def load_dir(data_dir: str, timeframe: Optional[str]=None, max_coins: Optional[int]=None) -> Dict[str, pd.DataFrame]` L210
-  - `def main(argv=None) -> int` L220
+  - `def check_min_run(min_run) -> int` L35
+  - `def check_min_run_hours(hours) -> float` L42
+  - `def bar_hours(timeframe) -> float` L50
+  - `def min_run_from_hours(hours, timeframe) -> int` L61
+  - `def resolve_min_run(cfg, timeframe=None) -> int` L71
+  - `def flat_zero_volume(df: pd.DataFrame) -> np.ndarray` L87
+  - `def real_trade_mask(df: pd.DataFrame) -> np.ndarray` L94
+  - `def tail_start(df: pd.DataFrame) -> int` L112
+  - `def stale_bar_mask(df: pd.DataFrame, min_run: int) -> np.ndarray` L118
+  - `def stale_row_mask(stale: np.ndarray, horizon: int) -> np.ndarray` L136
+  - `def derive_min_run(frames: Mapping[str, pd.DataFrame], quantile: float=0.99, floor: int=2) -> int` L146
+  - `def audit_coin(df: pd.DataFrame, name: str, *, min_run: int, horizon: int, splits: Mapping[str, Tuple[pd.Timestamp, pd.Timestamp]])` L160
+  - `def audit_frames(frames: Mapping[str, pd.DataFrame], *, min_run: int, horizon: int, splits: Mapping[str, Tuple[pd.Timestamp, pd.Timestamp]])` L203
+  - `def pool_splits(splits_df: pd.DataFrame) -> pd.DataFrame` L214
+  - `def split_bounds(frames: Mapping[str, pd.DataFrame], horizon: int, train_pct: float=0.8, val_pct: float=0.1)` L226
+  - `def load_ohlcv(path: str, timeframe: Optional[str]=None) -> pd.DataFrame` L235
+  - `def load_dir(data_dir: str, timeframe: Optional[str]=None, max_coins: Optional[int]=None) -> Dict[str, pd.DataFrame]` L252
+  - `def main(argv=None) -> int` L262
 
-### `tools/stale_bars_colab_job.py` (96 lines)
+### `tools/stale_bars_colab_job.py` (109 lines)
 - PURPOSE: Colab run-contract entry that runs tools/stale_bars_audit.py on the Drive history (history_15m) at several timeframes: per-coin tail lengths, coins flagged dead, and the exact-zero close-return share per split with CONFIG['stale_bars'] OFF…
 - TAGS: colab job, stale bars, delisted coins, zero share, close_reg, run contract, history_15m, audit
-- PITFALLS: Reads Drive (needs_drive=true); data_dir is relative to CSP_DRIVE_ROOT unless absolute. Every output <= 300 KB (checked, the run fails otherwise). min_run null = derived from the data per timeframe (derive_min_run), the value used is written to summary.json. Split cuts are pooled-timestamp quantiles (approximation of the pipeline's global_time split, no embargo). Not queued: see job.json.
+- PITFALLS: Reads Drive (needs_drive=true); data_dir is relative to CSP_DRIVE_ROOT unless absolute. Every output <= 300 KB (checked, the run fails otherwise). min_run null = derived from the data per timeframe (derive_min_run); min_run_hours (optional, exclusive with min_run) = time-based, ceil(H / bar hours) per timeframe. The value used is written to summary.json. Split cuts are pooled-timestamp quantiles…
 - API:
-  - `def load_config(path)` L29
-  - `def run(cfg, out_dir, deadline)` L40
-  - `def main(argv=None)` L79
+  - `def load_config(path)` L31
+  - `def run(cfg, out_dir, deadline)` L48
+  - `def main(argv=None)` L92
 
 ### `tools/touched_ledger.py` (191 lines)
 - PURPOSE: Generates the touched-data ledger docs/research/plan/lock/touched.csv (columns symbol_or_rule, kind, timeframe, period, source, note) from master as of 2026-10-13: every universe in docs/research/failure_registry.csv (F-0001..F-0079), the…

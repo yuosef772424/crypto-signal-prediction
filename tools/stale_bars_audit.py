@@ -11,7 +11,8 @@ PITFALLS: "Real trade" = volume > 0 AND a price change (high > low, or close != 
           real trade), so it is a dataset-cleaning step, never a feature. Runs are counted on consecutive ROWS of the frame given
           (resample first: the base-timeframe frame is what the pipeline sees). Target rows here are positional (row i -> i+h);
           the pipeline additionally requires gap-free windows, so its counts are a subset. min_run must come from the data:
-          see derive_min_run.
+          see derive_min_run, or set it in time (min_run_hours -> min_run_from_hours: the same wall-clock span at every
+          timeframe; derive_min_run's quantile is dominated by a few relisted coins with multi-year padded gaps, see research/stale_bars).
 
 Usage (library):  mask = stale_bar_mask(df, min_run); coins, splits = audit_frames(frames, min_run=6, horizon=1, splits=...)
 Usage (CLI):      python tools/stale_bars_audit.py --data-dir <dir of <SYMBOL>.csv[.gz]> --timeframe 4h --out <dir> [--min-run N]
@@ -36,6 +37,47 @@ def check_min_run(min_run) -> int:
     if isinstance(min_run, bool) or not isinstance(min_run, (int, np.integer)) or int(min_run) < 2:
         raise ValueError(f"min_run must be an integer >= 2, got {min_run!r}")
     return int(min_run)
+
+
+def check_min_run_hours(hours) -> float:
+    """hours: a finite number > 0 (not bool). Raises ValueError otherwise (no silent defaults)."""
+    if isinstance(hours, bool) or not isinstance(hours, (int, float, np.integer, np.floating)) \
+            or not math.isfinite(float(hours)) or float(hours) <= 0:
+        raise ValueError(f"min_run_hours must be a finite number > 0, got {hours!r}")
+    return float(hours)
+
+
+def bar_hours(timeframe) -> float:
+    """Hours in one bar of a fixed-length pandas offset string ('15m', '1h', '4h', '1D')."""
+    try:
+        h = pd.Timedelta(str(timeframe)).total_seconds() / 3600.0
+    except (ValueError, TypeError) as e:
+        raise ValueError(f"timeframe {timeframe!r} is not a fixed-length offset") from e
+    if not h > 0:
+        raise ValueError(f"timeframe {timeframe!r} has no positive length")
+    return h
+
+
+def min_run_from_hours(hours, timeframe) -> int:
+    """Time-based threshold -> bars of `timeframe`: ceil(hours / bar_hours), never below 2. The same H means the same
+    wall-clock span at every timeframe (168 h -> 168 bars of 1h, 42 of 4h, 7 of 1D)."""
+    hours = check_min_run_hours(hours)
+    return max(2, int(math.ceil(hours / bar_hours(timeframe) - 1e-9)))
+
+
+STALE_BARS_KEYS = ("min_run", "min_run_hours")
+
+
+def resolve_min_run(cfg, timeframe=None) -> int:
+    """CONFIG['stale_bars'] dict -> min_run in bars. Exactly one of {'min_run': int >= 2} / {'min_run_hours': number > 0};
+    unknown keys, both keys, or an empty dict raise ValueError. 'min_run_hours' needs `timeframe` (the base timeframe)."""
+    if not isinstance(cfg, dict) or len(cfg) != 1 or not set(cfg) <= set(STALE_BARS_KEYS):
+        raise ValueError(f"stale_bars: exactly one of {STALE_BARS_KEYS} (min_run int >= 2 | min_run_hours number > 0), got {cfg!r}")
+    if "min_run" in cfg:
+        return check_min_run(cfg["min_run"])
+    if timeframe is None:
+        raise ValueError("stale_bars: 'min_run_hours' needs the base timeframe to convert hours to bars")
+    return min_run_from_hours(cfg["min_run_hours"], timeframe)
 
 
 def _cols(df: pd.DataFrame):
@@ -224,12 +266,21 @@ def main(argv=None) -> int:
     ap.add_argument("--timeframe", default=None, help="pandas offset to resample to, e.g. 1h, 4h, 1D")
     ap.add_argument("--horizon", type=int, default=1)
     ap.add_argument("--min-run", type=int, default=None, help="default: derive_min_run on the data")
+    ap.add_argument("--min-run-hours", type=float, default=None,
+                    help="time-based threshold in hours (converted per --timeframe); exclusive with --min-run")
     ap.add_argument("--quantile", type=float, default=0.99)
     ap.add_argument("--train-pct", type=float, default=0.8)
     ap.add_argument("--val-pct", type=float, default=0.1)
     a = ap.parse_args(argv)
     frames = load_dir(a.data_dir, a.timeframe)
-    min_run = a.min_run if a.min_run is not None else derive_min_run(frames, a.quantile)
+    if a.min_run is not None and a.min_run_hours is not None:
+        ap.error("--min-run and --min-run-hours are mutually exclusive")
+    if a.min_run_hours is not None:
+        if not a.timeframe:
+            ap.error("--min-run-hours needs --timeframe")
+        min_run = min_run_from_hours(a.min_run_hours, a.timeframe)
+    else:
+        min_run = a.min_run if a.min_run is not None else derive_min_run(frames, a.quantile)
     coins, per = audit_frames(frames, min_run=min_run, horizon=a.horizon,
                               splits=split_bounds(frames, a.horizon, a.train_pct, a.val_pct))
     os.makedirs(a.out, exist_ok=True)

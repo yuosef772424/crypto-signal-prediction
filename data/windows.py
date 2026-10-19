@@ -117,17 +117,18 @@ def _stale_bars_module():
     return mod
 
 
-def stale_bars_min_run(config: Optional[dict] = None) -> Optional[int]:
-    """``CONFIG['stale_bars']`` → ``min_run`` (int) أو ``None`` (الافتراضي = مُطفأ، السلوك القديم حرفياً).
+def stale_bars_min_run(config: Optional[dict] = None, base_tf: Optional[str] = None) -> Optional[int]:
+    """``CONFIG['stale_bars']`` → ``min_run`` بالشموع (int) أو ``None`` (الافتراضي = مُطفأ، السلوك القديم حرفياً).
 
-    الشكل الوحيد المقبول: ``{"min_run": <int >= 2>}`` — مفتاح مجهول أو قيمة غير صالحة يرفعان ``ValueError``."""
+    الشكلان المقبولان (مفتاح واحد بالضبط): ``{"min_run": <int >= 2>}`` أو ``{"min_run_hours": <رقم > 0>}`` (زمني:
+    ``ceil(H / ساعات_الشمعة)`` بحدّ أدنى 2، بفريم ``base_tf`` أو ``config['base_tf']`` أو أول ``tf_order``) — مفتاح مجهول
+    أو قيمة غير صالحة يرفعان ``ValueError``."""
     config = CONFIG if config is None else config
     cfg = config.get('stale_bars')
     if cfg is None:
         return None
-    if not isinstance(cfg, dict) or set(cfg) != {'min_run'}:
-        raise ValueError(f"CONFIG['stale_bars']: None أو {{'min_run': int >= 2}} — لا {cfg!r}")
-    return _stale_bars_module().check_min_run(cfg['min_run'])
+    tf = base_tf or config.get('base_tf') or (config.get('tf_order') or [None])[0]
+    return _stale_bars_module().resolve_min_run(cfg, tf)
 
 
 def _sample_filters_signature(filters: List[dict]) -> List[dict]:
@@ -206,7 +207,7 @@ def prepare_single_asset(
     entry_ok = sample_filter_mask(price_df, config=config)
     # الشموع الراكدة (CONFIG['stale_bars']، مُطفأ افتراضياً): ذيل ما بعد آخر تداول حقيقي لعملة ميتة/مشطوبة + أشواط OHLC متطابقة
     # بحجم صفر ≥ min_run. تُحذف العيّنة إن كانت شمعة دخولها أو أيّ شمعة من أفقها راكدة (cs = مجموع تراكمي، طوله T+1).
-    _min_run = stale_bars_min_run(config)
+    _min_run = stale_bars_min_run(config, base_tf)
     stale_cs = None
     if _min_run is not None:
         stale_cs = np.r_[0, np.cumsum(_stale_bars_module().stale_bar_mask(price_df, _min_run).astype(np.int64))]

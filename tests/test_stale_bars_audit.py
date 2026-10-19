@@ -229,5 +229,89 @@ class ColabJobTests(unittest.TestCase):
             self.assertTrue(os.path.exists(os.path.join(d, "out", "manifest.json")))
 
 
+class MinRunHoursTests(unittest.TestCase):
+    """Time-based threshold: CONFIG['stale_bars'] = {'min_run_hours': H} -> ceil(H / bar hours) bars, floor 2."""
+
+    def test_conversion_per_timeframe(self):
+        f = sba.min_run_from_hours
+        self.assertEqual([f(168, tf) for tf in ("1h", "4h", "1D")], [168, 42, 7])
+        self.assertEqual([f(100, tf) for tf in ("1h", "4h", "1D")], [100, 25, 5])      # ceil: 100/24 = 4.17 -> 5
+        self.assertEqual(f(0.5, "1h"), 2)                                              # floor 2
+        self.assertEqual(f(1, "1D"), 2)
+        self.assertEqual(f(6, "1h"), 6)
+        self.assertEqual(f(1.5, "15m"), 6)
+
+    def test_invalid_values_raise(self):
+        for bad in (0, -1, True, "a", None, float("nan"), float("inf")):
+            with self.assertRaises(ValueError, msg=bad):
+                sba.min_run_from_hours(bad, "1h")
+        with self.assertRaises(ValueError):
+            sba.bar_hours("1M")
+
+    def test_resolve_exactly_one_key_and_unknown_raise(self):
+        self.assertEqual(sba.resolve_min_run({"min_run": 5}), 5)
+        self.assertEqual(sba.resolve_min_run({"min_run_hours": 168}, "4h"), 42)
+        for bad in ({}, {"min_run": 5, "min_run_hours": 24}, {"min_run_hours": 24, "x": 1}, {"hours": 24}, 5, None):
+            with self.assertRaises(ValueError, msg=bad):
+                sba.resolve_min_run(bad, "1h")
+        with self.assertRaises(ValueError):
+            sba.resolve_min_run({"min_run_hours": 24})                                 # needs a timeframe
+
+    def test_pipeline_option(self):
+        ns = r2._ns()
+        f = ns["stale_bars_min_run"]
+        self.assertIsNone(f(r2._cfg()))                                                # default OFF
+        self.assertEqual(f(r2._cfg(stale_bars={"min_run_hours": 168}), "4h"), 42)
+        self.assertEqual(f(r2._cfg(stale_bars={"min_run_hours": 168}, base_tf="1D")), 7)
+        self.assertEqual(f(r2._cfg(stale_bars={"min_run": 9}), "1D"), 9)               # old form unchanged
+        for bad in ({"min_run_hours": 0}, {"min_run_hours": 24, "min_run": 3}, {"min_run_hours": 24, "x": 1}, {"min_run_hours": "a"}):
+            with self.assertRaises(ValueError, msg=bad):
+                f(r2._cfg(stale_bars=bad))
+
+    def test_hours_build_equals_bars_build_and_fingerprint(self):
+        ns = r2._ns()
+        c_h = r2._cfg(stale_bars={"min_run_hours": MIN_RUN})                           # fixture is 1h: 6 h == 6 bars
+        c_b = r2._cfg(stale_bars={"min_run": MIN_RUN})
+        a, b = r2._build(c_h, FRAMES), r2._build(c_b, FRAMES)
+        for k in ("last_candles", "base_params", "X_1h", "y_close_reg"):
+            self.assertEqual(a[k].tobytes(), b[k].tobytes(), k)
+        self.assertEqual(a["stale_bars"], {"min_run": MIN_RUN})
+        fp = ns["_checkpoint_fingerprint"]
+        self.assertEqual(fp(c_h, ["close"], 0), fp(c_b, ["close"], 0))                 # same resolved threshold, same fingerprint
+
+
+class MinRunHoursJobTests(unittest.TestCase):
+    def _run(self, **over):
+        import json
+        import subprocess
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            data = os.path.join(d, "history_15m")
+            os.makedirs(data)
+            for name, df in FRAMES.items():
+                x = df.copy()
+                x.insert(0, "timestamp", x.index.as_unit("ns").asi8 // 10 ** 6)
+                x.to_csv(os.path.join(data, f"{name}.csv.gz"), index=False)
+            cfg = {"data_dir": data, "timeframes": ["1h", "4h"], "horizon": 1, "min_run": None, "quantile": 1.0, "floor": 2,
+                   "train_pct": 0.8, "val_pct": 0.1, "max_coins": None}
+            cfg.update(over)
+            json.dump(cfg, open(os.path.join(d, "cfg.json"), "w"))
+            root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            r = subprocess.run([sys.executable, os.path.join(root, "tools", "stale_bars_colab_job.py"), "--config",
+                                os.path.join(d, "cfg.json"), "--out", os.path.join(d, "out")], capture_output=True, text=True)
+            summ = json.load(open(os.path.join(d, "out", "summary.json"))) if r.returncode == 0 else None
+            return r, summ
+
+    def test_hours_per_timeframe(self):
+        r, summ = self._run(min_run_hours=8)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual((summ["1h"]["min_run"], summ["4h"]["min_run"]), (8, 2))
+
+    def test_exclusive_and_unknown_keys_fail(self):
+        for over in ({"min_run": 5, "min_run_hours": 8}, {"min_run_hours": 0}, {"bogus": 1}):
+            r, _ = self._run(**over)
+            self.assertNotEqual(r.returncode, 0, over)
+
+
 if __name__ == "__main__":
     unittest.main()
