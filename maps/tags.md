@@ -34,6 +34,7 @@
 - access log: tools/holdout_guard
 - accumulator: data/pipeline
 - activations: model/diagnostics
+- adaptive conformal: natr_range/run_natr_rolling
 - add_custom_features: data/custom
 - add_features: data/features
 - add_funding_oi_features: data/funding_oi
@@ -220,7 +221,7 @@
 - colab: data/drive, edge_discovery/25_image_cnn, tools/colab_bridge, tools/colab_runner, tools/colab_smoke, tools/data_manifest … (+1)
 - colab cell: tools/data_manifest_colab_cell, tools/fetch_history_colab_cell
 - colab disconnect: trainer/epoch_callbacks
-- colab job: natr_range/run_natr_calibrate, natr_range/run_natr_confirm, tools/stale_bars_colab_job, tools/trim_dead_tails_colab_job
+- colab job: natr_range/run_natr_calibrate, natr_range/run_natr_confirm, natr_range/run_natr_rolling, tools/stale_bars_colab_job, tools/trim_dead_tails_colab_job
 - colab-queue: tools/colab_runner
 - colab-results: tools/colab_runner
 - collect_signals: workflow/selective_eval
@@ -302,7 +303,7 @@
 - dead tail: tools/trim_dead_tails, tools/trim_dead_tails_colab_job
 - decay: edge_discovery/20_onchain
 - decile: signal_eval/core
-- decile correction: natr_range/run_natr_calibrate
+- decile correction: natr_range/run_natr_calibrate, natr_range/run_natr_rolling
 - decile long-short: edge_discovery/18_h13_pr7_signal
 - decile table: workflow/market_neutral
 - decile_spread: signal_eval/core
@@ -366,6 +367,7 @@
 - download history: tools/fetch_crypto_dataset, tools/fetch_history_colab_cell, tools/fetch_history_csv_concurrent, tools/fetch_history_vision_colab
 - download_notebook_from_drive: signal_eval/bootstrap
 - drawdown: evaluation/tearsheet
+- drift: natr_range/run_natr_rolling
 - drive: data/storage, tools/trim_dead_tails, tools/trim_dead_tails_colab_job
 - drive bootstrap: signal_eval/bootstrap
 - drive copy: tools/colab_bridge
@@ -402,6 +404,7 @@
 - e-natr-001: natr_range/run_natr_range, tools/natr_range
 - e-natr-002: natr_range/freeze_rules, natr_range/run_natr_confirm
 - e-natr-003: natr_range/run_natr_calibrate
+- e-natr-004: natr_range/run_natr_rolling
 - e-normprobe-1: norm_probe/run_norm_probe
 - e-srch-002: strategy_discovery/intraday_macd
 - e-srch-003: strategy_discovery/seasonality15m
@@ -474,7 +477,7 @@
 - exit grid: strategy_discovery/robustness
 - experiment card: tools/experiment_registry
 - experiment registry: signal_eval/__init__, signal_eval/registry
-- exploration: natr_range/run_natr_calibrate, natr_range/run_natr_range
+- exploration: natr_range/run_natr_calibrate, natr_range/run_natr_range, natr_range/run_natr_rolling
 - exploratory tier: indicator_strategy/variants
 - export_signals: cross_asset/train
 - extract: tools/nb_cells
@@ -487,6 +490,7 @@
 - extract_input_snapshot_features: evaluation/io_patterns
 - extract_last_batch: data/live
 - f-0083: natr_range/run_natr_calibrate
+- f-0084: natr_range/run_natr_rolling
 - fail: signal_eval/selftests
 - failed breakout: edge_discovery/11_more
 - failure registry: tools/experiment_registry
@@ -878,7 +882,7 @@
 - n_display: evaluation/unified
 - naive baseline: evaluation/integrity
 - natr: data/cross_sectional_features, tools/natr_range
-- natr range forecast: natr_range/run_natr_calibrate, natr_range/run_natr_confirm, natr_range/run_natr_range
+- natr range forecast: natr_range/run_natr_calibrate, natr_range/run_natr_confirm, natr_range/run_natr_range, natr_range/run_natr_rolling
 - natr regime exit: hedge_recovery/sim
 - navigation: tools/build_map
 - near duplicates: norm_probe/run_norm_probe
@@ -1049,7 +1053,7 @@
 - quintiles: edge_discovery/03_quintiles
 - r multiple: edge_discovery/22_chart_rules, indicator_strategy/engine, tools/trade_engine
 - r0: tools/build_lock, tools/data_manifest, tools/data_manifest_colab_cell, tools/holdout_guard, tools/touched_ledger
-- r3: natr_range/freeze_rules, natr_range/run_natr_calibrate, natr_range/run_natr_confirm, natr_range/run_natr_range, tools/natr_range
+- r3: natr_range/freeze_rules, natr_range/run_natr_calibrate, natr_range/run_natr_confirm, natr_range/run_natr_range, natr_range/run_natr_rolling, tools/natr_range
 - ram: data/disk_backed
 - ram cap: data/parallel
 - random control: hedge_recovery/sim, hedge_recovery/sim2
@@ -1134,6 +1138,7 @@
 - rmsnorm: model/transformer
 - robustness: edge_discovery/15_h07_robust, strategy_discovery/robustness, strategy_discovery/survivor_checks
 - robustness_agg: discovery/survey
+- rolling recalibration: natr_range/run_natr_rolling
 - rolling_splits: data/split, signal_eval/integration
 - rotation portfolio: strategy_discovery/rotation
 - round-trip: evaluation/verify, tools/nb_cells
