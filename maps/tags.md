@@ -122,6 +122,7 @@
 - bollinger: tools/indicator_reverse
 - bollinger breakout: indicator_strategy/engine, tools/trade_engine
 - bonferroni: h07_combos/01_combos
+- bootstrap month blocks: norm_probe/run_norm_probe
 - bot2 get_range_forecast: tools/natr_range
 - bracket: tools/bracket_eval
 - bracket table: cross_asset/report
@@ -394,6 +395,7 @@
 - e-ind-003: indicator_strategy/charts, indicator_strategy/test_final
 - e-natr-001: natr_range/run_natr_range, tools/natr_range
 - e-natr-002: natr_range/freeze_rules, natr_range/run_natr_confirm
+- e-normprobe-1: norm_probe/run_norm_probe
 - e-srch-002: strategy_discovery/intraday_macd
 - e-srch-003: strategy_discovery/seasonality15m
 - early stopping: cross_asset/train, trainer/best_tracker
@@ -401,6 +403,7 @@
 - edge vs uncertainty: evaluation/trade_selection
 - edge_data: edge_discovery/lib
 - edit notebook: tools/nb_cells
+- effective rank: norm_probe/run_norm_probe
 - effective_sample_size: workflow/capacity
 - eligibility: tools/build_lock
 - ema weights: cross_asset/train
@@ -649,6 +652,7 @@
 - inject: tools/nb_cells
 - input fingerprint: tools/data_manifest
 - input normalisation: model/input_norm
+- input normalization: norm_probe/run_norm_probe
 - input patterns: evaluation/io_patterns
 - input_clip: model/input_norm
 - inside bar: edge_discovery/22_chart_rules
@@ -713,6 +717,7 @@
 - level_passthrough: model/input_norm
 - lfs: tools/fetch_crypto_dataset
 - limit orders: edge_discovery/21_range_fade, edge_discovery/31_wick_capture
+- linear probe: norm_probe/run_norm_probe
 - linear reference: workflow/generalization
 - lint: tools/check_deps
 - list_registry: signal_eval/registry
@@ -739,6 +744,7 @@
 - loader: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, trainer/_loader … (+1)
 - local cache: tools/colab_bridge
 - lock: tools/build_lock, tools/data_manifest, tools/data_manifest_colab_cell, tools/holdout_guard
+- log returns: norm_probe/run_norm_probe
 - log_vars: trainer/task_weighting
 - logistic: edge_discovery/18_h13_pr7_signal
 - london breakout: edge_discovery/22_chart_rules
@@ -808,6 +814,7 @@
 - metrics: cross_asset/report, evaluation/metrics, trainer/metrics
 - metrics_new: edge_discovery/12_listing, edge_discovery/data_tools/sweep
 - metricslogger: trainer/metrics
+- min-max: norm_probe/run_norm_probe
 - min_edge_ratio: evaluation/trade_selection
 - missing_ids: edge_discovery/data_tools/folder_index
 - mixed precision: trainer/perf
@@ -860,6 +867,7 @@
 - natr range forecast: natr_range/run_natr_confirm, natr_range/run_natr_range
 - natr regime exit: hedge_recovery/sim
 - navigation: tools/build_map
+- near duplicates: norm_probe/run_norm_probe
 - negative results: tools/experiment_registry
 - new listings: edge_discovery/12_listing
 - nig: core/constants
@@ -1080,6 +1088,7 @@
 - relativegqattention: model/transformer
 - reopen conditions: tools/experiment_registry
 - repo_root: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, trainer/_loader … (+1)
+- representation collapse: norm_probe/run_norm_probe
 - representation information: edge_discovery/27_repr_info
 - reproduction check: tools/colab_runner
 - require_phase2_data: data/phase2
@@ -1245,6 +1254,7 @@
 - stablecoin: edge_discovery/20_onchain
 - stage-2 logistic: edge_discovery/30_envelope_direction
 - stale bars: tools/trim_dead_tails
+- standardization: norm_probe/run_norm_probe
 - state_entries: trainer/checkpoints
 - stats: edge_discovery/tsbt
 - stats_mode: model/input_norm

@@ -55,5 +55,12 @@ last 20% of train, so global scale differences between variants do not decide th
 - Not a model result: even an accepted variant only licenses a NEW data option (default = old behaviour) and a later
   trained-model experiment under the MODEL_DEV_PROTOCOL; no "architecture/normalization X is better" claim is made.
 
+### Addendum 2026-10-19, written after the smoke test on synthetic data and BEFORE any real-data variant is computed
+- Tie rule for the near-duplicate criterion: "near-duplicate share below V0's" is read as "not above V0's" (<=) when V0's
+  share is exactly 0 (the criterion cannot discriminate then and is reported as uninformative); strictly below otherwise.
+  The NN-distance quantiles (p10/median, p90/median) are reported as the continuous companion of that criterion.
+- Effective rank is the covariance participation ratio; the correlation-matrix version and the entropy version are
+  reported as checks and do not enter the rule.
+
 ---
 ## Result (added after the run)
