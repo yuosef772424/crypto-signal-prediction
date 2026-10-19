@@ -1,0 +1,104 @@
+{
+ "coins": [
+  "ADA",
+  "BNB",
+  "BTC",
+  "DOGE",
+  "ETH",
+  "SOL",
+  "TRX",
+  "XRP"
+ ],
+ "n_train": 52408,
+ "n_val": 29956,
+ "T": 32,
+ "stride": 4,
+ "reps": 300,
+ "synthetic": false,
+ "chosen_regularization": {
+  "V0": {
+   "high_reg": 0.0001,
+   "high_cls": 1.0,
+   "low_reg": 0.0001,
+   "low_cls": 1.0,
+   "close_reg": 0.1,
+   "close_cls": 0.001
+  },
+  "V1": {
+   "high_reg": 0.01,
+   "high_cls": 1.0,
+   "low_reg": 0.0001,
+   "low_cls": 0.1,
+   "close_reg": 10.0,
+   "close_cls": 0.0001
+  },
+  "V2": {
+   "high_reg": 0.01,
+   "high_cls": 1.0,
+   "low_reg": 0.0001,
+   "low_cls": 1.0,
+   "close_reg": 10.0,
+   "close_cls": 0.0001
+  },
+  "V3": {
+   "high_reg": 0.01,
+   "high_cls": 1.0,
+   "low_reg": 0.0001,
+   "low_cls": 1.0,
+   "close_reg": 10.0,
+   "close_cls": 0.0001
+  },
+  "V4": {
+   "high_reg": 0.01,
+   "high_cls": 1.0,
+   "low_reg": 0.0001,
+   "low_cls": 1.0,
+   "close_reg": 1.0,
+   "close_cls": 0.001
+  },
+  "V5": {
+   "high_reg": 0.01,
+   "high_cls": 1.0,
+   "low_reg": 0.0001,
+   "low_cls": 1.0,
+   "close_reg": 10.0,
+   "close_cls": 0.0001
+  }
+ },
+ "decision": {
+  "pick": "V3",
+  "per_variant": {
+   "V1": {
+    "disqualified": false,
+    "rank_val": 0.3235250220205765,
+    "dup_val": 0.0,
+    "dup_below_v0": true
+   },
+   "V2": {
+    "disqualified": false,
+    "rank_val": 0.3421305967221669,
+    "dup_val": 0.0,
+    "dup_below_v0": true
+   },
+   "V3": {
+    "disqualified": false,
+    "rank_val": 0.4965904972416039,
+    "dup_val": 0.0,
+    "dup_below_v0": true
+   },
+   "V4": {
+    "disqualified": false,
+    "rank_val": 0.31750910729076215,
+    "dup_val": 0.0,
+    "dup_below_v0": true
+   },
+   "V5": {
+    "disqualified": true,
+    "rank_val": 0.2810341031589467,
+    "dup_val": 0.0,
+    "dup_below_v0": true
+   }
+  }
+ },
+ "seconds": 419.1238934993744
+}

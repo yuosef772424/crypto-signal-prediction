@@ -64,3 +64,11 @@ last 20% of train, so global scale differences between variants do not decide th
 
 ---
 ## Result (added after the run)
+- Output metrics: see `README.md` (table) and `results/norm_probe_bootstrap.csv`. Val effective rank ratio V0 0.057, V1 0.324,
+  V2 0.342, V3 0.497, V4 0.318, V5 0.281; high/low Spearman IC V0 0.557/0.549, V2 0.595/0.592, V3 0.577/0.565, V4 0.599/0.590,
+  V5 0.536/0.540 (paired month-block 95% CIs in the CSV).
+- Diagnostic movement vs prediction: predicted V0 < 0.15 (observed 0.057) and V2 > 0.5 (observed 0.342: partly wrong, only V3
+  passes 0.5); near-duplicate share predicted to fall (observed 0 for every variant, criterion uninformative); V1 below V2 in
+  rank (confirmed, 0.324 vs 0.342) with a non-trivial share outside [0,1] (observed only 0.023%: not confirmed).
+- Verdict: rule as written picks V3 (V5 disqualified). Not adopted anywhere: a data option and a model experiment are still needed.
+- Not a closed failure: no registry row.
