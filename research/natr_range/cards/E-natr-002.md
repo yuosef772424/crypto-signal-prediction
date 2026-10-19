@@ -39,3 +39,9 @@ H2 holds lower-cap, higher-NATR coins, so some NATR deciles (train edges) may be
 
 ## Result
 Added in `research/natr_range/README.md` after the single run.
+
+## Result (added 2026-10-19 after the single H2 run; the rules above are unchanged)
+Verdict: **accepted = false (REJECTED)**. Run on `cf395ff`, `frozen_rules_sha256` a441aec5, bundle `research/natr_range/results/e_natr_002_h2/`, H2 opened once (access log row 2026-10-19T20:33:24Z). 36 of 36 H2 coins used (after trim-tails-001; 7 of them had dead tails), n_val_rows 440,834.
+- Rule 1 overall coverage 79.37 % PASS; rule 3 pinball 10/10 evaluable deciles better (needed 8), 0.2483 vs 0.2703 PASS; rule 4 monthly IC > 0 in 21/21 months PASS; rule 5 coins 36 >= 20 PASS; rule 6 10/10 deciles evaluable, none sparse PASS.
+- Rule 2 FAIL: top NATR decile 9 coverage 73.78 % (< 74.0, miss by 0.22 pp). Deciles 0..8: 78.7 %..83.9 %. By year: decile 9 = 76.6 % (2025), 68.6 % (2026); decile 8 = 75.8 % in 2026. Same direction as the exploration flag (E-natr-001 decile 9 = 77.2 %, BTC/ETH 75.1 % in 2026).
+- Reading: the model still beats the baseline everywhere (information is there), but the p10-p90 band under-covers in the highest-NATR regime, worse in 2026. R3 1h is NOT confirmed. H2 is burned. Failure row F-0083 (`closed-unverified-cause`).

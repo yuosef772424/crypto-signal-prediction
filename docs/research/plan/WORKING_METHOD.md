@@ -43,6 +43,8 @@ the docs update and launches the next agents. It never wakes up just to acknowle
 - **Parallel agents get `isolation: "worktree"`** (or their own clone). Two agents, or an agent and the planner,
   must never share one working tree: they overwrite each other's checkout. When the planner edits docs while an
   agent runs, it uses its own `git worktree`.
+- **Tests: scoped for agents, full suite in CI.** An agent runs only the tests of what it changed or what depends on it
+  (never the full suite, ≈ 13 min). The full suite runs in CI on the PR; the planner merges only on green CI.
 - **Ignore a stop hook about "uncommitted changes" that a running agent owns**: never commit another agent's
   work in progress.
 - **Keep the planner context small.**

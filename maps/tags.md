@@ -90,6 +90,7 @@
 - attention: model/diagnostics, model/transformer
 - attentionpool: model/readout
 - auc vs p&l: edge_discovery/18_h13_pr7_signal
+- audit: tools/stale_bars_colab_job
 - audit_normalization: data/normalize
 - availability flags: data/funding_oi
 - availability mask: tools/intraday_features
@@ -210,6 +211,7 @@
 - clean_reg_target: discovery/__init__, discovery/evaluation
 - clear_checkpoint: data/checkpoints
 - clip_abs: data/normalize
+- close_reg: tools/stale_bars_audit, tools/stale_bars_colab_job
 - closed bars: data/align, tools/gate_features
 - cnn: edge_discovery/25_image_cnn
 - coin categories: data/defaults
@@ -218,7 +220,7 @@
 - colab: data/drive, edge_discovery/25_image_cnn, tools/colab_bridge, tools/colab_runner, tools/colab_smoke, tools/data_manifest … (+1)
 - colab cell: tools/data_manifest_colab_cell, tools/fetch_history_colab_cell
 - colab disconnect: trainer/epoch_callbacks
-- colab job: natr_range/run_natr_confirm, tools/trim_dead_tails_colab_job
+- colab job: natr_range/run_natr_confirm, tools/stale_bars_colab_job, tools/trim_dead_tails_colab_job
 - colab-queue: tools/colab_runner
 - colab-results: tools/colab_runner
 - collect_signals: workflow/selective_eval
@@ -283,6 +285,7 @@
 - data manifest: tools/data_manifest, tools/data_manifest_colab_cell
 - data pipeline: data/__init__
 - data quality: tools/indicator_reverse
+- data quality audit: tools/stale_bars_audit
 - data rebuild: edge_discovery/data_tools/build_panel, edge_discovery/data_tools/dec, edge_discovery/data_tools/folder_index, edge_discovery/data_tools/sweep
 - data.binance.vision: tools/fetch_history_vision_colab
 - dataprocess.ipynb: signal_eval/bootstrap
@@ -294,6 +297,7 @@
 - day of week: edge_discovery/06_seasonality
 - day-clustered t: edge_discovery/events, strategy_discovery/significance, tools/bracket_eval
 - day_pearson: cross_asset/train
+- dead coins: tools/stale_bars_audit
 - dead tail: tools/trim_dead_tails, tools/trim_dead_tails_colab_job
 - decay: edge_discovery/20_onchain
 - decile: signal_eval/core
@@ -321,7 +325,7 @@
 - defaults: data/defaults
 - deflated sharpe: edge_discovery/14_holdout, edge_discovery/17_h07_break
 - delay: edge_discovery/19_hl_copy
-- delisted coins: tools/trim_dead_tails
+- delisted coins: tools/stale_bars_audit, tools/stale_bars_colab_job, tools/trim_dead_tails
 - dependencies: tools/check_deps
 - derived features: tools/gate_features
 - derivedmetrics: trainer/metrics
@@ -456,6 +460,7 @@
 - events_disc.csv: edge_discovery/05_events
 - evidential: model/nig_layers
 - evidential_task_loss: trainer/tasks
+- exact-zero targets: tools/stale_bars_audit
 - example: trainer/example
 - example run script: tools/colab_smoke
 - exchange supply: edge_discovery/20_onchain
@@ -503,6 +508,7 @@
 - finite checks: workflow/verification
 - fit_confidence_calibrators: evaluation/trust_calibration
 - fix-gaps: tools/fetch_history_vision_colab
+- flat bars: tools/stale_bars_audit
 - flat dataframe: evaluation/flat
 - flatten_coins_by_category: data/sources
 - float16: evaluation/legacy_uncertainty, workflow/batches
@@ -511,6 +517,7 @@
 - forward reference: tools/implicit_deps
 - forward return: edge_discovery/lib
 - forward test: strategy_discovery/forward, tools/h07_forward
+- forward-fill: tools/stale_bars_audit
 - frac_significant: signal_eval/windows
 - fractal: data/custom
 - free names: tools/implicit_deps
@@ -607,7 +614,7 @@
 - high_low_close_order_penalty: trainer/example
 - higher_tf_mode: data/align
 - histgradientboosting: edge_discovery/29_path_envelope
-- history_15m: tools/data_manifest, tools/data_manifest_colab_cell, tools/trim_dead_tails, tools/trim_dead_tails_colab_job
+- history_15m: tools/data_manifest, tools/data_manifest_colab_cell, tools/stale_bars_colab_job, tools/trim_dead_tails, tools/trim_dead_tails_colab_job
 - history_1d: tools/colab_bridge
 - hl_positions: edge_discovery/19_hl_copy
 - hold length: strategy_discovery/seasonality15m
@@ -689,6 +696,7 @@
 - label_smoothing: workflow/training_config
 - lag scan: evaluation/integrity
 - last n samples: evaluation/live
+- last real trade: tools/stale_bars_audit
 - last_candles: core/schema, data/windows
 - last_close reference: discovery/evaluation
 - last_column_index: core/schema
@@ -1129,7 +1137,7 @@
 - rsi2 pullback: strategy_discovery/grid
 - rsi_zone: tools/gate_features
 - rule_cpos: workflow/candle_baseline
-- run contract: gate_features/run_gate001, natr_range/run_natr_confirm, natr_range/run_natr_range, tools/colab_runner, tools/colab_smoke, tools/trim_dead_tails_colab_job
+- run contract: gate_features/run_gate001, natr_range/run_natr_confirm, natr_range/run_natr_range, tools/colab_runner, tools/colab_smoke, tools/stale_bars_colab_job … (+1)
 - run fixture: tests/run_fixture
 - run_batch_and_register: discovery/__init__, discovery/batch_runner
 - run_chicks: workflow/run
@@ -1253,7 +1261,8 @@
 - squeeze breakout: strategy_discovery/grid
 - stablecoin: edge_discovery/20_onchain
 - stage-2 logistic: edge_discovery/30_envelope_direction
-- stale bars: tools/trim_dead_tails
+- stale bars: tools/stale_bars_audit, tools/stale_bars_colab_job, tools/trim_dead_tails
+- stale_bars: tools/stale_bars_audit
 - standardization: norm_probe/run_norm_probe
 - state_entries: trainer/checkpoints
 - stats: edge_discovery/tsbt
@@ -1275,7 +1284,7 @@
 - survivor check: strategy_discovery/robustness
 - survivor checks: strategy_discovery/survivor_checks
 - survivor test: strategy_discovery/oos
-- survivorship: tools/trim_dead_tails
+- survivorship: tools/stale_bars_audit, tools/trim_dead_tails
 - sweep: edge_discovery/22_chart_rules, edge_discovery/data_tools/sweep
 - swiglu: model/transformer
 - symbols.txt: tools/fetch_history_vision_colab
@@ -1452,7 +1461,8 @@
 - year stability: strategy_discovery/robustness
 - z-score: strategy_discovery/forward
 - zero cost: edge_discovery/23_chart_rules_gross
-- zero volume: tools/trim_dead_tails
+- zero share: tools/stale_bars_audit, tools/stale_bars_colab_job
+- zero volume: tools/stale_bars_audit, tools/trim_dead_tails
 - zones: tools/check_deps
 - zscore: data/cross_sectional_norm
 - اتجاه الاعتماد: tools/check_deps

@@ -77,6 +77,9 @@ def _checkpoint_fingerprint(config: dict, features: List[str], tail: int = 0,
     # فلاتر العيّنات تغيّر أيّ العيّنات تُحفَظ — تدخل البصمة حين تُستعمل فقط.
     if config.get('sample_filters'):
         parts['sample_filters'] = _sample_filters_signature(list(config['sample_filters']))
+    # الشموع الراكدة تغيّر أيّ العيّنات تُحفَظ — تدخل البصمة حين تُفعَّل فقط.
+    if stale_bars_min_run(config) is not None:
+        parts['stale_bars'] = {'min_run': stale_bars_min_run(config)}
     # الميزات العابرة للأصول: نقاط الاستئناف القديمة من مسار التحميل تحمل قيمها
     # المحايدة الثابتة (قبل _load_cross_asset_frames) ⇒ يجب أن تُبطَل.
     cross = {k: config.get(k) for k in ('momentum_rank', 'market_breadth', 'momentum_orth_natr')
