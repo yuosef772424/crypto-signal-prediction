@@ -220,7 +220,7 @@
 - colab: data/drive, edge_discovery/25_image_cnn, tools/colab_bridge, tools/colab_runner, tools/colab_smoke, tools/data_manifest … (+1)
 - colab cell: tools/data_manifest_colab_cell, tools/fetch_history_colab_cell
 - colab disconnect: trainer/epoch_callbacks
-- colab job: natr_range/run_natr_confirm, tools/stale_bars_colab_job, tools/trim_dead_tails_colab_job
+- colab job: natr_range/run_natr_calibrate, natr_range/run_natr_confirm, tools/stale_bars_colab_job, tools/trim_dead_tails_colab_job
 - colab-queue: tools/colab_runner
 - colab-results: tools/colab_runner
 - collect_signals: workflow/selective_eval
@@ -255,6 +255,7 @@
 - cost_big cost_small: edge_discovery/03_quintiles
 - count balancing: hedge_recovery/sim2
 - coverage: natr_range/run_natr_range, tools/natr_range
+- cqr: natr_range/run_natr_calibrate
 - crash: edge_discovery/05_events
 - cross-asset: data/market_context
 - cross-asset attention: cross_asset/__init__
@@ -301,6 +302,7 @@
 - dead tail: tools/trim_dead_tails, tools/trim_dead_tails_colab_job
 - decay: edge_discovery/20_onchain
 - decile: signal_eval/core
+- decile correction: natr_range/run_natr_calibrate
 - decile long-short: edge_discovery/18_h13_pr7_signal
 - decile table: workflow/market_neutral
 - decile_spread: signal_eval/core
@@ -399,6 +401,7 @@
 - e-ind-003: indicator_strategy/charts, indicator_strategy/test_final
 - e-natr-001: natr_range/run_natr_range, tools/natr_range
 - e-natr-002: natr_range/freeze_rules, natr_range/run_natr_confirm
+- e-natr-003: natr_range/run_natr_calibrate
 - e-normprobe-1: norm_probe/run_norm_probe
 - e-srch-002: strategy_discovery/intraday_macd
 - e-srch-003: strategy_discovery/seasonality15m
@@ -471,7 +474,7 @@
 - exit grid: strategy_discovery/robustness
 - experiment card: tools/experiment_registry
 - experiment registry: signal_eval/__init__, signal_eval/registry
-- exploration: natr_range/run_natr_range
+- exploration: natr_range/run_natr_calibrate, natr_range/run_natr_range
 - exploratory tier: indicator_strategy/variants
 - export_signals: cross_asset/train
 - extract: tools/nb_cells
@@ -483,6 +486,7 @@
 - extract_feature_series: discovery/predictors
 - extract_input_snapshot_features: evaluation/io_patterns
 - extract_last_batch: data/live
+- f-0083: natr_range/run_natr_calibrate
 - fail: signal_eval/selftests
 - failed breakout: edge_discovery/11_more
 - failure registry: tools/experiment_registry
@@ -610,6 +614,7 @@
 - heads: data/heads
 - health_thresholds: model/diagnostics
 - hedge recovery: hedge_recovery/sim
+- high-natr calibration: natr_range/run_natr_calibrate
 - high_class: workflow/candle_baseline
 - high_low_close_order_penalty: trainer/example
 - higher_tf_mode: data/align
@@ -751,6 +756,7 @@
 - load_preprocessed_data_from_drive: signal_eval/bootstrap
 - loader: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, trainer/_loader … (+1)
 - local cache: tools/colab_bridge
+- localization: natr_range/run_natr_calibrate
 - lock: tools/build_lock, tools/data_manifest, tools/data_manifest_colab_cell, tools/holdout_guard
 - log returns: norm_probe/run_norm_probe
 - log_vars: trainer/task_weighting
@@ -872,7 +878,7 @@
 - n_display: evaluation/unified
 - naive baseline: evaluation/integrity
 - natr: data/cross_sectional_features, tools/natr_range
-- natr range forecast: natr_range/run_natr_confirm, natr_range/run_natr_range
+- natr range forecast: natr_range/run_natr_calibrate, natr_range/run_natr_confirm, natr_range/run_natr_range
 - natr regime exit: hedge_recovery/sim
 - navigation: tools/build_map
 - near duplicates: norm_probe/run_norm_probe
@@ -1043,7 +1049,7 @@
 - quintiles: edge_discovery/03_quintiles
 - r multiple: edge_discovery/22_chart_rules, indicator_strategy/engine, tools/trade_engine
 - r0: tools/build_lock, tools/data_manifest, tools/data_manifest_colab_cell, tools/holdout_guard, tools/touched_ledger
-- r3: natr_range/freeze_rules, natr_range/run_natr_confirm, natr_range/run_natr_range, tools/natr_range
+- r3: natr_range/freeze_rules, natr_range/run_natr_calibrate, natr_range/run_natr_confirm, natr_range/run_natr_range, tools/natr_range
 - ram: data/disk_backed
 - ram cap: data/parallel
 - random control: hedge_recovery/sim, hedge_recovery/sim2
@@ -1250,6 +1256,7 @@
 - speirsy11: tools/fetch_crypto_dataset
 - spill: data/disk_backed
 - split: data/split
+- split conformal: natr_range/run_natr_calibrate
 - split order: workflow/verification
 - split stamps: workflow/splits
 - split-dates: tools/evaluate_trained_model
@@ -1261,7 +1268,7 @@
 - squeeze breakout: strategy_discovery/grid
 - stablecoin: edge_discovery/20_onchain
 - stage-2 logistic: edge_discovery/30_envelope_direction
-- stale bars: tools/stale_bars_audit, tools/stale_bars_colab_job, tools/trim_dead_tails
+- stale bars: natr_range/run_natr_calibrate, tools/stale_bars_audit, tools/stale_bars_colab_job, tools/trim_dead_tails
 - stale_bars: tools/stale_bars_audit
 - standardization: norm_probe/run_norm_probe
 - state_entries: trainer/checkpoints

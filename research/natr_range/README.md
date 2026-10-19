@@ -41,3 +41,7 @@ Sparse deciles: settled by the 2026-10-19 amendment of the card (deciles with n 
 
 ## bot2
 `bot2_tool_spec.md`: `get_range_forecast(symbol, interval)` for `1h` only, percent units, `as_of` on every number. It is a spec; nothing was changed in bot2.
+
+## E-natr-003: high-NATR calibration (Stage A prepared, NOT run, NOT queued)
+Card `cards/E-natr-003.md` (pre-registered: localization rule, per-NATR-decile train-only p10/p90 correction fitted on a 2024 calibration slice, Stage A rule on the open coins, Stage B on forward data >= 2026-10-01 from 2027-01-01).
+Code: `tools/natr_range.py` (`fit_decile_corrections`, `oof_decile_diagnostic`, `classify_localization`, `drop_stale_runs`; new optional arguments only), `run_natr_calibrate.py`; job `e_natr_003_job.json` (`repo_ref` = the feat commit). The card's registry check passes once F-0083 (PR #31) is on master.

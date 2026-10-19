@@ -1,0 +1,9 @@
+{"job_id": "e-natr-003-explore", "repo_ref": "49ecd4acc9a0a51f151fe7bc8d75ff77b2c35cef",
+ "entry": "research/natr_range/run_natr_calibrate.py", "args": [],
+ "config": {"data_dir": "/content/drive/MyDrive/history_15m", "pattern": "{symbol}.csv.gz", "source_minutes": 15, "load_start": "2019-10-01",
+            "fit_start": "2020-01-01", "base_end": "2024-01-01", "calib_end": "2025-01-01", "val_end": "2026-10-01",
+            "stale_min_run_hours": 168, "min_coins": 8},
+ "max_minutes": 30, "needs_drive": true,
+ "expected_outputs": ["manifest.json", "results.json", "summary.csv", "deciles.csv", "year_deciles.csv", "oof_diagnostic.csv", "corrections.csv", "months.csv", "frozen_stage_b.json"],
+ "note": "Prepared, NOT queued (R3, E-natr-003 Stage A, exploration only). Reads the 10 OPEN coins from Drive history_15m through holdout_guard.load_unsealed (window end 2026-10-01); no sealed bucket is opened and no holdout log row is written. Fits on 2020-2024 only, evaluates 2025-01..2026-09. frozen_stage_b.json is the input of the Stage B confirmation card (forward data >= 2026-10-01, first evaluable 2027-01-01).",
+ "rerun": false, "pip": []}

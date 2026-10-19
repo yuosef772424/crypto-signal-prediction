@@ -428,26 +428,32 @@
   - `def load_intraday_daily(root: Union[str, Path], symbol: str, subdir: str='history_15m', pattern: str='{name}.csv.gz', **kw) -> Optional[pd.DataFrame]` L427
   - `def fill_neutral(frame: pd.DataFrame, flag_cols: Iterable[str]=()) -> pd.DataFrame` L436
 
-### `tools/natr_range.py` (239 lines)
+### `tools/natr_range.py` (360 lines)
 - PURPOSE: Calibrated next-bar range forecast from NATR_14 (phase R3, card E-natr-001): causal NATR and next-range targets (range, up and down excursion, percent of the decision close), an exact pooled quantile regression log(range_{t+1}) = a + b log…
 - TAGS: natr, range forecast, quantile regression, calibration, coverage, pinball loss, trailing quantile baseline, volatility clustering, h003, r3, e-natr-001, bot2 get_range_forecast
 - PITFALLS: A bar exists only if ALL its source members exist and is used only after it closed; row t = decision at the close of bar t, target = bar t+1 divided by the close of bar t. The baseline needs 90 consecutive valid bars (NaN otherwise) and rows without it are dropped from model AND baseline in the comparison. Deciles come from train only. Forecast quantiles are sorted across tau (rearrangement); the…
 - API:
-  - `def qname(tau)` L33
-  - `def resample_bars(df, minutes, source_minutes=5)` L38
-  - `def natr_pct(bars, step_minutes, period=NATR_PERIOD)` L58
-  - `def build_rows(bars, step_minutes, period=NATR_PERIOD, window=BASELINE_WINDOW)` L67
-  - `def pinball(y, q, tau)` L88
-  - `def fit_quantile(x, y, tau)` L93
-  - `def fit_models(train)` L109
-  - `def predict_quantiles(models, target, natr)` L120
-  - `def decile_edges(natr_train)` L129
-  - `def assign_decile(natr, edges)` L133
-  - `def coverage(y, lo, hi)` L137
-  - `def monthly_ic(index, x, y)` L142
-  - `def evaluate_rule(cov, cov_dec, pin_model, pin_base, ic)` L150
-  - `def evaluate_frozen(models, edges, val)` L176
-  - `def evaluate_timeframe(train, val)` L224
+  - `def qname(tau)` L39
+  - `def resample_bars(df, minutes, source_minutes=5)` L44
+  - `def natr_pct(bars, step_minutes, period=NATR_PERIOD)` L64
+  - `def build_rows(bars, step_minutes, period=NATR_PERIOD, window=BASELINE_WINDOW)` L73
+  - `def pinball(y, q, tau)` L94
+  - `def fit_quantile(x, y, tau)` L99
+  - `def fit_models(train, targets=TARGETS)` L115
+  - `def predict_quantiles(models, target, natr, corrections=None)` L126
+  - `def decile_edges(natr_train)` L140
+  - `def assign_decile(natr, edges)` L144
+  - `def coverage(y, lo, hi)` L148
+  - `def monthly_ic(index, x, y)` L153
+  - `def evaluate_rule(cov, cov_dec, pin_model, pin_base, ic)` L161
+  - `def evaluate_frozen(models, edges, val, corrections=None)` L187
+  - `def evaluate_timeframe(train, val)` L236
+  - `def drop_stale_runs(df, min_run_hours=168, source_minutes=15)` L255
+  - `def fit_models_until(rows, end)` L281
+  - `def fit_decile_corrections(models, edges, calib, fit_end, min_n=CORR_MIN_N)` L287
+  - `def decile_year_coverage(models, edges, val, corrections=None)` L311
+  - `def oof_decile_diagnostic(rows, first_year=2021, last_year=2024, start_year=2020)` L326
+  - `def classify_localization(oof, control_val_top)` L342
 
 ### `tools/nb_cells.py` (100 lines)
 - PURPOSE: Edit notebook code/markdown cells as plain files and write them back without reformatting the .ipynb: list cells, extract chosen cells to <dir>/<nb>_<i>.py, inject them back, insert new cells. Preserves the notebook's own JSON layout (comp…
