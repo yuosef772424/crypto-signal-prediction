@@ -40,6 +40,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `research/hedge_recovery/` — hedge_recovery — دراسة الصفقات المتحوّطة (تجارب E-hedge) | 2 scripts, 2 data files (69 KB) → maps/research_hedge_recovery.md
 - `research/indicator_strategy/` — indicator_strategy — دراسة المؤشرات والشروط على الفريمات 4h و1d | 5 scripts, 5 data files (148 KB) → maps/research_indicator_strategy.md
 - `research/natr_range/` — natr_range — E-natr-001 (phase R3): calibrated next-range forecast from NATR_14 | 4 scripts, 16 data files (21 KB) → maps/research_natr_range.md
+- `research/norm_probe/` — norm_probe — differenced (log-return) input normalizations vs the current window_scale | 1 scripts, 3 data files (14 KB) → maps/research_norm_probe.md
 - `research/stale_bars/` — stale_bars — dead-coin tails vs exact-zero close_reg | 0 scripts, 2 data files (2 KB) → maps/research_stale_bars.md
 - `research/strategy_discovery/` — strategy_discovery — البحث عن استراتيجية تداول قابلة للتحقق | 10 scripts, 15 data files (112 KB) → maps/research_strategy_discovery.md
 
@@ -55,6 +56,6 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `docs/research/templates/` — Experiment card — <id>: <one-line title> | 0 scripts, 1 md, 0 data files (0 B) → maps/docs_research.md
 
 ## Tests
-- `tests/` — run_fixture, test_audit_round2, test_bracket_eval, test_build_lock, test_colab_runner, test_colab_r… | 49 modules, 2 data files (228 KB) → maps/tests.md
+- `tests/` — run_fixture, test_audit_round2, test_bracket_eval, test_build_lock, test_colab_runner, test_colab_r… | 50 modules, 2 data files (228 KB) → maps/tests.md
 
 ## Where do I edit X? → `maps/tags.md` (TAGS → modules index)
