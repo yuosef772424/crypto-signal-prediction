@@ -43,7 +43,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `research/strategy_discovery/` — strategy_discovery — البحث عن استراتيجية تداول قابلة للتحقق | 10 scripts, 15 data files (112 KB) → maps/research_strategy_discovery.md
 
 ## docs/research (legacy)
-- `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 44 md, 1 data files (100 KB) → maps/docs_research.md
+- `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 44 md, 1 data files (102 KB) → maps/docs_research.md
 - `docs/research/audit/` — Audit / Improvement Protocol (Auditor ↔ Builder) | 26 scripts, 5 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/notes/` — PR #13 restructuring: history facts (evil merges, move+modify commits, verbatim extraction) | 0 scripts, 1 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/plan/` — Colab runner: one click per experiment | 0 scripts, 16 md, 6 data files (547 KB) → maps/docs_research.md
