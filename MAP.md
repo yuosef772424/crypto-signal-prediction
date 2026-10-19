@@ -39,7 +39,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `research/h07_volsizing/` — H07 + تحجيم بالتقلّب المتوقَّع (تعلّم آلي للمقدار لا للاتجاه) | 1 scripts, 3 data files (7 KB) → maps/research_h07_volsizing.md
 - `research/hedge_recovery/` — hedge_recovery — دراسة الصفقات المتحوّطة (تجارب E-hedge) | 2 scripts, 2 data files (69 KB) → maps/research_hedge_recovery.md
 - `research/indicator_strategy/` — indicator_strategy — دراسة المؤشرات والشروط على الفريمات 4h و1d | 5 scripts, 5 data files (148 KB) → maps/research_indicator_strategy.md
-- `research/natr_range/` — natr_range — E-natr-001 (phase R3): calibrated next-range forecast from NATR_14 | 3 scripts, 9 data files (14 KB) → maps/research_natr_range.md
+- `research/natr_range/` — natr_range — E-natr-001 (phase R3): calibrated next-range forecast from NATR_14 | 3 scripts, 15 data files (20 KB) → maps/research_natr_range.md
 - `research/strategy_discovery/` — strategy_discovery — البحث عن استراتيجية تداول قابلة للتحقق | 10 scripts, 15 data files (112 KB) → maps/research_strategy_discovery.md
 
 ## docs/research (legacy)
