@@ -495,18 +495,18 @@
   - `class DatasetTests(unittest.TestCase)` L95
     - (7 methods)
 
-### `tests/test_price_norm_mode.py` (360 lines)
+### `tests/test_price_norm_mode.py` (402 lines)
 - PURPOSE: price_norm_mode in {'logret_std', 'logret_sigma'}: OHLC inputs as log returns vs the previous close (train-only (from docstring)
 - API:
-  - `class DefaultUnchangedTests(unittest.TestCase)` L72
+  - `class DefaultUnchangedTests(unittest.TestCase)` L79
     - (4 methods)
-  - `class NewModeInputTests(unittest.TestCase)` L103
+  - `class NewModeInputTests(unittest.TestCase)` L110
     - (7 methods)
-  - `class NoLookAheadTests(unittest.TestCase)` L174
+  - `class NoLookAheadTests(unittest.TestCase)` L181
     - (3 methods)
-  - `class TargetTests(unittest.TestCase)` L219
-    - (8 methods)
-  - `class EvaluationWiringTests(unittest.TestCase)` L288
+  - `class TargetTests(unittest.TestCase)` L226
+    - (12 methods)
+  - `class EvaluationWiringTests(unittest.TestCase)` L330
     - (5 methods)
 
 ### `tests/test_real_price_modes.py` (72 lines)

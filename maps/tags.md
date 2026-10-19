@@ -326,6 +326,7 @@
 - deflated sharpe: edge_discovery/14_holdout, edge_discovery/17_h07_break
 - delay: edge_discovery/19_hl_copy
 - delisted coins: tools/stale_bars_audit, tools/stale_bars_colab_job, tools/trim_dead_tails
+- denormalize_price_targets: data/normalize
 - dependencies: tools/check_deps
 - derived features: tools/gate_features
 - derivedmetrics: trainer/metrics
@@ -507,6 +508,7 @@
 - fingerprint: data/checkpoints, tests/run_fixture
 - finite checks: workflow/verification
 - fit_confidence_calibrators: evaluation/trust_calibration
+- fit_price_norm: data/normalize
 - fix-gaps: tools/fetch_history_vision_colab
 - flat bars: tools/stale_bars_audit
 - flat dataframe: evaluation/flat
@@ -755,6 +757,8 @@
 - log returns: norm_probe/run_norm_probe
 - log_vars: trainer/task_weighting
 - logistic: edge_discovery/18_h13_pr7_signal
+- logret_sigma: data/normalize
+- logret_std: data/normalize
 - london breakout: edge_discovery/22_chart_rules
 - long-only: edge_discovery/07_trend
 - long-short: edge_discovery/03_quintiles
@@ -1020,6 +1024,7 @@
 - presets: data/presets
 - previous candle: edge_discovery/21_range_fade
 - price_indices: data/features
+- price_norm_meta: data/normalize
 - price_norm_mode: data/normalize
 - print_latest_table: evaluation/latest_table
 - print_trade_selection: evaluation/trade_selection

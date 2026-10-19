@@ -159,6 +159,55 @@ def _window_scale_params_batch(close_windows: np.ndarray, method: str = "robust"
     return lo, np.maximum(np.maximum(hi - lo, np.abs(lo) * SCALE_REL_FLOOR), SCALE_ABS_FLOOR)
 
 
+def _write_logret_channels(X, raw_win, is_base, price_df, end_idxs, win, channels, i_close_feat, close_sigma, pn_mode, tf):
+    """يستبدل قنوات OHLC في ``X`` (نتيجة process_windows) بعوائد ``log(x_t / close_{t-1})``:
+    الفريم الأساسي — الإغلاق السابق الفعلي من الأسعار الخام (بما فيه الشمعة قبل النافذة)؛ فريم أعلى — من إغلاق النافذة نفسها
+    والصف الأول 0. 'logret_sigma' ← ÷ sigma الماضي لكل شمعة ثم قصّ ±PRICE_NORM_CLIP؛ 'logret_std' ← خام (يُقيَّس في split_data)."""
+    n = X.shape[0]
+    if n == 0:
+        return
+    if is_base:
+        idx = end_idxs[:, None] + np.arange(-(win - 1), 1)[None, :]
+        prev = np.asarray(price_df['close'].to_numpy(), dtype='float64')[idx - 1]
+        sig = close_sigma[idx] if close_sigma is not None else None
+        for name, j in channels:
+            x = np.asarray(price_df[name].to_numpy(), dtype='float64')[idx]
+            r = logret_vs_prev_close(x, prev)
+            if sig is not None:
+                r = np.clip(r / sig, -PRICE_NORM_CLIP, PRICE_NORM_CLIP)
+            X[:, :, j] = r.astype(X.dtype)
+    else:
+        if i_close_feat is None:
+            raise ValueError(f"price_norm_mode={pn_mode!r}: الفريم {tf!r} يحتاج 'close' بين الميزات (الإغلاق السابق داخل نافذته)")
+        c = np.asarray(raw_win[:, :, i_close_feat], dtype='float64')
+        prev = np.concatenate([np.full((n, 1), np.nan), c[:, :-1]], axis=1)
+        for name, j in channels:
+            X[:, :, j] = logret_vs_prev_close(np.asarray(raw_win[:, :, j], dtype='float64'), prev).astype(X.dtype)
+
+
+def _check_logret_norm_config(config, pn_mode, targets, tf_order, norm_channels):
+    """شروط الأوضاع logret_*: ترفع ``ValueError`` بدل تخمين ما لا يُعبَّر عنه بتناسق (انظر docstring prepare_single_asset)."""
+    if not norm_channels:
+        raise ValueError(f"price_norm_mode={pn_mode!r} يحتاج قناة open/high/low/close واحدة على الأقل في ميزات النموذج "
+                         "(exclude_from_features يستبعد open/high/low افتراضياً؛ close موجود)")
+    if config.get('x_storage_dtype') and pn_mode == PRICE_NORM_LOGRET_STD:
+        raise ValueError("price_norm_mode='logret_std' مع x_storage_dtype: العوائد الخام قبل التقييس تفقد دقّتها في float16؛ "
+                         "عطّل x_storage_dtype")
+    if config.get('reg_target_mode', 'return') != 'return':
+        raise ValueError(f"price_norm_mode={pn_mode!r} يتطلب reg_target_mode='return' (هدفه log(price/last_close) مُقيَّساً)، "
+                         f"لا {config.get('reg_target_mode')!r}")
+    if float(config.get('reg_target_scale', 1.0)) != 1.0:
+        raise ValueError(f"price_norm_mode={pn_mode!r} يتطلب reg_target_scale=1.0 (الهدف مُقيَّس بإحصاءات train لا بمقياس ثابت)، "
+                         f"لا {config.get('reg_target_scale')!r}")
+    if pn_mode == PRICE_NORM_LOGRET_SIGMA:
+        enabled = [h for h in get_target_heads(targets, config) if h.endswith('_reg')]
+        if enabled:
+            raise ValueError(f"price_norm_mode='logret_sigma' لا يدعم رؤوس الانحدار {enabled}: هدفها يحتاج sigma لكل عيّنة "
+                             "(per-sample sigma) غير محمول عبر التقسيم؛ عطّل رؤوس _reg عبر enabled_heads أو استخدم 'logret_std'")
+        if len(tf_order) > 1:
+            raise ValueError("price_norm_mode='logret_sigma' يدعم فريماً واحداً (sigma الماضي يحتاج تاريخاً قبل النافذة)")
+
+
 def prepare_single_asset(
     dfs: Dict[str, pd.DataFrame],
     tf_order: Optional[List[str]] = None,
@@ -187,6 +236,11 @@ def prepare_single_asset(
     scaler_type = config["scaler_type"] if scaler_type is None else scaler_type
     base_tf = base_tf or config.get("base_tf") or tf_order[0]
     features = feature_order(config)
+    pn_mode = price_norm_mode(config)
+    new_norm = pn_mode in LOGRET_PRICE_NORM_MODES
+    norm_channels = price_norm_channels(features) if new_norm else []
+    if new_norm:
+        _check_logret_norm_config(config, pn_mode, targets, tf_order, norm_channels)
 
     # ✅ فصل «أعمدة الأهداف» عن «أعمدة الإدخال»:
     #    الأهداف تحتاج high/low/close الخام دائماً، أمّا النموذج فقد لا يحتاجها
@@ -251,6 +305,10 @@ def prepare_single_asset(
     bar = pd.Timedelta(str(base_tf))
     base_index = price_df.index
     keep = np.ones(N, dtype=bool)
+    end_idxs = np.zeros(N, dtype=np.int64)
+    # الأوضاع logret_*: الشمعة السابقة للنافذة (وللـsigma تاريخ 14 عائداً قبلها) يجب أن تكون متصلة وموجودة
+    _need_back = (1 + (PRICE_NORM_SIGMA_N if pn_mode == PRICE_NORM_LOGRET_SIGMA else 0)) if new_norm else 0
+    close_sigma = (trailing_close_sigma(raw_close) if pn_mode == PRICE_NORM_LOGRET_SIGMA else None)
 
     for i in range(N):
         base_win_arr = windows[base_tf][i]
@@ -277,6 +335,11 @@ def prepare_single_asset(
         if end_idx < win_base - 1 or base_index[end_idx] - base_index[end_idx - win_base + 1] != (win_base - 1) * bar:
             keep[i] = False
             continue
+        if _need_back and (end_idx - win_base + 1 - _need_back < 0
+                           or base_index[end_idx] - base_index[end_idx - win_base + 1 - _need_back]
+                           != (win_base - 1 + _need_back) * bar):
+            keep[i] = False                  # logret_*: لا إغلاق سابق متصل (بداية السلسلة أو فجوة) ← تُحذف، لا تُخمَّن
+            continue
         if not entry_ok[end_idx]:            # شمعة الدخول لا تحقّق sample_filters
             keep[i] = False
             continue
@@ -293,6 +356,10 @@ def prepare_single_asset(
         future_close = raw_close[fe - 1]
         future_high_max = raw_high[fs:fe].max()
         future_low_min = raw_low[fs:fe].min()
+        if new_norm and not (last_c > 0 and future_close > 0 and future_low_min > 0 and future_high_max > 0):
+            keep[i] = False                  # log(سعر/آخر_إغلاق) غير معرَّف لسعر غير موجب
+            continue
+        end_idxs[i] = end_idx
         last[i] = [last_h, last_l, last_c, ts,
                    future_close, future_low_min, future_high_max]
 
@@ -326,7 +393,12 @@ def prepare_single_asset(
                 # المستهلكون يقرؤون الصعود كـ y > 0، فيقبلون الترميزين معاً.
                 y_t[f'{t}_class'][i] = 1.0 if own_future[t] > own_last[t] else 0.0
             if f'{t}_reg' in y_t:
-                if reg_mode == 'return':
+                if new_norm:
+                    # هدف الأوضاع logret_*: log(سعر_مستقبلي / آخر_إغلاق) (المرساة last_close لكل الأهداف، كمدخلات النافذة)
+                    # بوحدته الخام هنا؛ التقييس بإحصاءات train وحدها يتمّ في split_data (finish_price_norm) ويُعكس
+                    # بـ denormalize_price_targets.
+                    raw = float(np.log(own_future[t] / last_c))
+                elif reg_mode == 'return':
                     # ✅ عائد مباشر بلا مرجع خارجي: (سعر_مستقبلي/آخر_سعر) - 1،
                     # بنفس مرجع رأس التصنيف أعلاه. بلا حاجة لـ iqr_p إطلاقاً —
                     # نافذتان بتقلّب مختلف تُنتجان نفس القيمة لنفس نسبة الحركة.
@@ -359,6 +431,7 @@ def prepare_single_asset(
             y_t[h] = y_t[h][keep]
         bases = bases[keep]
         last = last[keep]
+        end_idxs = end_idxs[keep]
         for tf in tf_order:
             windows[tf] = windows[tf][keep]
 
@@ -375,6 +448,9 @@ def prepare_single_asset(
         else:
             centers, scales = bases[:, 0], bases[:, 1]
         X_tf[tf] = process_windows(windows[tf], features, centers, scales, scaler_type, config=config)
+        if new_norm:
+            _write_logret_channels(X_tf[tf], windows[tf], tf == base_tf, price_df, end_idxs, win_base, norm_channels,
+                                   i_close_feat, close_sigma, pn_mode, tf)
         if store_dtype:                     # قبل الانتقال للفريم التالي: لا يتراكم float32 كامل لكل الفريمات
             X_tf[tf] = X_tf[tf].astype(store_dtype)
         windows[tf] = None                  # النافذة الخام لم تعد لازمة
@@ -387,8 +463,12 @@ def invert_reg_predictions(preds: np.ndarray, head: str,
                            last_candles: Optional[np.ndarray] = None,
                            bases: Optional[np.ndarray] = None,
                            config: Optional[dict] = None,
-                           scale: Optional[float] = None) -> np.ndarray:
+                           scale: Optional[float] = None,
+                           price_norm_meta: Optional[dict] = None) -> np.ndarray:
     """يعكس تنبؤات رأس انحدار واحد إلى سعر حقيقي، حسب ``CONFIG['reg_target_mode']``.
+
+    ``price_norm_meta`` (``split['price_norm_meta']``، الأوضاع ``logret_*``): يفوّض إلى :func:`denormalize_price_targets`
+    (``last_close × exp(pred·std + mean)``)؛ بلا meta في وضع ``logret_*`` يرفع ``ValueError`` (لا تخمين).
 
     ``scale``: مُعامل ``reg_target_scale`` الذي بُنيت به البيانات — يُقسَم عليه أولاً. مرّره من البيانات نفسها
     (``dataset.get('reg_target_scale', 1.0)``)؛ ``None`` يقرأ ``config['reg_target_scale']`` (افتراضياً 1.0).
@@ -412,6 +492,14 @@ def invert_reg_predictions(preds: np.ndarray, head: str,
     target, kind = split_head_name(head)
     if kind != 'reg':
         raise ValueError(f"'{head}' ليس رأس انحدار (reg).")
+    if price_norm_meta is not None:
+        if last_candles is None:
+            raise ValueError("price_norm_meta يتطلب last_candles (last_close)")
+        return denormalize_price_targets(preds, price_norm_meta,
+                                         np.asarray(last_candles, dtype='float64')[:, LAST_COLUMNS.index('last_close')], head=head)
+    if price_norm_mode(config) in LOGRET_PRICE_NORM_MODES:
+        raise ValueError(f"price_norm_mode={price_norm_mode(config)!r}: الأهداف log(price/last_close) مُقيَّسة بإحصاءات train — "
+                         "مرّر price_norm_meta=split['price_norm_meta'] (أو استخدم denormalize_price_targets)")
     mode = config.get('reg_target_mode', 'return')
 
     if mode == 'window_scale' and bases is None:

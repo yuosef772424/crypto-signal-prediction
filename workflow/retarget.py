@@ -158,6 +158,9 @@ def retarget_splits(train_split, val_split, test_split, mode="return", targets=N
                       1.0 = عائد خام (ملف بلا المفتاح).
     price_targets   : الأهداف المفعّلة (ModelPlan.price_targets)؛ None = أهداف CONFIG (كل ما في y)."""
     base, cross = _parse_mode(mode)
+    if any(m.get("price_norm_meta") is not None for _, m in _split_parts(train_split)):
+        raise ValueError("retarget_splits لا يدعم price_norm_mode='logret_*': أهدافه مُقيَّسة بإحصاءات train ومرتبطة بمدخلاته؛ "
+                         "إعادة بنائها من last_candles تكسر الاتساق. استخدم target_mode=None")
     clip = _DEFAULT_CLIP.get(base, 1.0) if clip is None else clip
     scale = float(reg_target_scale) if base in _RETURN_UNIT_BASES else 1.0
     first = _split_parts(train_split)[0][1]

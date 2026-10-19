@@ -19,7 +19,14 @@ SPLITS = {"train_end": "2025-02-01", "val_end": "2025-02-15"}
 
 
 def _frames(seed0=11, end="2025-03-01"):
-    return {"AAAUSDT": r2._ohlcv("2025-01-01", end, seed0), "BBBUSDT": r2._ohlcv("2025-01-01", end, seed0 + 1)}
+    """Two synthetic coins; open is jittered off the previous close (the shared fixture has open == previous close,
+    a constant zero log-return channel)."""
+    out = {}
+    for k, name in enumerate(("AAAUSDT", "BBBUSDT")):
+        f = r2._ohlcv("2025-01-01", end, seed0 + k)
+        f["open"] = f["open"] * (1 + np.random.default_rng(100 + k).normal(0, 0.002, len(f)))
+        out[name] = f
+    return out
 
 
 def _cfg(mode=None, with_ohlc=True, **over):
@@ -285,6 +292,41 @@ class TargetTests(unittest.TestCase):
                                          config=self.cfg)
 
 
+    def test_invert_reg_predictions_with_meta_matches_public_inverse(self):
+        ns = r2._ns()
+        lc = self.va["last_candles"]
+        y = self.va["y"]["y_high_reg"]
+        a = ns["invert_reg_predictions"](y, "high_reg", last_candles=lc, config=self.cfg,
+                                         price_norm_meta=self.va["price_norm_meta"])
+        np.testing.assert_allclose(a, lc[:, 6], rtol=2e-5)
+
+    def test_cross_sectional_and_live_refuse_new_mode(self):
+        ns = r2._ns()
+        with self.assertRaises(ValueError):
+            ns["cross_sectional_normalize"](self.ds, config=self.cfg, verbose=False)
+        with self.assertRaises(ValueError):
+            ns["build_dataset_live"](["BTCUSDT"], config=self.cfg)
+
+    def test_holdout_needs_train_meta(self):
+        ns = r2._ns()
+        cfg = dict(self.cfg, holdout_start="2025-02-20", open_holdout=True)
+        with self.assertRaisesRegex(ValueError, "price_norm_meta"):
+            r2._quiet(ns["split_holdout"], self.ds, config=cfg)
+        out = r2._quiet(ns["split_holdout"], self.ds, config=cfg, price_norm_meta=self.meta)
+        sp = next(iter(out.values()))
+        self.assertEqual(sp["price_norm_meta"], self.meta)
+
+    def test_sigma_meta_has_no_targets_and_denormalize_raises(self):
+        ns = r2._ns()
+        cfg = _cfg("logret_sigma", enabled_heads={f"{t}_reg": False for t in ("high", "low", "close")})
+        ds = _build(cfg)
+        tr, va, te = _split(ds, cfg)
+        self.assertEqual(tr["price_norm_meta"]["mode"], "logret_sigma")
+        with self.assertRaises(ValueError):
+            ns["denormalize_price_targets"](np.zeros(2), tr["price_norm_meta"], np.ones(2), head="high")
+        self.assertLessEqual(np.abs(tr["X_1h"][:, :, _channels(ds)]).max(), 5.0 + 1e-6)
+
+
 class EvaluationWiringTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -301,8 +343,7 @@ class EvaluationWiringTests(unittest.TestCase):
                 out.append(__import__("dataclasses").replace(s, relative_to_entry=True, price_index=2, entry_col=2, reg_scale=1.0))
             else:
                 st = split["price_norm_meta"]["targets"][s.name]
-                out.append(__import__("dataclasses").replace(s, price_index=2, entry_col=2,
-                                                             log_norm=(st["mean"], st["std"])))
+                out.append(s.with_log_norm(st["mean"], st["std"]))
         return out
 
     def _run(self, specs, raw, split):
@@ -353,7 +394,8 @@ class EvaluationWiringTests(unittest.TestCase):
 
     def test_default_specs_unchanged(self):
         for s in self.ev["DEFAULT_PRICE_TARGETS"]:
-            self.assertIsNone(s.log_norm)
+            self.assertIsNone(getattr(s, "log_norm", None))
+            self.assertNotIn("log_norm", s.__dataclass_fields__)
 
 
 if __name__ == "__main__":
