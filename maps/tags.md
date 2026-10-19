@@ -219,7 +219,7 @@
 - colab: data/drive, edge_discovery/25_image_cnn, tools/colab_bridge, tools/colab_runner, tools/colab_smoke, tools/data_manifest … (+1)
 - colab cell: tools/data_manifest_colab_cell, tools/fetch_history_colab_cell
 - colab disconnect: trainer/epoch_callbacks
-- colab job: natr_range/run_natr_confirm, tools/stale_bars_colab_job
+- colab job: natr_range/run_natr_confirm, tools/stale_bars_colab_job, tools/trim_dead_tails_colab_job
 - colab-queue: tools/colab_runner
 - colab-results: tools/colab_runner
 - collect_signals: workflow/selective_eval
@@ -279,6 +279,7 @@
 - daily ic: cross_asset/report
 - daily panel: edge_discovery/tsbt
 - data bridge: tools/colab_bridge
+- data cleaning: tools/trim_dead_tails
 - data loader guard: tools/holdout_guard
 - data manifest: tools/data_manifest, tools/data_manifest_colab_cell
 - data pipeline: data/__init__
@@ -296,6 +297,7 @@
 - day-clustered t: edge_discovery/events, strategy_discovery/significance, tools/bracket_eval
 - day_pearson: cross_asset/train
 - dead coins: tools/stale_bars_audit
+- dead tail: tools/trim_dead_tails, tools/trim_dead_tails_colab_job
 - decay: edge_discovery/20_onchain
 - decile: signal_eval/core
 - decile long-short: edge_discovery/18_h13_pr7_signal
@@ -322,7 +324,7 @@
 - defaults: data/defaults
 - deflated sharpe: edge_discovery/14_holdout, edge_discovery/17_h07_break
 - delay: edge_discovery/19_hl_copy
-- delisted coins: tools/stale_bars_audit, tools/stale_bars_colab_job
+- delisted coins: tools/stale_bars_audit, tools/stale_bars_colab_job, tools/trim_dead_tails
 - dependencies: tools/check_deps
 - derived features: tools/gate_features
 - derivedmetrics: trainer/metrics
@@ -361,7 +363,7 @@
 - download history: tools/fetch_crypto_dataset, tools/fetch_history_colab_cell, tools/fetch_history_csv_concurrent, tools/fetch_history_vision_colab
 - download_notebook_from_drive: signal_eval/bootstrap
 - drawdown: evaluation/tearsheet
-- drive: data/storage
+- drive: data/storage, tools/trim_dead_tails, tools/trim_dead_tails_colab_job
 - drive bootstrap: signal_eval/bootstrap
 - drive copy: tools/colab_bridge
 - drive download: edge_discovery/data_tools/dec
@@ -375,6 +377,7 @@
 - drive_raw_dir: data/sources
 - drivemirror: trainer/epoch_callbacks
 - drop_tail_per_asset: data/live
+- dry run: tools/trim_dead_tails_colab_job
 - dsr: edge_discovery/17_h07_break
 - dummy tail: data/live
 - duplicate definitions: tools/check_deps, tools/implicit_deps
@@ -608,7 +611,7 @@
 - high_low_close_order_penalty: trainer/example
 - higher_tf_mode: data/align
 - histgradientboosting: edge_discovery/29_path_envelope
-- history_15m: tools/data_manifest, tools/data_manifest_colab_cell, tools/stale_bars_colab_job
+- history_15m: tools/data_manifest, tools/data_manifest_colab_cell, tools/stale_bars_colab_job, tools/trim_dead_tails, tools/trim_dead_tails_colab_job
 - history_1d: tools/colab_bridge
 - hl_positions: edge_discovery/19_hl_copy
 - hold length: strategy_discovery/seasonality15m
@@ -917,6 +920,7 @@
 - p_value: signal_eval/core
 - package entry: data/__init__, evaluation/__init__, model/__init__, signal_eval/__init__, trainer/__init__
 - package exports: cross_asset/__init__
+- padded bars: tools/trim_dead_tails
 - pandas-ta-classic: tools/indicator_reverse
 - pandas_ta: data/features
 - pandas_ta survey: discovery/__init__
@@ -1094,6 +1098,7 @@
 - residual: model/decomposition
 - resolve_phase2_toggles: data/phase2
 - resolve_targets: evaluation/targets
+- restore: tools/trim_dead_tails
 - restore best: trainer/best_tracker
 - results flattening: evaluation/flat
 - resumable: edge_discovery/25_image_cnn
@@ -1123,7 +1128,7 @@
 - rsi2 pullback: strategy_discovery/grid
 - rsi_zone: tools/gate_features
 - rule_cpos: workflow/candle_baseline
-- run contract: gate_features/run_gate001, natr_range/run_natr_confirm, natr_range/run_natr_range, tools/colab_runner, tools/colab_smoke, tools/stale_bars_colab_job
+- run contract: gate_features/run_gate001, natr_range/run_natr_confirm, natr_range/run_natr_range, tools/colab_runner, tools/colab_smoke, tools/stale_bars_colab_job … (+1)
 - run fixture: tests/run_fixture
 - run_batch_and_register: discovery/__init__, discovery/batch_runner
 - run_chicks: workflow/run
@@ -1192,7 +1197,7 @@
 - selftests: signal_eval/selftests
 - settings: data/defaults, workflow/settings
 - settings interval start funding open_interest: tools/fetch_history_colab_cell
-- sha256: natr_range/freeze_rules, tools/colab_runner
+- sha256: natr_range/freeze_rules, tools/colab_runner, tools/trim_dead_tails
 - shadowing: tools/implicit_deps
 - shap: discovery/phase3_tools
 - shared constants: core/__init__
@@ -1247,7 +1252,7 @@
 - squeeze breakout: strategy_discovery/grid
 - stablecoin: edge_discovery/20_onchain
 - stage-2 logistic: edge_discovery/30_envelope_direction
-- stale bars: tools/stale_bars_audit, tools/stale_bars_colab_job
+- stale bars: tools/stale_bars_audit, tools/stale_bars_colab_job, tools/trim_dead_tails
 - stale_bars: tools/stale_bars_audit
 - state_entries: trainer/checkpoints
 - stats: edge_discovery/tsbt
@@ -1269,7 +1274,7 @@
 - survivor check: strategy_discovery/robustness
 - survivor checks: strategy_discovery/survivor_checks
 - survivor test: strategy_discovery/oos
-- survivorship: tools/stale_bars_audit
+- survivorship: tools/stale_bars_audit, tools/trim_dead_tails
 - sweep: edge_discovery/22_chart_rules, edge_discovery/data_tools/sweep
 - swiglu: model/transformer
 - symbols.txt: tools/fetch_history_vision_colab
@@ -1369,6 +1374,8 @@
 - trend following: edge_discovery/07_trend, h07_combos/01_combos
 - trend pullback: hedge_recovery/sim
 - trend_disc_val.csv: edge_discovery/07_trend
+- trim: tools/trim_dead_tails_colab_job
+- trim at source: tools/trim_dead_tails
 - trimmed mean: strategy_discovery/significance
 - true_key: workflow/training_config
 - trunk_drop: cross_asset/model
@@ -1445,7 +1452,7 @@
 - z-score: strategy_discovery/forward
 - zero cost: edge_discovery/23_chart_rules_gross
 - zero share: tools/stale_bars_audit, tools/stale_bars_colab_job
-- zero volume: tools/stale_bars_audit
+- zero volume: tools/stale_bars_audit, tools/trim_dead_tails
 - zones: tools/check_deps
 - zscore: data/cross_sectional_norm
 - اتجاه الاعتماد: tools/check_deps
