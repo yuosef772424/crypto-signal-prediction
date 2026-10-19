@@ -34,7 +34,7 @@ Baseline: per-coin empirical quantiles of the last 90 bars. Run: 9 s, 18 quantil
 ## H2 confirmation: prepared, NOT run, NOT queued
 `cards/E-natr-002.md` (`confirmation: true`, `holdout_bucket: H2`, `frozen_rules_sha256` of `frozen_rules.json`, which `freeze_rules.py` writes from run1: 1h coefficients and decile edges), `run_natr_confirm.py` (opens H2 once via
 `open_holdout`, reads Drive `history_15m`, resamples 15m to 1h, no refit, same rule plus >= 20 coins) and `h2_job.json` (id carries DO-NOT-QUEUE; `repo_ref` to be filled). 1d is not confirmed.
-Risk to settle before queueing: H2 coins may sit mostly in the upper NATR deciles, leaving lower deciles empty (the rule then fails on a universe shift); amend the card and re-freeze before the run if that is not acceptable.
+Sparse deciles: settled by the 2026-10-19 amendment of the card (deciles with n < 200 are reported, not ruled; >= 6 evaluable deciles required; pinball wins in ceil(0.8 * n_evaluable)), re-frozen before any H2 access.
 
 ## bot2
 `bot2_tool_spec.md`: `get_range_forecast(symbol, interval)` for `1h` only, percent units, `as_of` on every number. It is a spec; nothing was changed in bot2.

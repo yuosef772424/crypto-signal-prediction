@@ -122,14 +122,15 @@ class TestFrozenFilesInRepo(unittest.TestCase):
         self.assertEqual(fr["models"], run1["models"])
         self.assertEqual(fr["edges"], run1["edges"])
         self.assertEqual(fr["timeframe"], "1h")
+        self.assertEqual(fr["sparse_rule"], SPARSE["sparse_rule"])
         self.assertEqual(fr["rule"], {"cover_target": nr.COVER_TARGET, "overall_tol": nr.OVERALL_TOL, "decile_tol": nr.DECILE_TOL,
                                       "min_pinball_deciles": nr.MIN_PINBALL_DECILES, "ic_month_share_pct": nr.MIN_IC_MONTH_SHARE_PCT})
 
     def test_job_is_valid_and_not_queued(self):
         job = json.load(open(os.path.join(STUDY, "h2_job.json")))
-        self.assertIn("DO-NOT-QUEUE", job["job_id"])
+        self.assertEqual(job["job_id"], "natr002-h2-confirm")
+        self.assertFalse(len(job["repo_ref"]) == 40 and job["repo_ref"].isalnum())     # placeholder until the planner queues it
         job["repo_ref"] = "a" * 40
-        job["job_id"] = "natr001-h2-confirm"
         norm = cr.validate_job(job)
         self.assertEqual(norm["entry"], "research/natr_range/run_natr_confirm.py")
         self.assertTrue(norm["needs_drive"])
