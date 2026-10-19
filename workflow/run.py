@@ -379,6 +379,12 @@ def prepare_chicks(settings, plan, info, test, kit):
     # reg_scale: الهدف عائد × reg_target_scale (من البيانات، مختوم على test) — chicks يقسم عليه قبل الفكّ.
     return_specs = [_dc.replace(s, relative_to_entry=True, reg_scale=reg_scale_of(test)) for s in kit.default_price_targets]
     specs = return_specs if CONFIG.get("reg_target_mode", "return") == "return" else kit.default_price_targets
+    # price_norm_mode='logret_std': y_*_reg = (log(price/last_close) - mean)/std بإحصاءات train (المختومة على test): يُفكّ كل هدف
+    # بـ last_close × exp(raw·std + mean) (TargetSpec.log_norm ≡ denormalize_price_targets) بدل عائد من سعر نوعه.
+    _pn = price_norm_meta_of(test)
+    if _pn is not None and _pn.get("targets"):
+        specs = [s.with_log_norm(_pn["targets"][s.name]["mean"], _pn["targets"][s.name]["std"])
+                 for s in kit.default_price_targets if s.name in _pn["targets"]]
     # entry_range: high/low من سعر الدخول last_close (العمود 2): high = P·(1 + raw/s)، low = P·(1 − raw/s) ⇐ reg_scale سالب؛
     # close مع range_pos = pred_low + clip(raw, 0, 1)·(pred_high − pred_low) ⇐ range_of؛ close مع abs_return = P·(1 + s·raw/scale)،
     # s = +1 إن كان p_up_close ≥ 0.5 وإلا −1 ⇐ signed_by_class: chicks يقرأ P(صعود) من مخرَج رأس التصنيف.

@@ -135,7 +135,7 @@
   - `def pool_test_dict(test_dict, model_tf, n_per_asset=None)` L21
   - `def predict_pooled_batch_by_asset(model, pooled, model_tf, target_specs=None, n_display=5, y_true_pooled=None, timestamp_col=None, verbose=True)` L55
 
-### `workflow/reports.py` (71 lines)
+### `workflow/reports.py` (72 lines)
 - PURPOSE: Section 7 reports on the trained model: latest trading report, real-price predictions, classification accuracy report.
 - TAGS: latest_trading_report, real_price_predictions, classification_accuracy_report, invert_reg_predictions
 - PITFALLS: model, test / test_dict, eval_target_specs, price_targets and model_tf are explicit arguments (RunResult / ChicksInputs / ModelPlan / DatasetInfo of workflow/run.py): no notebook global is read. Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted from main.ipynb cell 23 (s…
@@ -143,9 +143,9 @@
 - API:
   - `def latest_trading_report(model, test_dict, eval_target_specs, model_tf, n_display=5)` L6
   - `def real_price_predictions(model, test, asset, target, model_tf)` L15
-  - `def classification_accuracy_report(model, test, price_targets, model_tf)` L54
+  - `def classification_accuracy_report(model, test, price_targets, model_tf)` L55
 
-### `workflow/retarget.py` (256 lines)
+### `workflow/retarget.py` (259 lines)
 - PURPOSE: Target-mode switching on already-built splits (return, return_close, scaled, magnitude, volnorm, entry_range, +relative): retarget_splits recomputes y_*_reg / y_*_class from raw last_candles; entry_range_to_prices inverts entry_range.
 - TAGS: target_mode, retarget_splits, target modes, relative, entry_range, entry_range_to_prices, entry_close_reg, reg_target_scale, magnitude, volnorm, scaled
 - PITFALLS: retarget_splits takes reg_target_scale (the dataset's, DatasetInfo), price_targets and close_reg (TargetSettings.entry_close_reg) as arguments; only the pipeline's CONFIG (default targets) and LAST_COLUMNS come from the namespace. The scale must be the dataset's, not read back from a split's stamp: a 'scaled' retarget stamps 1.0. tools/evaluate_trained_model.py pins TARGET_MODES/ENTRY_CLOSE_REGS…
@@ -154,9 +154,9 @@
 - USED BY: capacity, diagnostics, generalization, reports, run, selective_eval, wiring_selftest
 - API:
   - `def retarget_splits(train_split, val_split, test_split, mode='return', targets=None, clip=None, center='median', group_freq=None, min_group=5, drop_small_groups=False, close_reg='abs_return', verbose=True, reg_target_s…` L146
-  - `def entry_range_to_prices(last_close, high=None, low=None, close=None, close_reg='abs_return', p_close_up=None)` L231
+  - `def entry_range_to_prices(last_close, high=None, low=None, close=None, close_reg='abs_return', p_close_up=None)` L234
 
-### `workflow/run.py` (539 lines)
+### `workflow/run.py` (545 lines)
 - PURPOSE: The steps of a main run as functions of (RunSettings, explicit inputs) -> outputs: load data, adapt CONFIG, split, retarget, plan and build the model, training config and datasets, train, prepare the chicks evaluation, run it, panel model,…
 - TAGS: run_main, load_dataset, apply_dataset_config, make_splits, retarget, plan_model, build_model, make_training_config, make_datasets, train_model, prepare_chicks, run_chicks, run_panel, run_reports, toolkit, datasetinfo, modelplan, chicksinputs, runresult, runsettings steps
 - PITFALLS: Steps read no notebook global: settings come as the first argument and everything else (the pipeline/model/trainer/chicks entry points = Toolkit.from_namespace(globals()), the loaded data, the splits, the derived facts DatasetInfo / ModelPlan / ChicksInputs) as explicit arguments. They still call the other workflow modules and the pipeline's own CONFIG-reading helpers late-bound in the shared nam…
@@ -180,10 +180,10 @@
   - `def make_datasets(main_config, train, val, info)` L327
   - `def train_model(settings, kit, *, model, model_builder, main_config, train_ds, val_ds, sample_batch)` L336
   - `def prepare_chicks(settings, plan, info, test, kit)` L353
-  - `def run_chicks(settings, kit, *, model, val, chicks, info)` L392
-  - `def run_panel(settings, kit, *, dataset, train, val, test, info, plan, model, model_builder, main_config, apply_preset=True)` L423
-  - `def run_reports(settings, which, kit, *, model, train, val, test, dataset, info, plan, chicks)` L465
-  - `def run_main(settings, kit, dataset=None, summary=True)` L521
+  - `def run_chicks(settings, kit, *, model, val, chicks, info)` L398
+  - `def run_panel(settings, kit, *, dataset, train, val, test, info, plan, model, model_builder, main_config, apply_preset=True)` L429
+  - `def run_reports(settings, which, kit, *, model, train, val, test, dataset, info, plan, chicks)` L471
+  - `def run_main(settings, kit, dataset=None, summary=True)` L527
 
 ### `workflow/selective_eval.py` (299 lines)
 - PURPOSE: Section 7-b: selective evaluation (accuracy at confident slices, 2:1 trades): collect_signals, thresholds picked on val only, Wilson intervals, rr_trading_report.
@@ -223,7 +223,7 @@
     - `.to_dict(self)` L349
   - `def run_dir_for(settings, reg_target_scale, model_tfs)` L353
 
-### `workflow/splits.py` (55 lines)
+### `workflow/splits.py` (62 lines)
 - PURPOSE: Helpers over train/val/test splits: model input (single or multi-timeframe), per-split stamps (reg scale, target mode, entry close definition).
 - TAGS: model_x, _tfs_of, _required, model_tf, multi timeframe input, reg_scale_of, target_mode_of, entry_close_reg_of, split stamps
 - PITFALLS: model_tf (a timeframe name, or the list DatasetInfo.model_tfs) is always an explicit argument: _tfs_of(None) raises (no notebook MODEL_TFS/MODEL_TF fallback); _required(value, name) is the one place that refusal lives. reg_scale_of(split, target) prefers the per-target stamp reg_target_scales (entry_range close with range_pos is unscaled). Executed into the notebook's shared namespace by workflow…
@@ -231,8 +231,9 @@
 - API:
   - `def model_x(split, model_tf=None)` L20
   - `def reg_scale_of(split_or_dict, target=None)` L33
-  - `def target_mode_of(split_or_dict)` L46
-  - `def entry_close_reg_of(split_or_dict)` L52
+  - `def price_norm_meta_of(split_or_dict)` L46
+  - `def target_mode_of(split_or_dict)` L53
+  - `def entry_close_reg_of(split_or_dict)` L59
 
 ### `workflow/training_config.py` (53 lines)
 - PURPOSE: Bridge from model heads to trainer_framework targets: build_target_configs (true_key vs output_keys) and the naive majority-class baseline for val_accuracy.

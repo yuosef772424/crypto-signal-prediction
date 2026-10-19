@@ -66,7 +66,8 @@ def verify_decoding(
         if spec.kind == 'continuous':
             range_of = getattr(spec, 'range_of', None)
             signed = bool(getattr(spec, 'signed_by_class', False))   # مقدار بلا اتجاه، واتجاهه من رأس التصنيف
-            s_median, s_iqr = ((d['median'], d['iqr']) if range_of is not None
+            log_norm = getattr(spec, 'log_norm', None)
+            s_median, s_iqr = ((d['median'], d['iqr']) if (range_of is not None or log_norm is not None)
                                else _spec_base(spec, median, iqr, last_candles, limit))
             if signed and s_iqr is not None:
                 s_iqr = s_iqr * d['direction_sign']    # نفس مقياس decode: round-trip مطابق لـ pred_real
@@ -78,6 +79,8 @@ def verify_decoding(
                 # 1) round-trip: إعادة حساب pred_real من pred_scaled يدوياً
                 recomputed_real = ((np.clip(d['pred_scaled'], 0.0, 1.0) if range_of is not None else d['pred_scaled'])
                                    * iqr_s) + median_s
+                if log_norm is not None:          # غير خطي: median_s = المرساة last_close
+                    recomputed_real = median_s * np.exp(d['pred_scaled'] * float(log_norm[1]) + float(log_norm[0]))
                 roundtrip_diff = np.abs(recomputed_real - d['pred_real'])
                 roundtrip_ok = bool(np.all(roundtrip_diff <= atol))
 
@@ -101,6 +104,8 @@ def verify_decoding(
                         # y_true مقدار بلا اتجاه: اتجاه الحقيقة من السعر الفعلي (بلا سعر فعلي لا مقارنة في الفضاء الأصلي)
                         true_real_from_scaled = ((true_scaled * np.abs(iqr_s) * np.sign(true_real - d['entry_price'])) + median_s
                                                  if has_real_truth else None)
+                    elif log_norm is not None:
+                        true_real_from_scaled = median_s * np.exp(true_scaled * float(log_norm[1]) + float(log_norm[0]))
                     else:
                         true_real_from_scaled = (true_scaled * iqr_s) + median_s
                     if range_of is not None:

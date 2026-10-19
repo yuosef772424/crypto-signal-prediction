@@ -32,7 +32,7 @@
   - `def calculate_aggregated_metrics_v4(results_df: pd.DataFrame, target_specs) -> Dict` L314
   - `def test_all_assets(model, test_dict, timeframes, targets, verbose=True, n_display=1, batch_size=256, range_frac=0.2)` L349
 
-### `evaluation/decode.py` (195 lines)
+### `evaluation/decode.py` (207 lines)
 - PURPOSE: Stage 2: flexible decoding of raw model outputs into real units (continuous + categorical), decode_predictions_v4.
 - TAGS: decode_predictions_v4, decode_predictions, softmax, scale offset, reg_target_scale, decode
 - PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
@@ -40,7 +40,7 @@
 - USED BY: live, unified, workflow/pooling
 - API:
   - `def decode_predictions_v4(raw_preds: Dict[str, np.ndarray], target_specs: List['TargetSpec'], base_params: Optional[np.ndarray]=None, last_candles: Optional[np.ndarray]=None, limit: Optional[int]=None) -> Dict[str, Dict[str,…` L18
-  - `def decode_predictions(raw_preds, base_params, last_candles=None, limit=None)` L189
+  - `def decode_predictions(raw_preds, base_params, last_candles=None, limit=None)` L201
 
 ### `evaluation/flat.py` (116 lines)
 - PURPOSE: build_flat_dataframe: flattens test_all_assets_v4 results into one DataFrame (the input of the trust/calibration/pattern reports).
@@ -123,7 +123,7 @@
   - `def predict_latest_v4(model, X_inputs: Tuple[np.ndarray, ...], base_params: np.ndarray, last_candles: Optional[np.ndarray]=None, target_specs=None, n_display: int=5, timestamps=None, timestamp_col: Optional[int]=None, y_…` L18
   - `def predict_latest_all_assets(model, test_dict: Dict, timeframes: List[str], target_specs=None, n_display: int=5, latest_only: bool=False, timestamp_col: Optional[int]=None, timestamp_key: Optional[str]=None, batch_size: int=256…` L78
 
-### `evaluation/metrics.py` (173 lines)
+### `evaluation/metrics.py` (176 lines)
 - PURPOSE: Stage 3: flexible evaluation metrics (continuous MAE/direction/tolerance, categorical accuracy), evaluate_predictions_v4.
 - TAGS: evaluate_predictions_v4, evaluate_predictions, mae, direction accuracy, tolerance, metrics
 - PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
@@ -131,7 +131,7 @@
 - USED BY: live, unified, workflow/pooling
 - API:
   - `def evaluate_predictions_v4(decoded_preds: Dict[str, Dict[str, np.ndarray]], target_specs: List['TargetSpec'], y_true: Optional[Dict[str, np.ndarray]]=None, base_params: Optional[np.ndarray]=None, direction_tolerance: float=0.…` L12
-  - `def evaluate_predictions(decoded_preds, y_true=None, base_params=None, last_candles=None, direction_tolerance=0.2, price_tolerance=None)` L165
+  - `def evaluate_predictions(decoded_preds, y_true=None, base_params=None, last_candles=None, direction_tolerance=0.2, price_tolerance=None)` L168
 
 ### `evaluation/output_conditioned.py` (147 lines)
 - PURPOSE: Output-conditioned analysis: success rate by predicted-move type, confidence bucket and consecutive batch.
@@ -191,7 +191,7 @@
   - `def predict_batch_v4(model, X_inputs: Tuple[np.ndarray, ...], target_specs: List['TargetSpec'], batch_size: int=256, verbose: bool=False, unc_max: Optional[float]=None) -> Dict[str, np.ndarray]` L12
   - `def predict_batch(model, X_inputs, batch_size: int=256, verbose: bool=False) -> Dict[str, np.ndarray]` L106
 
-### `evaluation/targets.py` (353 lines)
+### `evaluation/targets.py` (378 lines)
 - PURPOSE: Shared imports of the evaluation package plus TargetSpec/resolve_targets (which targets a model outputs: continuous or categorical), NIG uncertainty bounding and the Wilson CI.
 - TAGS: targetspec, resolve_targets, make_categorical_spec, get_model_target_names, nig_uncertainty_bounded, wilson_ci, imports, shared namespace
 - PITFALLS: Loaded first: later modules use its imports (re, warnings, np, tf, pd, dataclass, typing names) without importing them. Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
@@ -199,11 +199,13 @@
 - USED BY: all_assets, decode, flat, full_analysis, integrity, io_patterns, latest_table, live, metrics, predict +4
 - API:
   - `class TargetSpec` L36
-  - `def make_categorical_spec(name: str, class_names: List[str], has_uncertainty: bool=False) -> TargetSpec` L125
-  - `def nig_uncertainty_bounded(nu, alpha, beta, unc_max=None, alpha_den_min=NIG_ALPHA_DEN_MIN)` L189
-  - `def wilson_ci(k, n, z: float=1.96)` L203
-  - `def resolve_targets(targets=None, available: Optional[Iterable[str]]=None) -> List[TargetSpec]` L261
-  - `def get_model_target_names(model, X_inputs=None) -> Optional[List[str]]` L323
+    - `.with_log_norm(self, mean: float, std: float) -> 'LogNormTargetSpec'` L117
+  - `class LogNormTargetSpec(TargetSpec)` L128
+  - `def make_categorical_spec(name: str, class_names: List[str], has_uncertainty: bool=False) -> TargetSpec` L150
+  - `def nig_uncertainty_bounded(nu, alpha, beta, unc_max=None, alpha_den_min=NIG_ALPHA_DEN_MIN)` L214
+  - `def wilson_ci(k, n, z: float=1.96)` L228
+  - `def resolve_targets(targets=None, available: Optional[Iterable[str]]=None) -> List[TargetSpec]` L286
+  - `def get_model_target_names(model, X_inputs=None) -> Optional[List[str]]` L348
 
 ### `evaluation/tearsheet.py` (344 lines)
 - PURPOSE: Tearsheet-style trading metrics (Sharpe, Sortino, Omega, profit factor, SQN, drawdown), equity curve and signal significance report.
@@ -250,7 +252,7 @@
   - `def predict_with_evaluation_v4(model, X_inputs: Tuple[np.ndarray, ...], target_specs, base_params: Optional[np.ndarray]=None, last_candles: Optional[np.ndarray]=None, y_true: Optional[Dict[str, np.ndarray]]=None, verbose: bool=Fa…` L12
   - `def predict_with_evaluation_v3(model, X_inputs, base_params, last_candles=None, y_true=None, verbose=False, n_display=5, batch_size=256, direction_tolerance=0.2, price_tolerance=None, min_samples=1)` L123
 
-### `evaluation/verify.py` (195 lines)
+### `evaluation/verify.py` (200 lines)
 - PURPOSE: Stage 2.5: verify_decoding - checks decoding in the normalized and original space with a round-trip test.
 - TAGS: verify_decoding, round-trip, decoding check
 - PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.

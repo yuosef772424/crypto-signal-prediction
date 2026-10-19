@@ -33,3 +33,15 @@ NO_RELATIVE_BASES = ("entry_range",)
 
 #: تعريفات انحدار close في وضع entry_range: "abs_return" = |عائد الإغلاق من P|، "range_pos" = موقع الإغلاق في المدى [0,1].
 ENTRY_CLOSE_REGS = ("abs_return", "range_pos")
+
+#: أوضاع تطبيع أسعار الإدخال/الهدف الجديدة (CONFIG['price_norm_mode']): عوائد لوغاريتمية نسبة للإغلاق السابق.
+#: 'logret_std' = log(x_t / close_{t-1}) مُقيَّس بمتوسط/انحراف train فقط ثم قصّ ±PRICE_NORM_CLIP؛
+#: 'logret_sigma' = نفس العائد ÷ الانحراف المعياري لآخر PRICE_NORM_SIGMA_N عوائد إغلاق قبل الشمعة (ماضٍ فقط)، مقصوص.
+PRICE_NORM_LOGRET_STD = 'logret_std'
+PRICE_NORM_LOGRET_SIGMA = 'logret_sigma'
+LOGRET_PRICE_NORM_MODES = (PRICE_NORM_LOGRET_STD, PRICE_NORM_LOGRET_SIGMA)
+#: قنوات الأسعار التي تتحوّل إلى عوائد في الأوضاع الجديدة (من الموجود منها في ميزات النموذج).
+PRICE_NORM_CHANNELS = ('open', 'high', 'low', 'close')
+PRICE_NORM_CLIP = 5.0
+PRICE_NORM_SIGMA_N = 14
+PRICE_NORM_SIGMA_FLOOR = 1e-4

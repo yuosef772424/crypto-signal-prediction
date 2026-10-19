@@ -394,7 +394,10 @@ PIPELINE_DEFAULT_CONFIG: dict = {
     #   'pct_change'   — تغيّر نسبي هندسي عن الشمعة السابقة لنفس العمود بالنقاط المئوية: 100 × (x_t / x_{t−1} − 1)
     #                    (مثلاً −1، +5، −0.4). أول صف في النافذة 0. قابل للفكّ: pct_change_decode، وفي مجموعة
     #                    البيانات decode_price_window (مرساة آخر سعر من last_candles). يُحفظ في dataset['price_norm_mode'].
-    # بقية الأنواع (ATR/MACD بوحدة السعر، المذبذبات...) لا تتغيّر في الوضعين.
+    #   'logret_std'   — قنوات open/high/low/close فقط: log(x_t / close_{t-1}) مُقيَّسة بمتوسط/انحراف train وحده (يُختم في split['price_norm_meta'])،
+    #                    قصّ ±5؛ وأهداف الانحدار log(سعر/آخر_إغلاق) مُقيَّسة بإحصاءات train ويعكسها denormalize_price_targets (E-norm-001).
+    #   'logret_sigma' — العائد نفسه ÷ sigma(14) ماضٍ صِرف، قصّ ±5؛ بلا رؤوس انحدار (يرفع ValueError). راجع data/normalize.py.
+    # بقية الأنواع (ATR/MACD بوحدة السعر، المذبذبات...) لا تتغيّر في الأوضاع كلها.
     "price_norm_mode": "window_scale",
     # قصّ أعمدة 'pct_change' بالنقاط المئوية بدل clip_abs: ±100 لا يمسّ حركة شمعة حقيقية فيبقى الفكّ دقيقاً.
     "price_pct_clip": 100.0,
