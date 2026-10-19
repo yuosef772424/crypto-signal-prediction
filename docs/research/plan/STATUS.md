@@ -3,8 +3,8 @@
 > Read this first in every session (planner and build). Update it in the same PR that changes the state.
 > Keep it under 60 lines.
 
-**Phase:** T0 done; R0, G2, R3 merged. R3's H2 confirmation card E-natr-002 amended (sparse-decile rule, before any H2 access), to be queued after merge.
-**Next:** queue `research/natr_range/h2_job.json` (planner fills `repo_ref`); G waits for the owner's raw gate-cli JSON; then R1 confluence map, R1b, R2, R5.
+**Phase:** T0 done; R0, G2, R3 merged. R3 1h REJECTED on H2 (E-natr-002, F-0083), H2 burned. trim-tails-001 done (D-010).
+**Next:** stale_bars PR #30 pending, then stale-bars-002 (queued); G waits for the owner's raw gate-cli JSON; then R1 confluence map, R1b, R2, R5. R6 has no survivor now.
 
 ## Scope (owner, 2026-10-13)
 - Goal (D-001): find or reject, with honest evidence, information that adds something real; a survivor feeds a
@@ -18,7 +18,7 @@
 ## Honest state (from master, 2026-10-19)
 - 82 closed failures (`docs/research/failure_registry.csv`); no tradeable edge found.
 - Merged: #13 restructuring, #19 H07 (F-0078/79), #21 + #23 Colab runner, #24 R0 lock, #25 G2, #26 docs, #27 R3.
-- Survivors: H003 (NATR_14 forecasts next range **width**; now R3 1h, below); H07 (BTC/ETH 30-day trend filter, a drawdown reducer,
+- Survivors: H003 (NATR_14 forecasts next range **width**; R3 1h not confirmed on H2, F-0083); H07 (BTC/ETH 30-day trend filter, a drawdown reducer,
   medium confidence); MOM_ORTH_NATR (relative low, weak).
 - Untested: funding carry / basis; chart-structure confluence as overlapping zones.
 - Consumed: the edge_discovery 2026 holdout; MOM_ORTH_NATR's 38 OOS windows. No holdout bucket opened yet (access log empty).
@@ -33,23 +33,24 @@
 | G2 gate-style features | merged, FAILED | #25 | direction beat nulls (AUC 0.545/0.534) but net negative after costs F-0080; magnitude worse than NATR-only F-0081; H5 not opened |
 | G gate-cli reverse + QC | waits for the owner's raw JSON | — | — |
 | R3 NATR range tool | merged | #27 | 1h ACCEPTED on exploration (coverage 80.00 %, deciles 77.2-80.4 %, pinball 10/10, monthly IC > 0 21/21; flag: BTC/ETH coverage 75.1 % at 1h in 2026); 1d REJECTED F-0082; bot2 spec `research/natr_range/bot2_tool_spec.md` |
-| R3 H2 confirmation E-natr-002 | card amended (sparse deciles reported not ruled, ≥ 6 evaluable, pinball ceil(0.8·n)), re-frozen; to be queued after merge | this PR | — |
+| R3 H2 confirmation E-natr-002 | run 2026-10-19, H2 opened once (36/36 coins, 440,834 rows) | this PR | REJECTED F-0083: coverage 79.37 %, pinball 10/10, IC 21/21 pass; top NATR decile 73.78 % < 74.0 (76.6 % 2025, 68.6 % 2026). R3 1h NOT confirmed |
 | R1 confluence map 🔒 | not started | — | — |
 | R1b confluence confirm 🔒 | not started | — | — |
 | R2 funding/basis 🔒 | not started (data first; H3 has only 3 coins → time seal) | — | — |
 | R5 E-disc S1/S3 confirm | optional | — | — |
 | R4 H07 forward | parked | — | — |
-| R6 model integration 🔒 | only with a survivor (R3 1h candidate after H2) | — | — |
+| R6 model integration 🔒 | no survivor now (R3 1h not confirmed on H2) | — | — |
 
 ## Holdout
 - Locked (R0, #24). Spec `docs/research/plan/lock/README.md`; salt = `b4f3790287a2e12d6e5cb3fa20b2ea81998566e5`
   (merge PRs with a merge commit, never squash). Guard `tools/holdout_guard.py`. Buckets H1 (R1b), H2 (R3), H3 (R2), H4 (R5),
-  H5 (G2, not opened), H6 (reserve); time seal ≥ 2026-10-01. Access log: none.
+  H5 (G2, not opened), H6 (reserve); time seal ≥ 2026-10-01. Access log: H2 opened 2026-10-19 (E-natr-002, burned); others unopened.
+- D-010: 42 of the 183 sealed coins are dead coins (zero-volume tails trimmed by trim-tails-001, 2026-10-19; tails kept in `history_15m_tails`). Future bucket runs use live data only (trimmed files + `CONFIG['stale_bars']` once #30 merges).
 - D-009 (two-level holdout): level A untouched / level B daily-only touched both eligible, 365-day history, H3 takes no
   funding/OI-touched coin.
 
 ## Owner decisions (`decisions/`)
-- All accepted: D-001 goal (revised) · D-002 merge after review · D-003 ≤ 1 h/phase · D-004 Drive history_15m
+- All accepted (D-010 dead-coin lock amendment added): D-001 goal (revised) · D-002 merge after review · D-003 ≤ 1 h/phase · D-004 Drive history_15m
 - D-005 phase order (amended by D-008) · D-006 open-PR triage · D-007 5m fetch source · D-008 G2 gate-style features · D-009 two-level holdout
 
 ## Open questions for the owner 🔒
@@ -58,4 +59,4 @@
 
 ## Known issues
 - Colab runner merged (#21, #23; `colab_runner.ipynb`, `COLAB_RUNNER.md`): owner one-time setup = token file in Drive.
-- Zero-target data issue above (`stale-bars-001` pending).
+- Zero-target data issue above: PR #30 (`CONFIG['stale_bars']`) pending; `stale-bars-002` queued.

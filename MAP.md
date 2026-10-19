@@ -39,15 +39,15 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `research/h07_volsizing/` — H07 + تحجيم بالتقلّب المتوقَّع (تعلّم آلي للمقدار لا للاتجاه) | 1 scripts, 3 data files (7 KB) → maps/research_h07_volsizing.md
 - `research/hedge_recovery/` — hedge_recovery — دراسة الصفقات المتحوّطة (تجارب E-hedge) | 2 scripts, 2 data files (69 KB) → maps/research_hedge_recovery.md
 - `research/indicator_strategy/` — indicator_strategy — دراسة المؤشرات والشروط على الفريمات 4h و1d | 5 scripts, 5 data files (148 KB) → maps/research_indicator_strategy.md
-- `research/natr_range/` — natr_range — E-natr-001 (phase R3): calibrated next-range forecast from NATR_14 | 3 scripts, 9 data files (14 KB) → maps/research_natr_range.md
+- `research/natr_range/` — natr_range — E-natr-001 (phase R3): calibrated next-range forecast from NATR_14 | 3 scripts, 15 data files (20 KB) → maps/research_natr_range.md
 - `research/stale_bars/` — stale_bars — dead-coin tails vs exact-zero close_reg | 0 scripts, 2 data files (2 KB) → maps/research_stale_bars.md
 - `research/strategy_discovery/` — strategy_discovery — البحث عن استراتيجية تداول قابلة للتحقق | 10 scripts, 15 data files (112 KB) → maps/research_strategy_discovery.md
 
 ## docs/research (legacy)
-- `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 44 md, 1 data files (100 KB) → maps/docs_research.md
+- `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 44 md, 1 data files (102 KB) → maps/docs_research.md
 - `docs/research/audit/` — Audit / Improvement Protocol (Auditor ↔ Builder) | 26 scripts, 5 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/notes/` — PR #13 restructuring: history facts (evil merges, move+modify commits, verbatim extraction) | 0 scripts, 1 md, 0 data files (0 B) → maps/docs_research.md
-- `docs/research/plan/` — Colab runner: one click per experiment | 0 scripts, 16 md, 6 data files (547 KB) → maps/docs_research.md
+- `docs/research/plan/` — Colab runner: one click per experiment | 0 scripts, 17 md, 6 data files (547 KB) → maps/docs_research.md
 - `docs/research/results/` — نتائج خطّة `capacity` على بيانات Drive (Colab T4، 2026-09-27) | 0 scripts, 6 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/scripts/` — سكربتات إعادة إنتاج تدقيق التطبيع | 9 scripts, 1 md, 1 data files (10 KB) → maps/docs_research.md
 - `docs/research/scripts/entry_range_eval/` — entry_range_eval — تقييم نموذج entry_range المُدرَّب (`crypto_model_v1_entry_range_s100_am`) | 5 scripts, 1 md, 7 data files (127 KB) → maps/docs_research.md

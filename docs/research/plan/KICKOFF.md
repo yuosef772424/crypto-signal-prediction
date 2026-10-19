@@ -26,7 +26,7 @@ Strict process:
 5. Data is read only through tools/holdout_guard.py; the holdout is never read except in the single frozen confirmation step.
 6. Colab scripts follow the run contract in ROADMAP.md (manifest.json, --max-minutes, outputs <= 300 KB, paste bundle).
    You cannot reach Drive: test on small fixtures; the owner runs the Colab cell and the bundle is sent back to you.
-7. Before every commit: python tools/build_map.py, python tools/check_deps.py, python -m pytest tests/ -q.
+7. Before every commit: python tools/build_map.py, python tools/check_deps.py, and pytest ONLY for the tests of what you changed or what depends on it (never the full suite; CI runs it on the PR and the planner merges only on green CI).
 
 Definition of done: the <Pn> DoD in ROADMAP.md, and docs/research/plan/STATUS.md updated in the last (`docs`) commit.
 Push the branch; do NOT open or merge a PR (the planner does). Report in English, <= 40 lines: full head SHA, commits,
