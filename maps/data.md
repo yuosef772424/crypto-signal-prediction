@@ -213,8 +213,8 @@
   - `def add_market_context(dfs: Dict[str, pd.DataFrame], market_dfs: Optional[Dict[str, pd.DataFrame]], is_reference: bool, config: Optional[dict]=None) -> Dict[str, pd.DataFrame]` L141
 
 ### `data/normalize.py` (639 lines)
-- PURPOSE: Window normalisation driven by a semantic kind per feature (FEATURE_KINDS prefixes): process_windows, price_norm_mode ('window_scale' | 'pct_change' | 'logret_std' | 'logret_sigma'), pct_change encode/decode, the logret_* train-only fit/ap…
-- TAGS: normalization, normalize, feature_kinds, classify_feature, process_windows, price_norm_mode, pct_change, logret_std, logret_sigma, denormalize_price_targets, fit_price_norm, price_norm_meta, clip_abs, audit_normalization, التطبيع
+- PURPOSE: Window normalisation driven by a semantic kind per feature (FEATURE_KINDS prefixes): process_windows, price_norm_mode ('window_scale' | 'pct_change' | 'logret_std' | 'logret_sigma'), pct_change encode/decode, audit_normalization. The per-m…
+- TAGS: normalization, normalize, feature_kinds, classify_feature, process_windows, price_norm_mode, pct_change, logret_std, logret_sigma, clip_abs, audit_normalization, التطبيع
 - PITFALLS: Classification is by column-name prefix (longest prefix wins): a new feature with an unknown prefix falls back to DEFAULT_KIND silently — register its kind in FEATURE_KINDS. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time. logret_*: only the open/high/low/close channels change (other price_level columns…
 - DEPENDS: core
 - USES: runtime

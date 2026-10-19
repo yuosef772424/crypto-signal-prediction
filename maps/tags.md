@@ -331,7 +331,7 @@
 - delay: edge_discovery/19_hl_copy
 - delisted coins: tools/stale_bars_audit, tools/stale_bars_colab_job, tools/trim_dead_tails
 - denormalize: core/price_norm
-- denormalize_price_targets: data/normalize, data/normalizers
+- denormalize_price_targets: data/normalizers
 - dependencies: tools/check_deps
 - derived features: tools/gate_features
 - derivedmetrics: trainer/metrics
@@ -521,7 +521,7 @@
 - finite checks: workflow/verification
 - fit: data/normalizers
 - fit_confidence_calibrators: evaluation/trust_calibration
-- fit_price_norm: data/normalize, data/normalizers
+- fit_price_norm: data/normalizers
 - fix-gaps: tools/fetch_history_vision_colab
 - flat bars: tools/stale_bars_audit
 - flat dataframe: evaluation/flat
@@ -1060,7 +1060,7 @@
 - price_indices: data/features
 - price_norm: core/price_norm
 - price_norm_channels: data/normalizers
-- price_norm_meta: data/normalize, data/normalizers
+- price_norm_meta: data/normalizers
 - price_norm_mode: data/normalize
 - print_latest_table: evaluation/latest_table
 - print_trade_selection: evaluation/trade_selection

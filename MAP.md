@@ -48,7 +48,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 44 md, 1 data files (104 KB) → maps/docs_research.md
 - `docs/research/audit/` — Audit / Improvement Protocol (Auditor ↔ Builder) | 26 scripts, 5 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/cards/` — Experiment card — E-norm-001: train NIG-TimeNet with price_norm_mode=logret_std vs window_scale | 0 scripts, 1 md, 0 data files (0 B) → maps/docs_research.md
-- `docs/research/notes/` — PR #13 restructuring: history facts (evil merges, move+modify commits, verbatim extraction) | 0 scripts, 1 md, 0 data files (0 B) → maps/docs_research.md
+- `docs/research/notes/` — How to add a price normalizer | 0 scripts, 2 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/plan/` — Colab runner: one click per experiment | 0 scripts, 17 md, 6 data files (547 KB) → maps/docs_research.md
 - `docs/research/results/` — نتائج خطّة `capacity` على بيانات Drive (Colab T4، 2026-09-27) | 0 scripts, 6 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/scripts/` — سكربتات إعادة إنتاج تدقيق التطبيع | 9 scripts, 1 md, 1 data files (10 KB) → maps/docs_research.md
