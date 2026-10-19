@@ -197,7 +197,7 @@ def build_dataset_live(
             ``targets``، ``forecast_horizon``...) يمرَّر كما هو.
     """
     config = CONFIG if config is None else config
-    if price_norm_mode(config) in LOGRET_PRICE_NORM_MODES:
+    if not normalizer_for_mode(price_norm_mode(config)).supports_live:
         raise ValueError("build_dataset_live لا يدعم price_norm_mode='logret_*' بعد: البيانات الحيّة تحتاج إحصاءات train المخزَّنة "
                          "(split['price_norm_meta']) وإسقاط الذيل الصوري من sigma — استخدم 'window_scale' أو 'pct_change'")
     tf_order = kwargs.get('tf_order') or config['tf_order']

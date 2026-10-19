@@ -5,6 +5,8 @@ PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loade
 
 ## 4️⃣ المرحلة 2: فك التشفير المرن (مستمر + فئوي)
 """
+from core.price_norm import logret_inverse      # العكس الوحيد لأهداف logret_* (يشاركه data.normalizers)
+
 # ─────────────────────────────────────────────────────────────────────────────
 # المرحلة 2: فك التشفير المرن (مستمر + فئوي)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -84,7 +86,7 @@ def decode_predictions_v4(
                 raise ValueError(f"الهدف '{spec.name}' (log_norm) يحتاج last_candles بعمود last_close ({spec.price_index}).")
             s_median = np.asarray(_anchor, dtype=np.float64)
             _ln_mean, _ln_std = (float(v) for v in spec.log_norm)
-            log_pred = s_median * np.exp(np.asarray(raw, dtype=np.float64).flatten() * _ln_std + _ln_mean)
+            log_pred = logret_inverse(np.asarray(raw, dtype=np.float64).flatten(), _ln_mean, _ln_std, s_median)   # الصيغة الوحيدة (core/price_norm.py)
             s_iqr = log_pred * _ln_std
         else:
             s_median, s_iqr = (_spec_base(spec, median, iqr, last_candles)

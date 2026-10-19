@@ -68,6 +68,7 @@
 - analyze_by_confidence_bucket: evaluation/output_conditioned
 - analyze_by_predicted_movement: evaluation/output_conditioned
 - analyze_input_output_validated_patterns: evaluation/io_patterns
+- anchor: core/price_norm
 - anti-memorization: cross_asset/__init__, model/input_norm
 - anti-memorization options: model/builder
 - anti_memorization: workflow/settings
@@ -248,7 +249,7 @@
 - constants: core/__init__, core/constants
 - cooldown: edge_discovery/09_market_flush, edge_discovery/events
 - copy trading: edge_discovery/19_hl_copy
-- core: core/__init__
+- core: core/__init__, core/price_norm
 - cosine_warm_restarts: trainer/schedules
 - cost in r: edge_discovery/23_chart_rules_gross, indicator_strategy/engine, strategy_discovery/intraday_macd, tools/trade_engine
 - cost stress: edge_discovery/15_h07_robust, edge_discovery/17_h07_break, strategy_discovery/robustness
@@ -329,7 +330,8 @@
 - deflated sharpe: edge_discovery/14_holdout, edge_discovery/17_h07_break
 - delay: edge_discovery/19_hl_copy
 - delisted coins: tools/stale_bars_audit, tools/stale_bars_colab_job, tools/trim_dead_tails
-- denormalize_price_targets: data/normalize
+- denormalize: core/price_norm
+- denormalize_price_targets: data/normalize, data/normalizers
 - dependencies: tools/check_deps
 - derived features: tools/gate_features
 - derivedmetrics: trainer/metrics
@@ -515,9 +517,11 @@
 - filters c0-c3: edge_discovery/25_image_cnn
 - final evaluation: indicator_strategy/test_final
 - fingerprint: data/checkpoints, tests/run_fixture
+- finish_price_norm: data/normalizers
 - finite checks: workflow/verification
+- fit: data/normalizers
 - fit_confidence_calibrators: evaluation/trust_calibration
-- fit_price_norm: data/normalize
+- fit_price_norm: data/normalize, data/normalizers
 - fix-gaps: tools/fetch_history_vision_colab
 - flat bars: tools/stale_bars_audit
 - flat dataframe: evaluation/flat
@@ -568,6 +572,7 @@
 - generictrainer: trainer/__init__, trainer/trainer
 - get_hypothesis: signal_eval/registry
 - get_model_target_names: evaluation/targets
+- get_normalizer: data/normalizers
 - get_target_heads: data/heads
 - git_askpass: tools/colab_runner
 - github dataset: tools/fetch_crypto_dataset
@@ -685,6 +690,7 @@
 - intraday features: tools/intraday_features
 - intraday_features: data/phase2
 - inverse: tests/test_real_price_modes
+- inverse_targets: data/normalizers
 - invert_cross_sectional: data/cross_sectional_norm
 - invert_reg_predictions: data/windows, workflow/reports
 - ipynb: tools/nb_cells
@@ -712,6 +718,7 @@
 - last n samples: evaluation/live
 - last real trade: tools/stale_bars_audit
 - last_candles: core/schema, data/windows
+- last_close: core/price_norm
 - last_close reference: discovery/evaluation
 - last_column_index: core/schema
 - last_columns: core/__init__, core/schema, data/windows
@@ -768,11 +775,17 @@
 - local cache: tools/colab_bridge
 - localization: natr_range/run_natr_calibrate
 - lock: tools/build_lock, tools/data_manifest, tools/data_manifest_colab_cell, tools/holdout_guard
+- log return: core/price_norm
 - log returns: norm_probe/run_norm_probe
 - log_vars: trainer/task_weighting
 - logistic: edge_discovery/18_h13_pr7_signal
+- logret: core/price_norm
+- logret_forward: core/price_norm
+- logret_inverse: core/price_norm
 - logret_sigma: data/normalize
 - logret_std: data/normalize
+- logretsigma: data/normalizers
+- logretstd: data/normalizers
 - london breakout: edge_discovery/22_chart_rules
 - long-only: edge_discovery/07_trend
 - long-short: edge_discovery/03_quintiles
@@ -909,9 +922,16 @@
 - no look-ahead: tools/gate_features
 - no-repeat: tools/experiment_registry
 - no_relative_bases: core/schema
-- normalization: data/normalize
+- normalization: data/normalize, data/normalizers
 - normalization_audit: workflow/generalization
 - normalize: data/normalize
+- normalize targets: core/price_norm
+- normalize_price_targets: data/normalizers
+- normalize_targets: data/normalizers
+- normalizer: data/normalizers
+- normalizer_for_data: data/normalizers
+- normalizer_for_mode: data/normalizers
+- normalizers: data/normalizers
 - not_adx40: indicator_strategy/variants
 - notebook: tools/nb_cells
 - notebook definitions: discovery/axis_loader
@@ -1038,7 +1058,9 @@
 - presets: data/presets
 - previous candle: edge_discovery/21_range_fade
 - price_indices: data/features
-- price_norm_meta: data/normalize
+- price_norm: core/price_norm
+- price_norm_channels: data/normalizers
+- price_norm_meta: data/normalize, data/normalizers
 - price_norm_mode: data/normalize
 - print_latest_table: evaluation/latest_table
 - print_trade_selection: evaluation/trade_selection
@@ -1285,8 +1307,10 @@
 - stage-2 logistic: edge_discovery/30_envelope_direction
 - stale bars: natr_range/run_natr_calibrate, tools/stale_bars_audit, tools/stale_bars_colab_job, tools/trim_dead_tails
 - stale_bars: tools/stale_bars_audit
+- stamp_price_norm: data/normalizers
 - standardization: norm_probe/run_norm_probe
 - state_entries: trainer/checkpoints
+- state_from_config: data/normalizers
 - stats: edge_discovery/tsbt
 - stats_mode: model/input_norm
 - std_ic: signal_eval/windows
@@ -1386,6 +1410,7 @@
 - trade simulator: indicator_strategy/engine, tools/trade_engine
 - trades: tools/bracket_eval
 - trailing quantile baseline: tools/natr_range
+- trailing_close_sigma: data/normalizers
 - train<=2021 val 2022 test 2023-26: edge_discovery/27_repr_info
 - train_labels: cross_asset/report
 - train_mode: trainer/system
@@ -1400,6 +1425,7 @@
 - trainer_registry: trainer/checkpoints, trainer/smoke_test
 - trainingdiagnostics: trainer/training_diagnostics
 - trainsettings: workflow/settings
+- transform_inputs: data/normalizers
 - transformerblock: model/transformer
 - trend: model/decomposition, strategy_discovery/grid
 - trend filter: tools/h07_forward
@@ -1472,6 +1498,7 @@
 - window_end_indices: data/align
 - windows: data/windows
 - windows aggregation: signal_eval/windows
+- windowscale: data/normalizers
 - wiring: workflow/wiring_selftest
 - with_sample_index: trainer/training_diagnostics
 - within_day: workflow/permutation_control
@@ -1491,3 +1518,4 @@
 - الإعدادات: data/defaults
 - التطبيع: data/normalize
 - الخريطة: tools/build_map
+- تطبيع: data/normalizers

@@ -45,8 +45,16 @@ def _nz(mode):
     return r2._ns()["get_normalizer"](mode)
 
 
-def _fit(mode, ds, train):
-    return _nz(mode).fit(train, feature_order=ds["feature_order"], timeframes=ds["timeframes"])
+def _raw_train(ds, cfg):
+    """The UNFITTED train split (the dataset with its mode mark dropped is split without any stamping)."""
+    raw = dict(ds)
+    raw.pop("price_norm_mode", None)
+    raw.pop("price_norm_state", None)
+    return _split(raw, cfg)[0]
+
+
+def _fit(mode, ds, cfg):
+    return _nz(mode).fit(_raw_train(ds, cfg), feature_order=ds["feature_order"], timeframes=ds["timeframes"])
 
 
 class RegistryTests(unittest.TestCase):
@@ -99,7 +107,7 @@ class StateTests(unittest.TestCase):
         for mode in MODES:
             with self.subTest(mode=mode):
                 cfg, ds, (tr, va, te) = _run(mode)
-                st = _fit(mode, ds, tr)
+                st = _fit(mode, ds, cfg)
                 self.assertIsInstance(st, dict)
                 self.assertEqual(json.loads(json.dumps(st)), st)
                 self.assertEqual(st["mode"], mode)
@@ -130,11 +138,11 @@ class TrainOnlyFitTests(unittest.TestCase):
                 d1, d2 = _build(cfg, frames), _build(deepcopy(cfg), pert)
                 t1, _, _ = _split(d1, cfg)
                 t2, _, _ = _split(d2, cfg)
-                s1, s2 = _fit(mode, d1, t1), _fit(mode, d2, t2)
+                s1, s2 = _fit(mode, d1, cfg), _fit(mode, d2, cfg)
                 self.assertEqual(s1, s2)
                 if mode == "logret_std":
                     self.assertEqual(t1["price_norm_meta"], t2["price_norm_meta"])
-                    self.assertEqual(t1["price_norm_meta"]["inputs"]["1h"]["mean"], s1["inputs"]["1h"]["mean"])
+                    self.assertEqual(t1["price_norm_meta"], s1)       # split_data stamps exactly what fit returns
 
     def test_perturbing_a_train_bar_changes_logret_std_state(self):
         frames = _frames()
@@ -154,7 +162,7 @@ class TargetRoundTripTests(unittest.TestCase):
             with self.subTest(mode=mode):
                 cfg, ds, (tr, va, te) = _run(mode)
                 nz = _nz(mode)
-                st = _fit(mode, ds, tr)
+                st = _fit(mode, ds, cfg)
                 if mode == "logret_sigma":              # no regression heads: normalize/inverse raise, never guess
                     with self.assertRaises(ValueError):
                         nz.inverse_targets(np.zeros(3), st, np.ones(3), head="high")
