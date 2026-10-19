@@ -1,0 +1,6 @@
+{"job_id": "stale-bars-001", "repo_ref": "<40-hex SHA of the pushed branch head, filled when queued>", "entry": "tools/stale_bars_colab_job.py", "args": [],
+ "config": {"data_dir": "history_15m", "timeframes": ["1h", "4h", "1D"], "horizon": 1, "min_run": null, "quantile": 0.99, "floor": 2,
+            "train_pct": 0.8, "val_pct": 0.1, "max_coins": null},
+ "max_minutes": 40, "needs_drive": true,
+ "expected_outputs": ["summary.json", "coins_1h.csv", "coins_4h.csv", "coins_1D.csv", "splits_pooled_1h.csv", "splits_pooled_4h.csv", "splits_pooled_1D.csv"],
+ "note": "NOT QUEUED. Do exact-zero close returns come from dead/forward-filled tails or from genuine zero-return bars of live coins?", "rerun": false, "pip": []}
