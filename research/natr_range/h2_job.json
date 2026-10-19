@@ -1,0 +1,8 @@
+{"job_id": "natr002-h2-confirm", "repo_ref": "<40-hex SHA of the pushed branch head, fill when queued>",
+ "entry": "research/natr_range/run_natr_confirm.py", "args": [],
+ "config": {"data_dir": "/content/drive/MyDrive/history_15m", "card": "research/natr_range/cards/E-natr-002.md",
+            "frozen_rules": "research/natr_range/frozen_rules.json", "pattern": "{symbol}.csv.gz", "load_start": "2024-10-01"},
+ "max_minutes": 20, "needs_drive": true,
+ "expected_outputs": ["manifest.json", "results.json", "summary.csv", "deciles.csv", "months.csv", "slices.csv", "access_log_row.csv"],
+ "note": "Prepared, NOT queued (R3). Opens bucket H2 once via holdout_guard.open_holdout; frozen 1h coefficients, no refit. Fill repo_ref with the pushed head SHA only after the reviewer approves cards E-natr-001/002 (E-natr-002 was amended for sparse deciles on 2026-10-19). The reviewer commits access_log_row.csv into holdout_access_log.csv after the run.",
+ "rerun": false, "pip": []}

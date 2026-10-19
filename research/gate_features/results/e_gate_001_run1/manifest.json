@@ -1,0 +1,141 @@
+{
+ "run_id": "e_gate_001_run1",
+ "card": "research/gate_features/cards/E-gate-001.md",
+ "git_sha": "5a76852b4ca6bb11ca850ed7abecedacdd3e55ac",
+ "gate_features_version": "gate-style-v1, unverified",
+ "config": {
+  "data_dir": "/tmp/g2data",
+  "coins": [
+   "ADAUSDT",
+   "BCHUSDT",
+   "BNBUSDT",
+   "BTCUSDT",
+   "DOGEUSDT",
+   "ETHUSDT",
+   "SOLUSDT",
+   "TRXUSDT",
+   "XRPUSDT",
+   "ZECUSDT"
+  ],
+  "pattern": "ohlc_{symbol}_5m.parquet",
+  "load_start": "2017-01-01",
+  "end": "2026-10-01",
+  "train_start": "2018-01-01",
+  "train_end": "2023-01-01",
+  "val_end": "2025-01-01",
+  "compare_end": "2026-10-01",
+  "horizons": [
+   4,
+   24
+  ],
+  "ks": [
+   1,
+   3,
+   5,
+   10,
+   20,
+   "all"
+  ],
+  "n_null": 20,
+  "train_stride": 4,
+  "seed": 0,
+  "cost_rt": 0.0014,
+  "years": [
+   2021,
+   2022,
+   2023,
+   2024,
+   2025
+  ],
+  "taus": [
+   0.25,
+   0.5,
+   0.75
+  ],
+  "max_rows": 0
+ },
+ "input_fingerprint_sha256": "344211ab1a77aedfe3c1e40cdf8eba7369bd3f3252bbcb45a85d7cf8add31e16",
+ "inputs": [
+  [
+   "ADAUSDT",
+   886654,
+   "2018-04-17 04:00:00+00:00",
+   "2026-09-30 23:55:00+00:00"
+  ],
+  [
+   "BCHUSDT",
+   717294,
+   "2019-11-28 10:00:00+00:00",
+   "2026-09-30 23:55:00+00:00"
+  ],
+  [
+   "BNBUSDT",
+   932827,
+   "2017-11-06 03:50:00+00:00",
+   "2026-09-30 23:55:00+00:00"
+  ],
+  [
+   "BTCUSDT",
+   956100,
+   "2017-08-17 04:00:00+00:00",
+   "2026-09-30 23:55:00+00:00"
+  ],
+  [
+   "DOGEUSDT",
+   759216,
+   "2019-07-05 12:00:00+00:00",
+   "2026-09-30 23:55:00+00:00"
+  ],
+  [
+   "ETHUSDT",
+   956101,
+   "2017-08-17 04:00:00+00:00",
+   "2026-09-30 23:55:00+00:00"
+  ],
+  [
+   "SOLUSDT",
+   643585,
+   "2020-08-11 06:00:00+00:00",
+   "2026-09-30 23:55:00+00:00"
+  ],
+  [
+   "TRXUSDT",
+   870693,
+   "2018-06-11 11:30:00+00:00",
+   "2026-09-30 23:55:00+00:00"
+  ],
+  [
+   "XRPUSDT",
+   881677,
+   "2018-05-04 08:10:00+00:00",
+   "2026-09-30 23:55:00+00:00"
+  ],
+  [
+   "ZECUSDT",
+   789663,
+   "2019-03-21 04:00:00+00:00",
+   "2026-09-30 23:55:00+00:00"
+  ]
+ ],
+ "rows": 691414,
+ "configurations_evaluated": 616,
+ "configurations_detail": {
+  "direction": 48,
+  "magnitude": 48,
+  "null_refits": 520
+ },
+ "runtime_min": 24.59,
+ "truncated": false,
+ "outputs_sha256": {
+  "dir_sweep.csv": "05f7f0bd71b2668c2042d4ebdfdd4e23f51d8104d59900c162798b0bd1a0876c",
+  "null.csv": "1a2c06560da76052f7b13e1ff9a3ba12b9ada61508ca20bcd6e9d07a4b39b4c4",
+  "years.csv": "53392d3ffa8d7fd88a5301cb0e261920092a9f794b7d34c7aed0a37d26104dea",
+  "econ.csv": "3964eef1de5ae0b908b6bb3c5ca6e8ac45a5bf7894c8652dbf70370f447aef8a",
+  "percoin.csv": "178a6afce1186555c13378198a0643ce0b36a3c29c448b3230c70a8bb1010e48",
+  "mag_sweep.csv": "bbfd0498e536572ec8afff98df012a5ee940213f9fa0fe99f6918f1a22da4f51",
+  "mag_years.csv": "9246bfd89086b97686289f28179fb995c7864f2794d79bf58762bba286925c81",
+  "lc.csv": "d4bb480757b32731991b607475ceaf8ca4cf2d3f92843b5fe1915f5773e0fe68",
+  "mag_null.csv": "26d6eb226d8d161c2943f6ad02c3f8f58ab18e7d0d8701629fb7f5f21b100323",
+  "results.json": "be7df011aa1e06ba94c6a8ad3dfccba2ce95dcdf6ade57afd7cfe56f1ced038a"
+ }
+}

@@ -46,7 +46,7 @@
 - addendum l: edge_discovery/31_wick_capture
 - addendum l.1: edge_discovery/32_breakout_stops
 - adverse selection: edge_discovery/31_wick_capture
-- adx: tools/indicator_reverse
+- adx: tools/gate_features, tools/indicator_reverse
 - adx trend: indicator_strategy/engine, tools/trade_engine
 - aggregate long/short: edge_discovery/11_more
 - aggregate oi change: edge_discovery/09_market_flush
@@ -119,9 +119,11 @@
 - binary_classification: model/heads
 - binomial test: evaluation/io_patterns
 - block bootstrap: h07_combos/01_combos, h07_volsizing/01_volsizing
+- boll: tools/gate_features
 - bollinger: tools/indicator_reverse
 - bollinger breakout: indicator_strategy/engine, tools/trade_engine
 - bonferroni: h07_combos/01_combos
+- bot2 get_range_forecast: tools/natr_range
 - bracket: tools/bracket_eval
 - bracket table: cross_asset/report
 - break attempt: edge_discovery/17_h07_break
@@ -160,6 +162,8 @@
 - bundle: tools/colab_runner
 - buy and hold: edge_discovery/14_holdout
 - buy and hold benchmark: edge_discovery/16_h07_oos
+- calibration: tools/natr_range
+- calibration report: natr_range/run_natr_range
 - calibration_report: evaluation/trust_calibration
 - callback: trainer/snapshot
 - callbacks: trainer/metrics
@@ -175,10 +179,11 @@
 - capacity_thresholds: workflow/capacity
 - capacity_verdict: workflow/capacity
 - cards: tools/build_map
+- categorical states: tools/gate_features
 - causal: model/decomposition
 - causal alignment: tools/intraday_features
 - causalmultiscaledecomp: model/decomposition
-- cci: tools/indicator_reverse
+- cci: tools/gate_features, tools/indicator_reverse
 - cells: tools/nb_cells
 - chart images: edge_discovery/25_image_cnn
 - chart patterns: edge_discovery/22_chart_rules
@@ -206,7 +211,7 @@
 - clear_checkpoint: data/checkpoints
 - clip_abs: data/normalize
 - close_reg: tools/stale_bars_audit, tools/stale_bars_colab_job
-- closed bars: data/align
+- closed bars: data/align, tools/gate_features
 - cnn: edge_discovery/25_image_cnn
 - coin categories: data/defaults
 - coinmetrics: edge_discovery/16_h07_oos, edge_discovery/20_onchain
@@ -214,7 +219,7 @@
 - colab: data/drive, edge_discovery/25_image_cnn, tools/colab_bridge, tools/colab_runner, tools/colab_smoke, tools/data_manifest … (+1)
 - colab cell: tools/data_manifest_colab_cell, tools/fetch_history_colab_cell
 - colab disconnect: trainer/epoch_callbacks
-- colab job: tools/stale_bars_colab_job
+- colab job: natr_range/run_natr_confirm, tools/stale_bars_colab_job
 - colab-queue: tools/colab_runner
 - colab-results: tools/colab_runner
 - collect_signals: workflow/selective_eval
@@ -248,6 +253,7 @@
 - cost x2: strategy_discovery/significance
 - cost_big cost_small: edge_discovery/03_quintiles
 - count balancing: hedge_recovery/sim2
+- coverage: natr_range/run_natr_range, tools/natr_range
 - crash: edge_discovery/05_events
 - cross-asset: data/market_context
 - cross-asset attention: cross_asset/__init__
@@ -318,6 +324,7 @@
 - delay: edge_discovery/19_hl_copy
 - delisted coins: tools/stale_bars_audit, tools/stale_bars_colab_job
 - dependencies: tools/check_deps
+- derived features: tools/gate_features
 - derivedmetrics: trainer/metrics
 - describe: data/runtime
 - descriptive: edge_discovery/28_token_decompose
@@ -378,6 +385,7 @@
 - e-disc-005: strategy_discovery/grid2
 - e-disc-006: strategy_discovery/significance, strategy_discovery/survivor_checks
 - e-fwd-001: strategy_discovery/forward
+- e-gate-001: gate_features/run_gate001
 - e-h07comb-1: h07_combos/01_combos
 - e-h07vs-1: h07_volsizing/01_volsizing
 - e-hedge-001: hedge_recovery/sim
@@ -385,6 +393,8 @@
 - e-ind-001: indicator_strategy/screen
 - e-ind-002: indicator_strategy/variants
 - e-ind-003: indicator_strategy/charts, indicator_strategy/test_final
+- e-natr-001: natr_range/run_natr_range, tools/natr_range
+- e-natr-002: natr_range/freeze_rules, natr_range/run_natr_confirm
 - e-srch-002: strategy_discovery/intraday_macd
 - e-srch-003: strategy_discovery/seasonality15m
 - early stopping: cross_asset/train, trainer/best_tracker
@@ -455,6 +465,7 @@
 - exit grid: strategy_discovery/robustness
 - experiment card: tools/experiment_registry
 - experiment registry: signal_eval/__init__, signal_eval/registry
+- exploration: natr_range/run_natr_range
 - exploratory tier: indicator_strategy/variants
 - export_signals: cross_asset/train
 - extract: tools/nb_cells
@@ -509,6 +520,7 @@
 - from __future__ annotations: signal_eval/common
 - frozen dataclass: workflow/settings
 - frozen hypothesis: strategy_discovery/forward
+- frozen rules: natr_range/freeze_rules, natr_range/run_natr_confirm
 - full analysis: evaluation/full_analysis
 - funding: tools/fetch_history_vision_colab
 - funding features: tools/intraday_features
@@ -518,11 +530,14 @@
 - futures symbols: data/binance_client
 - futures_metrics: edge_discovery/data_tools/build_panel, tools/fetch_history_vision_colab
 - futures_metrics folder: edge_discovery/data_tools/folder_index
+- g2: gate_features/run_gate001, tools/gate_features
 - gap: workflow/generalization
 - gap report: tools/evaluate_trained_model
 - gaps report: tools/fetch_history_vision_colab
-- gate: indicator_strategy/engine, tools/trade_engine
+- gate: indicator_strategy/engine, tools/gate_features, tools/trade_engine
+- gate features: gate_features/run_gate001
 - gate-cli: tools/indicator_reverse
+- gate-style-v1: tools/gate_features
 - gatedfusion: model/readout
 - gates: strategy_discovery/grid
 - gdown: signal_eval/bootstrap
@@ -550,6 +565,7 @@
 - gross versus net: strategy_discovery/intraday_macd
 - grouping test: cross_asset/selftest
 - gzip: edge_discovery/data_tools/sweep
+- h003: tools/natr_range
 - h01: edge_discovery/01_screen, edge_discovery/04_screen_mean
 - h02: edge_discovery/03_quintiles, edge_discovery/04_screen_mean
 - h03: edge_discovery/02_fmb
@@ -571,6 +587,7 @@
 - h18: edge_discovery/24_pullback_maker
 - h19: edge_discovery/25_image_cnn, edge_discovery/26_h19_generalization, tools/fetch_crypto_dataset
 - h19_log.txt: edge_discovery/26_h19_generalization
+- h2 confirmation: natr_range/freeze_rules, natr_range/run_natr_confirm
 - h20: edge_discovery/27_repr_info, edge_discovery/28_token_decompose
 - h21: edge_discovery/29_path_envelope
 - h22: edge_discovery/30_envelope_direction
@@ -595,7 +612,7 @@
 - history_1d: tools/colab_bridge
 - hl_positions: edge_discovery/19_hl_copy
 - hold length: strategy_discovery/seasonality15m
-- holdout: data/split, edge_discovery/14_holdout, tools/holdout_guard
+- holdout: data/split, edge_discovery/14_holdout, natr_range/run_natr_confirm, tools/holdout_guard
 - holdout flag: edge_discovery/13_listing_stops
 - holdout lock: tools/touched_ledger
 - holdout_start: data/defaults
@@ -657,7 +674,8 @@
 - job.json: tools/colab_runner, tools/colab_smoke
 - json format: tools/nb_cells
 - k-fold: trainer/kfold
-- kdj: tools/indicator_reverse
+- k-sweep: gate_features/run_gate001
+- kdj: tools/gate_features, tools/indicator_reverse
 - keep_asset_test_separate: signal_eval/integration
 - keltner squeeze: strategy_discovery/grid2
 - keras 2/3: trainer/env
@@ -667,6 +685,7 @@
 - kmeans: evaluation/patterns
 - lab: discovery/selftest
 - label checks: workflow/verification
+- label-shift null: gate_features/run_gate001
 - label_smoothing: workflow/training_config
 - lag scan: evaluation/integrity
 - last n samples: evaluation/live
@@ -691,6 +710,7 @@
 - leaderboard: discovery/scanner
 - leakage: tests/test_no_lookahead
 - leakage check: workflow/permutation_control
+- learning curve: gate_features/run_gate001
 - learning_curve: workflow/capacity
 - ledger: tools/experiment_registry, tools/h07_forward, tools/touched_ledger
 - legacy report: evaluation/legacy_assets, evaluation/legacy_uncertainty
@@ -738,7 +758,9 @@
 - low_class: workflow/candle_baseline
 - lr schedule: cross_asset/train, trainer/schedules
 - ls_acc: edge_discovery/features
+- ma_alignment: tools/gate_features
 - macd: indicator_strategy/engine, strategy_discovery/intraday_macd, tools/indicator_reverse, tools/trade_engine
+- macd_signal: tools/gate_features
 - mae: evaluation/metrics
 - magnitude: workflow/retarget
 - main notebook: workflow/__init__
@@ -831,6 +853,7 @@
 - multi timeframe input: workflow/splits
 - multi-task: trainer/trainer
 - multi-timeframe: model/builder
+- multi-timeframe signal: tools/gate_features
 - multiclass_classification: model/heads
 - multiple testing: strategy_discovery/grid, strategy_discovery/grid2
 - multivariate: edge_discovery/02_fmb
@@ -838,7 +861,8 @@
 - mydrive: data/drive
 - n_display: evaluation/unified
 - naive baseline: evaluation/integrity
-- natr: data/cross_sectional_features
+- natr: data/cross_sectional_features, tools/natr_range
+- natr range forecast: natr_range/run_natr_confirm, natr_range/run_natr_range
 - natr regime exit: hedge_recovery/sim
 - navigation: tools/build_map
 - negative results: tools/experiment_registry
@@ -853,6 +877,7 @@
 - nigts: model/common
 - niguncertainty: model/nig_layers
 - no future: tests/test_no_lookahead
+- no look-ahead: tools/gate_features
 - no-repeat: tools/experiment_registry
 - no_relative_bases: core/schema
 - normalization: data/normalize
@@ -875,6 +900,7 @@
 - oi change: edge_discovery/features
 - oi features: tools/intraday_features
 - oi flush: edge_discovery/05_events, edge_discovery/09_market_flush, edge_discovery/10_flush_curve
+- old vs new feature set: gate_features/run_gate001
 - on-chain: edge_discovery/20_onchain
 - one click: tools/colab_runner
 - one-shot: indicator_strategy/test_final
@@ -944,6 +970,8 @@
 - phase2_data: data/defaults, data/phase2
 - pick_threshold: workflow/selective_eval
 - pin bar: edge_discovery/22_chart_rules
+- pinball: natr_range/run_natr_range
+- pinball loss: tools/natr_range
 - pipeline: data/pipeline
 - pipeline package: data/_loader
 - pipeline_default_config: data/defaults
@@ -997,18 +1025,20 @@
 - push results: tools/colab_runner
 - px proxy: edge_discovery/data_tools/build_panel
 - qlike: h07_volsizing/01_volsizing
-- quantile regression: edge_discovery/31_wick_capture
+- quantile regression: edge_discovery/31_wick_capture, tools/natr_range
 - quarterly consistency: edge_discovery/01_screen
 - quintile spread: edge_discovery/04_screen_mean
 - quintiles: edge_discovery/03_quintiles
 - r multiple: edge_discovery/22_chart_rules, indicator_strategy/engine, tools/trade_engine
 - r0: tools/build_lock, tools/data_manifest, tools/data_manifest_colab_cell, tools/holdout_guard, tools/touched_ledger
+- r3: natr_range/freeze_rules, natr_range/run_natr_confirm, natr_range/run_natr_range, tools/natr_range
 - ram: data/disk_backed
 - ram cap: data/parallel
 - random control: hedge_recovery/sim, hedge_recovery/sim2
 - random-direction null: tools/bracket_eval
 - random_init_copy: model/layer_report
 - range fade: edge_discovery/21_range_fade
+- range forecast: tools/natr_range
 - range_fade csv: edge_discovery/21_range_fade
 - rank: data/cross_sectional_norm
 - rank correlation: edge_discovery/02_fmb
@@ -1091,8 +1121,9 @@
 - rr_trading_report: workflow/selective_eval
 - rsi: indicator_strategy/engine, tools/indicator_reverse, tools/trade_engine
 - rsi2 pullback: strategy_discovery/grid
+- rsi_zone: tools/gate_features
 - rule_cpos: workflow/candle_baseline
-- run contract: tools/colab_runner, tools/colab_smoke, tools/stale_bars_colab_job
+- run contract: gate_features/run_gate001, natr_range/run_natr_confirm, natr_range/run_natr_range, tools/colab_runner, tools/colab_smoke, tools/stale_bars_colab_job
 - run fixture: tests/run_fixture
 - run_batch_and_register: discovery/__init__, discovery/batch_runner
 - run_chicks: workflow/run
@@ -1127,6 +1158,7 @@
 - sample size guard: strategy_discovery/oos, strategy_discovery/survivor_checks
 - sample_filters: data/windows
 - sample_idx_key: trainer/training_diagnostics
+- sar: tools/gate_features
 - save load: model/selftests
 - save_config: data/runtime
 - save_data_to_drive: data/storage
@@ -1160,7 +1192,7 @@
 - selftests: signal_eval/selftests
 - settings: data/defaults, workflow/settings
 - settings interval start funding open_interest: tools/fetch_history_colab_cell
-- sha256: tools/colab_runner
+- sha256: natr_range/freeze_rules, tools/colab_runner
 - shadowing: tools/implicit_deps
 - shap: discovery/phase3_tools
 - shared constants: core/__init__
@@ -1276,6 +1308,7 @@
 - task_registry: trainer/tasks
 - taskweightupdater: trainer/metrics
 - tearsheet: evaluation/tearsheet
+- technical states: tools/gate_features
 - tempfile: signal_eval/registry_selftests
 - template: trainer/example
 - tensorflow: model/common
@@ -1315,6 +1348,7 @@
 - trade selection: evaluation/trade_selection
 - trade simulator: indicator_strategy/engine, tools/trade_engine
 - trades: tools/bracket_eval
+- trailing quantile baseline: tools/natr_range
 - train<=2021 val 2022 test 2023-26: edge_discovery/27_repr_info
 - train_labels: cross_asset/report
 - train_mode: trainer/system
@@ -1379,6 +1413,7 @@
 - vol-quintile ic: cross_asset/report
 - vol-target weights: edge_discovery/tsbt
 - volatility: edge_discovery/features
+- volatility clustering: tools/natr_range
 - volatility forecast: h07_volsizing/01_volsizing
 - volnorm: workflow/retarget
 - volume concentration: data/funding_oi
@@ -1404,6 +1439,7 @@
 - workflow: workflow/__init__
 - workflow package: workflow/_loader
 - workflow.run steps: tools/evaluate_trained_model
+- wr: tools/gate_features
 - xla: trainer/perf
 - year stability: strategy_discovery/robustness
 - z-score: strategy_discovery/forward

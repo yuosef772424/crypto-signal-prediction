@@ -66,6 +66,12 @@ the docs update and launches the next agents. It never wakes up just to acknowle
   - the checks to run before pushing;
   - the report format (≤ 40 lines: full head SHA, commits, test counts, deviations from the brief).
 - **Deviations.** The agent lists every deviation; the planner accepts or rejects each one explicitly.
+- **Batch inside the agent too.** In every turn, an agent sends all independent tool calls together
+  (parallel reads, greps, git commands), and chains dependent shell steps into one Bash call
+  (`a && b && c`). Fewer turns means fewer re-reads of the agent's own context.
+- **One hand-back.** An agent waits for long runs with a blocking foreground loop (Bash timeout 600000 ms),
+  never with background commands, and hands back once, with the final report. A background command makes
+  it hand back at every stop, and each of those hand-backs wakes the planner.
 - **Default model `sonnet`.** Use a stronger model only for open-ended research or design, and say why.
 
 ## 5. Review and merge (planner)
