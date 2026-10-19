@@ -1,0 +1,38 @@
+{
+ "config": {
+  "data_dir": "history_15m",
+  "floor": 2,
+  "horizon": 1,
+  "max_coins": null,
+  "min_run": null,
+  "quantile": 0.99,
+  "timeframes": [
+   "1h",
+   "4h",
+   "1D"
+  ],
+  "train_pct": 0.8,
+  "val_pct": 0.1
+ },
+ "git_sha": "de20d964c25b23b9b7ade30b5e91291efb7a0ee7",
+ "input_fingerprint": "a6d367aa71be0a14ad8b7705fa9d3475320c55253010a7c9e00aae5c26025a1d",
+ "n_configurations": 3,
+ "outputs": {
+  "coins_1D.csv": "16e75e36a37db358b9a7931d1464b49d27f6667af9d1ffed5ea66c14081d15ac",
+  "coins_1h.csv": "961eae0b0602ecd66b595a8fcff8d8bc0cd59f13fd67da3fc45c8418db3fde64",
+  "coins_4h.csv": "8330e3bb988c9f14410a13496340965a7a587646b949f1d89941e3b9e0a6fd2a",
+  "splits_pooled_1D.csv": "473a9a68a15d87e7b48645834e1cfa4b0d4f198f545708524e4861abc34009a9",
+  "splits_pooled_1h.csv": "c8d4d6cec4e6792966b339f94a178ee03030fa0f5ae5425c6c7ee10096fea93d",
+  "splits_pooled_4h.csv": "53c68b26c0a14ac7815f5c85b2782e8143f6520bf24d715a2602d8d7404f2985",
+  "summary.json": "86ba261eb1aede08b9ccc530db57877c51c7958b80fd2579c7977788d933cbe5"
+ },
+ "row_counts": {
+  "coins_1D.csv": 860,
+  "coins_1h.csv": 860,
+  "coins_4h.csv": 860,
+  "splits_pooled_1D.csv": 3,
+  "splits_pooled_1h.csv": 3,
+  "splits_pooled_4h.csv": 3
+ },
+ "runtime_seconds": 800.117
+}
