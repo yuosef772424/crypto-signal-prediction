@@ -9,16 +9,16 @@ Documents:
 - `cards/E-natr-001.md` — Experiment card — E-natr-001: calibrated next-range forecast from NATR_14 (phase R3)
 - `cards/E-natr-002.md` — Experiment card — E-natr-002: H2 confirmation of the 1h NATR range forecast (phase R3, confirmation…
 
-### `research/natr_range/freeze_rules.py` (46 lines)
+### `research/natr_range/freeze_rules.py` (47 lines)
 - PURPOSE: Writes research/natr_range/frozen_rules.json for the H2 confirmation: the 1h quantile-regression coefficients and the NATR decile edges of E-natr-001 run1 (fitted on train only), the data window, the minimum coin count and the accept rule…
 - TAGS: frozen rules, sha256, h2 confirmation, e-natr-002, r3
 - PITFALLS: Reads only the committed run1 bundle (results.json), never data. Re-running it must give the same bytes; if the output changes, the card's frozen_rules_sha256 no longer matches and the guard refuses to open H2.
 - DEPENDS: tools
 - API:
   - `def build()` L24
-  - `def main()` L37
+  - `def main()` L38
 
-### `research/natr_range/run_natr_confirm.py` (155 lines)
+### `research/natr_range/run_natr_confirm.py` (188 lines)
 - PURPOSE: E-natr-002 (phase R3, confirmation step; PREPARED, NOT QUEUED): the single frozen H2 run of the 1h NATR range forecast. Checks the frozen rules against the card, opens bucket H2 ONCE through holdout_guard.open_holdout, resamples Drive hist…
 - TAGS: h2 confirmation, e-natr-002, r3, frozen rules, holdout, colab job, natr range forecast, run contract
 - PITFALLS: Everything that can fail cheaply (config keys, frozen-file hash vs card, rule constants vs tools/natr_range.py) is checked BEFORE the bucket is opened, because a successful open burns H2 even if the run crashes later. Never run it twice (the guard refuses). Run from the repo root on Colab with Drive mounted; CSP_DRIVE_ROOT/history_15m is data_dir.
@@ -26,8 +26,9 @@ Documents:
 - API:
   - `def complete_config(cfg)` L38
   - `def load_config(path)` L48
-  - `def run(cfg, out_dir, max_minutes, lock=None)` L77
-  - `def main(argv=None)` L141
+  - `def sparse_verdict(ev, fr)` L82
+  - `def run(cfg, out_dir, max_minutes, lock=None)` L110
+  - `def main(argv=None)` L174
 
 ### `research/natr_range/run_natr_range.py` (130 lines)
 - PURPOSE: E-natr-001 run (phase R3): is a log-log quantile regression on NATR_14 a calibrated forecast of the next 1h / 1d range (p10/p50/p90, percent of close)? Fits on train, evaluates on val against per-coin trailing-90-bar quantiles, applies the…

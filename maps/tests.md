@@ -418,15 +418,17 @@
   - `class PanelMultiTFTests(unittest.TestCase)` L453
     - (4 methods)
 
-### `tests/test_natr_confirm.py` (152 lines)
+### `tests/test_natr_confirm.py` (216 lines)
 - PURPOSE: R3 H2 confirmation preparation (NOT run, NOT queued): nr.evaluate_frozen, the frozen rules file, the confirmation card and (from docstring)
 - DEPENDS: tools
 - API:
   - `class TestEvaluateFrozen(unittest.TestCase)` L37
     - (1 methods)
-  - `class TestFrozenFilesInRepo(unittest.TestCase)` L48
+  - `class TestSparseVerdict(unittest.TestCase)` L58
+    - (7 methods)
+  - `class TestFrozenFilesInRepo(unittest.TestCase)` L110
     - (3 methods)
-  - `class TestConfirmRun(unittest.TestCase)` L93
+  - `class TestConfirmRun(unittest.TestCase)` L157
     - (6 methods)
 
 ### `tests/test_natr_range.py` (308 lines)

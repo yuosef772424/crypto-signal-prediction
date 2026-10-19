@@ -31,7 +31,8 @@ def build():
             "natr_period": nr.NATR_PERIOD, "baseline_window": nr.BASELINE_WINDOW, "models": tf["models"], "edges": tf["edges"],
             "eval_start": "2025-01-01", "eval_end": "2026-10-01", "min_coins": 20,
             "rule": {"cover_target": nr.COVER_TARGET, "overall_tol": nr.OVERALL_TOL, "decile_tol": nr.DECILE_TOL,
-                     "min_pinball_deciles": nr.MIN_PINBALL_DECILES, "ic_month_share_pct": nr.MIN_IC_MONTH_SHARE_PCT}}
+                     "min_pinball_deciles": nr.MIN_PINBALL_DECILES, "ic_month_share_pct": nr.MIN_IC_MONTH_SHARE_PCT},
+            "sparse_rule": {"min_decile_n": 200, "min_evaluable_deciles": 6, "pinball_win_frac": 0.8}}
 
 
 def main():

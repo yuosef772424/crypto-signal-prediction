@@ -64,6 +64,11 @@
  "source_minutes": 15,
  "source_run": "research/natr_range/results/e_natr_001_run1",
  "source_run_git_sha": "05963754dcc22af15b1b244a07cba7b36bd44154",
+ "sparse_rule": {
+  "min_decile_n": 200,
+  "min_evaluable_deciles": 6,
+  "pinball_win_frac": 0.8
+ },
  "step_minutes": 60,
  "timeframe": "1h",
  "version": 1
