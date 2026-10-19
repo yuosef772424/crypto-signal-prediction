@@ -1,0 +1,4 @@
+min_run,split,n_rows_off,zero_share_off,n_rows_on,zero_share_on,stale_row_share,zero_rows_from_stale_share
+7,train,483426,0.009513,480403,0.003303,0.006253,0.654925
+7,val,60732,0.00489,60732,0.00489,0.0,0.0
+7,test,60492,0.004166,60492,0.004166,0.0,0.0

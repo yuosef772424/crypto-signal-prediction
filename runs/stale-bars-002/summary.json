@@ -1,0 +1,50 @@
+{
+ "1D": {
+  "dead_coins_by_tail": {},
+  "min_run": 7,
+  "min_run_hours": 168,
+  "n_coins": 860,
+  "n_dead": 0,
+  "rows_total": 604650,
+  "tail_bars_quantiles": {
+   "0.5": 0.0,
+   "0.9": 0.0,
+   "0.99": 0.0,
+   "1.0": 0.0
+  },
+  "zero_rows_from_stale": 3012,
+  "zero_rows_total": 5148
+ },
+ "1h": {
+  "dead_coins_by_tail": {},
+  "min_run": 168,
+  "min_run_hours": 168,
+  "n_coins": 860,
+  "n_dead": 0,
+  "rows_total": 14520262,
+  "tail_bars_quantiles": {
+   "0.5": 0.0,
+   "0.9": 0.0,
+   "0.99": 1.0,
+   "1.0": 1.0
+  },
+  "zero_rows_from_stale": 72444,
+  "zero_rows_total": 363724
+ },
+ "4h": {
+  "dead_coins_by_tail": {},
+  "min_run": 42,
+  "min_run_hours": 168,
+  "n_coins": 860,
+  "n_dead": 0,
+  "rows_total": 3629842,
+  "tail_bars_quantiles": {
+   "0.5": 0.0,
+   "0.9": 0.0,
+   "0.99": 0.0,
+   "1.0": 0.0
+  },
+  "zero_rows_from_stale": 18104,
+  "zero_rows_total": 54311
+ }
+}

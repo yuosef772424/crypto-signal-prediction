@@ -1,0 +1,11 @@
+# colab_runner log for stale-bars-002 started 2026-10-19T20:39:30Z
+== checkout ok: de3a49d9fc9912582ee438ecd33bcc63530b6673
+== install -q --disable-pip-version-check -r requirements-ci.txt
+== run: /usr/bin/python3 tools/stale_bars_colab_job.py --config /content/csp_runner/tmp/stale-bars-002.config.json --out /content/csp_runner/out/stale-bars-002 --max-minutes 40
+/content/csp_runner/repo/tools/stale_bars_colab_job.py:71: UserWarning: obj.round has no effect with datetime, timedelta, or period dtypes. Use obj.dt.round(...) instead.
+  coins[keep].round(6).to_csv(os.path.join(out_dir, f"coins_{tf}.csv"), index=False)
+/content/csp_runner/repo/tools/stale_bars_colab_job.py:71: UserWarning: obj.round has no effect with datetime, timedelta, or period dtypes. Use obj.dt.round(...) instead.
+  coins[keep].round(6).to_csv(os.path.join(out_dir, f"coins_{tf}.csv"), index=False)
+/content/csp_runner/repo/tools/stale_bars_colab_job.py:71: UserWarning: obj.round has no effect with datetime, timedelta, or period dtypes. Use obj.dt.round(...) instead.
+  coins[keep].round(6).to_csv(os.path.join(out_dir, f"coins_{tf}.csv"), index=False)
+stale-bars job ok: 860 files, timeframes ['1h', '4h', '1D']
