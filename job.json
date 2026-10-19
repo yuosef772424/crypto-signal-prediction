@@ -1,35 +1,18 @@
 {
- "job_id": "stale-bars-001",
- "repo_ref": "de20d964c25b23b9b7ade30b5e91291efb7a0ee7",
- "entry": "tools/stale_bars_colab_job.py",
+ "job_id": "trim-tails-001-dry",
+ "repo_ref": "85453cd68db7706b8325901e796d3de987bb85bb",
+ "entry": "tools/trim_dead_tails_colab_job.py",
  "args": [],
  "config": {
   "data_dir": "history_15m",
-  "timeframes": [
-   "1h",
-   "4h",
-   "1D"
-  ],
-  "horizon": 1,
-  "min_run": null,
-  "quantile": 0.99,
-  "floor": 2,
-  "train_pct": 0.8,
-  "val_pct": 0.1,
-  "max_coins": null
+  "dry_run": true
  },
- "max_minutes": 40,
+ "max_minutes": 50,
  "needs_drive": true,
  "expected_outputs": [
+  "manifest.json",
   "summary.json",
-  "coins_1h.csv",
-  "coins_4h.csv",
-  "coins_1D.csv",
-  "splits_pooled_1h.csv",
-  "splits_pooled_4h.csv",
-  "splits_pooled_1D.csv"
+  "trimmed_coins.csv"
  ],
- "note": "Stale/zero-target audit (claude/zero-target-fix de20d96): zero share per split OFF/ON, dead coins.",
- "rerun": true,
- "pip": []
+ "note": "Dry run: counts dead zero-volume tails per coin, writes nothing to Drive. Not queued."
 }
