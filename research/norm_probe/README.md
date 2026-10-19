@@ -70,7 +70,7 @@ Add a NEW option in `data/` (e.g. `price_norm_mode='logret_std'`, default stays 
 are reproduced exactly) that feeds the price columns as per-bar log returns relative to the previous close
 (`log(H/C_prev)`, `log(L/C_prev)`, `log(C/C_prev)`), standardized with mean/std fitted on the TRAIN split only and stored in the
 dataset (clip 5, = V4); rank/quantile (V5) and Min-Max (V1) are not recommended. Keep V3 (`/ trailing 14-bar sigma`, clip 5) as a
-second option to test, because it has the best rank and is the only variant whose AUCs rise on all four high/low classes
-(delta +0.006..+0.013 with CI above 0). The next step is a model experiment under `MODEL_DEV_PROTOCOL.md` (one change: V4 or V3
+second option to test, because it has the best rank and is the only variant whose AUC rises for both the high and the low
+class with the CI above 0 (delta +0.009 [.006,.013] and +0.009 [.005,.013]). The next step is a model experiment under `MODEL_DEV_PROTOCOL.md` (one change: V4 or V3
 vs V0, 3 seeds, predicted movement: layer effective rank above V0's 2-12% and the linear-reference gap shrinking); this probe
 alone does not show that the network will use the extra rank.
