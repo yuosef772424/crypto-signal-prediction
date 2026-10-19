@@ -221,7 +221,7 @@
 - colab: data/drive, edge_discovery/25_image_cnn, tools/colab_bridge, tools/colab_runner, tools/colab_smoke, tools/data_manifest … (+1)
 - colab cell: tools/data_manifest_colab_cell, tools/fetch_history_colab_cell
 - colab disconnect: trainer/epoch_callbacks
-- colab job: natr_range/run_natr_calibrate, natr_range/run_natr_confirm, natr_range/run_natr_rolling, tools/stale_bars_colab_job, tools/trim_dead_tails_colab_job
+- colab job: natr_range/run_natr_calibrate, natr_range/run_natr_confirm, natr_range/run_natr_confirm_forward, natr_range/run_natr_rolling, tools/stale_bars_colab_job, tools/trim_dead_tails_colab_job
 - colab-queue: tools/colab_runner
 - colab-results: tools/colab_runner
 - collect_signals: workflow/selective_eval
@@ -405,6 +405,7 @@
 - e-natr-002: natr_range/freeze_rules, natr_range/run_natr_confirm
 - e-natr-003: natr_range/run_natr_calibrate
 - e-natr-004: natr_range/run_natr_rolling
+- e-natr-004-confirm: natr_range/run_natr_confirm_forward
 - e-normprobe-1: norm_probe/run_norm_probe
 - e-srch-002: strategy_discovery/intraday_macd
 - e-srch-003: strategy_discovery/seasonality15m
@@ -522,6 +523,7 @@
 - float16: evaluation/legacy_uncertainty, workflow/batches
 - flush curve: edge_discovery/10_flush_curve
 - format_latest_table: evaluation/latest_table
+- forward confirmation: natr_range/run_natr_confirm_forward
 - forward reference: tools/implicit_deps
 - forward return: edge_discovery/lib
 - forward test: strategy_discovery/forward, tools/h07_forward
@@ -532,6 +534,7 @@
 - fresh bars: strategy_discovery/oos, strategy_discovery/survivor_checks
 - from __future__: data/common
 - from __future__ annotations: signal_eval/common
+- frozen config: natr_range/run_natr_confirm_forward
 - frozen dataclass: workflow/settings
 - frozen hypothesis: strategy_discovery/forward
 - frozen rules: natr_range/freeze_rules, natr_range/run_natr_confirm
@@ -754,6 +757,7 @@
 - load_data_from_drive: data/storage
 - load_dataset: workflow/run
 - load_dataset_dir: data/storage
+- load_forward: natr_range/run_natr_confirm_forward
 - load_funding_open_interest: data/binance_client
 - load_into: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, tools/implicit_deps … (+2)
 - load_notebook_defs: discovery/axis_loader
@@ -882,7 +886,7 @@
 - n_display: evaluation/unified
 - naive baseline: evaluation/integrity
 - natr: data/cross_sectional_features, tools/natr_range
-- natr range forecast: natr_range/run_natr_calibrate, natr_range/run_natr_confirm, natr_range/run_natr_range, natr_range/run_natr_rolling
+- natr range forecast: natr_range/run_natr_calibrate, natr_range/run_natr_confirm, natr_range/run_natr_confirm_forward, natr_range/run_natr_range, natr_range/run_natr_rolling
 - natr regime exit: hedge_recovery/sim
 - navigation: tools/build_map
 - near duplicates: norm_probe/run_norm_probe
@@ -1053,7 +1057,7 @@
 - quintiles: edge_discovery/03_quintiles
 - r multiple: edge_discovery/22_chart_rules, indicator_strategy/engine, tools/trade_engine
 - r0: tools/build_lock, tools/data_manifest, tools/data_manifest_colab_cell, tools/holdout_guard, tools/touched_ledger
-- r3: natr_range/freeze_rules, natr_range/run_natr_calibrate, natr_range/run_natr_confirm, natr_range/run_natr_range, natr_range/run_natr_rolling, tools/natr_range
+- r3: natr_range/freeze_rules, natr_range/run_natr_calibrate, natr_range/run_natr_confirm, natr_range/run_natr_confirm_forward, natr_range/run_natr_range, natr_range/run_natr_rolling … (+1)
 - ram: data/disk_backed
 - ram cap: data/parallel
 - random control: hedge_recovery/sim, hedge_recovery/sim2
@@ -1138,7 +1142,7 @@
 - rmsnorm: model/transformer
 - robustness: edge_discovery/15_h07_robust, strategy_discovery/robustness, strategy_discovery/survivor_checks
 - robustness_agg: discovery/survey
-- rolling recalibration: natr_range/run_natr_rolling
+- rolling recalibration: natr_range/run_natr_confirm_forward, natr_range/run_natr_rolling
 - rolling_splits: data/split, signal_eval/integration
 - rotation portfolio: strategy_discovery/rotation
 - round-trip: evaluation/verify, tools/nb_cells
@@ -1272,6 +1276,7 @@
 - spot: tools/fetch_crypto_dataset
 - squeeze breakout: strategy_discovery/grid
 - stablecoin: edge_discovery/20_onchain
+- stage b: natr_range/run_natr_confirm_forward
 - stage-2 logistic: edge_discovery/30_envelope_direction
 - stale bars: natr_range/run_natr_calibrate, tools/stale_bars_audit, tools/stale_bars_colab_job, tools/trim_dead_tails
 - stale_bars: tools/stale_bars_audit
@@ -1352,7 +1357,7 @@
 - threads: data/parallel
 - tier 0: core/__init__
 - time of day: strategy_discovery/seasonality15m
-- time seal: tools/holdout_guard
+- time seal: natr_range/run_natr_confirm_forward, tools/holdout_guard
 - time-series screen: edge_discovery/08_ts_screen
 - time_hour: data/custom
 - timeframe resample: indicator_strategy/engine, tools/trade_engine

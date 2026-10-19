@@ -9,6 +9,8 @@ PITFALLS: Fails closed: with no holdout.json (or a holdout.sha256 that does not 
           matched after upper-casing, with and without a trailing USDT. An opened bucket still never returns a bar at or
           after the seal, and a refused card does not burn the bucket (only a successful open writes a log row). The plain
           loader keeps refusing sealed symbols after their bucket was opened: confirmation uses the handle.
+          `load_forward(data_dir, coins, start, end, card_path)` is the ONE reviewed way to read bars at or after the seal (see its
+          docstring): unsealed coins only, forward bars only, confirmation card with a matching frozen-config sha256, one log row.
 
 Usage:
     import holdout_guard as hg
@@ -35,6 +37,8 @@ except ImportError:                                             # pragma: no cov
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOCK_DIR = os.path.join(ROOT, "docs", "research", "plan", "lock")
 TIME_SEAL = pd.Timestamp("2026-10-01", tz="UTC")
+FORWARD_START = TIME_SEAL                       # load_forward reads ONLY bars with open time >= this
+FORWARD_BUCKET = "FWD"                          # bucket label of the forward-read rows in holdout_access_log.csv
 BUCKETS = ("H1", "H2", "H3", "H4", "H5", "H6")
 LOG_COLUMNS = ["opened_at_utc", "bucket", "card_path", "card_sha256", "frozen_rules_sha256", "git_head"]
 DEFAULT_PATTERN = "{symbol}.csv.gz"
@@ -208,6 +212,70 @@ def _git_head():
         return out.stdout.strip() or "unknown"
     except Exception:                                           # noqa: BLE001
         return "unknown"
+
+
+def load_forward(data_dir, coins, start, end, card_path, *, pattern=DEFAULT_PATTERN, lock=None):
+    """Forward-read path (time seal, D-009/D-010): {coin: bars} with open time in [start, end) for coins that are in NO sealed bucket.
+
+    Contract: `start` >= FORWARD_START (2026-10-01) and `end` > `start`, both required; every coin unsealed (any spelling); the card
+    (front matter) says `confirmation: true`, `forward_confirmation: true`, optionally `forward_start: 2026-10-01` (must equal the seal),
+    a 64-hex `frozen_config_sha256` and a `frozen_config_file` that exists and hashes to it. Every refusal happens BEFORE any file is read.
+    After a successful read exactly ONE row (bucket FWD, card path/sha256, frozen sha256, git head) is appended to
+    holdout_access_log.csv (append-only, flock). No sealed bucket H1..H6 is opened and no row of those is written; the existing loaders
+    are unchanged and still refuse the seal."""
+    lock = _lock(lock)
+    syms = [coins] if isinstance(coins, str) else list(coins)
+    if not syms:
+        raise ValueError("no coins given")
+    start, end = _ts(start, "start"), _ts(end, "end")
+    if start < FORWARD_START:
+        raise SealedAccessError(f"load_forward reads only bars at or after {FORWARD_START.isoformat()}; start {start} is earlier")
+    if start >= end:
+        raise ValueError(f"empty window: start {start} >= end {end}")
+    hits = _sealed_hits(syms, lock)
+    if hits:
+        raise SealedAccessError(f"sealed symbol(s) requested: {sorted(set(hits))}")
+    meta, card_sha = _parse_card(str(card_path))
+    if meta.get("confirmation", "").lower() != "true" or meta.get("forward_confirmation", "").lower() != "true":
+        raise HoldoutOpenError(f"{card_path}: front matter must say 'confirmation: true' and 'forward_confirmation: true'")
+    if "forward_start" in meta and _ts(meta["forward_start"], "forward_start") != FORWARD_START:
+        raise HoldoutOpenError(f"{card_path}: forward_start {meta['forward_start']} is not the time seal {FORWARD_START.date()}")
+    frozen = meta.get("frozen_config_sha256", "")
+    if not _HEX64.match(frozen):
+        raise HoldoutOpenError(f"{card_path}: front matter needs 'frozen_config_sha256: <64 lowercase hex>'")
+    rf = meta.get("frozen_config_file")
+    if not rf:
+        raise HoldoutOpenError(f"{card_path}: front matter needs 'frozen_config_file'")
+    rf = rf if os.path.isabs(rf) else os.path.join(ROOT, rf)
+    if not os.path.isfile(rf) or _sha256_file(rf) != frozen:
+        raise HoldoutOpenError(f"{card_path}: frozen_config_file {meta['frozen_config_file']} is missing or does not hash to frozen_config_sha256")
+    log = os.path.join(lock.lock_dir, "holdout_access_log.csv")
+    if not os.path.isfile(log):
+        raise LockError(f"{log}: access log not found")
+    out = {}
+    for c in syms:
+        df = _read_bars(os.path.join(str(data_dir), pattern.format(symbol=str(c).strip())))
+        df = df[(df.index >= start) & (df.index < end)]
+        if len(df) and df.index.min() < FORWARD_START:                  # defence in depth: cannot happen after the start check
+            raise SealedAccessError("a bar before the forward start was about to be returned")
+        out[_norm(c)] = df
+    shown = os.path.relpath(str(card_path), ROOT).replace(os.sep, "/") if str(card_path).startswith(ROOT) else str(card_path)
+    with open(log, "a+", encoding="utf-8", newline="") as f:
+        if fcntl:
+            fcntl.flock(f, fcntl.LOCK_EX)
+        try:
+            f.seek(0)
+            if f.readline().rstrip("\r\n") != ",".join(LOG_COLUMNS):
+                raise LockError(f"{log}: header is not {LOG_COLUMNS}")
+            f.seek(0, 2)
+            csv.writer(f, lineterminator="\n").writerow(
+                [pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%dT%H:%M:%SZ"), FORWARD_BUCKET, shown, card_sha, frozen, _git_head()])
+            f.flush()
+            os.fsync(f.fileno())
+        finally:
+            if fcntl:
+                fcntl.flock(f, fcntl.LOCK_UN)
+    return out
 
 
 @dataclass(frozen=True)
