@@ -14,3 +14,4 @@ Do not re-argue an accepted decision; supersede it with a new file.
 | [D-007](D-007-five-minute-source.md) | 5m data from the fetch tool (10 coins) | Accepted |
 | [D-008](D-008-gate-style-features.md) | Gate-style derived features (G2) | Accepted |
 | [D-009](D-009-two-level-holdout.md) | Two-level holdout (A untouched, B daily-only touched) | Accepted |
+| [D-010](D-010-dead-coins-amendment.md) | R0 lock amendment: dead coins in the sealed buckets (trim-tails-001) | Accepted |
