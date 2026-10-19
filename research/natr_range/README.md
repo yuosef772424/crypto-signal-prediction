@@ -45,3 +45,8 @@ Sparse deciles: settled by the 2026-10-19 amendment of the card (deciles with n 
 ## E-natr-003: high-NATR calibration (Stage A prepared, NOT run, NOT queued)
 Card `cards/E-natr-003.md` (pre-registered: localization rule, per-NATR-decile train-only p10/p90 correction fitted on a 2024 calibration slice, Stage A rule on the open coins, Stage B on forward data >= 2026-10-01 from 2027-01-01).
 Code: `tools/natr_range.py` (`fit_decile_corrections`, `oof_decile_diagnostic`, `classify_localization`, `drop_stale_runs`; new optional arguments only), `run_natr_calibrate.py`; job `e_natr_003_job.json` (`repo_ref` = the feat commit). The card's registry check passes once F-0083 (PR #31) is on master.
+
+## E-natr-003 Stage A result (2026-10-19): REJECTED by rule 7 (F-0084)
+Bundle `results/e_natr_003_explore/` (`RESULT.md`). Rules 1-6 pass (coverage 80.18 %, all deciles 78.9-81.8 %, pinball 10/10, IC 21/21, top decile 79.17 % in 2025 and 81.11 % in 2026 vs control 75.60 / 78.15, 10 coins);
+localization = drift (pooled OOF top 81.37 %; folds 2021 82.6, 2022 81.8, 2023 75.7, 2024 76.1), so accepted = False and Stage B is not run. The under-coverage appears from 2023 on (regime drift), not a static misfit.
+Next: `cards/E-natr-004.md` (rolling recalibration; prepared, not run, not queued).
