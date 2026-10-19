@@ -1,0 +1,14 @@
+# colab_runner log for natr002-h2-confirm started 2026-10-19T20:33:15Z
+== checkout ok: cf395ff5466d19024162f634c55ddea848e04c31
+== install -q --disable-pip-version-check -r requirements-ci.txt
+== run: /usr/bin/python3 research/natr_range/run_natr_confirm.py --config /content/csp_runner/tmp/natr002-h2-confirm.config.json --out /content/csp_runner/out/natr002-h2-confirm --max-minutes 20
+{
+ "access_log_row.csv": "54b796abc6e5cae0c18f83fa32852fde05cb93f21b3374effba1137ea8614b4f",
+ "deciles.csv": "4925447ca9b68d6659e69d024b9a35a60fae36c254c7188a4bd33afccafa514b",
+ "months.csv": "8e1f7acc96d006829107df83ca428a809e7fc6bd5437001bf4581b852f310972",
+ "results.json": "2f4ad7cbd3ed2c1e1c04c056c00b977c35299f6532983ffa983e85e16d741830",
+ "slices.csv": "db75e86a7dd2b195fb0238ffc35693e5f4090ec04bbbae8dbbc2a1c2a132682e",
+ "summary.csv": "c4277e6cee58cb392882ac8cba3d580dadf690ee6fcfe609057609d3b315aa70"
+}
+truncated: False coins used: 36 skipped: 0
+{"coverage": 0.7936910492384889, "overall_ok": true, "deciles_ok": false, "pinball_deciles_better": 10, "pinball_ok": true, "ic_months": 21, "ic_positive_months": 21, "ic_ok": true, "accepted": false, "n_evaluable_deciles": 10, "pinball_needed": 8, "enough_deciles_ok": true, "sparse_deciles": [], "coins_ok": true}
