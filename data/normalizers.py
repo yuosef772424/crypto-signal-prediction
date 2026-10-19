@@ -71,7 +71,6 @@ class Normalizer:
     * خطافات البناء (windows) والتقسيم (split) والبيانات الحيّة أدناه؛ الافتراضي منها «لا شيء» (= window_scale)."""
     name: str = ''
     supports_cross_sectional = True       # cross_sectional_normalize يعيد تقييس y_*_reg: يرفضه من أهدافه مرتبطة بإحصاءات train
-    supports_live = True                  # build_dataset_live يقبل هذا التطبيع
 
     # ── بناء النوافذ ─────────────────────────────────────────────────────────
     def check_config(self, config: dict, targets, tf_order, features) -> None:
@@ -108,6 +107,14 @@ class Normalizer:
 
     def fit(self, train: Dict, *, feature_order: List[str], timeframes: List[str], clip: float = PRICE_NORM_CLIP) -> Dict:
         return {'version': 1, 'mode': self.name}
+
+    # ── البيانات الحيّة ──────────────────────────────────────────────────────
+    def check_live_state(self, state: Optional[Dict]) -> None:
+        """يرفع ``ValueError`` قبل أي جلب إن لزم هذا التطبيع حالة train ولم تُمرَّر؛ الافتراضي: لا شرط."""
+
+    def prepare_live(self, dataset: Dict, state: Optional[Dict]) -> Dict:
+        """مجموعة بيانات حيّة (بعد حذف الذيل الصوري) بتطبيق ``state`` المُلائمة على train؛ الافتراضي: بلا مساس."""
+        return dataset
 
     def stamp_split(self, data: Dict, split: Dict, state: Optional[Dict]) -> Dict:
         """قسم واحد من ``data`` بعد تطبيق/ختم ``state``؛ الافتراضي: بلا مساس."""
@@ -183,7 +190,12 @@ class WindowScale(Normalizer):
 # ══════════════════════════════════════════════════════════════════════════
 class _LogretBase(Normalizer):
     supports_cross_sectional = False
-    supports_live = False
+
+    def check_live_state(self, state):
+        if state is None or state.get('mode') != self.name:
+            raise ValueError(f"build_dataset_live بوضع {self.name!r} يحتاج الحالة المُلائمة على train: مرّر "
+                             f"price_norm_meta = train['price_norm_meta'] (mode={self.name!r}؛ المُمرَّر: "
+                             f"{None if state is None else state.get('mode')!r})")
 
     def check_config(self, config, targets, tf_order, features):
         """شروط الأوضاع logret_*: ترفع ``ValueError`` بدل تخمين ما لا يُعبَّر عنه بتناسق (انظر docstring prepare_single_asset)."""
@@ -344,6 +356,13 @@ class LogretStd(_LogretBase):
                 y[k] = ((np.asarray(y[k], dtype='float64') - st['mean']) / st['std']).astype('float32')
         return y
 
+    def prepare_live(self, dataset, state):
+        self.check_live_state(state)
+        out = self.normalize_targets(self.transform_inputs(dataset, state), state)       # نفس تحويل التقسيم التاريخي
+        out['price_norm_meta'] = state
+        out['price_norm_state'] = 'fitted'
+        return out
+
     def stamp_split(self, data, split, state):
         if not self.fit_at_split(data):                      # مُلائمة سلفاً: يُختم state البيانات فقط
             meta = data['price_norm_meta']
@@ -392,6 +411,10 @@ class LogretSigma(_LogretBase):
                 'sigma_n': PRICE_NORM_SIGMA_N, 'sigma_floor': PRICE_NORM_SIGMA_FLOOR,
                 'inputs': {tf: {'columns': [n for n, _ in ch], 'index': [j for _, j in ch]} for tf in timeframes},
                 'targets': {}}
+
+    def prepare_live(self, dataset, state):
+        self.check_live_state(state)
+        return dict(dataset, price_norm_meta=state)
 
     def stamp_split(self, data, split, state):
         return dict(split, price_norm_meta=data['price_norm_meta'], price_norm_mode=self.name)

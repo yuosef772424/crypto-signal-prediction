@@ -190,7 +190,7 @@
   - `def validate_head_config(config: Optional[dict]=None, verbose: bool=True) -> List[str]` L154
   - `def head_loss_weights(config: Optional[dict]=None, as_outputs: bool=True) -> Dict[str, float]` L211
 
-### `data/live.py` (254 lines)
+### `data/live.py` (257 lines)
 - PURPOSE: Live dataset built with the very same prepare_single_asset (Binance instead of Drive): dummy tail padding, drop_tail_per_asset, extract_last_batch.
 - TAGS: live, build_dataset_live, extract_last_batch, drop_tail_per_asset, dummy tail, inference
 - PITFALLS: The last row per coin has real features but a dummy target; never evaluate on it. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
@@ -199,7 +199,7 @@
 - API:
   - `def drop_tail_per_asset(dataset: Dict, n: int) -> Dict` L147
   - `def extract_last_batch(dataset: Dict, n: int=1) -> Dict` L155
-  - `def build_dataset_live(symbols: List[str], limit: Optional[int]=None, max_workers: Optional[int]=None, config: Optional[dict]=None, **kwargs) -> Dict` L171
+  - `def build_dataset_live(symbols: List[str], limit: Optional[int]=None, max_workers: Optional[int]=None, config: Optional[dict]=None, price_norm_meta: Optional[dict]=None, **kwargs) -> Dict` L171
 
 ### `data/market_context.py` (190 lines)
 - PURPOSE: Cross-asset market context: features of a reference coin (BTC by default) added as MKT_* columns to every other coin, time-aligned; zero for the reference itself.
@@ -234,7 +234,7 @@
   - `def describe_features(features: List[str]) -> Dict[str, List[str]]` L578
   - `def audit_normalization(windows: np.ndarray, features: List[str], verbose: bool=True, config: Optional[dict]=None) -> pd.DataFrame` L586
 
-### `data/normalizers.py` (462 lines)
+### `data/normalizers.py` (485 lines)
 - PURPOSE: ONE registered Normalizer interface behind every price normalization mode ('window_scale', 'logret_std', 'logret_sigma'; the legacy window-level 'pct_change' resolves to 'window_scale' via normalizer_for_mode): fit on train only -> a plain…
 - TAGS: normalizer, normalizers, get_normalizer, normalizer_for_mode, normalizer_for_data, windowscale, logretstd, logretsigma, fit, transform_inputs, normalize_targets, inverse_targets, state_from_config, price_norm_meta, fit_price_norm, denormalize_price_targets, normalize_price_targets, finish_price_norm, stamp_price_norm, trailing_close_sigma, price_norm_channels, normalization, تطبيع
 - PITFALLS: Add a normalizer = write a Normalizer subclass and put it in NORMALIZERS (nothing else to edit; its name is the value of CONFIG['price_norm_mode'] once PRICE_NORM_MODES in normalize.py lists it). fit sees TRAIN only; its state is a JSON-safe dict stored on every split (split['price_norm_meta']) and is the only thing the inverse/live path needs. 'window_scale' stores no state in datasets (default…
@@ -246,51 +246,55 @@
   - `def trailing_close_sigma(close: np.ndarray, n: int=PRICE_NORM_SIGMA_N, floor: float=PRICE_NORM_SIGMA_FLOOR) -> np.ndarray` L28
   - `def price_norm_channels(feature_order: List[str]) -> List[Tuple[str, int]]` L37
   - `class Normalizer` L63
-    - `.check_config(self, config: dict, targets, tf_order, features) -> None` L77
-    - `.lookback_bars(self) -> int` L80
-    - `.window_context(self, raw_close: np.ndarray)` L84
-    - `.sample_valid(self, last_c, future_close, future_low_min, future_high_max) -> bool` L88
-    - `.raw_reg_target(self, future: float, last_c: float) -> Optional[float]` L91
-    - `.build_inputs(self, windows, features, centers, scales, scaler_type, config, *, tf, is_base, price_df, end_idxs, win_base, i_close_feat, context=None) -> np.ndarray` L95
-    - `.dataset_fields(self, config: dict, features: List[str], tf_order: List[str]) -> Dict` L101
-    - `.fit_at_split(self, data: Dict) -> bool` L105
-    - `.fit(self, train: Dict, *, feature_order: List[str], timeframes: List[str], clip: float=PRICE_NORM_CLIP) -> Dict` L109
-    - `.stamp_split(self, data: Dict, split: Dict, state: Optional[Dict]) -> Dict` L112
-    - `.stamp(self, data: Dict, split_or_assets: Dict, state: Optional[Dict]=None) -> Dict` L116
-    - `.transform_inputs(self, X: Dict, state: Dict) -> Dict` L121
-    - `.normalize_targets(self, y: Dict, state: Dict) -> Dict` L124
-    - `.state_from_config(self, config: dict, scale: Optional[float]=None) -> Dict` L127
-    - `.anchor_column(self, head: str) -> str` L131
-    - `.normalize_prices(self, price, state: Dict, last_close, head: str='high') -> np.ndarray` L135
-    - `.inverse_targets(self, pred, state: Dict, last_close, head: str='high', output: str='price', **kw) -> np.ndarray` L138
-  - `class WindowScale(Normalizer)` L145
-    - `.dataset_fields(self, config, features, tf_order)` L150
-    - `.state_from_config(self, config, scale=None)` L157
-    - `.anchor_column(self, head)` L161
-    - `.normalize_prices(self, price, state, last_close, head='high')` L167
-    - `.inverse_targets(self, pred, state, last_close, head='high', output='price', bases=None, **kw)` L171
-  - `class LogretStd(_LogretBase)` L283
-    - `.dataset_fields(self, config, features, tf_order)` L289
-    - `.fit_at_split(self, data)` L292
-    - `.fit(self, train, *, feature_order, timeframes, clip=PRICE_NORM_CLIP)` L295
-    - `.transform_inputs(self, X, state)` L323
-    - `.normalize_targets(self, y, state)` L339
-    - `.stamp_split(self, data, split, state)` L347
-  - `class LogretSigma(_LogretBase)` L365
-    - `.lookback_bars(self)` L378
-    - `.window_context(self, raw_close)` L381
-    - `.dataset_fields(self, config, features, tf_order)` L384
-    - `.fit(self, train, *, feature_order, timeframes, clip=PRICE_NORM_CLIP)` L388
-    - `.stamp_split(self, data, split, state)` L396
-  - `def get_normalizer(name: str) -> Normalizer` L404
-  - `def normalizer_for_mode(mode: str) -> Normalizer` L411
-  - `def normalizer_for_data(data: Dict) -> Normalizer` L416
-  - `def normalize_price_targets(price: np.ndarray, meta: Dict, last_close: np.ndarray, head: str='high') -> np.ndarray` L424
-  - `def denormalize_price_targets(pred: np.ndarray, meta: Dict, last_close: np.ndarray, head: str='high', output: str='price') -> np.ndarray` L429
-  - `def fit_price_norm(train: Dict, feature_order: List[str], timeframes: List[str], mode: str=PRICE_NORM_LOGRET_STD, clip: float=PRICE_NORM_CLIP) -> Dict` L440
-  - `def price_norm_unfitted(data: Dict) -> bool` L446
-  - `def stamp_price_norm(data: Dict, split_or_assets: Dict, meta: Optional[Dict]=None) -> Dict` L451
-  - `def finish_price_norm(data: Dict, train: Dict, val: Dict, test: Dict)` L456
+    - `.check_config(self, config: dict, targets, tf_order, features) -> None` L76
+    - `.lookback_bars(self) -> int` L79
+    - `.window_context(self, raw_close: np.ndarray)` L83
+    - `.sample_valid(self, last_c, future_close, future_low_min, future_high_max) -> bool` L87
+    - `.raw_reg_target(self, future: float, last_c: float) -> Optional[float]` L90
+    - `.build_inputs(self, windows, features, centers, scales, scaler_type, config, *, tf, is_base, price_df, end_idxs, win_base, i_close_feat, context=None) -> np.ndarray` L94
+    - `.dataset_fields(self, config: dict, features: List[str], tf_order: List[str]) -> Dict` L100
+    - `.fit_at_split(self, data: Dict) -> bool` L104
+    - `.fit(self, train: Dict, *, feature_order: List[str], timeframes: List[str], clip: float=PRICE_NORM_CLIP) -> Dict` L108
+    - `.check_live_state(self, state: Optional[Dict]) -> None` L112
+    - `.prepare_live(self, dataset: Dict, state: Optional[Dict]) -> Dict` L115
+    - `.stamp_split(self, data: Dict, split: Dict, state: Optional[Dict]) -> Dict` L119
+    - `.stamp(self, data: Dict, split_or_assets: Dict, state: Optional[Dict]=None) -> Dict` L123
+    - `.transform_inputs(self, X: Dict, state: Dict) -> Dict` L128
+    - `.normalize_targets(self, y: Dict, state: Dict) -> Dict` L131
+    - `.state_from_config(self, config: dict, scale: Optional[float]=None) -> Dict` L134
+    - `.anchor_column(self, head: str) -> str` L138
+    - `.normalize_prices(self, price, state: Dict, last_close, head: str='high') -> np.ndarray` L142
+    - `.inverse_targets(self, pred, state: Dict, last_close, head: str='high', output: str='price', **kw) -> np.ndarray` L145
+  - `class WindowScale(Normalizer)` L152
+    - `.dataset_fields(self, config, features, tf_order)` L157
+    - `.state_from_config(self, config, scale=None)` L164
+    - `.anchor_column(self, head)` L168
+    - `.normalize_prices(self, price, state, last_close, head='high')` L174
+    - `.inverse_targets(self, pred, state, last_close, head='high', output='price', bases=None, **kw)` L178
+  - `class LogretStd(_LogretBase)` L295
+    - `.dataset_fields(self, config, features, tf_order)` L301
+    - `.fit_at_split(self, data)` L304
+    - `.fit(self, train, *, feature_order, timeframes, clip=PRICE_NORM_CLIP)` L307
+    - `.transform_inputs(self, X, state)` L335
+    - `.normalize_targets(self, y, state)` L351
+    - `.prepare_live(self, dataset, state)` L359
+    - `.stamp_split(self, data, split, state)` L366
+  - `class LogretSigma(_LogretBase)` L384
+    - `.lookback_bars(self)` L397
+    - `.window_context(self, raw_close)` L400
+    - `.dataset_fields(self, config, features, tf_order)` L403
+    - `.fit(self, train, *, feature_order, timeframes, clip=PRICE_NORM_CLIP)` L407
+    - `.prepare_live(self, dataset, state)` L415
+    - `.stamp_split(self, data, split, state)` L419
+  - `def get_normalizer(name: str) -> Normalizer` L427
+  - `def normalizer_for_mode(mode: str) -> Normalizer` L434
+  - `def normalizer_for_data(data: Dict) -> Normalizer` L439
+  - `def normalize_price_targets(price: np.ndarray, meta: Dict, last_close: np.ndarray, head: str='high') -> np.ndarray` L447
+  - `def denormalize_price_targets(pred: np.ndarray, meta: Dict, last_close: np.ndarray, head: str='high', output: str='price') -> np.ndarray` L452
+  - `def fit_price_norm(train: Dict, feature_order: List[str], timeframes: List[str], mode: str=PRICE_NORM_LOGRET_STD, clip: float=PRICE_NORM_CLIP) -> Dict` L463
+  - `def price_norm_unfitted(data: Dict) -> bool` L469
+  - `def stamp_price_norm(data: Dict, split_or_assets: Dict, meta: Optional[Dict]=None) -> Dict` L474
+  - `def finish_price_norm(data: Dict, train: Dict, val: Dict, test: Dict)` L479
 
 ### `data/parallel.py` (156 lines)
 - PURPOSE: Thread-parallel asset loading with preserved order: imap_ordered, load_assets, default_workers (capped by CPU and system RAM).
