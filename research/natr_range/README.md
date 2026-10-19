@@ -51,7 +51,11 @@ Bundle `results/e_natr_003_explore/` (`RESULT.md`). Rules 1-6 pass (coverage 80.
 localization = drift (pooled OOF top 81.37 %; folds 2021 82.6, 2022 81.8, 2023 75.7, 2024 76.1), so accepted = False and Stage B is not run. The under-coverage appears from 2023 on (regime drift), not a static misfit.
 Next: `cards/E-natr-004.md` (rolling recalibration; prepared, not run, not queued).
 
-## E-natr-004: rolling recalibration (Stage A prepared, NOT run, NOT queued)
+## E-natr-004: rolling recalibration (Stage A ACCEPTED on exploration data 2026-10-19; Stage B prepared, not run)
 Card `cards/E-natr-004.md` (pre-registered; reopens F-0084 R2): the E-natr-003 decile factors are refitted at the start of every month on the trailing 12 months of realized rows strictly before it (min 200 rows per decile, pooled-factor fallback), base regression and edges fixed.
 Stage A rules 1-7 as E-natr-003 plus per-quarter top-decile coverage (rule 8) and factor stability (rule 9); Stage B needs forward data >= 2026-10-01 and a reviewed forward-read guard path (not built).
 Code: `tools/natr_range.py` (`rolling_window`, `fit_month_factors`, `rolling_row_factors`, `factor_stability`, `quarter_top_coverage`), `run_natr_rolling.py`; job `e_natr_004_job.json` (`repo_ref` = the feat commit).
+
+## E-natr-004 Stage A result (2026-10-19): ACCEPTED (provisional)
+Bundle `results/e_natr_004_explore/` (`RESULT.md`). Rolling arm, val 2025-01..2026-09: overall coverage 79.75 %, all 10 deciles 79.0..80.7 %, pinball 10/10, monthly IC 21/21, top decile 79.93 % (2025, n 3922) and 81.26 % (2026, n 1382) vs control 75.60 / 78.15 and static 79.17 / 81.11; quarterly top decile (6 evaluable of 7) 77.6 / 82.7 / - (2025Q3 n = 141) / 80.9 / 81.0 / 85.6 / 76.3; stability max abs ln 0.0217, mean 0.0042; 21 refits, 0 fallbacks.
+**Honest note:** rolling and static are nearly identical on val (no further drift inside 2025-26), so Stage A does not separate rolling from static; Stage B on forward data is the real test. Stage B is prepared: `cards/E-natr-004-confirm.md` (frozen config `frozen/frozen_stage_b.json`), runner `run_natr_confirm_forward.py` (reads forward bars only through `holdout_guard.load_forward`), job `e_natr_004_confirm_job.json` (NOT queued; not before 2027-01-01).

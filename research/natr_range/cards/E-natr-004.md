@@ -62,3 +62,5 @@ As E-natr-003: Drive `history_15m` with trimmed tails, `natr_range.drop_stale_ru
 
 ## Result
 Added in `research/natr_range/README.md` after the run.
+
+**Status (appended 2026-10-19, rules above not edited): Stage A ACCEPTED on exploration data (provisional).** Rules 1-9 pass; bundle `research/natr_range/results/e_natr_004_explore/` (`RESULT.md`). Rolling and static are nearly identical on val, so Stage A does not separate them; Stage B (`cards/E-natr-004-confirm.md`) is the real test.
