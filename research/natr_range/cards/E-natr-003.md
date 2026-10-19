@@ -83,3 +83,8 @@ source bars inside runs of >= 168 consecutive hours of flat (high == low) zero-v
 
 ## Result
 Added in `research/natr_range/README.md` after the run.
+
+## Status (added after the run; the sections above are unchanged)
+**closed - Stage A REJECTED by rule 7** (2026-10-19). Rules 1-6 pass; the localization label is **drift** (pooled OOF top-decile coverage 81.37 %, folds 2023 75.7 % and 2024 76.1 %), so
+accepted = False and the result is not forwarded to Stage B. Failure row F-0084 (`docs/research/failure_registry.csv`). Bundle and numbers:
+`research/natr_range/results/e_natr_003_explore/` (`RESULT.md`). Follow-up: `cards/E-natr-004.md` (rolling recalibration).

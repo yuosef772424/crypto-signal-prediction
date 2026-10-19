@@ -34,6 +34,12 @@ TOP_DECILE = 9
 CORR_MIN_N = 200                                    # a decile with fewer calibration rows keeps factor 1 (reported)
 LOC_STATIC_POOLED_MAX, LOC_STATIC_FOLD_MAX, LOC_STATIC_MIN_FOLDS = 0.78, 0.79, 3
 LOC_DRIFT_POOLED_MIN, LOC_VAL_UNDER = 0.79, 0.78
+# E-natr-004 (rolling recalibration): constants of the card, not parameters
+ROLL_WINDOW_MONTHS = 12                             # trailing window of realized rows before each monthly refit
+ROLL_MIN_N = 200                                    # a decile with fewer window rows uses the POOLED factor (reported)
+ROLL_STEP_MINUTES = 60                              # a row's target bar ends tgt_open + this; it must end before the refit month starts
+STAB_MAX_LN, STAB_MEAN_LN = 0.05, 0.02              # rule 9: max / mean |ln(c_m / c_{m-1})| between consecutive refits
+QUARTER_MIN_N, QUARTER_MIN_EVALUABLE = 200, 5       # rule 8
 
 
 def qname(tau):
@@ -130,7 +136,12 @@ def predict_quantiles(models, target, natr, corrections=None):
     lx = np.log(np.asarray(natr, dtype=float))
     raw = np.column_stack([np.exp(models[(target, t)][0] + models[(target, t)][1] * lx) for t in TAUS])
     c = (corrections or {}).get(target)
-    if c is not None:
+    if c is not None and c.get("row_factors") is not None:           # E-natr-004: one (c10, c50, c90) triple per row (rolling refits)
+        rf = np.asarray(c["row_factors"], dtype=float)
+        if rf.shape != raw.shape:
+            raise ValueError(f"row_factors shape {rf.shape} does not match the forecast rows {raw.shape}")
+        raw = raw * rf
+    elif c is not None:
         raw = raw * np.asarray(c["factors"], dtype=float)[assign_decile(np.asarray(natr, dtype=float), c["edges"])]
     crossed = int((np.diff(raw, axis=1) < 0).any(axis=1).sum())
     return np.sort(raw, axis=1), crossed
@@ -358,3 +369,107 @@ def classify_localization(oof, control_val_top):
     return {"label": label, "pooled_oof_top_coverage": pooled, "folds_at_or_below_79": folds_low, "n_folds": int(len(t)),
             "oof_top_by_fold": {int(f): float(c) for f, c in zip(t["fold"], t["coverage"])},
             "control_val_top_by_year": {int(k): float(v) for k, v in control_val_top.items()}}
+
+
+# ------------------------------------------------------------------ E-natr-004: rolling (adaptive) decile recalibration
+def _utc(ts):
+    ts = pd.Timestamp(ts)
+    return ts.tz_localize("UTC") if ts.tzinfo is None else ts.tz_convert("UTC")
+
+
+def _tail_factors(y, q):
+    """(c10, c90): the floor((n+1)*0.1)-th / ceil((n+1)*0.9)-th smallest of y / q10 and y / q90 (the E-natr-003 formula), n >= 1."""
+    n = len(y)
+    k_hi = min(n, int(math.ceil((n + 1) * 0.9)))
+    k_lo = max(1, int(math.floor((n + 1) * 0.1)))
+    return float(np.sort(y / q[:, 0])[k_lo - 1]), float(np.sort(y / q[:, 2])[k_hi - 1])
+
+
+def rolling_window(rows, month_start, window_months=ROLL_WINDOW_MONTHS, step_minutes=ROLL_STEP_MINUTES):
+    """Realized rows usable for the refit at `month_start`: target open in [month_start - window_months, month_start) AND the target bar has
+    ended (tgt_open + step_minutes <= month_start). Rows with a non-finite natr or y_range are dropped."""
+    m = _utc(month_start)
+    start = m - pd.DateOffset(months=int(window_months))
+    t = pd.DatetimeIndex(rows["tgt_open"])
+    t = t.tz_localize("UTC") if t.tz is None else t.tz_convert("UTC")
+    ok = (t >= start) & (t + pd.Timedelta(minutes=step_minutes) <= m)
+    sub = rows[np.asarray(ok)]
+    return sub[np.isfinite(sub["natr"].to_numpy(dtype=float)) & np.isfinite(sub["y_range"].to_numpy(dtype=float))]
+
+
+def fit_month_factors(models, edges, window, month_start, min_n=ROLL_MIN_N, step_minutes=ROLL_STEP_MINUTES):
+    """Factors (10, 3) = [c10_d, 1, c90_d] for the refit at `month_start` from the realized `window` rows (base `models`, fixed `edges`).
+    STRICTLY-PAST GUARD: raises ValueError if any window row has tgt_open + step_minutes > month_start. A decile with fewer than `min_n`
+    window rows uses the pooled factors (all window rows); fewer than `min_n` rows in total raises. Returns {"factors", "n", "fallback", "n_window"}."""
+    m = _utc(month_start)
+    t = pd.DatetimeIndex(window["tgt_open"])
+    t = t.tz_localize("UTC") if t.tz is None else t.tz_convert("UTC")
+    if len(t) and (t + pd.Timedelta(minutes=step_minutes)).max() > m:
+        raise ValueError(f"fit_month_factors: a window row's target ends after the refit month start {m} (look-ahead)")
+    if len(window) < min_n:
+        raise ValueError(f"fit_month_factors: {len(window)} window rows < {min_n}")
+    q, _ = predict_quantiles(models, "range", window["natr"])
+    y = window["y_range"].to_numpy(dtype=float)
+    dec = assign_decile(window["natr"], edges)
+    pooled = _tail_factors(y, q)
+    factors = np.ones((10, 3))
+    ns = np.zeros(10, dtype=int)
+    fb = np.zeros(10, dtype=bool)
+    for d in range(10):
+        sel = dec == d
+        ns[d] = int(sel.sum())
+        if ns[d] < min_n:
+            fb[d] = True
+            factors[d, 0], factors[d, 2] = pooled
+        else:
+            factors[d, 0], factors[d, 2] = _tail_factors(y[sel], q[sel])
+    return {"factors": factors, "n": ns, "fallback": fb, "n_window": int(len(window))}
+
+
+def rolling_row_factors(models, edges, rows, val, window_months=ROLL_WINDOW_MONTHS, min_n=ROLL_MIN_N, step_minutes=ROLL_STEP_MINUTES):
+    """For each calendar month with rows in `val`, refit on `rolling_window(rows, month_start)` and give every val row of that month the
+    factors of its NATR decile. Returns (row_factors (len(val), 3), table month / decile / n / fallback / c10 / c90). `rows` are all realized
+    rows (build_rows output); rows of the month itself are never in its window. Pass the result as {"range": {"row_factors": ...}}."""
+    t = pd.DatetimeIndex(val["tgt_open"])
+    t = t.tz_localize("UTC") if t.tz is None else t.tz_convert("UTC")
+    month = t.tz_convert(None).to_period("M")
+    dec = assign_decile(val["natr"], edges)
+    out = np.ones((len(val), 3))
+    recs = []
+    for per in sorted(set(month)):
+        start = per.start_time.tz_localize("UTC")
+        f = fit_month_factors(models, edges, rolling_window(rows, start, window_months, step_minutes), start, min_n, step_minutes)
+        sel = np.asarray(month == per)
+        out[sel] = f["factors"][dec[sel]]
+        for d in range(10):
+            recs.append({"month": str(per), "decile": d, "n": int(f["n"][d]), "fallback": bool(f["fallback"][d]),
+                         "c10": float(f["factors"][d, 0]), "c90": float(f["factors"][d, 2])})
+    return out, pd.DataFrame(recs)
+
+
+def factor_stability(table):
+    """Rule 9 inputs from the `rolling_row_factors` table: |ln(c_m / c_{m-1})| of c10 and c90 per decile between consecutive refit months."""
+    ch = []
+    months = sorted(table["month"].unique())
+    for a, b in zip(months[:-1], months[1:]):
+        ta, tb = table[table["month"] == a].set_index("decile"), table[table["month"] == b].set_index("decile")
+        for c in ("c10", "c90"):
+            ch.extend(np.abs(np.log(tb[c].to_numpy(dtype=float) / ta[c].to_numpy(dtype=float))).tolist())
+    ch = np.asarray(ch, dtype=float)
+    return {"n_changes": int(len(ch)), "max_abs_ln": float(ch.max()) if len(ch) else float("nan"),
+            "mean_abs_ln": float(ch.mean()) if len(ch) else float("nan")}
+
+
+def quarter_top_coverage(models, edges, val, corrections=None):
+    """DataFrame quarter x (n, coverage) of the top NATR decile's [p10, p90] coverage by calendar quarter of the target open."""
+    q, _ = predict_quantiles(models, "range", val["natr"], corrections)
+    y = val["y_range"].to_numpy(dtype=float)
+    cov = (y >= q[:, 0]) & (y <= q[:, 2])
+    top = assign_decile(val["natr"], edges) == TOP_DECILE
+    t = pd.DatetimeIndex(val["tgt_open"])
+    quarter = (t.tz_convert(None) if t.tz is not None else t).to_period("Q")
+    rows = []
+    for qq in sorted(set(quarter)):
+        m = top & np.asarray(quarter == qq)
+        rows.append({"quarter": str(qq), "n": int(m.sum()), "coverage": float(cov[m].mean()) if m.any() else float("nan")})
+    return pd.DataFrame(rows)

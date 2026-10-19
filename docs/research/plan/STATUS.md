@@ -34,6 +34,8 @@
 | G gate-cli reverse + QC | waits for the owner's raw JSON | — | — |
 | R3 NATR range tool | merged | #27 | 1h ACCEPTED on exploration (coverage 80.00 %, deciles 77.2-80.4 %, pinball 10/10, monthly IC > 0 21/21; flag: BTC/ETH coverage 75.1 % at 1h in 2026); 1d REJECTED F-0082; bot2 spec `research/natr_range/bot2_tool_spec.md` |
 | R3 H2 confirmation E-natr-002 | run 2026-10-19, H2 opened once (36/36 coins, 440,834 rows) | this PR | REJECTED F-0083: coverage 79.37 %, pinball 10/10, IC 21/21 pass; top NATR decile 73.78 % < 74.0 (76.6 % 2025, 68.6 % 2026). R3 1h NOT confirmed |
+| R3 high-NATR calibration E-natr-003 | Stage A run 2026-10-19 (open coins), card closed | #32 | REJECTED by rule 7: rules 1-6 pass (coverage 80.18 %, deciles 78.9-81.8 %, pinball 10/10, IC 21/21, top decile 79.17 % 2025 / 81.11 % 2026 vs control 75.60 / 78.15) but localization = drift (pooled OOF top 81.37 %; folds 2023 75.7, 2024 76.1), F-0084; not forwarded to Stage B. Result `research/natr_range/results/e_natr_003_explore/` |
+| R3 rolling recalibration E-natr-004 | pre-registered (card + code + job spec, NOT queued) | `claude/natr-004` | rolling 12-month monthly refit of the decile factors; Stage A on open coins, Stage B on forward data from 2027-01-01 (needs a reviewed forward-read guard path, not built) |
 | R1 confluence map 🔒 | not started | — | — |
 | R1b confluence confirm 🔒 | not started | — | — |
 | R2 funding/basis 🔒 | not started (data first; H3 has only 3 coins → time seal) | — | — |
@@ -59,4 +61,6 @@
 
 ## Known issues
 - Colab runner merged (#21, #23; `colab_runner.ipynb`, `COLAB_RUNNER.md`): owner one-time setup = token file in Drive.
+- stale-bars-002 result: after trim + `min_run_hours=168` the zero-target share at 1h is train 2.48 % -> 1.87 % after masking, val 2.61 % (18.2 % before trim), test 2.59 %; masking touches train only. Decision: use trimmed data + `stale_bars`, stop dropping `y_close_reg == 0` rows.
+- N1 (`price_norm_mode`, branch `claude/n1-price-norm`) is being built.
 - Zero-target data issue above: PR #30 (`CONFIG['stale_bars']`) pending; `stale-bars-002` queued.
