@@ -67,6 +67,9 @@ def cross_sectional_normalize(dataset: Dict, heads: Optional[List[str]] = None,
     توزيع الأقران في نفس اللحظة) فيُرفَض بخطأ صريح بدل نتيجة مضلِّلة بصمت.
     """
     config = CONFIG if config is None else config
+    if dataset.get('price_norm_mode') in LOGRET_PRICE_NORM_MODES or price_norm_mode(config) in LOGRET_PRICE_NORM_MODES:
+        raise ValueError("cross_sectional_normalize لا يدعم price_norm_mode='logret_*': أهداف الانحدار مُقيَّسة بإحصاءات "
+                         "train (فضاء log(price/last_close)) لا عائداً خاماً")
     if config.get('reg_target_mode', 'return') != 'return':
         raise ValueError(
             "cross_sectional_normalize يتطلب reg_target_mode='return' — "

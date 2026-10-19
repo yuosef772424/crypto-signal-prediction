@@ -208,6 +208,12 @@ Documents:
   - `def peers_cover_target(ps)` L71
   - `def auc_pair(aligned)` L90
 
+## `docs/research/cards/`
+- Experiment card — E-norm-001: train NIG-TimeNet with price_norm_mode=logret_std vs window_scale | 0 scripts, 1 md, 0 data files (0 B)
+
+Documents:
+- `E-norm-001.md` — Experiment card — E-norm-001: train NIG-TimeNet with price_norm_mode=logret_std vs window_scale
+
 ## `docs/research/notes/`
 - PR #13 restructuring: history facts (evil merges, move+modify commits, verbatim extraction) | 0 scripts, 1 md, 0 data files (0 B)
 

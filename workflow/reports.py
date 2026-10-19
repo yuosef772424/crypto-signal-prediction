@@ -47,8 +47,9 @@ def real_price_predictions(model, test, asset, target, model_tf):
         # invert_reg_predictions يفترض «عائداً نسبة لآخر سعر من نوع الهدف»؛ غيره يعطي سعراً خاطئاً بلا خطأ.
         raise ValueError(f"real_price_predictions: وضع الهدف {mode!r} لا يُعكس لسعر هنا (المدعوم: return وscaled "
                          "وentry_range) — عكسه بعائد نفس النوع يعطي سعراً خاطئاً بصمت")
+    # price_norm_mode='logret_std': price_norm_meta (إحصاءات train المختومة على القسم) ← العكس last_close × exp(pred·std + mean)
     return invert_reg_predictions(preds, f"{target}_reg", last_candles=split["last_candles"], config=CONFIG,
-                                  scale=reg_scale_of(split))
+                                  scale=reg_scale_of(split), price_norm_meta=price_norm_meta_of(split))
 
 
 def classification_accuracy_report(model, test, price_targets, model_tf):

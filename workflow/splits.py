@@ -43,6 +43,13 @@ def reg_scale_of(split_or_dict, target=None):
     return float(members[0].get("reg_target_scale", 1.0))
 
 
+def price_norm_meta_of(split_or_dict):
+    """``price_norm_meta`` المختوم على القسم بواسطة split_data (price_norm_mode='logret_*')؛ None = 'window_scale'/'pct_change'
+    (أهداف خط الأنابيب القديمة). إحصاءات train وحدها: كل أقسام التشغيل تحمل القاموس نفسه."""
+    members = _split_members(split_or_dict)
+    return members[0].get("price_norm_meta") if members else None
+
+
 def target_mode_of(split_or_dict):
     """وضع الهدف المختوم على القسم (retarget_splits، القسم ٣-ب)؛ None = أهداف خط الأنابيب كما بُنيت."""
     members = _split_members(split_or_dict)

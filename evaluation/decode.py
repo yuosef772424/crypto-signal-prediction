@@ -76,6 +76,16 @@ def decode_predictions_v4(
                 raise ValueError(f"الهدف '{spec.name}' موقع بين {range_of} ويحتاج فكّهما معه — ناقص: {missing}")
             s_median = results[range_of[1]]['pred_real']
             s_iqr = results[range_of[0]]['pred_real'] - s_median
+        elif spec.kind == 'continuous' and getattr(spec, 'log_norm', None) is not None:
+            # price_norm_mode='logret_*': last_close × exp(raw·std + mean). median = المرساة؛ iqr = المشتقة الأولى
+            # d(سعر)/d(raw) عند التنبؤ (لتحويل عدم اليقين فقط).
+            _anchor = _safe_col(last_candles, spec.price_index)
+            if _anchor is None:
+                raise ValueError(f"الهدف '{spec.name}' (log_norm) يحتاج last_candles بعمود last_close ({spec.price_index}).")
+            s_median = np.asarray(_anchor, dtype=np.float64)
+            _ln_mean, _ln_std = (float(v) for v in spec.log_norm)
+            log_pred = s_median * np.exp(np.asarray(raw, dtype=np.float64).flatten() * _ln_std + _ln_mean)
+            s_iqr = log_pred * _ln_std
         else:
             s_median, s_iqr = (_spec_base(spec, median, iqr, last_candles)
                                if spec.kind == 'continuous' else (median, iqr))
@@ -112,6 +122,8 @@ def decode_predictions_v4(
                 raise ValueError(f"الهدف المستمر '{spec.name}' يحتاج base_params (median, iqr) لفك التشفير.")
             raw_flat = raw.flatten()
             pred_real = ((np.clip(raw_flat, 0.0, 1.0) if range_of is not None else raw_flat) * s_iqr) + s_median
+            if getattr(spec, 'log_norm', None) is not None:
+                pred_real = log_pred          # غير خطي: s_iqr/s_median أعلاه للمشتقة وعدم اليقين فقط
 
             entry_price = np.zeros_like(pred_real)
             target_real = np.full_like(pred_real, np.nan)

@@ -13,7 +13,7 @@
 - TAGS: nig_alpha_den_min, nig, alpha, uncertainty floor, constants
 - PITFALLS: NIG_ALPHA_DEN_MIN is used by model/nig_layers.py (training-time layer) and evaluation/targets.py (post-hoc decoding of the raw NIG outputs): the two MUST agree or the evaluated uncertainty differs from the trained one. Do not change the value without a new experiment card (it changes recorded uncertainty numbers when alpha is close to 1).
 
-### `core/schema.py` (35 lines)
+### `core/schema.py` (47 lines)
 - PURPOSE: The data schema names shared by data, workflow, discovery, cross_asset and tools: the last_candles column order (LAST_COLUMNS, TS_COL, LAST_COLUMN_INDEX), its dtype, the price target columns and the target-mode names.
 - TAGS: last_columns, ts_col, last_column_index, last_dtype, target_columns, target_modes, no_relative_bases, entry_close_regs, last_candles, schema, column order
 - PITFALLS: LAST_COLUMNS is the physical column order of every saved dataset's last_candles array: reordering or inserting breaks existing datasets, checkpoints and every positional index, so only APPEND (and then update the "(N, 7)" docs). It is a tuple (immutable); `.index(name)` is the way to get a position. LAST_COLUMN_INDEX is a read-only name -> index mapping (cross_asset's old LC dict). TARGET_MODES l…

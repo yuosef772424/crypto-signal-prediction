@@ -64,6 +64,9 @@ def evaluate_predictions_v4(
                 elif getattr(spec, 'signed_by_class', False):
                     # y_true مقدار بلا اتجاه، وبلا last_candles المستقبل لا سعر فعلي: NaN فتُستثنى العيّنات (لا تُخمَّن)
                     true_val = np.full(len(true_scaled), np.nan)
+                elif getattr(spec, 'log_norm', None) is not None:
+                    true_val = np.asarray(r['entry_price'], dtype=np.float64) * np.exp(
+                        true_scaled * float(spec.log_norm[1]) + float(spec.log_norm[0]))
                 elif getattr(spec, 'relative_to_entry', False):
                     true_val = np.asarray(r['entry_price'], dtype=np.float64) * (
                         1.0 + true_scaled / float(getattr(spec, 'reg_scale', 1.0)))

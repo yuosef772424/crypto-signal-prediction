@@ -78,15 +78,15 @@
   - `def build_momentum_orth_natr(data: Optional[Dict]=None, config: Optional[dict]=None) -> Optional[Dict[str, Dict[str, pd.DataFrame]]]` L354
   - `def add_momentum_orth_natr(dfs: Dict[str, pd.DataFrame], asset_dfs: Optional[Dict[str, pd.DataFrame]], config: Optional[dict]=None) -> Dict[str, pd.DataFrame]` L401
 
-### `data/cross_sectional_norm.py` (162 lines)
+### `data/cross_sectional_norm.py` (165 lines)
 - PURPOSE: Optional cross-sectional normalisation of regression targets across coins at the same timestamp (Qlib CSZScoreNorm/CSRankNorm spirit) and its inverse.
 - TAGS: cross-sectional normalization, cross_sectional_normalize, invert_cross_sectional, zscore, rank, targets
 - PITFALLS: Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
-- USES: custom, heads, runtime, windows
+- USES: custom, heads, normalize, runtime, windows
 - USED BY: selftests
 - API:
   - `def cross_sectional_normalize(dataset: Dict, heads: Optional[List[str]]=None, method: Optional[str]=None, min_assets: Optional[int]=None, clip: Optional[float]=None, config: Optional[dict]=None, verbose: bool=True) -> Dict` L27
-  - `def invert_cross_sectional(preds: np.ndarray, timestamps: np.ndarray, head: str, dataset: Dict) -> np.ndarray` L132
+  - `def invert_cross_sectional(preds: np.ndarray, timestamps: np.ndarray, head: str, dataset: Dict) -> np.ndarray` L135
 
 ### `data/custom.py` (1374 lines)
 - PURPOSE: Static scale-free custom features (log returns, relative ranges, candle structure, time features, fractals, volatility estimators, trend age, ...) and their column names.
@@ -98,7 +98,7 @@
   - `def add_custom_features(data: pd.DataFrame, settings: Optional[dict]=None, config: Optional[dict]=None) -> pd.DataFrame` L177
   - `def custom_feature_names(settings: Optional[dict]=None, config: Optional[dict]=None) -> List[str]` L546
 
-### `data/defaults.py` (581 lines)
+### `data/defaults.py` (584 lines)
 - PURPOSE: PIPELINE_DEFAULT_CONFIG (alias DEFAULT_CONFIG) — the single source of truth for every pipeline/model/training setting — plus COINS_BY_CATEGORY, STATIC_INDICATORS_FULL and DEFAULT_ENABLED_CATEGORIES.
 - TAGS: pipeline_default_config, default_config, defaults, settings, config keys, coins_by_category, coin categories, indicator_settings, phase2_data, module_dirs, split_dates, holdout_start, الإعدادات
 - PITFALLS: A new key's default must reproduce the old behaviour exactly (checkpoints and recorded results stay valid). Never edit PIPELINE_DEFAULT_CONFIG at run time: use update_config() on CONFIG. Pipeline code must use PIPELINE_DEFAULT_CONFIG, never the bare DEFAULT_CONFIG: trainer/config.py binds a different DEFAULT_CONFIG (6 sections) and the two meet in main.ipynb's namespace. Executed into the one sha…
@@ -190,11 +190,11 @@
   - `def validate_head_config(config: Optional[dict]=None, verbose: bool=True) -> List[str]` L154
   - `def head_loss_weights(config: Optional[dict]=None, as_outputs: bool=True) -> Dict[str, float]` L211
 
-### `data/live.py` (251 lines)
+### `data/live.py` (254 lines)
 - PURPOSE: Live dataset built with the very same prepare_single_asset (Binance instead of Drive): dummy tail padding, drop_tail_per_asset, extract_last_batch.
 - TAGS: live, build_dataset_live, extract_last_batch, drop_tail_per_asset, dummy tail, inference
 - PITFALLS: The last row per coin has real features but a dummy target; never evaluate on it. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
-- USES: binance_client, pipeline, runtime, sources
+- USES: binance_client, normalize, pipeline, runtime, sources
 - USED BY: selftests
 - API:
   - `def drop_tail_per_asset(dataset: Dict, n: int) -> Dict` L147
@@ -212,26 +212,38 @@
   - `def build_market_context(load_asset_fn: Optional[Callable]=None, resample_fn: Optional[Callable]=None, data: Optional[Dict]=None, config: Optional[dict]=None) -> Optional[Dict[str, pd.DataFrame]]` L105
   - `def add_market_context(dfs: Dict[str, pd.DataFrame], market_dfs: Optional[Dict[str, pd.DataFrame]], is_reference: bool, config: Optional[dict]=None) -> Dict[str, pd.DataFrame]` L141
 
-### `data/normalize.py` (630 lines)
-- PURPOSE: Window normalisation driven by a semantic kind per feature (FEATURE_KINDS prefixes): process_windows, price_norm_mode ('window_scale' | 'pct_change'), pct_change encode/decode, audit_normalization.
-- TAGS: normalization, normalize, feature_kinds, classify_feature, process_windows, price_norm_mode, pct_change, clip_abs, audit_normalization, التطبيع
-- PITFALLS: Classification is by column-name prefix (longest prefix wins): a new feature with an unknown prefix falls back to DEFAULT_KIND silently — register its kind in FEATURE_KINDS. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+### `data/normalize.py` (815 lines)
+- PURPOSE: Window normalisation driven by a semantic kind per feature (FEATURE_KINDS prefixes): process_windows, price_norm_mode ('window_scale' | 'pct_change' | 'logret_std' | 'logret_sigma'), pct_change encode/decode, the logret_* train-only fit/ap…
+- TAGS: normalization, normalize, feature_kinds, classify_feature, process_windows, price_norm_mode, pct_change, logret_std, logret_sigma, denormalize_price_targets, fit_price_norm, price_norm_meta, clip_abs, audit_normalization, التطبيع
+- PITFALLS: Classification is by column-name prefix (longest prefix wins): a new feature with an unknown prefix falls back to DEFAULT_KIND silently — register its kind in FEATURE_KINDS. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time. logret_*: only the open/high/low/close channels change (other price_level columns…
+- DEPENDS: core
 - USES: runtime
-- USED BY: checkpoints, pipeline, presets, selftests, windows
+- USED BY: checkpoints, cross_sectional_norm, live, pipeline, presets, selftests, split, windows
 - API:
-  - `def classify_feature(col_name: str, kinds: Optional[Dict[str, str]]=None, default: str=DEFAULT_KIND) -> str` L211
-  - `def calc_scale_params(data: np.ndarray, method: str='robust') -> Tuple[float, float]` L242
-  - `def scale_data(data: np.ndarray, center: float, scale: float) -> np.ndarray` L258
-  - `def inverse_scale(preds: np.ndarray, bases: np.ndarray) -> np.ndarray` L262
-  - `def price_norm_mode(config: Optional[dict]=None) -> str` L289
-  - `def price_pct_clip(config: Optional[dict]=None) -> float` L298
-  - `def pct_change_encode(x: np.ndarray, axis: int=0) -> np.ndarray` L307
-  - `def pct_change_decode(r: np.ndarray, anchor, anchor_at: str='last', axis: int=0) -> np.ndarray` L324
-  - `def normalize_column(x: np.ndarray, kind: str, center: float, scale: float, method: str='robust', eps: float=1e-08, price_mode: str=PRICE_NORM_WINDOW) -> np.ndarray` L362
-  - `def process_window(w: np.ndarray, columns: list, med_p: float, iqr_p: float, method: str='robust', config: Optional[dict]=None, clip_abs: Optional[float]=None) -> np.ndarray` L410
-  - `def process_windows(windows: np.ndarray, columns: List[str], centers: np.ndarray, scales: np.ndarray, method: str='robust', config: Optional[dict]=None, clip_abs: Optional[float]=None) -> np.ndarray` L449
-  - `def describe_features(features: List[str]) -> Dict[str, List[str]]` L569
-  - `def audit_normalization(windows: np.ndarray, features: List[str], verbose: bool=True, config: Optional[dict]=None) -> pd.DataFrame` L577
+  - `def classify_feature(col_name: str, kinds: Optional[Dict[str, str]]=None, default: str=DEFAULT_KIND) -> str` L221
+  - `def calc_scale_params(data: np.ndarray, method: str='robust') -> Tuple[float, float]` L252
+  - `def scale_data(data: np.ndarray, center: float, scale: float) -> np.ndarray` L268
+  - `def inverse_scale(preds: np.ndarray, bases: np.ndarray) -> np.ndarray` L272
+  - `def price_norm_mode(config: Optional[dict]=None) -> str` L299
+  - `def price_pct_clip(config: Optional[dict]=None) -> float` L308
+  - `def pct_change_encode(x: np.ndarray, axis: int=0) -> np.ndarray` L317
+  - `def pct_change_decode(r: np.ndarray, anchor, anchor_at: str='last', axis: int=0) -> np.ndarray` L334
+  - `def logret_vs_prev_close(x: np.ndarray, prev_close: np.ndarray) -> np.ndarray` L372
+  - `def trailing_close_sigma(close: np.ndarray, n: int=PRICE_NORM_SIGMA_N, floor: float=PRICE_NORM_SIGMA_FLOOR) -> np.ndarray` L381
+  - `def price_norm_channels(feature_order: List[str]) -> List[Tuple[str, int]]` L390
+  - `def fit_price_norm(train: Dict, feature_order: List[str], timeframes: List[str], mode: str=PRICE_NORM_LOGRET_STD, clip: float=PRICE_NORM_CLIP) -> Dict` L408
+  - `def sigma_price_norm_meta(feature_order: List[str], timeframes: List[str], clip: float=PRICE_NORM_CLIP) -> Dict` L441
+  - `def apply_price_norm(split: Dict, meta: Dict) -> Dict` L450
+  - `def normalize_price_targets(price: np.ndarray, meta: Dict, last_close: np.ndarray, head: str='high') -> np.ndarray` L490
+  - `def denormalize_price_targets(pred: np.ndarray, meta: Dict, last_close: np.ndarray, head: str='high', output: str='price') -> np.ndarray` L496
+  - `def price_norm_unfitted(data: Dict) -> bool` L511
+  - `def stamp_price_norm(data: Dict, split_or_assets: Dict, meta: Optional[Dict]=None) -> Dict` L516
+  - `def finish_price_norm(data: Dict, train: Dict, val: Dict, test: Dict)` L533
+  - `def normalize_column(x: np.ndarray, kind: str, center: float, scale: float, method: str='robust', eps: float=1e-08, price_mode: str=PRICE_NORM_WINDOW) -> np.ndarray` L547
+  - `def process_window(w: np.ndarray, columns: list, med_p: float, iqr_p: float, method: str='robust', config: Optional[dict]=None, clip_abs: Optional[float]=None) -> np.ndarray` L595
+  - `def process_windows(windows: np.ndarray, columns: List[str], centers: np.ndarray, scales: np.ndarray, method: str='robust', config: Optional[dict]=None, clip_abs: Optional[float]=None) -> np.ndarray` L634
+  - `def describe_features(features: List[str]) -> Dict[str, List[str]]` L754
+  - `def audit_normalization(windows: np.ndarray, features: List[str], verbose: bool=True, config: Optional[dict]=None) -> pd.DataFrame` L762
 
 ### `data/parallel.py` (156 lines)
 - PURPOSE: Thread-parallel asset loading with preserved order: imap_ordered, load_assets, default_workers (capped by CPU and system RAM).
@@ -258,16 +270,16 @@
   - `def add_intraday_15m_features(dfs: Dict[str, pd.DataFrame], symbol: str, config: Optional[dict]=None) -> Dict[str, pd.DataFrame]` L227
   - `def futures_metrics_columns(config: Optional[dict]=None) -> List[str]` L249
 
-### `data/pipeline.py` (594 lines)
+### `data/pipeline.py` (599 lines)
 - PURPOSE: Dataset assembly across all assets: build_dataset (loader or preloaded), exclusions, cross-asset first pass, accumulation; both sources delegate to prepare_single_asset.
 - TAGS: pipeline, build_dataset, build_dataset_from_loader, build_dataset_from_preloaded, accumulator, asset_bounds, skip_labels
 - PITFALLS: Golden digests (tests/test_multi_tf.py::test_old_presets_byte_identical) cover this path: any output change must be deliberate. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
 - USES: align, checkpoints, cross_sectional_features, disk_backed, features, funding_oi*, heads, market_context, normalize, parallel, phase2*, runtime, sources, windows
 - USED BY: live, presets, selftests
 - API:
-  - `def build_dataset_from_loader(configs: List[Dict], load_asset_fn: Callable, resample_fn: Callable, tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_hori…` L314
-  - `def build_dataset_from_preloaded(configs: List[Dict], data: Dict[str, Dict[str, pd.DataFrame]], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_horizon: O…` L476
-  - `def build_dataset(configs: List[Dict], *, data: Optional[Dict]=None, load_asset_fn: Optional[Callable]=None, resample_fn: Optional[Callable]=None, **kwargs) -> Dict` L574
+  - `def build_dataset_from_loader(configs: List[Dict], load_asset_fn: Callable, resample_fn: Callable, tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_hori…` L319
+  - `def build_dataset_from_preloaded(configs: List[Dict], data: Dict[str, Dict[str, pd.DataFrame]], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_horizon: O…` L481
+  - `def build_dataset(configs: List[Dict], *, data: Optional[Dict]=None, load_asset_fn: Optional[Callable]=None, resample_fn: Optional[Callable]=None, **kwargs) -> Dict` L579
 
 ### `data/presets.py` (445 lines)
 - PURPOSE: Hourly presets: 20-b (1h w168 s32 h4, and 1h w32 s8 h1), 20-c (1h + 4h context, float16) with its contract self-test, 20-d (pct_change price normalisation) — overrides, names and one-call builders.
@@ -329,11 +341,11 @@
   - `def resample_timeframes(df: pd.DataFrame, target_tfs: Optional[List[str]]=None, base_tf: Optional[str]=None, with_features: bool=True, config: Optional[dict]=None) -> Dict[str, pd.DataFrame]` L262
   - `def make_resample_fn(config: Optional[dict]=None)` L298
 
-### `data/split.py` (900 lines)
+### `data/split.py` (904 lines)
 - PURPOSE: Time-based train/val/test split with an embargo gap: global_time (default) or per_asset, holdout, leak-free and rolling splits.
 - TAGS: split, split_data, embargo, holdout, split_dates, global_time, per_asset, rolling_splits, build_leak_free_split, compute_global_cutoff
 - PITFALLS: per_asset leaks when coins' histories differ in length; global_time is the default. The embargo is a time gap covering the largest window plus the horizon. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
-- USES: disk_backed, runtime, windows
+- USES: disk_backed, normalize, runtime, windows
 - USED BY: presets, selftests, workflow/market_neutral
 - API:
   - `def embargo_candles(data: Dict, config: Optional[dict]=None) -> int` L52
@@ -347,10 +359,10 @@
   - `def extract_test_dates(test: Dict) -> pd.DatetimeIndex` L368
   - `def resolve_split_dates(data: Dict, train_pct: float, val_pct: float, config: Optional[dict]=None, cutoff_method: Optional[str]=None) -> Tuple[pd.Timestamp, pd.Timestamp]` L381
   - `def split_data(data: Dict, train_pct: Optional[float]=None, val_pct: Optional[float]=None, keep_asset_test_separate: Optional[bool]=None, prefix_y: bool=True, mode: Optional[str]=None, config: Optional[dict]=None)…` L545
-  - `def split_holdout(data: Dict, keep_asset_test_separate: Optional[bool]=None, prefix_y: bool=True, config: Optional[dict]=None)` L669
-  - `def build_leak_free_split(data: Dict, train_pct: Optional[float]=None, val_pct: Optional[float]=None, keep_asset_test_separate: Optional[bool]=None, config: Optional[dict]=None) -> Tuple[dict, dict, dict]` L700
-  - `def rolling_split_schedule(data: Dict, test_span=None, val_span=None, train_span=_UNSET, initial_train_span=_UNSET, step=None, max_windows: Optional[int]=None, config: Optional[dict]=None) -> List[Dict[str, pd.Timestamp]]` L735
-  - `def rolling_splits(data: Dict, test_span=None, val_span=None, train_span=_UNSET, initial_train_span=_UNSET, step=None, max_windows: Optional[int]=None, keep_asset_test_separate: Optional[bool]=None, prefix_y: bool=Tru…` L828
+  - `def split_holdout(data: Dict, keep_asset_test_separate: Optional[bool]=None, prefix_y: bool=True, config: Optional[dict]=None, price_norm_meta: Optional[dict]=None)` L669
+  - `def build_leak_free_split(data: Dict, train_pct: Optional[float]=None, val_pct: Optional[float]=None, keep_asset_test_separate: Optional[bool]=None, config: Optional[dict]=None) -> Tuple[dict, dict, dict]` L703
+  - `def rolling_split_schedule(data: Dict, test_span=None, val_span=None, train_span=_UNSET, initial_train_span=_UNSET, step=None, max_windows: Optional[int]=None, config: Optional[dict]=None) -> List[Dict[str, pd.Timestamp]]` L738
+  - `def rolling_splits(data: Dict, test_span=None, val_span=None, train_span=_UNSET, initial_train_span=_UNSET, step=None, max_windows: Optional[int]=None, keep_asset_test_separate: Optional[bool]=None, prefix_y: bool=Tru…` L831
 
 ### `data/storage.py` (326 lines)
 - PURPOSE: Save/load the prepared dataset to/from mounted Drive: pkl.gz or npy_dir (memmap) formats, latest + timestamped copies.
@@ -365,7 +377,7 @@
   - `def load_data_from_drive(project_name: Optional[str]=None, data_type: str='preprocessed_data', filename_base: str='preprocessing_output', filename: Optional[str]=None, config: Optional[dict]=None, fmt: str='auto', mmap: boo…` L239
   - `def load_preprocessed_data_from_drive(file_id: str, output_filename: str='preprocessing_output.pkl.gz', download_dir: str='.', quiet: bool=False, cleanup: bool=False) -> Any` L290
 
-### `data/windows.py` (489 lines)
+### `data/windows.py` (577 lines)
 - PURPOSE: Windows and targets for one asset (prepare_single_asset), LAST_COLUMNS/last_candles, sample filters, invert_reg_predictions and decode_price_window.
 - TAGS: windows, targets, prepare_single_asset, last_candles, last_columns, ts_col, sample_filters, register_sample_filter, invert_reg_predictions, decode_price_window, entry_feature_table, reg_target_mode
 - PITFALLS: LAST_COLUMNS, TS_COL, LAST_DTYPE and TARGET_COLUMNS are defined once in core/schema.py and only re-bound here. last_candles is float64 (ns timestamps lose ~12 s in float32). Sample filters must be causal. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
@@ -376,10 +388,10 @@
   - `def register_sample_filter(name: str, fn: Callable[[pd.DataFrame], Any]) -> None` L42
   - `def sample_filter_mask(df: pd.DataFrame, filters: Optional[List[dict]]=None, config: Optional[dict]=None) -> np.ndarray` L86
   - `def stale_bars_min_run(config: Optional[dict]=None, base_tf: Optional[str]=None) -> Optional[int]` L120
-  - `def prepare_single_asset(dfs: Dict[str, pd.DataFrame], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_horizon: Optional[int]=None, stride: Option…` L162
-  - `def invert_reg_predictions(preds: np.ndarray, head: str, last_candles: Optional[np.ndarray]=None, bases: Optional[np.ndarray]=None, config: Optional[dict]=None, scale: Optional[float]=None) -> np.ndarray` L386
-  - `def decode_price_window(data: Dict, column: str='close', tf: Optional[str]=None, anchor: Optional[np.ndarray]=None, feature_order: Optional[List[str]]=None, mode: Optional[str]=None) -> np.ndarray` L432
-  - `def entry_feature_table(data: Dict, columns: List[str], load_asset_fn: Optional[Callable]=None, config: Optional[dict]=None) -> pd.DataFrame` L463
+  - `def prepare_single_asset(dfs: Dict[str, pd.DataFrame], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_horizon: Optional[int]=None, stride: Option…` L211
+  - `def invert_reg_predictions(preds: np.ndarray, head: str, last_candles: Optional[np.ndarray]=None, bases: Optional[np.ndarray]=None, config: Optional[dict]=None, scale: Optional[float]=None, price_norm_meta: Optional[dict]=Non…` L462
+  - `def decode_price_window(data: Dict, column: str='close', tf: Optional[str]=None, anchor: Optional[np.ndarray]=None, feature_order: Optional[List[str]]=None, mode: Optional[str]=None) -> np.ndarray` L520
+  - `def entry_feature_table(data: Dict, columns: List[str], load_asset_fn: Optional[Callable]=None, config: Optional[dict]=None) -> pd.DataFrame` L551
 
 Data / other files (counts only):
 - `crypto_data/`: csv×1 — 289 B

@@ -114,6 +114,31 @@ class TargetSpec:
             raise ValueError(f"الهدف '{self.name}': signed_by_class يحتاج class_key وrelative_to_entry=True.")
 
 
+    def with_log_norm(self, mean: float, std: float) -> 'LogNormTargetSpec':
+        """نسخة بفكّ ``price_norm_mode='logret_*'``: المخرج z = (log(price / last_close) − mean) / std فيُفكّ بـ
+        ``last_close × exp(z·std + mean)`` (≡ ``denormalize_price_targets`` في خط الأنابيب؛ المصدر
+        ``split['price_norm_meta']['targets'][name]``). المرساة last_close (``price_index=2``). subclass لا حقل جديد في
+        TargetSpec: بصمات الأوضاع القديمة (tests/golden_run_settings.json) لا تتغيّر."""
+        kw = {name: getattr(self, name) for name in self.__dataclass_fields__}
+        kw.update(price_index=2, entry_col=2)
+        return LogNormTargetSpec(**kw, log_norm=(float(mean), float(std)))
+
+
+@dataclass
+class LogNormTargetSpec(TargetSpec):
+    """TargetSpec بهدف مُقيَّس ``(log(price / last_close) − mean) / std`` — راجع :meth:`TargetSpec.with_log_norm`.
+    عدم اليقين يُحوَّل بالمشتقة الأولى (تقريب أول رتبة: ``|سعر_متوقَّع × std|`` لكل وحدة z). لا يجتمع مع
+    relative_to_entry/range_of/signed_by_class (يرفع ValueError)."""
+    log_norm: Tuple[float, float] = (0.0, 1.0)
+
+    def __post_init__(self):
+        super().__post_init__()
+        if (self.kind != 'continuous' or self.price_index != 2 or self.relative_to_entry or self.range_of
+                or self.signed_by_class or not float(self.log_norm[1]) > 0):
+            raise ValueError(f"الهدف '{self.name}': log_norm=(mean, std>0) يحتاج هدفاً مستمراً بـ price_index=2 (last_close) "
+                             "وبلا relative_to_entry/range_of/signed_by_class.")
+
+
 # ─── إعداد افتراضي متوافق مع النسخة الأصلية ───
 DEFAULT_PRICE_TARGETS: List[TargetSpec] = [
     TargetSpec(name='high',  kind='continuous', has_uncertainty=True, price_index=0, future_col=6),

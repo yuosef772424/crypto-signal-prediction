@@ -587,7 +587,7 @@ def split_data(
             else:
                 for asset_split in test.values():
                     add_y_prefix(asset_split)
-        return train, val, test
+        return finish_price_norm(data, train, val, test)     # logret_*: تقييس على train وحده؛ غيره: بلا مساس
 
     timeframes: List[str] = data['timeframes']
     targets: List[str] = data['targets']
@@ -663,15 +663,18 @@ def split_data(
             for asset_split in test.values():
                 add_y_prefix(asset_split)
 
-    return train, val, test
+    return finish_price_norm(data, train, val, test)
 
 
 def split_holdout(data: Dict,
                   keep_asset_test_separate: Optional[bool] = None,
                   prefix_y: bool = True,
-                  config: Optional[dict] = None):
+                  config: Optional[dict] = None,
+                  price_norm_meta: Optional[dict] = None):
     """عيّنات الـholdout المختوم (``ts ≥ holdout_start``) بنفس شكل ``test`` من :func:`split_data`.
 
+    ``price_norm_meta``: لبيانات 'logret_std' (غير مُلائمة) إحصاءات train (``train['price_norm_meta']``) — إلزامي، فلا
+    يُلائَم شيء على الـholdout.
     مقفلة افتراضياً: ترفع ``PermissionError`` ما لم يكن ``config['open_holdout'] is True``. الـholdout يُفتح مرة
     واحدة عند الإصدار؛ كل تقييم عليه يُسجَّل (PROTOCOL.md: «opened once, at release»)."""
     config = CONFIG if config is None else config
@@ -692,9 +695,9 @@ def split_holdout(data: Dict,
         if prefix_y:
             for sp in out.values():
                 add_y_prefix(sp)
-        return out
+        return stamp_price_norm(data, out, price_norm_meta)
     out = _take(data, mask, timeframes, targets)
-    return add_y_prefix(out) if prefix_y else out
+    return stamp_price_norm(data, add_y_prefix(out) if prefix_y else out, price_norm_meta)
 
 
 def build_leak_free_split(data: Dict,
@@ -890,6 +893,7 @@ def rolling_splits(data: Dict, test_span=None, val_span=None,
             else:
                 for asset_split in test.values():
                     add_y_prefix(asset_split)
+        train, val, test = finish_price_norm(data, train, val, test)   # لكل نافذة إحصاءات train نافذتها وحدها
 
         if verbose:
             print(f"🔁 نافذة {i}/{len(schedule)}: "
