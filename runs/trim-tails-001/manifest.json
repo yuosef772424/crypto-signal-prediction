@@ -1,0 +1,17 @@
+{
+ "config": {
+  "data_dir": "history_15m",
+  "dry_run": false
+ },
+ "git_sha": "85453cd68db7706b8325901e796d3de987bb85bb",
+ "input_fingerprint": "adacdf8cee59c75fe1fa21bdab6de10d1c2c4c45706bb42220c7c7223204bff8",
+ "n_configurations": 1,
+ "outputs": {
+  "summary.json": "3baec9cf79fd0775167ce1d5b933ccf8ac18070f1e6db6547560d9e39b07e198",
+  "trimmed_coins.csv": "578cd170121af6eb74ca87f5590e656015578d099c1cbead8d8fd0e555839840"
+ },
+ "row_counts": {
+  "trimmed_coins.csv": 167
+ },
+ "runtime_seconds": 233.351
+}

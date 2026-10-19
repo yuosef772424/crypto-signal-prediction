@@ -1,0 +1,5 @@
+# colab_runner log for trim-tails-001 started 2026-10-19T20:22:02Z
+== checkout ok: 85453cd68db7706b8325901e796d3de987bb85bb
+== install -q --disable-pip-version-check -r requirements-ci.txt
+== run: /usr/bin/python3 tools/trim_dead_tails_colab_job.py --config /content/csp_runner/tmp/trim-tails-001.config.json --out /content/csp_runner/out/trim-tails-001 --max-minutes 50
+trim-tails job ok: {'dry_run': False, 'coins_scanned': 860, 'coins_trimmed': 167, 'total_tail_bars': 5106818, 'errors': 0, 'error_coins': {}}
