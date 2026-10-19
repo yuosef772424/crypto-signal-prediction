@@ -53,3 +53,9 @@ Pre-registered 2026-10-19, BEFORE any run (NOT run). Rules: `docs/research/RESEA
 - Failure level and location, if failed:
 - Verdict: accepted / rejected / unexplained — artifact links:
 - If rejected: registry row `F-____` added (claim, scope tags, verified cause, invariants, reopen_if).
+
+## Implementation note (N1, added after the feat commit; the pre-registered fields above are unchanged)
+- Code: `data/normalize.py` (fit/apply/`denormalize_price_targets`), module card PURPOSE/PITFALLS describe the option. Stats are fitted on train in `split_data` / `rolling_splits` and stamped in `split['price_norm_meta']`; `split_holdout` needs `price_norm_meta=train['price_norm_meta']`.
+- Evaluation: `workflow/run.py:prepare_chicks` builds specs with `TargetSpec.with_log_norm(mean, std)` when the test split carries `price_norm_meta`; `workflow/reports.py` passes the meta to `invert_reg_predictions`, which delegates to `denormalize_price_targets`.
+- Raises in the new modes: `logret_sigma` with any `_reg` head, `logret_sigma` with more than one timeframe, `reg_target_mode != 'return'`, `reg_target_scale != 1`, `x_storage_dtype` with `logret_std`, `retarget_splits`, `cross_sectional_normalize`, `build_dataset_live`, `invert_reg_predictions` without meta.
+- Colab job: none written. No existing `tools/*_colab_job.py` entry point trains a model; training runs in `main.ipynb` through `RunSettings`, so a job spec waits for a training entry point.
