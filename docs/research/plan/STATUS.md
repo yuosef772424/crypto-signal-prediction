@@ -63,4 +63,5 @@
 - Colab runner merged (#21, #23; `colab_runner.ipynb`, `COLAB_RUNNER.md`): owner one-time setup = token file in Drive.
 - stale-bars-002 result: after trim + `min_run_hours=168` the zero-target share at 1h is train 2.48 % -> 1.87 % after masking, val 2.61 % (18.2 % before trim), test 2.59 %; masking touches train only. Decision: use trimmed data + `stale_bars`, stop dropping `y_close_reg == 0` rows.
 - N1 (`price_norm_mode`, branch `claude/n1-price-norm`) is being built.
+- N2 (owner-approved, after N1 merges): `refactor` — consolidate normalization into one registered `Normalizer` interface (fit/transform/inverse_targets/state; window_scale, logret_std, logret_sigma as components), byte-identical outputs in every mode; then run E-norm-001 on it.
 - Zero-target data issue above: PR #30 (`CONFIG['stale_bars']`) pending; `stale-bars-002` queued.
