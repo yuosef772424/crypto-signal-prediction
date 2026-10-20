@@ -13,9 +13,9 @@ from core.schema import ENTRY_CLOSE_REGS as _ENTRY_CLOSE_REGS, NO_RELATIVE_BASES
 DATA_FORMATS = ("auto", "pkl.gz", "npy_dir")
 #: Post-hoc confidence calibration methods of the chicks report.
 CALIBRATION_METHODS = ("isotonic", "platt")
-#: The panel model's ready-made setups; applied by PanelSettings.applied() (they override the fields they name).
 #: Model config keys the run logic derives itself (workflow.run.plan_model); ModelSettings.config_overrides may not name them.
 _MODEL_OVERRIDES_OWNED_BY_RUN = ("price_targets", "head_types", "enforce_order")
+#: The panel model's ready-made setups; applied by PanelSettings.applied() (they override the fields they name).
 PANEL_PRESETS = {
     # أفضل حقبة على 1h (stride 32، 25 حقبة) كانت الأخيرة أو قبلها: التدريب لم يتشبّع. هنا الحقبة أطول 4× (stride 8)،
     # و50 = نهاية الدورة الثالثة لجدول cosine_restarts في main (تسخين 3 + 10 + 15 + 22)، فتنتهي عند أدنى معدّل تعلّم
