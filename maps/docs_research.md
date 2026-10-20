@@ -224,10 +224,11 @@ Documents:
 - `pr13_restructuring_history.md` — PR #13 restructuring: history facts (evil merges, move+modify commits, verbatim extraction)
 
 ## `docs/research/plan/`
-- Colab runner: one click per experiment | 0 scripts, 17 md, 6 data files (547 KB)
+- Colab runner: one click per experiment | 0 scripts, 18 md, 6 data files (547 KB)
 
 Documents:
 - `COLAB_RUNNER.md` — Colab runner: one click per experiment
+- `DRIVE_SYNC.md` — Drive sync: update the Drive folder from GitHub
 - `KICKOFF.md` — Phase kickoff: how a builder agent starts a phase
 - `ROADMAP.md` — Research roadmap (2026-10 →)
 - `STATUS.md` — STATUS: research plan hand-off
