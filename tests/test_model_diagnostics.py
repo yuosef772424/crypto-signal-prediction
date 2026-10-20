@@ -473,7 +473,7 @@ class MainWrapperTests(unittest.TestCase):
 
 
 # ══════════════════════════════════════════════════════════════════════════════════════════════════
-def _panel_split(n_assets, steps, rho, seed, n_feat=6, informative=(0,), noise_labels=False):
+def _panel_split(n_assets, steps, rho, seed, n_feat=6, informative=(0,), noise_labels=False, bars_per_step=1, bar="1h"):
     """قسم بشكل split_data: عملة عملة، كل عملة زمنياً. هدف الانحدار = عامل مشترك (ارتباط rho بين الأصول) + ضجيج مستقلّ؛ تصنيف من الميزة 0
     (آخر خطوة − متوسط النافذة) إلا إن noise_labels. الميزة الأخيرة تحمل رتبة الزمن (للتحقّق من زمنية منحنى التعلّم)."""
     rng = np.random.default_rng(seed)
@@ -485,10 +485,10 @@ def _panel_split(n_assets, steps, rho, seed, n_feat=6, informative=(0,), noise_l
         cls = (rng.normal(size=steps) > 0) if noise_labels else (sig + rng.normal(size=steps) * 0.2 > 0)
         reg = np.sqrt(rho) * factor + np.sqrt(1 - rho) * rng.normal(size=steps)
         x[:, :, -1] = (np.arange(steps) / steps)[:, None]
-        xs.append(x), ys_reg.append(reg), ys_cls.append(cls), ts.append(np.arange(steps, dtype="float64"))
+        xs.append(x), ys_reg.append(reg), ys_cls.append(cls), ts.append(np.arange(steps, dtype="float64") * bars_per_step * float(pd.Timedelta(bar).value))   # last_candles: int64 ns
     cat = lambda L: np.concatenate(L)  # noqa: E731
     y = {"y_high_reg": cat(ys_reg).astype("float32"), "y_high_class": cat(ys_cls).astype("float32")}
-    return {"X_1h": cat(xs), "y": y, "last_candles": cat(ts)[:, None]}
+    return {f"X_{bar}": cat(xs), "y": y, "last_candles": cat(ts)[:, None]}
 
 
 def _flat_curve(slope=0.0):
@@ -532,6 +532,21 @@ class CapacityToolsTests(unittest.TestCase):
         small = ess(_panel_split(8, 120, 0.0, 0), window=T_LEN, n_params=10, model_tf="1h")
         self.assertTrue(small["verdict"].startswith(("✅", "⚠️")))
         self.assertEqual(ess(_panel_split(3, 60, 0.0, 1), window=T_LEN, horizon=20, model_tf="1h")["n_time_indep"], 3.0)   # أفق الهدف يزيد التداخل
+
+    def test_effective_sample_size_counts_time_in_bars(self):
+        ess = self.ns["effective_sample_size"]
+        # (a) نوافذ مُحاذاة للشبكة: 400 طابعاً بينها 32 شمعة 4h، نافذة 32 → لا تداخل: ≈ 400 (القديم ≈ 12.5)
+        a = ess(_panel_split(20, 400, 0.0, 0, bars_per_step=32, bar="4h"), window=32, horizon=1, model_tf="4h")
+        self.assertAlmostEqual(a["n_time_indep"], (399 * 32 + 1) / 32, places=6)     # = 399.03 (المدى بالشموع ÷ 32)
+        self.assertGreater(a["n_time_indep"], 399.0)
+        self.assertEqual(a["bar_tf"], "4h")
+        # (b) شبكة كثيفة (شمعة/عيّنة): مطابق للصيغة القديمة (مسافة العيّنات = الشمعة)
+        sp = _panel_split(20, 400, 0.0, 0)
+        b = ess(sp, window=32, horizon=1, model_tf="1h")
+        uts = np.unique(sp["last_candles"][:, 0])
+        old = float(min(len(uts), ((uts[-1] - uts[0]) / float(np.median(np.diff(uts))) + 1.0) / 32))
+        self.assertEqual(b["n_time_indep"], old)
+        self.assertAlmostEqual(b["n_time_indep"], 400 / 32, delta=0.04)
 
     def test_simple_baseline_signal_vs_noise(self):
         ns = self.ns

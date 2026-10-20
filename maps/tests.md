@@ -430,7 +430,7 @@
   - `class ConfigOverrides(unittest.TestCase)` L16
     - (9 methods)
 
-### `tests/test_model_diagnostics.py` (626 lines)
+### `tests/test_model_diagnostics.py` (641 lines)
 - PURPOSE: أدوات تشخيص النموذج (اختيارية، معطَّلة افتراضياً) على بيانات تركيبية صغيرة بلا Drive: python -m pytest tests/test_model_diagnostics.py -q (from docstring)
 - DEPENDS: docs
 - API:
@@ -443,7 +443,7 @@
   - `class MainWrapperTests(unittest.TestCase)` L411
     - (5 methods)
   - `class CapacityToolsTests(unittest.TestCase)` L500
-    - (7 methods)
+    - (8 methods)
 
 ### `tests/test_model_trainer_packages.py` (162 lines)
 - PURPOSE: The model/ and trainer/ packages (formerly the cells of model_v2 (1).ipynb and trainer_framework_v2.ipynb) and their runner (from docstring)
