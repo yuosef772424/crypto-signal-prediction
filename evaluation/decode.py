@@ -86,7 +86,7 @@ def decode_predictions_v4(
                 raise ValueError(f"الهدف '{spec.name}' (log_norm) يحتاج last_candles بعمود last_close ({spec.price_index}).")
             s_median = np.asarray(_anchor, dtype=np.float64)
             _ln_mean, _ln_std = (float(v) for v in spec.log_norm)
-            log_pred = logret_inverse(np.asarray(raw, dtype=np.float64).flatten(), _ln_mean, _ln_std, s_median)   # الصيغة الوحيدة (core/price_norm.py)
+            log_pred = logret_inverse(np.asarray(raw, dtype=np.float64).flatten(), _ln_mean, _ln_std, s_median, np.exp)   # الصيغة الوحيدة (core/price_norm.py)
             s_iqr = log_pred * _ln_std
         else:
             s_median, s_iqr = (_spec_base(spec, median, iqr, last_candles)

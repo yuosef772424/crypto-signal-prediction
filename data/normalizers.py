@@ -271,14 +271,14 @@ class _LogretBase(Normalizer):
     def normalize_prices(self, price, state, last_close, head='high'):
         """السعر المستقبلي ← فضاء الهدف: ``(log(price / last_close) − mean) / std`` (بدون قصّ)."""
         m, s = self._target_stats(state, head)
-        return logret_forward(price, m, s, last_close)
+        return logret_forward(np.asarray(price, dtype='float64'), m, s, np.asarray(last_close, dtype='float64'), np.log)
 
     def inverse_targets(self, pred, state, last_close, head='high', output='price', **kw):
         """**العكس الوحيد** لأهداف الانحدار في الأوضاع logret_*: مخرَج النموذج (فضاء الهدف المُقيَّس) ← ``output``:
         ``'price'``: ``last_close × exp(pred × std + mean)``؛ ``'logret'``: ``pred × std + mean``."""
         _check_output(output, ('price', 'logret'))
         m, s = self._target_stats(state, head)
-        return logret_inverse(pred, m, s, last_close, output)
+        return logret_inverse(np.asarray(pred, dtype='float64'), m, s, np.asarray(last_close, dtype='float64'), np.exp, output)
 
     def state_from_config(self, config, scale=None):
         raise ValueError(f"price_norm_mode={self.name!r}: الأهداف log(price/last_close) مُقيَّسة بإحصاءات train — "

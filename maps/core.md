@@ -13,13 +13,13 @@
 - TAGS: nig_alpha_den_min, nig, alpha, uncertainty floor, constants
 - PITFALLS: NIG_ALPHA_DEN_MIN is used by model/nig_layers.py (training-time layer) and evaluation/targets.py (post-hoc decoding of the raw NIG outputs): the two MUST agree or the evaluated uncertainty differs from the trained one. Do not change the value without a new experiment card (it changes recorded uncertainty numbers when alpha is close to 1).
 
-### `core/price_norm.py` (19 lines)
+### `core/price_norm.py` (20 lines)
 - PURPOSE: The ONE pair of formulas that maps a future price to the standardized log-return target space of price_norm_mode 'logret_*' and back: z = (log(price / anchor) - mean) / std. Used by data.normalizers (pipeline) and evaluation.decode (model…
 - TAGS: price_norm, logret, logret_forward, logret_inverse, denormalize, normalize targets, log return, anchor, last_close, core
-- PITFALLS: Pure numpy, float64, no clipping (the input channels are clipped by the pipeline, targets are not). `anchor` is last_close for every head in 'logret_*'. Do not duplicate this formula elsewhere: call it.
+- PITFALLS: Stdlib-only (tier 0): array-agnostic arithmetic, the caller passes float64 arrays and the log/exp function (numpy.log / numpy.exp), so results are byte-identical to the old numpy version. No clipping (the input channels are clipped by the pipeline, targets are not). `anchor` is last_close for every head in 'logret_*'. Do not duplicate this formula elsewhere: call it.
 - API:
-  - `def logret_forward(price, mean: float, std: float, anchor) -> np.ndarray` L9
-  - `def logret_inverse(pred, mean: float, std: float, anchor, output: str='price') -> np.ndarray` L14
+  - `def logret_forward(price, mean: float, std: float, anchor, log)` L8
+  - `def logret_inverse(pred, mean: float, std: float, anchor, exp, output: str='price')` L14
 
 ### `core/schema.py` (47 lines)
 - PURPOSE: The data schema names shared by data, workflow, discovery, cross_asset and tools: the last_candles column order (LAST_COLUMNS, TS_COL, LAST_COLUMN_INDEX), its dtype, the price target columns and the target-mode names.
