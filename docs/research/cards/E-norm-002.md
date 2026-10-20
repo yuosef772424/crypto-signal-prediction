@@ -59,7 +59,7 @@ Pre-registered 2026-10-20, BEFORE any run (NOT run). Rules: `docs/research/RESEA
 update_config(price_norm_mode="logret_std", stale_bars={"min_run_hours": 168},
               reg_target_mode="return", reg_target_scale=1.0, x_storage_dtype=None)
 # model: the only difference from E-norm-001 arm B
-RunSettings(..., model=ModelSettings.config_overrides={"use_instance_norm": False}))  # after the feat PR merges
+RunSettings(..., model=ModelSettings(config_overrides={"use_instance_norm": False}))  # after the feat PR merges
 ```
 Report per seed: val high/low IC, the model health report (probe at `trend_seasonal`, effective ranks, NIG floor,
 prediction std), and the run bundle id.
