@@ -1,7 +1,7 @@
 """
 PURPOSE:  Static scale-free custom features (log returns, relative ranges, candle structure, time features, fractals, volatility estimators, trend age, ...) and their column names.
 TAGS:     custom features, add_custom_features, custom_feature_names, DEFAULT_CUSTOM_SETTINGS, returns, fractal, supertrend, psar, hurst, variance ratio, ath distance, TIME_hour
-PITFALLS: Runs its _test_*() causality checks at load time (module level). Every feature must be causal: row t may only use rows <= t (tests/test_no_lookahead.py). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+PITFALLS: Its _test_*() causality checks do not run at load: Loading only defines it; the checks run in `run_self_tests(globals())` (tools/run_self_tests.py). Every feature must be causal: row t may only use rows <= t (tests/test_no_lookahead.py). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
 
 ## 7) الميزات المخصّصة الساكنة (`custom.py` سابقاً)
 
@@ -634,7 +634,6 @@ def _test_fractal_features_causal():
     print('✅ _test_fractal_features_causal: مُعطَّلة افتراضياً + سببية مُتحقَّقة + كشف صحيح لقمّة/قاع صناعيين')
 
 
-_test_fractal_features_causal()
 
 
 def _test_rvi_fisher_features():
@@ -684,7 +683,6 @@ def _test_rvi_fisher_features():
     print('✅ _test_rvi_fisher_features: مُعطَّلتان افتراضياً + قيم مطابقة لـpandas_ta المباشر + أسماء صحيحة')
 
 
-_test_rvi_fisher_features()
 
 
 def _test_vol_estimator_features():
@@ -729,7 +727,6 @@ def _test_vol_estimator_features():
     print('✅ _test_vol_estimator_features: مُعطَّلة افتراضياً + قيم غير سالبة + حسّاسة لاتساع المدى + أسماء صحيحة')
 
 
-_test_vol_estimator_features()
 
 
 def _test_mean_reversion_features():
@@ -799,7 +796,6 @@ def _test_mean_reversion_features():
           'مطابق للتعريف الإحصائي على AR(1) صناعية + أسماء صحيحة')
 
 
-_test_mean_reversion_features()
 
 
 def _test_jump_ratio_feature():
@@ -857,7 +853,6 @@ def _test_jump_ratio_feature():
           'قفزة صناعية ترفع JUMP_RATIO كما يقتضي تعريف Bipower Variation + أسماء صحيحة')
 
 
-_test_jump_ratio_feature()
 
 
 def _test_supertrend_rsi_divergence_features():
@@ -944,7 +939,6 @@ def _test_supertrend_rsi_divergence_features():
           'سيناريو تباعد هابط/صاعد صناعي يُميَّز بشكل صحيح')
 
 
-_test_supertrend_rsi_divergence_features()
 
 
 def _test_psar_feature():
@@ -983,7 +977,6 @@ def _test_psar_feature():
           'يُميَّز بشكل صحيح ومتعاكس + أسماء صحيحة')
 
 
-_test_psar_feature()
 
 
 def _test_trend_age_feature():
@@ -1028,7 +1021,6 @@ def _test_trend_age_feature():
           'لحظة التأكيد + تزايد خطّي صحيح + سببية مُتحقَّقة')
 
 
-_test_trend_age_feature()
 
 
 def _test_direction_consistency_feature():
@@ -1077,7 +1069,6 @@ def _test_direction_consistency_feature():
           'اتجاه تامّ→~1.0 + تذبذب تامّ→0.0 بالضبط + عشوائي→~0.5 + أسماء صحيحة')
 
 
-_test_direction_consistency_feature()
 
 
 def _test_vol_asymmetry_feature():
@@ -1136,7 +1127,6 @@ def _test_vol_asymmetry_feature():
           '+ هابط/صاعد مهيمن يُعطي ±1 تقريباً + تناظر تامّ→0.0 بالضبط')
 
 
-_test_vol_asymmetry_feature()
 
 
 def _test_crash_rebound_regime_feature():
@@ -1200,7 +1190,6 @@ def _test_crash_rebound_regime_feature():
           'تفعيل صحيح بعد هبوط ≥30% + صفر عند سلسلة مستقرّة + سببية مُتحقَّقة')
 
 
-_test_crash_rebound_regime_feature()
 
 
 def _test_risk_adj_momentum_feature():
@@ -1258,7 +1247,6 @@ def _test_risk_adj_momentum_feature():
           'صفري→~0 + أسماء صحيحة')
 
 
-_test_risk_adj_momentum_feature()
 
 
 def _test_ath_distance_feature():
@@ -1316,7 +1304,6 @@ def _test_ath_distance_feature():
           '+ تزايد صحيح بعد القمّة + سببية مُتحقَّقة')
 
 
-_test_ath_distance_feature()
 
 
 def _test_vol_term_structure_feature():
@@ -1371,4 +1358,3 @@ def _test_vol_term_structure_feature():
           'تقلّب متسارع→>1 + تقلّب متباطئ→<1 + سببية مُتحقَّقة')
 
 
-_test_vol_term_structure_feature()

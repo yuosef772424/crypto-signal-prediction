@@ -1,8 +1,7 @@
 """
-PURPOSE:  run_model_selftests: data-free self-test of registry, head expansion and full save/load; runs at load.
+PURPOSE:  run_model_selftests: data-free self-test of registry, head expansion and full save/load; defined here, run by tools/run_self_tests.run_self_tests.
 TAGS:     run_model_selftests, self-test, selftest, smoke, head registry, save load
-PITFALLS: RUNS AT LOAD (last statement). Tests and tools that only need the model exclude this module: load_into(ns,
-          exclude=('selftests',)). Executed into the one shared model namespace by model/_loader.py (never imported on
+PITFALLS: Loading only defines it (no call at module level). load_into(ns, exclude=('selftests',)) still skips it. Executed into the one shared model namespace by model/_loader.py (never imported on
           its own): names from other modules resolve at call time.
 
 ## 10) اختبار ذاتي (بلا بيانات حقيقية) — يثبت أن السجلّ والتوسعة والحفظ الكامل تعمل
@@ -149,5 +148,3 @@ def run_model_selftests(verbose: bool = True) -> bool:
         print(f"✅ نجحت كل اختبارات النموذج الذاتية ({len(expected_default)} مخرجاً افتراضياً "
               f"شاملة التصنيف، تعطيل/توسعة عبر config فقط، وحفظ+تحميل كامل بلا إعادة بناء، وإعداد مقاومة الحفظ والبدائل المعمارية)")
     return True
-
-run_model_selftests()

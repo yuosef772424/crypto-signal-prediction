@@ -7,6 +7,7 @@ into the model main would have built, section-7 reports executed in the output f
     python -m pytest tests/test_run_tool.py -q
 """
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -147,7 +148,9 @@ class EndToEnd(unittest.TestCase):
         self.assertIn("فجوة التعميم", proc.stdout)
         for name in ("signals_val.csv.gz", "signals_test.csv.gz"):
             self.assertTrue(os.path.exists(os.path.join(out, name)), name)
-        self.assertNotIn("❌", proc.stdout)
+        # a failed report prints "❌ <title>: <error>" at the start of a line (workflow/run.py); a "❌" inside a verdict line
+        # (e.g. the generalization gap of these untrained, unseeded weights) is a result, not an error
+        self.assertNotRegex(proc.stdout, re.compile(r"^❌", re.M))
 
 
 if __name__ == "__main__":

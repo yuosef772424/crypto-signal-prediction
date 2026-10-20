@@ -69,8 +69,7 @@ def discovery_package():
 def load_pipeline(quiet=True):
     """The pipeline (package data/, ex crypto_data_pipeline_v6.ipynb) in a fresh shared namespace, without its big
     self-test module. Same code path as the runner notebook: data.load_into(namespace)."""
-    # RUN_HOURLY_4H_SELFTESTS=False: presets.py (خلية 20-ج سابقاً) تشغّل اختبارها السريع تلقائياً في Colab؛ هنا تُعرَّف دالته فقط.
-    ns = {"__name__": "audit_nb", "RUN_HOURLY_4H_SELFTESTS": False}
+    ns = {"__name__": "audit_nb"}
     with (contextlib.redirect_stdout(io.StringIO()) if quiet else contextlib.nullcontext()):
         _data_package().load_into(ns, exclude=("selftests",))
     return ns

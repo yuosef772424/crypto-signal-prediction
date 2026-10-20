@@ -61,22 +61,22 @@
 - PITFALLS: Loaded first: every later module relies on these names (np, pd, Optional, deepcopy, Path...) without importing them. The __future__ import applies to this file only (each module is compiled on its own). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
 - USED BY: parallel
 
-### `data/cross_sectional_features.py` (474 lines)
+### `data/cross_sectional_features.py` (471 lines)
 - PURPOSE: Cross-sectional features computed across all coins at the same timestamp: momentum rank, market breadth, momentum orthogonalised to NATR.
 - TAGS: cross-sectional features, momentum rank, market breadth, momentum_orth_natr, natr, rank residual
-- PITFALLS: Runs its _test_*() checks at load time. Needs every coin's returns at once (build_dataset_from_loader does a first pass, _load_cross_asset_frames). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- PITFALLS: Its _test_*() checks do not run at load: Loading only defines it; the checks run in `run_self_tests(globals())` (tools/run_self_tests.py). Needs every coin's returns at once (build_dataset_from_loader does a first pass, _load_cross_asset_frames). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
 - USES: runtime
 - USED BY: features, pipeline, selftests
 - API:
   - `def momentum_rank_columns(config: Optional[dict]=None) -> List[str]` L24
   - `def build_momentum_rank(data: Optional[Dict]=None, config: Optional[dict]=None) -> Optional[Dict[str, Dict[str, pd.DataFrame]]]` L35
   - `def add_momentum_rank(dfs: Dict[str, pd.DataFrame], asset_rank_dfs: Optional[Dict[str, pd.DataFrame]], config: Optional[dict]=None) -> Dict[str, pd.DataFrame]` L76
-  - `def market_breadth_columns(config: Optional[dict]=None) -> List[str]` L162
-  - `def build_market_breadth(data: Optional[Dict]=None, config: Optional[dict]=None) -> Optional[Dict[str, pd.DataFrame]]` L173
-  - `def add_market_breadth(dfs: Dict[str, pd.DataFrame], breadth_dfs: Optional[Dict[str, pd.DataFrame]], config: Optional[dict]=None) -> Dict[str, pd.DataFrame]` L218
-  - `def momentum_orth_natr_columns(config: Optional[dict]=None) -> List[str]` L323
-  - `def build_momentum_orth_natr(data: Optional[Dict]=None, config: Optional[dict]=None) -> Optional[Dict[str, Dict[str, pd.DataFrame]]]` L354
-  - `def add_momentum_orth_natr(dfs: Dict[str, pd.DataFrame], asset_dfs: Optional[Dict[str, pd.DataFrame]], config: Optional[dict]=None) -> Dict[str, pd.DataFrame]` L401
+  - `def market_breadth_columns(config: Optional[dict]=None) -> List[str]` L161
+  - `def build_market_breadth(data: Optional[Dict]=None, config: Optional[dict]=None) -> Optional[Dict[str, pd.DataFrame]]` L172
+  - `def add_market_breadth(dfs: Dict[str, pd.DataFrame], breadth_dfs: Optional[Dict[str, pd.DataFrame]], config: Optional[dict]=None) -> Dict[str, pd.DataFrame]` L217
+  - `def momentum_orth_natr_columns(config: Optional[dict]=None) -> List[str]` L321
+  - `def build_momentum_orth_natr(data: Optional[Dict]=None, config: Optional[dict]=None) -> Optional[Dict[str, Dict[str, pd.DataFrame]]]` L352
+  - `def add_momentum_orth_natr(dfs: Dict[str, pd.DataFrame], asset_dfs: Optional[Dict[str, pd.DataFrame]], config: Optional[dict]=None) -> Dict[str, pd.DataFrame]` L399
 
 ### `data/cross_sectional_norm.py` (165 lines)
 - PURPOSE: Optional cross-sectional normalisation of regression targets across coins at the same timestamp (Qlib CSZScoreNorm/CSRankNorm spirit) and its inverse.
@@ -88,10 +88,10 @@
   - `def cross_sectional_normalize(dataset: Dict, heads: Optional[List[str]]=None, method: Optional[str]=None, min_assets: Optional[int]=None, clip: Optional[float]=None, config: Optional[dict]=None, verbose: bool=True) -> Dict` L27
   - `def invert_cross_sectional(preds: np.ndarray, timestamps: np.ndarray, head: str, dataset: Dict) -> np.ndarray` L135
 
-### `data/custom.py` (1374 lines)
+### `data/custom.py` (1360 lines)
 - PURPOSE: Static scale-free custom features (log returns, relative ranges, candle structure, time features, fractals, volatility estimators, trend age, ...) and their column names.
 - TAGS: custom features, add_custom_features, custom_feature_names, default_custom_settings, returns, fractal, supertrend, psar, hurst, variance ratio, ath distance, time_hour
-- PITFALLS: Runs its _test_*() causality checks at load time (module level). Every feature must be causal: row t may only use rows <= t (tests/test_no_lookahead.py). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- PITFALLS: Its _test_*() causality checks do not run at load: Loading only defines it; the checks run in `run_self_tests(globals())` (tools/run_self_tests.py). Every feature must be causal: row t may only use rows <= t (tests/test_no_lookahead.py). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
 - USES: runtime
 - USED BY: cross_sectional_norm, features, funding_oi, selftests, windows
 - API:
@@ -332,10 +332,10 @@
   - `def build_dataset_from_preloaded(configs: List[Dict], data: Dict[str, Dict[str, pd.DataFrame]], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_horizon: O…` L475
   - `def build_dataset(configs: List[Dict], *, data: Optional[Dict]=None, load_asset_fn: Optional[Callable]=None, resample_fn: Optional[Callable]=None, **kwargs) -> Dict` L573
 
-### `data/presets.py` (445 lines)
+### `data/presets.py` (440 lines)
 - PURPOSE: Hourly presets: 20-b (1h w168 s32 h4, and 1h w32 s8 h1), 20-c (1h + 4h context, float16) with its contract self-test, 20-d (pct_change price normalisation) — overrides, names and one-call builders.
 - TAGS: presets, hourly, apply_hourly_preset, hourly_w32_s8_overrides, hourly_4h_overrides, pct_change_overrides, build_hourly_w32_s8_dataset, build_hourly_4h_dataset, build_hourly_pct_dataset, run_hourly_4h_selftests
-- PITFALLS: Presets inherit HOURLY_W32_S8_OVERRIDES; changing it changes every preset (and the golden digests). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- PITFALLS: run_hourly_4h_selftests is only defined (no auto-run, no RUN_HOURLY_4H_SELFTESTS flag): tools/run_self_tests.run_self_tests(ns) runs it. Presets inherit HOURLY_W32_S8_OVERRIDES; changing it changes every preset (and the golden digests). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
 - USES: align, defaults, diagnostics, drive, normalize, phase2, pipeline, runtime, sources, split, storage, windows
 - API:
   - `def apply_hourly_preset(overrides: Optional[dict]=None) -> Dict[str, Any]` L68
@@ -347,8 +347,8 @@
   - `def build_hourly_w32_s8_dataset(checkpoint_dir: Optional[str]=None, save: bool=True, max_workers: Optional[int]=None, estimate: bool=True, require_phase2: bool=True) -> Dict` L254
   - `def build_hourly_4h_dataset(checkpoint_dir: Optional[str]=None, save: bool=True, max_workers: Optional[int]=None, estimate: bool=True, require_phase2: bool=True) -> Dict` L302
   - `def run_hourly_4h_selftests(verbose: bool=True) -> bool` L326
-  - `def pct_decode_consistency(dataset: Dict, column: str='close') -> Dict[str, float]` L391
-  - `def build_hourly_pct_dataset(checkpoint_dir: Optional[str]=None, save: bool=True, max_workers: Optional[int]=None, estimate: bool=True, require_phase2: bool=True) -> Dict` L416
+  - `def pct_decode_consistency(dataset: Dict, column: str='close') -> Dict[str, float]` L386
+  - `def build_hourly_pct_dataset(checkpoint_dir: Optional[str]=None, save: bool=True, max_workers: Optional[int]=None, estimate: bool=True, require_phase2: bool=True) -> Dict` L411
 
 ### `data/runtime.py` (180 lines)
 - PURPOSE: The live CONFIG dict and its helpers: update_config/reset_config (in place), save/load_config, refresh_features, feature_order, seq_len, describe.
@@ -368,10 +368,10 @@
   - `def seq_len(config: Optional[dict]=None) -> int` L152
   - `def describe(config: Optional[dict]=None) -> None` L158
 
-### `data/selftests.py` (2426 lines)
+### `data/selftests.py` (2423 lines)
 - PURPOSE: run_pipeline_selftests(): the notebook's self-tests on small synthetic data (no Drive, no network).
 - TAGS: self-tests, run_pipeline_selftests, synthetic data, regression tests
-- PITFALLS: The tests patch names through globals() of the shared namespace; docs/research/audit/_nbload.load_pipeline() leaves this module out (it takes minutes). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- PITFALLS: Loading only defines run_pipeline_selftests (no call at module level); tools/run_self_tests.run_self_tests(ns) runs it. The tests patch names through globals() of the shared namespace; docs/research/audit/_nbload.load_pipeline() leaves this module out (it takes minutes). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolv…
 - USES: align, binance_client, checkpoints, cross_sectional_features, cross_sectional_norm, custom, defaults, features, funding_oi, live, market_context, normalize, parallel, phase2, pipeline, runtime, sources, split, storage, windows
 - API:
   - `def run_pipeline_selftests(verbose: bool=True) -> bool` L43

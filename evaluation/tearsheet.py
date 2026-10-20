@@ -1,7 +1,7 @@
 """
 PURPOSE:  Tearsheet-style trading metrics (Sharpe, Sortino, Omega, profit factor, SQN, drawdown), equity curve and signal significance report.
 TAGS:     compute_trading_performance_metrics, simulate_equity_curve, signal_significance_report, Sharpe, drawdown, tearsheet, equity curve
-PITFALLS: Two self-tests (_test_*) run at load, as the old notebook did. Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+PITFALLS: The _test_* self-tests do not run at load: Loading only defines it; the checks run in `run_self_tests(globals())` (tools/run_self_tests.py). Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
 
 ## 1️⃣3️⃣ 📈 مقاييس أداء تداول إضافية (Tearsheet-style Metrics)
 
@@ -198,8 +198,6 @@ def _test_tearsheet_matches_plotted_equity_curve():
     return True
 
 
-_test_drawdown_never_exceeds_100pct()
-_test_tearsheet_matches_plotted_equity_curve()
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -341,4 +339,3 @@ def _test_signal_significance_report():
     return True
 
 
-_test_signal_significance_report()

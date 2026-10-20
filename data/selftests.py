@@ -1,7 +1,7 @@
 """
 PURPOSE:  run_pipeline_selftests(): the notebook's self-tests on small synthetic data (no Drive, no network).
 TAGS:     self-tests, run_pipeline_selftests, synthetic data, regression tests
-PITFALLS: The tests patch names through globals() of the shared namespace; docs/research/audit/_nbload.load_pipeline() leaves this module out (it takes minutes). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+PITFALLS: Loading only defines run_pipeline_selftests (no call at module level); tools/run_self_tests.run_self_tests(ns) runs it. The tests patch names through globals() of the shared namespace; docs/research/audit/_nbload.load_pipeline() leaves this module out (it takes minutes). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
 
 ## 19-ب) اختبارات ذاتية
 
@@ -2421,6 +2421,3 @@ def run_pipeline_selftests(verbose: bool = True) -> bool:
     if verbose:
         print(f"✅ نجحت كل الاختبارات الذاتية ({len(tests)}).")
     return True
-
-
-run_pipeline_selftests()

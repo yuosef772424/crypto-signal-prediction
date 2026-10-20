@@ -208,26 +208,26 @@
   - `def resolve_targets(targets=None, available: Optional[Iterable[str]]=None) -> List[TargetSpec]` L286
   - `def get_model_target_names(model, X_inputs=None) -> Optional[List[str]]` L348
 
-### `evaluation/tearsheet.py` (344 lines)
+### `evaluation/tearsheet.py` (341 lines)
 - PURPOSE: Tearsheet-style trading metrics (Sharpe, Sortino, Omega, profit factor, SQN, drawdown), equity curve and signal significance report.
 - TAGS: compute_trading_performance_metrics, simulate_equity_curve, signal_significance_report, sharpe, drawdown, tearsheet, equity curve
-- PITFALLS: Two self-tests (_test_*) run at load, as the old notebook did. Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- PITFALLS: The _test_* self-tests do not run at load: Loading only defines it; the checks run in `run_self_tests(globals())` (tools/run_self_tests.py). Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
 - USED BY: full_analysis
 - API:
   - `def compute_trading_performance_metrics(returns_pct: np.ndarray, risk_free_pct: float=0.0, risk_per_trade: float=0.1, periods_per_year: Optional[float]=None) -> Dict[str, float]` L19
   - `def print_performance_verdict(metrics: Dict[str, float]) -> None` L104
   - `def simulate_equity_curve(returns_pct: np.ndarray, initial_capital: float=10000.0, risk_per_trade: float=0.1) -> Dict[str, np.ndarray]` L126
-  - `def signal_significance_report(close_df: pd.DataFrame, trade_cost_pct: float=0.08, market_neutral: bool=True, periods_per_year: Optional[float]=None, n_perm: int=1000, seed: int=0, verbose: bool=True) -> Dict[str, object]` L242
+  - `def signal_significance_report(close_df: pd.DataFrame, trade_cost_pct: float=0.08, market_neutral: bool=True, periods_per_year: Optional[float]=None, n_perm: int=1000, seed: int=0, verbose: bool=True) -> Dict[str, object]` L240
 
-### `evaluation/trade_selection.py` (287 lines)
+### `evaluation/trade_selection.py` (286 lines)
 - PURPOSE: Trade selection: keep only trades whose expected move exceeds the uncertainty (select_and_rank_trades) and print them.
 - TAGS: select_and_rank_trades, print_trade_selection, edge vs uncertainty, min_edge_ratio, trade selection
-- PITFALLS: A self-test of the per-target fairness runs at load. Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- PITFALLS: The per-target fairness self-test (_test_*) does not run at load: Loading only defines it; the checks run in `run_self_tests(globals())` (tools/run_self_tests.py). Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
 - USES: latest_table
 - USED BY: full_analysis
 - API:
   - `def select_and_rank_trades(df: pd.DataFrame, move_col: Optional[str]=None, uncertainty_col: Optional[str]=None, confidence_col: Optional[str]=None, min_edge_ratio: float=1.0, sort_by: str='both', ascending: bool=False, top_n:…` L61
-  - `def print_trade_selection(result: pd.DataFrame, original: Optional[pd.DataFrame]=None, title: Optional[str]=None, max_rows: Optional[int]=20, indent: str=' ') -> None` L200
+  - `def print_trade_selection(result: pd.DataFrame, original: Optional[pd.DataFrame]=None, title: Optional[str]=None, max_rows: Optional[int]=20, indent: str=' ') -> None` L199
 
 ### `evaluation/trust_calibration.py` (376 lines)
 - PURPOSE: Trust & calibration report: generate_trust_report, confidence calibrators (isotonic/Platt), ECE/Brier before and after.

@@ -7,7 +7,7 @@ TAGS:     NIG-TimeNet v2, model, build_model_fn, MODEL_CONFIG, model_v2, package
 PITFALLS: The modules run in ONE shared namespace (see model/_loader.py), so never `import model.<module>`; use
           `import model` (namespace = this package) or `model.load_into(ns)` (namespace = your dict, what the runner
           notebook does with globals()). Patch names on the namespace that loaded them (model.name = ... or
-          ns["name"] = ...). The selftests module runs at load (use model.load_into(ns, exclude=("selftests",)) to skip it).
+          ns["name"] = ...). Loading only defines run_model_selftests; run it with tools/run_self_tests.run_self_tests(ns).
 
 خريطة الوحدات (بترتيب التحميل) — كل وحدة كانت خلية أو أكثر في model_v2 (1).ipynb:
   common                الاستيرادات و register
@@ -22,7 +22,7 @@ PITFALLS: The modules run in ONE shared namespace (see model/_loader.py), so nev
   config                MODEL_CONFIG وbuild_model_fn
   diagnostics           diagnose_model / model_health_verdicts
   layer_report          تقرير الطبقات
-  selftests             الاختبار الذاتي (يعمل عند التحميل)
+  selftests             الاختبار الذاتي (تعريف فقط؛ يُشغَّل بـrun_self_tests)
 """
 import threading as _threading
 

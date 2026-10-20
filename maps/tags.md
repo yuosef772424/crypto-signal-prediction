@@ -24,6 +24,7 @@
 - _required: workflow/splits
 - _resolve_train_mode: trainer/system
 - _rsi_vol_adjusted: discovery/hypothesis_predictors
+- _test_: tools/run_self_tests
 - _tfs_of: workflow/splits
 - _to_unit_label: workflow/batches
 - _tsi_momentum: discovery/hypothesis_predictors
@@ -125,6 +126,7 @@
 - bollinger: tools/indicator_reverse
 - bollinger breakout: indicator_strategy/engine, tools/trade_engine
 - bonferroni: h07_combos/01_combos
+- bootstrap: tools/drive_sync
 - bootstrap month blocks: norm_probe/run_norm_probe
 - bot2 get_range_forecast: tools/natr_range
 - bracket: tools/bracket_eval
@@ -213,13 +215,14 @@
 - clean_reg_target: discovery/__init__, discovery/evaluation
 - clear_checkpoint: data/checkpoints
 - clip_abs: data/normalize
+- clone ref: tools/drive_sync
 - close_reg: tools/stale_bars_audit, tools/stale_bars_colab_job
 - closed bars: data/align, tools/gate_features
 - cnn: edge_discovery/25_image_cnn
 - coin categories: data/defaults
 - coinmetrics: edge_discovery/16_h07_oos, edge_discovery/20_onchain
 - coins_by_category: data/defaults
-- colab: data/drive, edge_discovery/25_image_cnn, tools/colab_bridge, tools/colab_runner, tools/colab_smoke, tools/data_manifest … (+1)
+- colab: data/drive, edge_discovery/25_image_cnn, tools/colab_bridge, tools/colab_runner, tools/colab_smoke, tools/data_manifest … (+2)
 - colab cell: tools/data_manifest_colab_cell, tools/fetch_history_colab_cell
 - colab disconnect: trainer/epoch_callbacks
 - colab job: natr_range/run_natr_calibrate, natr_range/run_natr_confirm, natr_range/run_natr_confirm_forward, natr_range/run_natr_rolling, tools/stale_bars_colab_job, tools/trim_dead_tails_colab_job
@@ -371,7 +374,7 @@
 - download_notebook_from_drive: signal_eval/bootstrap
 - drawdown: evaluation/tearsheet
 - drift: natr_range/run_natr_rolling
-- drive: data/storage, tools/trim_dead_tails, tools/trim_dead_tails_colab_job
+- drive: data/storage, tools/drive_sync, tools/trim_dead_tails, tools/trim_dead_tails_colab_job
 - drive bootstrap: signal_eval/bootstrap
 - drive copy: tools/colab_bridge
 - drive download: edge_discovery/data_tools/dec
@@ -575,7 +578,9 @@
 - get_normalizer: data/normalizers
 - get_target_heads: data/heads
 - git_askpass: tools/colab_runner
+- github: tools/drive_sync
 - github dataset: tools/fetch_crypto_dataset
+- github_token: tools/drive_sync
 - give-back: h07_combos/01_combos
 - global_time: data/split
 - golden: tests/run_fixture
@@ -768,7 +773,7 @@
 - load_dataset_dir: data/storage
 - load_forward: natr_range/run_natr_confirm_forward
 - load_funding_open_interest: data/binance_client
-- load_into: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, tools/implicit_deps … (+2)
+- load_into: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, tools/implicit_deps … (+3)
 - load_notebook_defs: discovery/axis_loader
 - load_preprocessed_data_from_drive: signal_eval/bootstrap
 - loader: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, trainer/_loader … (+1)
@@ -918,6 +923,8 @@
 - nighead: model/nig_layers
 - nigts: model/common
 - niguncertainty: model/nig_layers
+- no backup: tools/drive_sync
+- no delete: tools/drive_sync
 - no future: tests/test_no_lookahead
 - no look-ahead: tools/gate_features
 - no-repeat: tools/experiment_registry
@@ -933,7 +940,7 @@
 - normalizer_for_mode: data/normalizers
 - normalizers: data/normalizers
 - not_adx40: indicator_strategy/variants
-- notebook: tools/nb_cells
+- notebook: tools/nb_cells, tools/run_self_tests
 - notebook definitions: discovery/axis_loader
 - notebook globals: tools/implicit_deps
 - notebooks: tools/build_map
@@ -962,6 +969,7 @@
 - output management: evaluation/outputs
 - output names: data/heads
 - output_keys: workflow/training_config
+- overwrite keep: tools/drive_sync
 - own-kind reference trap: discovery/evaluation
 - p_value: signal_eval/core
 - package entry: data/__init__, evaluation/__init__, model/__init__, signal_eval/__init__, trainer/__init__
@@ -1194,14 +1202,16 @@
 - run_label_permutation_control: workflow/permutation_control
 - run_main: workflow/run
 - run_main_training: workflow/settings
-- run_model_selftests: model/selftests
+- run_model_selftests: model/selftests, tools/run_self_tests
 - run_panel: workflow/run
 - run_panel_experiment: cross_asset/__init__, cross_asset/experiment, workflow/panel_bridge
 - run_panel_selftest: cross_asset/selftest
-- run_pipeline_selftests: data/selftests
+- run_pipeline_selftests: data/selftests, tools/run_self_tests
 - run_registry_selftests: signal_eval/registry_selftests
 - run_reports: workflow/run
+- run_self_tests: tools/run_self_tests
 - run_survey: discovery/__init__, discovery/survey
+- run_trainer_smoke_test: tools/run_self_tests
 - run_weights: edge_discovery/tsbt
 - run_wiring_selftest: workflow/wiring_selftest
 - runner: tools/colab_runner, tools/colab_smoke
@@ -1243,8 +1253,8 @@
 - selective_evaluation: workflow/selective_eval
 - self test: discovery/selftest, workflow/wiring_selftest
 - self-test: model/selftests
-- self-tests: data/selftests
-- selftest: cross_asset/selftest, model/selftests
+- self-tests: data/selftests, tools/run_self_tests
+- selftest: cross_asset/selftest, model/selftests, tools/run_self_tests
 - selftests: signal_eval/selftests
 - settings: data/defaults, workflow/settings
 - settings interval start funding open_interest: tools/fetch_history_colab_cell
@@ -1282,7 +1292,7 @@
 - small_array_bytes: data/disk_backed
 - smart-minus-retail: edge_discovery/features
 - smoke: model/selftests
-- smoke test: tools/colab_smoke, trainer/smoke_test
+- smoke test: tools/colab_smoke, tools/run_self_tests, trainer/smoke_test
 - snapshot ensemble: trainer/snapshot
 - snapshotensemble: trainer/snapshot
 - softmax: evaluation/decode
@@ -1337,6 +1347,8 @@
 - symlog: model/input_norm
 - symmetric: tools/bracket_eval
 - symtable: tools/implicit_deps
+- sync: tools/drive_sync
+- synced_from: tools/drive_sync, tools/run_self_tests
 - synthetic: discovery/selftest
 - synthetic data: cross_asset/selftest, data/selftests, signal_eval/selftests, workflow/wiring_selftest
 - synthetic dataset: tests/run_fixture
@@ -1457,6 +1469,7 @@
 - unseen assets: strategy_discovery/oos, strategy_discovery/significance, strategy_discovery/survivor_checks
 - untouched coins: edge_discovery/24_pullback_maker
 - up_share: cross_asset/report
+- update drive from github: tools/drive_sync
 - update_config: data/runtime
 - use_mixed_precision: trainer/perf
 - used by: tools/implicit_deps

@@ -62,7 +62,7 @@ Documents:
 - `round2.md` — Audit round 2 — pinned at b14b9bb (branch claude/charming-sagan-kswo2r)
 - `round3.md` — Audit round 3: two-timeframe path (1h base + closed 4h context), commit f2442be
 
-### `docs/research/audit/_nbload.py` (115 lines)
+### `docs/research/audit/_nbload.py` (114 lines)
 - PURPOSE: Audit helper: execute the code cells of a notebook into a namespace, without Colab. (from docstring)
 - DEPENDS: data
 - API:
@@ -70,10 +70,10 @@ Documents:
   - `def workflow_package()` L59
   - `def discovery_package()` L64
   - `def load_pipeline(quiet=True)` L69
-  - `def load_model(ns=None, quiet=True, selftests=False)` L79
-  - `def load_trainer(ns=None, quiet=True, smoke_test=False, kfold=False)` L90
-  - `def load_evaluation(ns=None, exclude=(), quiet=True)` L102
-  - `def exec_evaluation_module(name, ns, quiet=True)` L111
+  - `def load_model(ns=None, quiet=True, selftests=False)` L78
+  - `def load_trainer(ns=None, quiet=True, smoke_test=False, kfold=False)` L89
+  - `def load_evaluation(ns=None, exclude=(), quiet=True)` L101
+  - `def exec_evaluation_module(name, ns, quiet=True)` L110
 
 ### `docs/research/audit/_r2_synth.py` (113 lines)
 - PURPOSE: Round-2 audit helper: a synthetic 'Drive' (1h + 15m klines, funding, OI, futures_metrics) and a (from docstring)
@@ -224,10 +224,11 @@ Documents:
 - `pr13_restructuring_history.md` — PR #13 restructuring: history facts (evil merges, move+modify commits, verbatim extraction)
 
 ## `docs/research/plan/`
-- Colab runner: one click per experiment | 0 scripts, 17 md, 6 data files (547 KB)
+- Colab runner: one click per experiment | 0 scripts, 18 md, 6 data files (547 KB)
 
 Documents:
 - `COLAB_RUNNER.md` — Colab runner: one click per experiment
+- `DRIVE_SYNC.md` — Drive sync: update the Drive folder from GitHub
 - `KICKOFF.md` — Phase kickoff: how a builder agent starts a phase
 - `ROADMAP.md` — Research roadmap (2026-10 →)
 - `STATUS.md` — STATUS: research plan hand-off
