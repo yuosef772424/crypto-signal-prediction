@@ -11,6 +11,7 @@ from copy import deepcopy
 import numpy as np
 import pandas as pd
 
+from tests import _simd
 from tests import test_audit_round2 as r2
 from tests._normalizer_fixture import NO_REG, fingerprint_dataset, fingerprint_splits, mode_cfg, run_mode
 from tests.test_price_norm_mode import _build, _by_ts, _cfg, _frames, _perturb, _split
@@ -18,14 +19,26 @@ from tests.test_price_norm_mode import _build, _by_ts, _cfg, _frames, _perturb, 
 MODES = ("window_scale", "logret_std", "logret_sigma")
 # sha256 (dataset, splits) per mode, measured on the N1 head (f4b74a1) before the refactor.
 PINNED = {
-    "window_scale": ("1312b17794abb23c88e33fb31b7742c684ac6f8439c8bad14b0e6c61f5b56519",
-                     "41c2365d2a9f9ad88e37f861af7bca6cd64b2c5617c8180480f6d975b984cfba"),
-    "pct_change": ("090e33b6593f3dd3ec3074a06444239b74de6c2b3bac49cb5f1883886cad1b88",
-                   "246d0a8a700ef9eabbd5b84787aa816d799a0f8c94cacbbcda439fa8af5ce429"),
-    "logret_std": ("4dd2d7fba1f81abc1cf7b6d3537aa4f616643f8cf274bf9922efbde6126e0b6d",
-                   "d0a7cb0dff6d056c108d41897a17636fe91393ab9290c0fcef754b76ed02e910"),
-    "logret_sigma": ("2975988066bfef26346dd2ce03b071e7de514f5d3652396e8e60be387e51eba7",
-                     "30cf24146ada5a2ff90bd1450ff4074cc28021f5e883da0c1ef8591b76b05a77"),
+    'x86_v4': {
+        "window_scale": ("1312b17794abb23c88e33fb31b7742c684ac6f8439c8bad14b0e6c61f5b56519",
+                         "41c2365d2a9f9ad88e37f861af7bca6cd64b2c5617c8180480f6d975b984cfba"),
+        "pct_change": ("090e33b6593f3dd3ec3074a06444239b74de6c2b3bac49cb5f1883886cad1b88",
+                       "246d0a8a700ef9eabbd5b84787aa816d799a0f8c94cacbbcda439fa8af5ce429"),
+        "logret_std": ("4dd2d7fba1f81abc1cf7b6d3537aa4f616643f8cf274bf9922efbde6126e0b6d",
+                       "d0a7cb0dff6d056c108d41897a17636fe91393ab9290c0fcef754b76ed02e910"),
+        "logret_sigma": ("2975988066bfef26346dd2ce03b071e7de514f5d3652396e8e60be387e51eba7",
+                         "30cf24146ada5a2ff90bd1450ff4074cc28021f5e883da0c1ef8591b76b05a77"),
+    },
+    'x86_v3': {
+        "window_scale": ("99377c7845af9a4345bcdbf4e24edb3e171ed8c199e8fae4a174d5679c57b434",
+                         "cd53d8e2039ef9f7489bbae1fe0d001a46b9bbbe18076333fe4450a9982540ca"),
+        "pct_change": ("451093fecb39ec81fe160c68c8e659a34093d8b26c7ab5a633ff7e395bab8f96",
+                       "8404938e7671b991c847d9e4df58d8105b9323da3d85c8bd7c0bd894eeb8627c"),
+        "logret_std": ("30e4f4dae22d8d8e39dd8eb33755163e5114201058d9dece1cd108ba351db12f",
+                       "570f7e731c83ec3ed0c2bd7f118fa7ed8237d08292adfe0416d82a04d8804a2f"),
+        "logret_sigma": ("53423c33381014fcfda07504e9eced169266ee5580606793812a7d682db29a6e",
+                         "e4dc16d48225a42c52c0790ef495e50d351aa88e639b677d88c7603fbb0c1274"),
+    },
 }
 _RUNS = {}
 
@@ -76,7 +89,10 @@ class FingerprintTests(unittest.TestCase):
     """transform output byte-for-byte equal to the pre-refactor pipeline (dataset inputs and stamped splits)."""
 
     def test_pinned_fingerprints(self):
-        for mode, (d, s) in PINNED.items():
+        pins = _simd.pick(PINNED)
+        if pins is None:
+            self.skipTest(f"no recorded pin for this CPU's numpy SIMD path ({_simd.simd_path()})")
+        for mode, (d, s) in pins.items():
             with self.subTest(mode=mode):
                 cfg, ds, sp = _run(mode)
                 self.assertEqual(fingerprint_dataset(ds), d)

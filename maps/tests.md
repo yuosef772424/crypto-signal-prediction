@@ -549,20 +549,20 @@
   - `class Metrics(unittest.TestCase)` L148
     - (1 methods)
 
-### `tests/test_normalizer.py` (215 lines)
+### `tests/test_normalizer.py` (231 lines)
 - PURPOSE: One registered Normalizer interface behind every price_norm mode ('window_scale', 'logret_std', 'logret_sigma'). (from docstring)
 - API:
-  - `class RegistryTests(unittest.TestCase)` L60
+  - `class RegistryTests(unittest.TestCase)` L73
     - (3 methods)
-  - `class FingerprintTests(unittest.TestCase)` L75
+  - `class FingerprintTests(unittest.TestCase)` L88
     - (3 methods)
-  - `class StateTests(unittest.TestCase)` L105
+  - `class StateTests(unittest.TestCase)` L121
     - (2 methods)
-  - `class TrainOnlyFitTests(unittest.TestCase)` L131
+  - `class TrainOnlyFitTests(unittest.TestCase)` L147
     - (2 methods)
-  - `class TargetRoundTripTests(unittest.TestCase)` L156
+  - `class TargetRoundTripTests(unittest.TestCase)` L172
     - (2 methods)
-  - `class OneFormulaTests(unittest.TestCase)` L183
+  - `class OneFormulaTests(unittest.TestCase)` L199
     - (2 methods)
 
 ### `tests/test_normalizer_live.py` (86 lines)
