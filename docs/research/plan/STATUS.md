@@ -63,13 +63,13 @@
 - Colab runner merged (#21, #23; `colab_runner.ipynb`, `COLAB_RUNNER.md`): owner one-time setup = token file in Drive.
 - stale-bars-002 result: trimmed data + `stale_bars={'min_run_hours':168}` adopted; never drop `y_close_reg == 0` rows.
 
-## Model line (2026-10-20, master after #47)
+## Model line (2026-10-20, master after #49)
 - Merged: #37 N1 `price_norm_mode` · #39 N2 Normalizer registry · #40 SIMD-path pins · #41 E-norm-002 card · #42 `ModelSettings.config_overrides` ·
   #43 `TargetSettings.suspended_targets` (`()` = train close too) · #44 `tools/drive_sync.py` + self-tests run only in the explicit
   `run_self_tests(globals())` cell of main.ipynb · #45 effective-sample unit fix (was 47, now ~1.5k for 4h/w32/s32 grid) ·
   #46 `docs/research/notes/external_research_2026-10-20.md` (citations unverified) · #47 F-0085.
-- Open: #48 opt-in `EvalSettings(trivial_baseline=True)` (trivial range-position AUC + uplift in the generalization report);
-  #49 main.ipynb cell 2: switch the GitHub clone by fetch+checkout (was `pull`), default branch master, `DISCARD_LOCAL_CHANGES`.
+- Also merged: #48 opt-in `EvalSettings(trivial_baseline=True)` (trivial range-position AUC + uplift in the generalization report);
+  #49 main.ipynb cell 2 switches the GitHub clone by fetch+checkout (was `pull`), default branch master, `DISCARD_LOCAL_CHANGES`.
 - E-norm-001 (logret_std vs window_scale, 4h w32 s32 grid-aligned, H/L/C, horizon 1): 1 valid seed each on the same code
   (the first logret_std seed ran on older code, discarded). Model metric 0.649 (logret_std) vs 0.61-0.63; linear ref 0.706 / 0.683.
   Decision is the card's rule: val high/low IC, >= 3 seeds per arm, all on ONE commit (record SYNCED_FROM.txt per run).
