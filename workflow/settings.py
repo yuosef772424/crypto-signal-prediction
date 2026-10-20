@@ -132,8 +132,18 @@ class TargetSettings(_SettingsSection):
     entry_close_reg: str = "abs_return"
     #: Width of the cross-section group of the +relative modes (e.g. "1D", "4h", "32h"); None = the exact timestamp.
     group_freq: _t.Optional[str] = None
+    #: Which price targets of CONFIG['targets'] the model does NOT train / evaluate. None = the old rule exactly (close suspended unless
+    #: target_mode starts with "entry_range"); () = train every target (close gets nig_regression + binary_classification heads, or the
+    #: classification head only with ModelSettings.class_only); a tuple of names = suspend exactly those. Unknown names or suspending all
+    #: targets raise in workflow.run.plan_model. Not None changes the run folder name (run_dir_for: "_susp-none" / "_susp-<names>").
+    #: A JSON round-trip gives a list: it is normalised to a tuple.
+    suspended_targets: _t.Optional[tuple] = None
 
     def __post_init__(self):
+        if self.suspended_targets is not None:
+            _settings_check(isinstance(self.suspended_targets, (list, tuple)) and all(isinstance(t, str) for t in self.suspended_targets),
+                   "TargetSettings.suspended_targets must be None or a tuple of target names (str)")
+            _settings_set(self, suspended_targets=tuple(self.suspended_targets))
         if self.target_mode is not None:
             _settings_check(isinstance(self.target_mode, str) and self.target_mode, "TargetSettings.target_mode must be a str or None")
             problem = _target_mode_problem(self.target_mode)           # unknown / refused modes raise here, not after loading data
@@ -379,4 +389,7 @@ def run_dir_for(settings, reg_target_scale, model_tfs):
             + ("_classonly" if settings.model.class_only else "")
             # تجاوزات معمارية إضافية = معمارية أخرى: مجلد منفصل، بمفاتيح مرتّبة (حتمي)؛ {} لا يضيف شيئاً
             + "".join("_" + "".join(c if c.isalnum() else "-" for c in f"{k}={v!r}".replace(" ", ""))
-                      for k, v in sorted(settings.model.config_overrides.items())))
+                      for k, v in sorted(settings.model.config_overrides.items()))
+            # أهداف مدرَّبة غير القاعدة القديمة (None) = نموذج آخر: مجلد منفصل؛ None لا يضيف شيئاً
+            + (("_susp-" + ("-".join(sorted(settings.target.suspended_targets)) or "none"))
+               if settings.target.suspended_targets is not None else ""))
