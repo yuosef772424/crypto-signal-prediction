@@ -45,7 +45,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `research/strategy_discovery/` — strategy_discovery — البحث عن استراتيجية تداول قابلة للتحقق | 10 scripts, 15 data files (112 KB) → maps/research_strategy_discovery.md
 
 ## docs/research (legacy)
-- `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 44 md, 1 data files (104 KB) → maps/docs_research.md
+- `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 44 md, 1 data files (107 KB) → maps/docs_research.md
 - `docs/research/audit/` — Audit / Improvement Protocol (Auditor ↔ Builder) | 26 scripts, 5 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/cards/` — Experiment card — E-liq-001: does telling the model how liquid the coin is (A) or removing illiquid… | 0 scripts, 3 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/notes/` — How to add a price normalizer | 0 scripts, 2 md, 0 data files (0 B) → maps/docs_research.md
