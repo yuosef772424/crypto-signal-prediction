@@ -7,12 +7,12 @@
 ### `model/__init__.py` (61 lines)
 - PURPOSE: Package holding the NIG-TimeNet v2 model code (formerly the cells of model_v2 (1).ipynb): `import model` gives the whole model (model.build_model_fn, model.MODEL_CONFIG, model.diagnose_model, ...) in this package's namespace, loaded lazily…
 - TAGS: nig-timenet v2, model, build_model_fn, model_config, model_v2, package entry, import model, lazy load, shared namespace, runner notebook
-- PITFALLS: The modules run in ONE shared namespace (see model/_loader.py), so never `import model.<module>`; use `import model` (namespace = this package) or `model.load_into(ns)` (namespace = your dict, what the runner notebook does with globals()). Patch names on the namespace that loaded them (model.name = ... or ns["name"] = ...). The selftests module runs at load (use model.load_into(ns, exclude=("self…
+- PITFALLS: The modules run in ONE shared namespace (see model/_loader.py), so never `import model.<module>`; use `import model` (namespace = this package) or `model.load_into(ns)` (namespace = your dict, what the runner notebook does with globals()). Patch names on the namespace that loaded them (model.name = ... or ns["name"] = ...). Loading only defines run_model_selftests; run it with tools/run_self_test…
 
 ### `model/_loader.py` (68 lines)
 - PURPOSE: Execute the model modules, in their fixed order, into ONE shared namespace dict (exactly what the notebook's cells did): load_into(ns) is the single code path behind `import model`, the runner notebook model_v2 (1).ipynb and docs/research/…
 - TAGS: loader, shared namespace, load_into, modules, module order, late binding, monkeypatch, %run, repo_root, model package
-- PITFALLS: The modules are not standalone Python modules: they reference each other's names (also names defined by LATER modules, resolved at call time) and share one dict, so they must run in one dict. Patching that dict (ns["name"] = ...) changes what every model function sees. MODULES order is load order: a module's top-level code may only use names of earlier modules. The selftests module RUNS AT LOAD:…
+- PITFALLS: The modules are not standalone Python modules: they reference each other's names (also names defined by LATER modules, resolved at call time) and share one dict, so they must run in one dict. Patching that dict (ns["name"] = ...) changes what every model function sees. MODULES order is load order: a module's top-level code may only use names of earlier modules. Loading runs NO self-test (run_mode…
 - API:
   - `def module_path(name: str) -> Path` L38
   - `def load_into(ns: dict, exclude=()) -> dict` L45
@@ -173,13 +173,13 @@
     - `.compute_output_shape(self, input_shape)` L84
     - `.get_config(self)` L87
 
-### `model/selftests.py` (153 lines)
-- PURPOSE: run_model_selftests: data-free self-test of registry, head expansion and full save/load; runs at load.
+### `model/selftests.py` (150 lines)
+- PURPOSE: run_model_selftests: data-free self-test of registry, head expansion and full save/load; defined here, run by tools/run_self_tests.run_self_tests.
 - TAGS: run_model_selftests, self-test, selftest, smoke, head registry, save load
-- PITFALLS: RUNS AT LOAD (last statement). Tests and tools that only need the model exclude this module: load_into(ns, exclude=('selftests',)). Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
+- PITFALLS: Loading only defines it (no call at module level). load_into(ns, exclude=('selftests',)) still skips it. Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
 - USES: config, input_norm
 - API:
-  - `def run_model_selftests(verbose: bool=True) -> bool` L17
+  - `def run_model_selftests(verbose: bool=True) -> bool` L16
 
 ### `model/transformer.py` (149 lines)
 - PURPOSE: Transformer block parts: RMSNorm, RelativeGQAttention (GQA + relative bias), SwiGLU, TransformerBlock.

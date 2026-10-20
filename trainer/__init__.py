@@ -7,7 +7,7 @@ TAGS:     generic trainer, trainer framework, build_training_system, GenericTrai
 PITFALLS: The modules run in ONE shared namespace (see trainer/_loader.py), so never `import trainer.<module>`; use
           `import trainer` (namespace = this package) or `trainer.load_into(ns)` (namespace = your dict, what the runner
           notebook does with globals()). Patch names on the namespace that loaded them (trainer.name = ... or
-          ns["name"] = ...). The smoke_test module trains for a few epochs at load (use trainer.load_into(ns, exclude=("smoke_test",)) to skip it).
+          ns["name"] = ...). Loading runs no test: smoke_test only defines run_trainer_smoke_test; tools/run_self_tests.run_self_tests(ns) runs it and the _test_* checks.
 
 خريطة الوحدات (بترتيب التحميل) — كل وحدة كانت خلية أو أكثر في trainer_framework_v2.ipynb:
   env                   الاستيرادات والبيئة
@@ -24,7 +24,7 @@ PITFALLS: The modules run in ONE shared namespace (see trainer/_loader.py), so n
   checkpoints           الحفظ والاستئناف
   epoch_callbacks       DriveMirror وEpochGuard
   system                build_training_system
-  smoke_test            Smoke Test (يعمل عند التحميل)
+  smoke_test            Smoke Test (تعريف فقط؛ يُشغَّل بـrun_self_tests)
   example               قالب الاستخدام
   kfold                 K-Fold
   ensemble              استدلال Ensemble

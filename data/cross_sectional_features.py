@@ -1,7 +1,7 @@
 """
 PURPOSE:  Cross-sectional features computed across all coins at the same timestamp: momentum rank, market breadth, momentum orthogonalised to NATR.
 TAGS:     cross-sectional features, momentum rank, market breadth, momentum_orth_natr, NATR, rank residual
-PITFALLS: Runs its _test_*() checks at load time. Needs every coin's returns at once (build_dataset_from_loader does a first pass, _load_cross_asset_frames). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+PITFALLS: Its _test_*() checks do not run at load: Loading only defines it; the checks run in `run_self_tests(globals())` (tools/run_self_tests.py). Needs every coin's returns at once (build_dataset_from_loader does a first pass, _load_cross_asset_frames). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
 """
 # @title
 """
@@ -156,7 +156,6 @@ def _test_momentum_rank():
           'الفعلي على 3 أصول صناعية + سببية مُتحقَّقة + إلحاق صحيح')
 
 
-_test_momentum_rank()
 
 
 def market_breadth_columns(config: Optional[dict] = None) -> List[str]:
@@ -296,7 +295,6 @@ def _test_market_breadth():
           'قيمة مشتركة لكل الأصول + سببية مُتحقَّقة')
 
 
-_test_market_breadth()
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -471,4 +469,3 @@ def _test_momentum_orth_natr():
           'بنفس التقلّب صحيح + سببية مُتحقَّقة + إلحاق/قيمة محايدة صحيحان')
 
 
-_test_momentum_orth_natr()

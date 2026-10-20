@@ -1,7 +1,7 @@
 """
 PURPOSE:  Trade selection: keep only trades whose expected move exceeds the uncertainty (select_and_rank_trades) and print them.
 TAGS:     select_and_rank_trades, print_trade_selection, edge vs uncertainty, min_edge_ratio, trade selection
-PITFALLS: A self-test of the per-target fairness runs at load. Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+PITFALLS: The per-target fairness self-test (_test_*) does not run at load: Loading only defines it; the checks run in `run_self_tests(globals())` (tools/run_self_tests.py). Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
 
 ## 1️⃣9️⃣ 🎯 اختيار وتصنيف الصفقات: التحرك المتوقع مقابل عدم اليقين (Edge vs Uncertainty)
 
@@ -182,7 +182,6 @@ def _test_select_and_rank_trades_per_target_fairness():
     return True
 
 
-_test_select_and_rank_trades_per_target_fairness()
 
 
 # ═══════════════════════════════════════════════════════════════════════════

@@ -7,12 +7,12 @@
 ### `trainer/__init__.py` (66 lines)
 - PURPOSE: Package holding the generic training framework (formerly the cells of trainer_framework_v2.ipynb): `import trainer` gives the whole framework (trainer.build_training_system, trainer.build_config, trainer.GenericTrainer, ...) in this packag…
 - TAGS: generic trainer, trainer framework, build_training_system, generictrainer, build_config, trainer_framework_v2, package entry, import trainer, lazy load, shared namespace, runner notebook
-- PITFALLS: The modules run in ONE shared namespace (see trainer/_loader.py), so never `import trainer.<module>`; use `import trainer` (namespace = this package) or `trainer.load_into(ns)` (namespace = your dict, what the runner notebook does with globals()). Patch names on the namespace that loaded them (trainer.name = ... or ns["name"] = ...). The smoke_test module trains for a few epochs at load (use trai…
+- PITFALLS: The modules run in ONE shared namespace (see trainer/_loader.py), so never `import trainer.<module>`; use `import trainer` (namespace = this package) or `trainer.load_into(ns)` (namespace = your dict, what the runner notebook does with globals()). Patch names on the namespace that loaded them (trainer.name = ... or ns["name"] = ...). Loading runs no test: smoke_test only defines run_trainer_smoke…
 
 ### `trainer/_loader.py` (73 lines)
 - PURPOSE: Execute the trainer modules, in their fixed order, into ONE shared namespace dict (exactly what the notebook's cells did): load_into(ns) is the single code path behind `import trainer`, the runner notebook trainer_framework_v2.ipynb and do…
 - TAGS: loader, shared namespace, load_into, modules, module order, late binding, monkeypatch, %run, repo_root, trainer package
-- PITFALLS: The modules are not standalone Python modules: they reference each other's names (also names defined by LATER modules, resolved at call time) and share one dict, so they must run in one dict. Patching that dict (ns["name"] = ...) changes what every trainer function sees. MODULES order is load order: a module's top-level code may only use names of earlier modules. The smoke_test module RUNS A REAL…
+- PITFALLS: The modules are not standalone Python modules: they reference each other's names (also names defined by LATER modules, resolved at call time) and share one dict, so they must run in one dict. Patching that dict (ns["name"] = ...) changes what every trainer function sees. MODULES order is load order: a module's top-level code may only use names of earlier modules. Loading runs NO test: smoke_test…
 - API:
   - `def module_path(name: str) -> Path` L43
   - `def load_into(ns: dict, exclude=()) -> dict` L50
@@ -117,7 +117,7 @@
   - `def purged_walk_forward_splits(n_samples: int, n_splits: int=5, purge: int=50, embargo: int=50)` L16
   - `def run_kfold_training(n_samples: int, model_builder_fn: Callable[[], tf.keras.Model], config_template: dict, dataset_builder_fn: Callable[[np.ndarray, np.ndarray], Tuple[tf.data.Dataset, tf.data.Dataset, Tuple[Any, Any]]…` L27
 
-### `trainer/metrics.py` (157 lines)
+### `trainer/metrics.py` (156 lines)
 - PURPOSE: TaskWeightUpdater, MetricsLogger (class baselines) and DerivedMetrics callbacks (+ a load-time self-test).
 - TAGS: taskweightupdater, metricslogger, derivedmetrics, class_baselines, callbacks, metrics
 - PITFALLS: RUNS _test_metrics_logger_class_baselines() AT LOAD. Executed into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other modules resolve at call time.
@@ -131,9 +131,9 @@
     - `.get_state(self) -> dict` L54
     - `.load_state(self, state: dict)` L57
     - `.on_epoch_end(self, epoch, logs=None)` L61
-  - `class DerivedMetrics(tf.keras.callbacks.Callback)` L140
-    - `.__init__(self, class_targets: List[str])` L147
-    - `.on_epoch_end(self, epoch, logs=None)` L151
+  - `class DerivedMetrics(tf.keras.callbacks.Callback)` L139
+    - `.__init__(self, class_targets: List[str])` L146
+    - `.on_epoch_end(self, epoch, logs=None)` L150
 
 ### `trainer/perf.py` (72 lines)
 - PURPOSE: Performance/GPU setup: memory growth and the mixed-precision switch (USE_MIXED_PRECISION).
@@ -155,11 +155,13 @@
   - `def cosine_warm_restarts(epoch, lr_initial, lr_min, cycle_length=10, cycle_mult=1.5)` L79
   - `def build_lr_schedule_fn(opt_cfg: dict, rewarm_from_epoch: Optional[int]=None, rewarm_epochs: int=0) -> Callable[[int], float]` L89
 
-### `trainer/smoke_test.py` (135 lines)
-- PURPOSE: Smoke test: proves optimizer state survives an interruption and warm_start works (runs real tiny training at load).
+### `trainer/smoke_test.py` (136 lines)
+- PURPOSE: Smoke test: proves optimizer state survives an interruption and warm_start works (run_trainer_smoke_test() trains a real tiny model; run by tools/run_self_tests).
 - TAGS: smoke test, optimizer state, resume, warm_start, trainer_registry, interrupt
-- PITFALLS: RUNS AT LOAD (trains a few epochs on random data into a temp dir); tests exclude this module: load_into(ns, exclude=('smoke_test',)). Executed into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other modules resolve at call time.
+- PITFALLS: Loading only defines run_trainer_smoke_test (it trains a few epochs on random data into a temp dir when called); load_into(ns, exclude=('smoke_test',)) still skips the module. Executed into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other modules resolve at call time.
 - USES: checkpoints, config, env, system
+- API:
+  - `def run_trainer_smoke_test()` L48
 
 ### `trainer/snapshot.py` (26 lines)
 - PURPOSE: SnapshotEnsemble: optional snapshot-ensemble callback.
@@ -171,7 +173,7 @@
     - `.__init__(self, save_epochs: List[int], save_dir: str, base_model: tf.keras.Model, verbose=1)` L12
     - `.on_epoch_end(self, epoch, logs=None)` L21
 
-### `trainer/system.py` (309 lines)
+### `trainer/system.py` (308 lines)
 - PURPOSE: build_optimizer, build_training_system (the single entry point) and EMA warm-up (+ a load-time self-test).
 - TAGS: build_training_system, build_optimizer, enable_ema_warmup, emawindow, _resolve_train_mode, train_mode, entry point
 - PITFALLS: RUNS _test_ema_warmup() AT LOAD. Always call build_training_system the same way for new, resumed and warm- start runs. Executed into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other modules resolve at call time.

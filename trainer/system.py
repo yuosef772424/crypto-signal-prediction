@@ -306,4 +306,3 @@ def build_training_system(
     return trainer, callbacks, initial_epoch
 
 
-_test_ema_warmup()

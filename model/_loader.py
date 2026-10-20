@@ -7,7 +7,7 @@ TAGS:     loader, shared namespace, load_into, MODULES, module order, late bindi
 PITFALLS: The modules are not standalone Python modules: they reference each other's names (also names defined by
           LATER modules, resolved at call time) and share one dict, so they must run in one dict. Patching that dict
           (ns["name"] = ...) changes what every model function sees. MODULES order is load order: a module's
-          top-level code may only use names of earlier modules. The selftests module RUNS AT LOAD: pass exclude=("selftests",) when only the model is needed.
+          top-level code may only use names of earlier modules. Loading runs NO self-test (run_model_selftests is only defined; tools/run_self_tests.run_self_tests(ns) runs it).
 """
 from __future__ import annotations
 

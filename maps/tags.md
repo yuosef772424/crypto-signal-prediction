@@ -24,6 +24,7 @@
 - _required: workflow/splits
 - _resolve_train_mode: trainer/system
 - _rsi_vol_adjusted: discovery/hypothesis_predictors
+- _test_: tools/run_self_tests
 - _tfs_of: workflow/splits
 - _to_unit_label: workflow/batches
 - _tsi_momentum: discovery/hypothesis_predictors
@@ -772,7 +773,7 @@
 - load_dataset_dir: data/storage
 - load_forward: natr_range/run_natr_confirm_forward
 - load_funding_open_interest: data/binance_client
-- load_into: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, tools/implicit_deps … (+2)
+- load_into: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, tools/implicit_deps … (+3)
 - load_notebook_defs: discovery/axis_loader
 - load_preprocessed_data_from_drive: signal_eval/bootstrap
 - loader: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, trainer/_loader … (+1)
@@ -939,7 +940,7 @@
 - normalizer_for_mode: data/normalizers
 - normalizers: data/normalizers
 - not_adx40: indicator_strategy/variants
-- notebook: tools/nb_cells
+- notebook: tools/nb_cells, tools/run_self_tests
 - notebook definitions: discovery/axis_loader
 - notebook globals: tools/implicit_deps
 - notebooks: tools/build_map
@@ -1201,14 +1202,16 @@
 - run_label_permutation_control: workflow/permutation_control
 - run_main: workflow/run
 - run_main_training: workflow/settings
-- run_model_selftests: model/selftests
+- run_model_selftests: model/selftests, tools/run_self_tests
 - run_panel: workflow/run
 - run_panel_experiment: cross_asset/__init__, cross_asset/experiment, workflow/panel_bridge
 - run_panel_selftest: cross_asset/selftest
-- run_pipeline_selftests: data/selftests
+- run_pipeline_selftests: data/selftests, tools/run_self_tests
 - run_registry_selftests: signal_eval/registry_selftests
 - run_reports: workflow/run
+- run_self_tests: tools/run_self_tests
 - run_survey: discovery/__init__, discovery/survey
+- run_trainer_smoke_test: tools/run_self_tests
 - run_weights: edge_discovery/tsbt
 - run_wiring_selftest: workflow/wiring_selftest
 - runner: tools/colab_runner, tools/colab_smoke
@@ -1250,8 +1253,8 @@
 - selective_evaluation: workflow/selective_eval
 - self test: discovery/selftest, workflow/wiring_selftest
 - self-test: model/selftests
-- self-tests: data/selftests
-- selftest: cross_asset/selftest, model/selftests
+- self-tests: data/selftests, tools/run_self_tests
+- selftest: cross_asset/selftest, model/selftests, tools/run_self_tests
 - selftests: signal_eval/selftests
 - settings: data/defaults, workflow/settings
 - settings interval start funding open_interest: tools/fetch_history_colab_cell
@@ -1289,7 +1292,7 @@
 - small_array_bytes: data/disk_backed
 - smart-minus-retail: edge_discovery/features
 - smoke: model/selftests
-- smoke test: tools/colab_smoke, trainer/smoke_test
+- smoke test: tools/colab_smoke, tools/run_self_tests, trainer/smoke_test
 - snapshot ensemble: trainer/snapshot
 - snapshotensemble: trainer/snapshot
 - softmax: evaluation/decode
@@ -1345,7 +1348,7 @@
 - symmetric: tools/bracket_eval
 - symtable: tools/implicit_deps
 - sync: tools/drive_sync
-- synced_from: tools/drive_sync
+- synced_from: tools/drive_sync, tools/run_self_tests
 - synthetic: discovery/selftest
 - synthetic data: cross_asset/selftest, data/selftests, signal_eval/selftests, workflow/wiring_selftest
 - synthetic dataset: tests/run_fixture

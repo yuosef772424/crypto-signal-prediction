@@ -33,7 +33,8 @@ def _code_cells():
 
 def _colab_only(src):
     return ("drive.mount(" in src or re.search(r"^%run ", src, re.M) or "_WF_REPO_CANDIDATES" in src
-            or "run_wiring_selftest(" in src)           # the self-test is covered by tests/test_run_steps.py
+            or "run_wiring_selftest(" in src
+            or "run_self_tests(" in src)        # the self-tests are covered by tests/test_run_steps.py and test_run_self_tests.py
 
 
 class MainNotebookRuns(unittest.TestCase):

@@ -7,7 +7,7 @@ TAGS:     loader, shared namespace, load_into, MODULES, module order, late bindi
 PITFALLS: The modules are not standalone Python modules: they reference each other's names (also names defined by
           LATER modules, resolved at call time) and share one dict, so they must run in one dict. Patching that dict
           (ns["name"] = ...) changes what every trainer function sees. MODULES order is load order: a module's
-          top-level code may only use names of earlier modules. The smoke_test module RUNS A REAL TINY TRAINING AT LOAD (and metrics/system run small self-tests): pass exclude=("smoke_test",) to skip it.
+          top-level code may only use names of earlier modules. Loading runs NO test: smoke_test only defines run_trainer_smoke_test, and the small _test_* checks of metrics/system are only defined; tools/run_self_tests.run_self_tests(ns) runs them.
 """
 from __future__ import annotations
 

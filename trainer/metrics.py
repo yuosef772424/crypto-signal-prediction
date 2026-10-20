@@ -134,7 +134,6 @@ def _test_metrics_logger_class_baselines():
     return True
 
 
-_test_metrics_logger_class_baselines()
 
 
 class DerivedMetrics(tf.keras.callbacks.Callback):
