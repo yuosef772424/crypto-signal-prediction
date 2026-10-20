@@ -208,14 +208,8 @@ class _Accumulator:
         if config.get('x_storage_dtype'):
             out['x_storage_dtype'] = str(config['x_storage_dtype'])
         # وحدة الأعمدة السعرية في X (غيابها = 'window_scale'): decode_price_window يقرؤها من هنا.
-        if price_norm_mode(config) != PRICE_NORM_WINDOW:
-            out['price_norm_mode'] = price_norm_mode(config)
-            out['price_pct_clip'] = price_pct_clip(config)
-        # logret_std: X/y_*_reg خام (عوائد log) حتى يُلائم split_data الإحصاءات على train وحده؛ logret_sigma: لا إحصاءات مُلائمة.
-        if price_norm_mode(config) == PRICE_NORM_LOGRET_STD:
-            out['price_norm_state'] = 'unfitted'
-        elif price_norm_mode(config) == PRICE_NORM_LOGRET_SIGMA:
-            out['price_norm_meta'] = sigma_price_norm_meta(features, list(self.tf_order), float(PRICE_NORM_CLIP))
+        # (logret_std: X/y_*_reg خام حتى يُلائم split_data الإحصاءات على train وحده؛ logret_sigma: لا إحصاءات مُلائمة.)
+        out.update(normalizer_for_mode(price_norm_mode(config)).dataset_fields(config, features, list(self.tf_order)))
         # الشروط التي اختيرت بها العيّنات (غيابها = كل العيّنات).
         if config.get('sample_filters'):
             out['sample_filters'] = deepcopy(list(config['sample_filters']))

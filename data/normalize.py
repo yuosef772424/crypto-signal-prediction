@@ -1,7 +1,7 @@
 """
-PURPOSE:  Window normalisation driven by a semantic kind per feature (FEATURE_KINDS prefixes): process_windows, price_norm_mode ('window_scale' | 'pct_change' | 'logret_std' | 'logret_sigma'), pct_change encode/decode, the logret_* train-only fit/apply and the one target inverse denormalize_price_targets, audit_normalization.
-TAGS:     normalization, normalize, FEATURE_KINDS, classify_feature, process_windows, price_norm_mode, pct_change, logret_std, logret_sigma, denormalize_price_targets, fit_price_norm, price_norm_meta, clip_abs, audit_normalization, التطبيع
-PITFALLS: Classification is by column-name prefix (longest prefix wins): a new feature with an unknown prefix falls back to DEFAULT_KIND silently — register its kind in FEATURE_KINDS. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time. logret_*: only the open/high/low/close channels change (other price_level columns such as EMA/BB keep window_scale, volume and indicators are untouched); logret_std datasets are UNFITTED until split_data/rolling_splits/split_holdout(price_norm_meta=...) fit mean/std on train only and stamp split['price_norm_meta'], so never feed dataset X straight to a model; regression targets there are log(price/last_close) standardized and must be inverted ONLY with denormalize_price_targets (invert_reg_predictions delegates to it); logret_sigma supports no regression heads (needs per-sample sigma), nor retarget_splits/cross_sectional_normalize/build_dataset_live in either mode.
+PURPOSE:  Window normalisation driven by a semantic kind per feature (FEATURE_KINDS prefixes): process_windows, price_norm_mode ('window_scale' | 'pct_change' | 'logret_std' | 'logret_sigma'), pct_change encode/decode, audit_normalization. The per-mode fit/apply/target-inverse logic lives behind the Normalizer registry in data/normalizers.py.
+TAGS:     normalization, normalize, FEATURE_KINDS, classify_feature, process_windows, price_norm_mode, pct_change, logret_std, logret_sigma, clip_abs, audit_normalization, التطبيع
+PITFALLS: Classification is by column-name prefix (longest prefix wins): a new feature with an unknown prefix falls back to DEFAULT_KIND silently — register its kind in FEATURE_KINDS. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time. logret_*: only the open/high/low/close channels change (other price_level columns such as EMA/BB keep window_scale, volume and indicators are untouched); logret_std datasets are UNFITTED until split_data/rolling_splits/split_holdout(price_norm_meta=...) fit mean/std on train only and stamp split['price_norm_meta']; regression targets there must be inverted ONLY with denormalize_price_targets / Normalizer.inverse_targets (invert_reg_predictions delegates); logret_sigma supports no regression heads and one timeframe; neither supports retarget_splits/cross_sectional_normalize; build_dataset_live needs price_norm_meta=train['price_norm_meta'] for both.
 
 ## 9) التطبيع (`normalize.py` سابقاً)
 
@@ -61,8 +61,7 @@ binary_flag   علم توفّر 0/1 (``*_available``)                   ``x * 2 
 """
 
 # مصدرها الوحيد core/schema.py؛ تُربط هنا بالاسم نفسه (نطاق خط الأنابيب ينفّذ هذه الوحدة في نطاق واحد مشترك).
-from core.schema import (LOGRET_PRICE_NORM_MODES, PRICE_NORM_CHANNELS, PRICE_NORM_CLIP, PRICE_NORM_LOGRET_SIGMA,
-                         PRICE_NORM_LOGRET_STD, PRICE_NORM_SIGMA_FLOOR, PRICE_NORM_SIGMA_N, TARGET_COLUMNS)
+from core.schema import LOGRET_PRICE_NORM_MODES
 
 # ══════════════════════════════════════════════════════════════════════════
 # أنواع الميزات
@@ -364,181 +363,6 @@ def _pct_change_columns(raw: np.ndarray, axis: int) -> np.ndarray:
         med = np.nanmedian(np.where(finite, x, np.nan), axis=axis, keepdims=True)
         x = np.where(finite, x, np.nan_to_num(med, nan=0.0))
     return pct_change_encode(x, axis=axis)
-
-
-# ══════════════════════════════════════════════════════════════════════════
-# عوائد لوغاريتمية نسبة للإغلاق السابق (price_norm_mode='logret_std' | 'logret_sigma') — مدخلات وأهداف وعكس
-# ══════════════════════════════════════════════════════════════════════════
-def logret_vs_prev_close(x: np.ndarray, prev_close: np.ndarray) -> np.ndarray:
-    """``log(x / prev_close)`` بـ float64؛ غير المنتهي (سعر غير موجب أو NaN) ``0`` لا inf/nan."""
-    x = np.asarray(x, dtype='float64')
-    p = np.asarray(prev_close, dtype='float64')
-    with np.errstate(divide='ignore', invalid='ignore'):
-        r = np.log(x / p)
-    return np.where(np.isfinite(r), r, 0.0)
-
-
-def trailing_close_sigma(close: np.ndarray, n: int = PRICE_NORM_SIGMA_N, floor: float = PRICE_NORM_SIGMA_FLOOR) -> np.ndarray:
-    """``sigma[t]`` = الانحراف المعياري (ddof=1) لآخر ``n`` عوائد إغلاق لوغاريتمية **قبل** الشمعة ``t`` فقط (ماضٍ صِرف:
-    عائد الشمعة ``t`` نفسها لا يدخل)، بأرضية ``floor``؛ ``NaN`` حتى يتوفّر ``n`` عائداً. (تعريف V3 في research/norm_probe.)"""
-    c = np.asarray(close, dtype='float64')
-    rc = np.r_[np.nan, logret_vs_prev_close(c[1:], c[:-1])] if len(c) else c
-    s = pd.Series(rc).shift(1).rolling(n).std().to_numpy()
-    return np.where(np.isfinite(s), np.maximum(s, floor), np.nan)
-
-
-def price_norm_channels(feature_order: List[str]) -> List[Tuple[str, int]]:
-    """``[(اسم، فهرس)]`` لقنوات open/high/low/close الموجودة في ميزات النموذج — وحدها تتحوّل إلى عوائد في الأوضاع logret_*."""
-    return [(n, j) for j, n in enumerate(feature_order) if n in PRICE_NORM_CHANNELS]
-
-
-def _reg_key(y: Dict, target: str) -> Optional[str]:
-    for k in (f'y_{target}_reg', f'{target}_reg'):
-        if k in y:
-            return k
-    return None
-
-
-def _head_target(head: str) -> str:
-    """'high' | 'high_reg' | 'y_high_reg' ← 'high'."""
-    h = head[2:] if head.startswith('y_') else head
-    return h[:-4] if h.endswith('_reg') else h
-
-
-def fit_price_norm(train: Dict, feature_order: List[str], timeframes: List[str], mode: str = PRICE_NORM_LOGRET_STD,
-                   clip: float = PRICE_NORM_CLIP) -> Dict:
-    """يُلائم إحصاءات 'logret_std' على قسم **train وحده** ويُرجع ``meta`` (قاموس JSON-آمن) تُخزَّن على كل قسم:
-
-    * ``inputs[tf]`` — ``columns/index/mean/std`` لقنوات OHLC (متوسط وانحراف عناصر النوافذ، لكل قناة)؛
-    * ``targets[t]`` — متوسط وانحراف هدف الانحدار ``log(price / last_close)`` المقصوص (لكل هدف ``high/low/close``)؛
-    * ``mode/clip/anchor`` — ``anchor='last_close'``: الهدف والعكس كلاهما نسبة لآخر إغلاق في النافذة.
-    الأعمدة غير السعرية لا تدخل (تبقى بمعالجتها الحالية)."""
-    if mode != PRICE_NORM_LOGRET_STD:
-        raise ValueError(f"fit_price_norm لـ {PRICE_NORM_LOGRET_STD!r} فقط (لا إحصاءات في {mode!r}: sigma ماضٍ صِرف) — لا {mode!r}")
-    ch = price_norm_channels(feature_order)
-    if not ch:
-        raise ValueError("price_norm_mode='logret_std' يحتاج قناة open/high/low/close واحدة على الأقل في ميزات النموذج")
-    idx = [j for _, j in ch]
-    inputs = {}
-    for tf in timeframes:
-        X = train[f'X_{tf}']
-        if len(X) == 0:
-            raise ValueError("fit_price_norm: قسم train فارغ — لا إحصاءات")
-        a = np.asarray(X[:, :, idx], dtype='float64')
-        inputs[tf] = {'columns': [n for n, _ in ch], 'index': list(idx),
-                      'mean': [float(v) for v in a.mean(axis=(0, 1))],
-                      'std': [float(max(v, 1e-12)) for v in a.std(axis=(0, 1))]}
-    targets = {}
-    y = train.get('y', {})
-    for t in TARGET_COLUMNS:
-        k = _reg_key(y, t)
-        if k is not None:
-            v = np.asarray(y[k], dtype='float64')
-            targets[t] = {'mean': float(v.mean()), 'std': float(max(v.std(), 1e-12))}
-    return {'version': 1, 'mode': mode, 'clip': float(clip), 'anchor': 'last_close', 'inputs': inputs, 'targets': targets}
-
-
-def sigma_price_norm_meta(feature_order: List[str], timeframes: List[str], clip: float = PRICE_NORM_CLIP) -> Dict:
-    """``meta`` لـ 'logret_sigma': بلا إحصاءات مُلائمة (القسمة على sigma ماضٍ صِرف لكل شمعة) ولا أهداف انحدار."""
-    ch = price_norm_channels(feature_order)
-    return {'version': 1, 'mode': PRICE_NORM_LOGRET_SIGMA, 'clip': float(clip), 'anchor': 'last_close',
-            'sigma_n': PRICE_NORM_SIGMA_N, 'sigma_floor': PRICE_NORM_SIGMA_FLOOR,
-            'inputs': {tf: {'columns': [n for n, _ in ch], 'index': [j for _, j in ch]} for tf in timeframes},
-            'targets': {}}
-
-
-def apply_price_norm(split: Dict, meta: Dict) -> Dict:
-    """نسخة سطحية من ``split`` بقنوات OHLC مُقيَّسة ``clip((x − mean) / std, ±clip)`` وأهداف ``y_*_reg`` مُقيَّسة بإحصاءات
-    ``meta`` نفسها، مختومة بـ ``price_norm_meta``. تنسخ مصفوفات X (لا تعدّل المصدر: ``split_data`` قد يعيد شرائح منه).
-    يرفض قسماً مختوماً سلفاً (تطبيق مزدوج)."""
-    if meta.get('mode') != PRICE_NORM_LOGRET_STD:
-        raise ValueError(f"apply_price_norm لـ {PRICE_NORM_LOGRET_STD!r} فقط، لا {meta.get('mode')!r}")
-    if 'price_norm_meta' in split:
-        raise ValueError("apply_price_norm: القسم مختوم بـ price_norm_meta سلفاً (تطبيق مزدوج)")
-    out = dict(split)
-    clip = float(meta['clip'])
-    for tf, st in meta['inputs'].items():
-        key = f'X_{tf}'
-        if key not in split:
-            continue
-        X = np.array(split[key])
-        idx = st['index']
-        mu = np.asarray(st['mean'], dtype='float64')
-        sd = np.asarray(st['std'], dtype='float64')
-        X[:, :, idx] = np.clip((np.asarray(X[:, :, idx], dtype='float64') - mu) / sd, -clip, clip).astype(X.dtype)
-        out[key] = X
-    y = dict(split.get('y', {}))
-    for t, st in meta['targets'].items():
-        k = _reg_key(y, t)
-        if k is not None:
-            y[k] = ((np.asarray(y[k], dtype='float64') - st['mean']) / st['std']).astype('float32')
-    out['y'] = y
-    out['price_norm_meta'] = meta
-    out['price_norm_mode'] = meta['mode']
-    return out
-
-
-def _target_stats(meta: Dict, head: str) -> Tuple[float, float]:
-    t = _head_target(head)
-    st = (meta.get('targets') or {}).get(t)
-    if st is None:
-        raise ValueError(f"price_norm_meta بلا إحصاءات هدف {t!r} (mode={meta.get('mode')!r}، الأهداف: "
-                         f"{sorted(meta.get('targets') or {})}) — 'logret_sigma' بلا أهداف انحدار")
-    return float(st['mean']), float(st['std'])
-
-
-def normalize_price_targets(price: np.ndarray, meta: Dict, last_close: np.ndarray, head: str = 'high') -> np.ndarray:
-    """السعر المستقبلي ← فضاء الهدف: ``(log(price / last_close) − mean) / std`` (بدون قصّ). عكسه :func:`denormalize_price_targets`."""
-    m, s = _target_stats(meta, head)
-    return (np.log(np.asarray(price, dtype='float64') / np.asarray(last_close, dtype='float64')) - m) / s
-
-
-def denormalize_price_targets(pred: np.ndarray, meta: Dict, last_close: np.ndarray, head: str = 'high',
-                              output: str = 'price') -> np.ndarray:
-    """**العكس الوحيد** لأهداف الانحدار في الأوضاع logret_*: مخرَج النموذج (فضاء الهدف المُقيَّس) ← ``output``:
-
-    * ``'price'`` (الافتراضي): ``last_close × exp(pred × std + mean)`` — السعر الحقيقي؛
-    * ``'logret'``: ``pred × std + mean`` — العائد اللوغاريتمي نسبة لـ ``last_close``.
-    ``head``: ``'high'`` أو ``'high_reg'`` أو ``'y_high_reg'``؛ ``meta`` = ``split['price_norm_meta']``؛ ``last_close`` من
-    ``last_candles[:, LAST_COLUMNS.index('last_close')]``. يرفع ``ValueError`` لهدف بلا إحصاءات أو ``output`` مجهول."""
-    if output not in ('price', 'logret'):
-        raise ValueError(f"output: 'price' | 'logret' — لا {output!r}")
-    m, s = _target_stats(meta, head)
-    lr = np.asarray(pred, dtype='float64') * s + m
-    return lr if output == 'logret' else np.asarray(last_close, dtype='float64') * np.exp(lr)
-
-
-def price_norm_unfitted(data: Dict) -> bool:
-    """True إن كان ``data`` مجموعة بيانات بوضع 'logret_std' لم تُلائَم إحصاءاته بعد (تُلائَم في ``split_data`` على train)."""
-    return data.get('price_norm_state') == 'unfitted'
-
-
-def stamp_price_norm(data: Dict, split_or_assets: Dict, meta: Optional[Dict] = None) -> Dict:
-    """يطبّق/يختم ``meta`` على قسم (أو قاموس عملات ``{asset: split}``) من ``data``: 'logret_std' ← ``meta`` إلزامي (من
-    ``train['price_norm_meta']``) فيُقيَّس X وy؛ 'logret_sigma' ← يختم ``data['price_norm_meta']`` فقط؛ غيرهما ← بلا مساس."""
-    mode = data.get('price_norm_mode')
-    if mode not in LOGRET_PRICE_NORM_MODES:
-        return split_or_assets
-    if price_norm_unfitted(data):
-        if meta is None:
-            raise ValueError("بيانات بوضع 'logret_std' غير مُلائمة: مرّر price_norm_meta = train['price_norm_meta'] "
-                             "(إحصاءات train وحدها تُطبَّق على كل قسم)")
-        stamp = lambda sp: apply_price_norm(sp, meta)                                   # noqa: E731
-    else:
-        meta = data['price_norm_meta']
-        stamp = lambda sp: dict(sp, price_norm_meta=meta, price_norm_mode=mode)         # noqa: E731
-    return stamp(split_or_assets) if 'y' in split_or_assets else {k: stamp(v) for k, v in split_or_assets.items()}
-
-
-def finish_price_norm(data: Dict, train: Dict, val: Dict, test: Dict):
-    """بعد تقسيم ``data``: 'logret_std' ← يُلائم على ``train`` وحده ويطبّق على الأقسام الثلاثة (test قد يكون قاموس عملات)؛
-    'logret_sigma' ← يختم ``price_norm_meta`` فقط؛ غيرهما ← الأقسام كما هي بلا أي مساس. يُرجع ``(train, val, test)``."""
-    mode = data.get('price_norm_mode')
-    if mode not in LOGRET_PRICE_NORM_MODES:
-        return train, val, test
-    meta = (fit_price_norm(train, data['feature_order'], data['timeframes'], mode, PRICE_NORM_CLIP)
-            if price_norm_unfitted(data) else None)
-    return tuple(stamp_price_norm(data, sp, meta) for sp in (train, val, test))
 
 
 # ══════════════════════════════════════════════════════════════════════════

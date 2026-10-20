@@ -215,9 +215,10 @@ Documents:
 - `E-norm-001.md` — Experiment card — E-norm-001: train NIG-TimeNet with price_norm_mode=logret_std vs window_scale
 
 ## `docs/research/notes/`
-- PR #13 restructuring: history facts (evil merges, move+modify commits, verbatim extraction) | 0 scripts, 1 md, 0 data files (0 B)
+- How to add a price normalizer | 0 scripts, 2 md, 0 data files (0 B)
 
 Documents:
+- `normalizer_how_to.md` — How to add a price normalizer
 - `pr13_restructuring_history.md` — PR #13 restructuring: history facts (evil merges, move+modify commits, verbatim extraction)
 
 ## `docs/research/plan/`
