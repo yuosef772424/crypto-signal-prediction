@@ -4,16 +4,27 @@ The default 'window_scale' must stay byte-identical. Cells run the real pipeline
     python -m unittest tests.test_price_norm_mode -v
 """
 import hashlib
+import os
+import subprocess
+import sys
 import unittest
 from copy import deepcopy
 
 import numpy as np
 import pandas as pd
 
+from tests import _simd
 from tests import test_audit_round2 as r2
 
 # sha256 over sorted X_*/y_*/base_params/last_candles bytes of the fixture below, measured on master BEFORE this change.
-DEFAULT_FINGERPRINT = "baf6195e0b2ed1ad20b3074af5d17c858b7c3a80d7c5d37135a9bee1322977b3"
+# Byte-exact per numpy SIMD path (tests/_simd.py): the synthetic fixture and the volume channel use float64 exp / float32
+# log1p, whose last bits differ between X86_V4 (AVX512) and X86_V3 (AVX2) -- GitHub runners are a lottery of both. The V4
+# value is the original pin (unchanged); the V3 value is the SAME code with numpy's X86_V4 path disabled.
+DEFAULT_FINGERPRINTS = {
+    "x86_v4": "baf6195e0b2ed1ad20b3074af5d17c858b7c3a80d7c5d37135a9bee1322977b3",
+    "x86_v3": "3132e0dc088c143d74b5698c524627b69a94e938574547e2ab5bb6a8f7ab0a71",
+}
+DEFAULT_FINGERPRINT = DEFAULT_FINGERPRINTS["x86_v4"]
 OHLC = ("open", "high", "low", "close")
 SPLITS = {"train_end": "2025-02-01", "val_end": "2025-02-15"}
 
@@ -76,15 +87,38 @@ def _by_ts(ds, key="X_1h"):
     return {int(t): i for i, t in enumerate(ts)}
 
 
+def _default_dataset():
+    return _build(r2._cfg(), {"AAAUSDT": r2._ohlcv("2025-01-01", "2025-03-01", 11),
+                              "BBBUSDT": r2._ohlcv("2025-01-01", "2025-03-01", 12)})
+
+
+def _fingerprint(ds):
+    h = hashlib.sha256()
+    for k in sorted(k for k in ds if k.startswith(("X_", "y_")) or k in ("base_params", "last_candles")):
+        h.update(k.encode())
+        h.update(np.ascontiguousarray(ds[k]).tobytes())
+    return h.hexdigest()
+
+
 class DefaultUnchangedTests(unittest.TestCase):
+    def test_x86_v3_pin_holds_on_any_x86_machine(self):
+        """Regression (flaky CI: the pin was only the AVX512 value): a fresh interpreter with numpy's X86_V4 path disabled
+        must give the X86_V3 pin, whatever CPU the runner has. Skipped off x86."""
+        if _simd.simd_path() is None:
+            self.skipTest("not an x86 CPU with X86_V3")
+        env = dict(os.environ, NPY_DISABLE_CPU_FEATURES="X86_V4")
+        code = "from tests.test_price_norm_mode import _default_dataset, _fingerprint; print(_fingerprint(_default_dataset()))"
+        out = subprocess.run([sys.executable, "-c", code], cwd=r2.ROOT, env=env, capture_output=True, text=True, timeout=600)
+        self.assertEqual(out.returncode, 0, out.stderr[-2000:])
+        self.assertEqual(out.stdout.split()[-1], DEFAULT_FINGERPRINTS["x86_v3"])
+
     def test_default_fingerprint_and_no_new_keys(self):
-        ds = _build(r2._cfg(), {"AAAUSDT": r2._ohlcv("2025-01-01", "2025-03-01", 11),
-                                "BBBUSDT": r2._ohlcv("2025-01-01", "2025-03-01", 12)})
-        h = hashlib.sha256()
-        for k in sorted(k for k in ds if k.startswith(("X_", "y_")) or k in ("base_params", "last_candles")):
-            h.update(k.encode())
-            h.update(np.ascontiguousarray(ds[k]).tobytes())
-        self.assertEqual(h.hexdigest(), DEFAULT_FINGERPRINT)
+        ds = _default_dataset()
+        h = _fingerprint(ds)
+        pin = _simd.pick(DEFAULT_FINGERPRINTS)
+        if pin is None:
+            self.skipTest("no recorded fingerprint for this CPU (neither X86_V4 nor X86_V3)")
+        self.assertEqual(h, pin)
         self.assertNotIn("price_norm_meta", ds)
         self.assertNotIn("price_norm_state", ds)
         self.assertNotIn("price_norm_mode", ds)
