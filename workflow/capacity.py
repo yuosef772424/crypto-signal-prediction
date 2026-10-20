@@ -18,10 +18,10 @@ def _split_asset_ids(split):
 
 def effective_sample_size(split, window=None, stride=None, horizon=1, target=None, n_features=None, n_params=None, model=None,
                           max_assets=80, seed=0, model_tf=None):
-    """العيّنات **الفعّالة** لا الخام: (١) خطوات زمنية فريدة غير متداخلة = مدى الزمن ÷ max(النافذة، أفق الهدف) — عيّنتان متجاورتان
+    """العيّنات **الفعّالة** لا الخام: (١) خطوات زمنية فريدة غير متداخلة = مدى الزمن **بالشموع** (بوحدة فريم model_tf، لا بمسافة العيّنات) ÷ max(النافذة، أفق الهدف) (والناتج ≤ عدد الطوابع الفريدة) — عيّنتان متجاورتان
     تتشاركان نافذة المدخل و/أو أفق الهدف؛ (٢) أصول مستقلّة في كل خطوة = N ÷ (1 + (N−1)·ρ̄) (أثر التصميم)، ρ̄ = متوسّط الارتباط
     المقطعي للهدف بين الأصول (العملات تتحرّك معاً فلا تُحسب N مستقلّة). الفعّالة = (١) × (٢).
-    window: خطوات النافذة (الافتراضي = بُعد X الزمني)، stride: خطوات بين عيّنتين (للتقرير)، horizon: أفق الهدف بالخطوات.
+    window: شموع النافذة (الافتراضي = بُعد X الزمني)، stride: خطوات بين عيّنتين (للتقرير)، horizon: أفق الهدف بالخطوات.
     n_params: عدد معاملات النموذج (أو model=)؛ n_features: الافتراضي = عدد ميزات X. target: مفتاح y المستعمل للارتباط (الافتراضي أول y_*_reg).
     يُرجع dict: n_rows، n_assets، n_time_unique، n_time_indep، rho_bar، n_eff_assets، n_effective، ونسب eff_per_feature/eff_per_param
     وحكم نصّي: نسبة < 1 لكل معامل = السعة تفوق ما تدعمه البيانات (خطر حفظ)."""
@@ -34,9 +34,10 @@ def effective_sample_size(split, window=None, stride=None, horizon=1, target=Non
     if model is not None and n_params is None:
         n_params = int(_unwrap_model(model).count_params())
     uts = np.unique(ts)
-    step = float(np.median(np.diff(uts))) if len(uts) > 1 else 1.0
-    span = (uts[-1] - uts[0]) / step + 1.0
-    n_time_indep = float(min(len(uts), span / max(window, int(horizon))))
+    bar_tf = _tfs_of(model_tf)[0]                      # فريم X المستعمل: النافذة والأفق مقيسان بشمعاته
+    bar = float(pd.Timedelta(bar_tf).value)           # طوابع last_candles int64 بالنانوثانية (core/schema.py TS_COL؛ data/presets.py)
+    span_bars = (uts[-1] - uts[0]) / bar + 1.0        # المدى بالشموع لا بمسافة العيّنات (نوافذ مُحاذاة للشبكة بـ stride>1 تُعدّ مرّتين)
+    n_time_indep = float(min(len(uts), span_bars / max(window, int(horizon))))
     key = target or next((k for k in split["y"] if k.endswith("_reg")), next(iter(split["y"])))
     y = np.asarray(split["y"][key], dtype="float64").ravel()
     n_assets = int(a.max()) + 1
@@ -51,7 +52,7 @@ def effective_sample_size(split, window=None, stride=None, horizon=1, target=Non
     n_eff_assets = per_step / (1.0 + (per_step - 1.0) * rho)
     n_eff = n_time_indep * n_eff_assets
     out = {"n_rows": int(len(ts)), "n_assets": n_assets, "assets_per_step": per_step, "n_time_unique": int(len(uts)),
-           "n_time_indep": n_time_indep, "rho_bar": rho, "n_eff_assets": float(n_eff_assets), "n_effective": float(n_eff),
+           "n_time_indep": n_time_indep, "bar_tf": bar_tf, "rho_bar": rho, "n_eff_assets": float(n_eff_assets), "n_effective": float(n_eff),
            "n_features": n_features, "n_params": n_params, "window": window, "stride": stride, "horizon": int(horizon),
            "eff_per_feature": float(n_eff / n_features), "eff_per_param": (float(n_eff / n_params) if n_params else None),
            "raw_over_effective": float(len(ts) / max(n_eff, 1e-9))}
