@@ -217,9 +217,10 @@ Documents:
 - `E-norm-002.md` — Experiment card — E-norm-002: logret_std inputs without the model's per-window InstanceNorm
 
 ## `docs/research/notes/`
-- How to add a price normalizer | 0 scripts, 2 md, 0 data files (0 B)
+- External research takeaways (2026-10-20) | 0 scripts, 3 md, 0 data files (0 B)
 
 Documents:
+- `external_research_2026-10-20.md` — External research takeaways (2026-10-20)
 - `normalizer_how_to.md` — How to add a price normalizer
 - `pr13_restructuring_history.md` — PR #13 restructuring: history facts (evil merges, move+modify commits, verbatim extraction)
 
