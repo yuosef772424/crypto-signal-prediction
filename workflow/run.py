@@ -30,6 +30,7 @@ class Toolkit:
     split_data: _t.Callable
     build_model_fn: _t.Callable           # model package
     anti_memorization_config: dict        # model package: the architecture overrides of ModelSettings.anti_memorization
+    model_config: dict                    # model package: MODEL_CONFIG (its keys = the valid ModelSettings.config_overrides names)
     build_config: _t.Callable             # trainer package
     deep_update: _t.Callable
     build_training_system: _t.Callable
@@ -39,7 +40,8 @@ class Toolkit:
     #: field -> the name it has in the notebook namespace
     NAMES = {"config": "CONFIG", "update_config": "update_config", "load_data_from_drive": "load_data_from_drive",
              "load_dataset_dir": "load_dataset_dir", "split_data": "split_data", "build_model_fn": "build_model_fn",
-             "anti_memorization_config": "ANTI_MEMORIZATION_CONFIG", "build_config": "build_config",
+             "anti_memorization_config": "ANTI_MEMORIZATION_CONFIG", "model_config": "MODEL_CONFIG",
+             "build_config": "build_config",
              "deep_update": "deep_update", "build_training_system": "build_training_system",
              "run_full_analysis": "run_full_analysis", "default_price_targets": "DEFAULT_PRICE_TARGETS"}
 
@@ -254,6 +256,13 @@ def plan_model(settings, dataset, info, kit):
     # وتنعيم تسميات وأوزان EMA. القيم والتجارب: docs/research/anti_memorization_pr7.md. False = المعمارية والتدريب القديمان تماماً.
     if settings.model.anti_memorization:
         overrides.update(kit.anti_memorization_config)
+    # تجاوزات المستخدم الصريحة تفوز على مقاومة الحفظ؛ مفتاح مجهول = خطأ (لا تجاهل صامت). price_targets/head_types تُضبط بعدها.
+    if settings.model.config_overrides:
+        valid = set(kit.model_config or ()) | set(kit.anti_memorization_config or ())
+        unknown = sorted(set(settings.model.config_overrides) - valid)
+        if unknown:
+            raise ValueError(f"ModelSettings.config_overrides: unknown model config key(s) {unknown}; known: {sorted(valid)}")
+        overrides.update(settings.model.config_overrides)
     # رؤوس النموذج للأهداف المفعّلة فقط (بلا رأس close المعلّق). class_only: رؤوس التصنيف وحدها (بلا NIG/الثقة) — تجربة لمعرفة هل
     # تعدّد الخسائر يشتّت النموذج؛ خلايا التقييم التي تحتاج رؤوس الانحدار (chicks، الأسعار المتوقعة، الإشارات) تُتخطّى فيه.
     overrides.update(price_targets=tuple(price_targets),

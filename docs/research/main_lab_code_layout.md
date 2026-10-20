@@ -32,7 +32,7 @@
 
 | الوحدة | ما فيها |
 |---|---|
-| `workflow/settings.py` | `RunSettings` وأقسامها السبعة (`ProjectSettings`، `DataSettings`، `TargetSettings`، `ModelSettings`، `TrainSettings`، `EvalSettings`، `PanelSettings`): 53 إعداداً، frozen، اسم مجهول = خطأ، قيمة غير صالحة = خطأ عند البناء، افتراضياتها = قيم الدفتر القديم حرفياً (`tests/golden_run_settings.json`)؛ و`run_dir_for` (اسم مجلد التدريب) |
+| `workflow/settings.py` | `RunSettings` وأقسامها السبعة (`ProjectSettings`، `DataSettings`، `TargetSettings`، `ModelSettings`، `TrainSettings`، `EvalSettings`، `PanelSettings`): 54 إعداداً، frozen، اسم مجهول = خطأ، قيمة غير صالحة = خطأ عند البناء، افتراضياتها = قيم الدفتر القديم حرفياً (`tests/golden_run_settings.json`)؛ و`run_dir_for` (اسم مجلد التدريب) |
 | `workflow/run.py` | `Toolkit` (نقاط الدخول إلى الدفاتر الأربعة كحقول صريحة)، `DatasetInfo`/`ModelPlan`/`ChicksInputs`/`RunResult`، والخطوات: `apply_project_config`، `load_dataset`، `apply_dataset_config`، `make_splits`، `retarget`، `plan_model`، `build_model`، `make_training_config`، `make_datasets`، `train_model`، `prepare_chicks`، `run_chicks`، `run_panel`، `run_reports`، و`run_main` (كلها بالترتيب) |
 
 ### كان / صار
@@ -44,6 +44,7 @@
 | `MODEL_TFS` | `settings.data.model_tfs` (والمشتقّ: `info.model_tf`، `info.model_tfs`) |
 | `TARGET_MODE`، `ENTRY_CLOSE_REG` | `settings.target.target_mode` / `.entry_close_reg` (+ `.group_freq`) |
 | `ANTI_MEMORIZATION`، `CLASS_ONLY` | `settings.model.anti_memorization` / `.class_only` |
+| (جديد) | `settings.model.config_overrides` — تجاوزات معمارية إضافية فوق `ANTI_MEMORIZATION_CONFIG`؛ مفاتيح مجهولة أو `price_targets`/`head_types`/`enforce_order` = خطأ؛ تغيّر اسم المجلد |
 | `RUN_MAIN_TRAINING`، `run_dir`، `epochs`، `batch_size`، `train_mode`، جداول `lambda_*`، `ANTI_MEMORIZATION_TRAINER` | `settings.train.*` |
 | `CALIBRATE_CONFIDENCE`، `CALIBRATION_METHOD` | `settings.evaluation.calibrate_confidence` / `.calibration_method` |
 | `PANEL_MODE`، `PANEL_*`، `PANEL_PRESET`/`PANEL_PRESETS` | `settings.panel.enabled`، `settings.panel.*`، `.preset` / `PANEL_PRESETS` |

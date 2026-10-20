@@ -14,6 +14,8 @@ DATA_FORMATS = ("auto", "pkl.gz", "npy_dir")
 #: Post-hoc confidence calibration methods of the chicks report.
 CALIBRATION_METHODS = ("isotonic", "platt")
 #: The panel model's ready-made setups; applied by PanelSettings.applied() (they override the fields they name).
+#: Model config keys the run logic derives itself (workflow.run.plan_model); ModelSettings.config_overrides may not name them.
+_MODEL_OVERRIDES_OWNED_BY_RUN = ("price_targets", "head_types", "enforce_order")
 PANEL_PRESETS = {
     # أفضل حقبة على 1h (stride 32، 25 حقبة) كانت الأخيرة أو قبلها: التدريب لم يتشبّع. هنا الحقبة أطول 4× (stride 8)،
     # و50 = نهاية الدورة الثالثة لجدول cosine_restarts في main (تسخين 3 + 10 + 15 + 22)، فتنتهي عند أدنى معدّل تعلّم
@@ -148,10 +150,20 @@ class ModelSettings(_SettingsSection):
     anti_memorization: bool = True
     #: True = classification heads only (no NIG / confidence heads).
     class_only: bool = False
+    #: Extra architecture overrides merged over the model config AFTER anti_memorization (they win over it), e.g.
+    #: ``{"use_instance_norm": False}``. Keys must be MODEL_CONFIG / builder names (checked in workflow.run.plan_model, unknown = error);
+    #: ``price_targets``, ``head_types`` and ``enforce_order`` are owned by the run logic and refused. {} = the old behaviour exactly;
+    #: a non-empty dict changes the architecture, hence the training folder name (run_dir_for, sorted keys).
+    config_overrides: dict = _dc.field(default_factory=dict)
 
     def __post_init__(self):
         _settings_check(isinstance(self.anti_memorization, bool), "ModelSettings.anti_memorization must be a bool")
         _settings_check(isinstance(self.class_only, bool), "ModelSettings.class_only must be a bool")
+        _settings_check(isinstance(self.config_overrides, dict) and all(isinstance(k, str) for k in self.config_overrides),
+               "ModelSettings.config_overrides must be a dict with str keys")
+        owned = sorted(set(self.config_overrides) & set(_MODEL_OVERRIDES_OWNED_BY_RUN))
+        _settings_check(not owned, f"ModelSettings.config_overrides: {owned} are set by the run logic (target mode / class_only), not overridable")
+        _settings_set(self, config_overrides=_deepcopy(self.config_overrides))
 
 
 @_dc.dataclass(frozen=True)
@@ -364,4 +376,7 @@ def run_dir_for(settings, reg_target_scale, model_tfs):
             # فريمات متعدّدة = معمارية أخرى (فرع لكل فريم): مجلدها منفصل عن النموذج أحادي الفريم
             + (("_" + "_".join(model_tfs)) if len(model_tfs or ()) > 1 else "")
             # رؤوس تصنيف فقط = معمارية أخرى: مجلد منفصل
-            + ("_classonly" if settings.model.class_only else ""))
+            + ("_classonly" if settings.model.class_only else "")
+            # تجاوزات معمارية إضافية = معمارية أخرى: مجلد منفصل، بمفاتيح مرتّبة (حتمي)؛ {} لا يضيف شيئاً
+            + "".join("_" + "".join(c if c.isalnum() else "-" for c in f"{k}={v!r}".replace(" ", ""))
+                      for k, v in sorted(settings.model.config_overrides.items())))
