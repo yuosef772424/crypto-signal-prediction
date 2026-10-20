@@ -79,15 +79,17 @@
   - `def model_health_report(model, train_split, val_split, recorder=None, model_tf=None, max_n=512, sections=None, sensitivity='grad_x_input', thresholds=None, capacity=None, with_capacity=True, verbose=True, feature_names=Non…` L51
   - `def model_layer_report(model, train_split, val_split, test_split=None, recorder=None, model_tf=None, max_train=2000, max_val=2000, max_eval=1500, n_rand=3, n_perm=30, ridge=10.0, seed=0, capacity=None, with_capacity=True,…` L78
 
-### `workflow/generalization.py` (204 lines)
+### `workflow/generalization.py` (278 lines)
 - PURPOSE: Section 7-g: normalization audit before training and generalization-gap report after it (anti-memorization PR #7).
 - TAGS: normalization_audit, generalization_gap_report, gap, linear reference, memorization
-- PITFALLS: _auc here shadows model_v2's _auc of the same name (as in the old notebook): load this module after the model_v2 %run. Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 36 (section 7-g).
+- PITFALLS: trivial_range_baseline (opt-in, generalization_gap_report(trivial_baseline=True)): the sign of the range-position score is fixed on TRAIN and reused on val/test, never re-fit there. _auc here shadows model_v2's _auc of the same name (as in the old notebook): load this module after the model_v2 %run. Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own):…
+- DEPENDS: core
 - USES: retarget, splits
 - USED BY: capacity, run, wiring_selftest
 - API:
-  - `def normalization_audit(train_split, val_split=None, test_split=None, feature_names=None, model_tf=None, max_windows=20000, level_ratio_max=20.0, near_const_frac_max=0.2, extreme_max=50.0, shift_ks_max=0.25, verbose=True)` L22
-  - `def generalization_gap_report(model, train_split, val_split, test_split, model_tf=None, max_n=20000, auc_gap_max=0.03, linear_reference=True, verbose=True, price_targets=None)` L157
+  - `def normalization_audit(train_split, val_split=None, test_split=None, feature_names=None, model_tf=None, max_windows=20000, level_ratio_max=20.0, near_const_frac_max=0.2, extreme_max=50.0, shift_ks_max=0.25, verbose=True)` L29
+  - `def trivial_range_baseline(last_candles, y_class, target, sign=None)` L164
+  - `def generalization_gap_report(model, train_split, val_split, test_split, model_tf=None, max_n=20000, auc_gap_max=0.03, linear_reference=True, verbose=True, price_targets=None, trivial_baseline=False)` L215
 
 ### `workflow/market_neutral.py` (321 lines)
 - PURPOSE: Section 7-f: market-neutral portfolio report (long_short, short_only, long_only, rank_weighted, rank_weighted_vol) with net-of-cost bootstrap and a last-step GBM baseline.
@@ -156,7 +158,7 @@
   - `def retarget_splits(train_split, val_split, test_split, mode='return', targets=None, clip=None, center='median', group_freq=None, min_group=5, drop_small_groups=False, close_reg='abs_return', verbose=True, reg_target_s…` L146
   - `def entry_range_to_prices(last_close, high=None, low=None, close=None, close_reg='abs_return', p_close_up=None)` L234
 
-### `workflow/run.py` (562 lines)
+### `workflow/run.py` (563 lines)
 - PURPOSE: The steps of a main run as functions of (RunSettings, explicit inputs) -> outputs: load data, adapt CONFIG, split, retarget, plan and build the model, training config and datasets, train, prepare the chicks evaluation, run it, panel model,…
 - TAGS: run_main, load_dataset, apply_dataset_config, make_splits, retarget, plan_model, build_model, make_training_config, make_datasets, train_model, prepare_chicks, run_chicks, run_panel, run_reports, toolkit, datasetinfo, modelplan, chicksinputs, runresult, runsettings steps
 - PITFALLS: Steps read no notebook global: settings come as the first argument and everything else (the pipeline/model/trainer/chicks entry points = Toolkit.from_namespace(globals()), the loaded data, the splits, the derived facts DatasetInfo / ModelPlan / ChicksInputs) as explicit arguments. They still call the other workflow modules and the pipeline's own CONFIG-reading helpers late-bound in the shared nam…
@@ -183,7 +185,7 @@
   - `def run_chicks(settings, kit, *, model, val, chicks, info)` L415
   - `def run_panel(settings, kit, *, dataset, train, val, test, info, plan, model, model_builder, main_config, apply_preset=True)` L446
   - `def run_reports(settings, which, kit, *, model, train, val, test, dataset, info, plan, chicks)` L488
-  - `def run_main(settings, kit, dataset=None, summary=True)` L544
+  - `def run_main(settings, kit, dataset=None, summary=True)` L545
 
 ### `workflow/selective_eval.py` (299 lines)
 - PURPOSE: Section 7-b: selective evaluation (accuracy at confident slices, 2:1 trades): collect_signals, thresholds picked on val only, Wilson intervals, rr_trading_report.
@@ -202,7 +204,7 @@
   - `def rr_trading_report(val_df, test_df, rr=2.0, stop_mode='nig', stop_k=1.0, cost_pct=0.08, min_trades=200, quantiles=(0.5, 0.7, 0.8, 0.9, 0.95), target='close', seed=0, verbose=True)` L226
   - `def selective_evaluation(model=None, val_split=None, test_split=None, model_tf=None, target_acc=0.65, rr=2.0, stop_mode='nig', min_n=200, val_df=None, test_df=None, verbose=True, price_targets=None)` L276
 
-### `workflow/settings.py` (395 lines)
+### `workflow/settings.py` (399 lines)
 - PURPOSE: RunSettings: every setting of a main run (dataset, target mode, model options, training, evaluation, panel model) in one strict, frozen object whose defaults are the values main.ipynb always held; main.ipynb, tools/evaluate_trained_model.p…
 - TAGS: runsettings, settings, projectsettings, datasettings, targetsettings, modelsettings, trainsettings, evalsettings, panelsettings, target_mode, entry_close_reg, anti_memorization, class_only, run_main_training, panel_presets, run_dir_for, strict config, frozen dataclass
 - PITFALLS: Defaults must stay equal to the notebook values the golden test records (tests/golden_run_settings.json): change one only as a new experiment (its checkpoints live in a folder named after the settings, see run_dir_for). Unknown field names raise (constructor: TypeError; RunSettings.from_dict / .updated and every section's .updated: ValueError listing the known names), values are validated at cons…
@@ -215,13 +217,13 @@
   - `class ModelSettings(_SettingsSection)` L157
   - `class TrainSettings(_SettingsSection)` L180
   - `class EvalSettings(_SettingsSection)` L230
-  - `class PanelSettings(_SettingsSection)` L260
-    - `.applied(self)` L330
-  - `class RunSettings` L337
-    - `.from_dict(cls, d)` L356
-    - `.updated(self, changes)` L363
-    - `.to_dict(self)` L371
-  - `def run_dir_for(settings, reg_target_scale, model_tfs)` L375
+  - `class PanelSettings(_SettingsSection)` L264
+    - `.applied(self)` L334
+  - `class RunSettings` L341
+    - `.from_dict(cls, d)` L360
+    - `.updated(self, changes)` L367
+    - `.to_dict(self)` L375
+  - `def run_dir_for(settings, reg_target_scale, model_tfs)` L379
 
 ### `workflow/splits.py` (62 lines)
 - PURPOSE: Helpers over train/val/test splits: model input (single or multi-timeframe), per-split stamps (reg scale, target mode, entry close definition).

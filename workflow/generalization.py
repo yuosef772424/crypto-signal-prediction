@@ -1,10 +1,17 @@
 """
 PURPOSE:  Section 7-g: normalization audit before training and generalization-gap report after it (anti-memorization PR #7).
 TAGS:     normalization_audit, generalization_gap_report, gap, linear reference, memorization
-PITFALLS: _auc here shadows model_v2's _auc of the same name (as in the old notebook): load this module after the model_v2 %run. Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 36 (section 7-g).
+PITFALLS: trivial_range_baseline (opt-in, generalization_gap_report(trivial_baseline=True)): the sign of the range-position score is fixed on TRAIN and reused on val/test, never re-fit there. _auc here shadows model_v2's _auc of the same name (as in the old notebook): load this module after the model_v2 %run. Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 36 (section 7-g).
 """
 import numpy as np
 import pandas as pd
+
+from core.schema import LAST_COLUMN_INDEX
+
+#: A class head whose val/test AUC beats the trivial range-position rule by no more than this carries no information beyond range mechanics (audit T4, F-0085).
+TRIVIAL_UPLIFT_MIN = 0.01
+#: The class heads the range-position rule is defined for (next high > last high, next low > last low, next close > last close).
+TRIVIAL_TARGETS = ("high", "low", "close")
 
 
 def _x_of(split_or_dict, model_tf=None):
@@ -154,8 +161,60 @@ def _linear_reference(train_split, eval_splits, model_tf, max_n, seed=0, price_t
     return out
 
 
+def trivial_range_baseline(last_candles, y_class, target, sign=None):
+    """AUC of the trivial rule "where the last bar closed inside its own range": score p = (last_close - last_low) / (last_high - last_low)
+    (0.5 when high == low) against the class label of ``target`` ('high' | 'low' | 'close'; anything else raises). It needs no model and
+    no history: y_high_class (next high > last high) and y_low_class (next low > last low) are mechanically predictable from p alone
+    (~0.79 AUC on a pure random walk, 0.75-0.78 on real 4h data), so a head scoring about that has learned range mechanics, not signal.
+
+    sign: None = FIT (train only): sign = +1 when AUC(p) >= 0.5 else -1 (+1 when the AUC is undefined), and the returned auc is the
+    oriented one (>= 0.5). sign = +1/-1 = APPLY a sign fitted on train: the AUC of sign*p, which falls below 0.5 if the relation flipped
+    (it is never re-fitted on val/test, so nothing is peeked). Returns (auc, sign)."""
+    if target not in TRIVIAL_TARGETS:
+        raise ValueError(f"trivial_range_baseline: target {target!r} unknown; known: {TRIVIAL_TARGETS}")
+    if sign not in (None, 1, -1):
+        raise ValueError(f"trivial_range_baseline: sign must be None, +1 or -1, got {sign!r}")
+    lc = np.asarray(last_candles, dtype="float64")
+    h, l, c = (lc[:, LAST_COLUMN_INDEX[k]] for k in ("last_high", "last_low", "last_close"))
+    rng = h - l
+    with np.errstate(divide="ignore", invalid="ignore"):
+        p = np.where(rng > 0, (c - l) / rng, 0.5)
+    y = np.asarray(y_class).ravel() > 0
+    if sign is None:
+        raw = _auc(y, p)
+        if not np.isfinite(raw):
+            return float("nan"), 1
+        return (raw, 1) if raw >= 0.5 else (1.0 - raw, -1)
+    return _auc(y, sign * p), int(sign)
+
+
+def _trivial_reference(train_split, eval_splits, max_n, price_targets=None):
+    """AUC of trivial_range_baseline per (target, split) on the SAME sampled rows as _heads_eval (seeds train 0, val 1, test 2): the sign is
+    fitted on the train sample and applied unchanged to every eval split. Returns {(target, split_name): auc}."""
+    price_targets = _required(price_targets, "price_targets")
+    seeds = {"train": 0, "val": 1, "test": 2}
+
+    def rows(sp, name, k):
+        parts = _split_parts(sp)
+        lc = np.concatenate([np.asarray(s["last_candles"], dtype="float64") for _, s in parts])
+        y = np.concatenate([np.asarray(s["y"][k]).ravel() for _, s in parts])
+        idx = _sample_rows(len(lc), max_n, seeds[name])
+        return lc[idx], y[idx]
+
+    out = {}
+    for t in price_targets:
+        k = f"y_{t}_class"
+        if k not in _split_parts(train_split)[0][1]["y"]:
+            continue
+        _, sign = trivial_range_baseline(*rows(train_split, "train", k), t)
+        for name, sp in eval_splits.items():
+            out[(t, name)] = trivial_range_baseline(*rows(sp, name, k), t, sign=sign)[0]
+    return out
+
+
 def generalization_gap_report(model, train_split, val_split, test_split, model_tf=None, max_n=20000,
-                              auc_gap_max=0.03, linear_reference=True, verbose=True, price_targets=None):
+                              auc_gap_max=0.03, linear_reference=True, verbose=True, price_targets=None,
+                              trivial_baseline=False):
     """يقيس نفس المقاييس على train (عيّنة، بوضع الاستدلال: بلا dropout/ضجيج) وval وtest:
     AUC ودقّة رؤوس التصنيف، وIC يومي (سبيرمان داخل كل طابع زمني ثم المتوسط) لرؤوس الانحدار.
 
@@ -170,7 +229,11 @@ def generalization_gap_report(model, train_split, val_split, test_split, model_t
 
     linear_reference: يضيف عمود linear_ref_{val,test} = AUC انحدار لوجستي على [آخر خطوة، متوسط النافذة].
       النموذج العميق **تحت** المرجع الخطّي على val/test = لا يلتقط معلومة متاحة فعلاً (قيس في PR #7: السبب
-      المعماري أن InstanceNorm يمحو مستوى الميزة — level_passthrough). مع فجوة كبيرة = الحفظ بديل ما لم يستطع رؤيته."""
+      المعماري أن InstanceNorm يمحو مستوى الميزة — level_passthrough). مع فجوة كبيرة = الحفظ بديل ما لم يستطع رؤيته.
+
+    trivial_baseline (افتراضي False = المخرجات كما كانت بالضبط): يضيف trivial_auc_{val,test} = AUC قاعدة «موقع الإغلاق داخل مدى الشمعة الأخيرة»
+      (trivial_range_baseline؛ إشارتها تُثبَّت على train وتُطبَّق كما هي) وuplift_vs_trivial_{val,test} = AUC النموذج − AUC القاعدة. رأس uplift_val
+      عنده ≤ TRIVIAL_UPLIFT_MIN لم يتعلّم إلا ميكانيكا المدى: y_high_class/y_low_class قابلة للتنبؤ بها وحدها (تدقيق T4، F-0085)."""
     rows = {}
     for name, sp, seed in (("train", train_split, 0), ("val", val_split, 1), ("test", test_split, 2)):
         rows[name] = _heads_eval(model, sp, max_n, seed, model_tf, price_targets=price_targets)
@@ -182,6 +245,12 @@ def generalization_gap_report(model, train_split, val_split, test_split, model_t
                             price_targets=price_targets) if linear_reference else {}
     for name in ("val", "test"):
         df[f"linear_ref_{name}"] = [lin.get((t, name), np.nan) if m == "class_auc" else np.nan for t, m in df.index]
+    triv = {}
+    if trivial_baseline:
+        triv = _trivial_reference(train_split, {"val": val_split, "test": test_split}, max_n, price_targets=price_targets)
+        for name in ("val", "test"):
+            df[f"trivial_auc_{name}"] = [triv.get((t, name), np.nan) if m == "class_auc" else np.nan for t, m in df.index]
+            df[f"uplift_vs_trivial_{name}"] = df[name] - df[f"trivial_auc_{name}"]
     verdicts = {}
     for t in price_targets:
         if (t, "class_auc") not in df.index:
@@ -195,6 +264,11 @@ def generalization_gap_report(model, train_split, val_split, test_split, model_t
         ref = lin.get((t, "val"))
         if ref is not None and np.isfinite(ref) and v < ref - 0.01:
             verdicts[t] += f" | تحت المرجع الخطّي على val ({v:.3f} < {ref:.3f}): معلومة متاحة لا يلتقطها"
+        if trivial_baseline:
+            up = df.loc[(t, "class_auc"), "uplift_vs_trivial_val"]
+            if np.isfinite(up) and up <= TRIVIAL_UPLIFT_MIN:
+                verdicts[t] += (f" | لا معلومة بعد ميكانيكا المدى (no information beyond range mechanics): "
+                                f"val {v:.3f} − القاعدة {triv[(t, 'val')]:.3f} = {up:+.3f} ≤ {TRIVIAL_UPLIFT_MIN}")
     if verbose:
         print("📏 فجوة التعميم — كل الأقسام بوضع الاستدلال (بلا dropout/ضجيج)، نفس الأوزان")
         with pd.option_context("display.width", 200, "display.float_format", "{:.4f}".format):
