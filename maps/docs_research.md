@@ -209,12 +209,13 @@ Documents:
   - `def auc_pair(aligned)` L90
 
 ## `docs/research/cards/`
-- Experiment card — E-liq-001: does telling the model how liquid the coin is (A) or removing illiquid… | 0 scripts, 3 md, 0 data files (0 B)
+- Experiment card — E-liq-001: does telling the model how liquid the coin is (A) or removing illiquid… | 0 scripts, 4 md, 0 data files (0 B)
 
 Documents:
 - `E-liq-001.md` — Experiment card — E-liq-001: does telling the model how liquid the coin is (A) or removing illiquid…
 - `E-norm-001.md` — Experiment card — E-norm-001: train NIG-TimeNet with price_norm_mode=logret_std vs window_scale
 - `E-norm-002.md` — Experiment card — E-norm-002: logret_std inputs without the model's per-window InstanceNorm
+- `E-rel-001.md` — Experiment card — E-rel-001: absolute vs within-timestamp relative target on the current 4h model l…
 
 ## `docs/research/notes/`
 - External research takeaways (2026-10-20) | 0 scripts, 3 md, 0 data files (0 B)

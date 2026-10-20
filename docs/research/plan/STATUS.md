@@ -87,3 +87,4 @@
 - T2 (to build): per-timestamp paired loss differential d_t, block bootstrap over whole timestamps + Newey-West; also
   estimate the temporal design effect per target.
 - Waiting on the owner's decision: absolute vs relative (market-residual / cross-sectional rank) targets.
+- E-rel-001 card written 2026-10-20 (`docs/research/cards/E-rel-001.md`), NOT run: absolute vs `return+relative` on the 4h line, Stage 0 (no training: shared-component share + ridge reference) gates Stage 1; needs T2 first. Prior art: relative 1d closed at economics (F-0031/F-0033), not information.
