@@ -32,15 +32,16 @@
   - `def calculate_aggregated_metrics_v4(results_df: pd.DataFrame, target_specs) -> Dict` L314
   - `def test_all_assets(model, test_dict, timeframes, targets, verbose=True, n_display=1, batch_size=256, range_frac=0.2)` L349
 
-### `evaluation/decode.py` (207 lines)
+### `evaluation/decode.py` (209 lines)
 - PURPOSE: Stage 2: flexible decoding of raw model outputs into real units (continuous + categorical), decode_predictions_v4.
 - TAGS: decode_predictions_v4, decode_predictions, softmax, scale offset, reg_target_scale, decode
 - PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: core
 - USES: targets
 - USED BY: live, unified, workflow/pooling
 - API:
-  - `def decode_predictions_v4(raw_preds: Dict[str, np.ndarray], target_specs: List['TargetSpec'], base_params: Optional[np.ndarray]=None, last_candles: Optional[np.ndarray]=None, limit: Optional[int]=None) -> Dict[str, Dict[str,…` L18
-  - `def decode_predictions(raw_preds, base_params, last_candles=None, limit=None)` L201
+  - `def decode_predictions_v4(raw_preds: Dict[str, np.ndarray], target_specs: List['TargetSpec'], base_params: Optional[np.ndarray]=None, last_candles: Optional[np.ndarray]=None, limit: Optional[int]=None) -> Dict[str, Dict[str,…` L20
+  - `def decode_predictions(raw_preds, base_params, last_candles=None, limit=None)` L203
 
 ### `evaluation/flat.py` (116 lines)
 - PURPOSE: build_flat_dataframe: flattens test_all_assets_v4 results into one DataFrame (the input of the trust/calibration/pattern reports).

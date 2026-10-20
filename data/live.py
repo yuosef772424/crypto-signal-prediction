@@ -173,6 +173,7 @@ def build_dataset_live(
     limit: Optional[int] = None,
     max_workers: Optional[int] = None,
     config: Optional[dict] = None,
+    price_norm_meta: Optional[dict] = None,
     **kwargs,
 ) -> Dict:
     """يبني مجموعة بيانات حيّة من Binance Futures — عبر **نفس**
@@ -193,13 +194,15 @@ def build_dataset_live(
         download_interval: فريم Binance الفعلي المطلوب جلبه (افتراضياً
             ``CONFIG['download_interval']``، '1h') — مستقلّ عن ``tf_order``/
             فريم النموذج؛ يُجمَّع (resample) صعوداً إليه بعد الجلب.
+        price_norm_meta: حالة التطبيع المُلائمة على train (``train['price_norm_meta']``) — إلزامي لـ
+            ``price_norm_mode='logret_std' | 'logret_sigma'`` (يرفع ``ValueError`` بدونه قبل أي جلب) ويُتجاهل في
+            'window_scale'/'pct_change'؛ تُطبَّق بالصيغة نفسها في المسار التاريخي (``Normalizer.prepare_live``).
         **kwargs: أي معامل آخر يقبله ``build_dataset_from_loader`` (مثل
             ``targets``، ``forecast_horizon``...) يمرَّر كما هو.
     """
     config = CONFIG if config is None else config
-    if price_norm_mode(config) in LOGRET_PRICE_NORM_MODES:
-        raise ValueError("build_dataset_live لا يدعم price_norm_mode='logret_*' بعد: البيانات الحيّة تحتاج إحصاءات train المخزَّنة "
-                         "(split['price_norm_meta']) وإسقاط الذيل الصوري من sigma — استخدم 'window_scale' أو 'pct_change'")
+    nz = normalizer_for_mode(price_norm_mode(config))
+    nz.check_live_state(price_norm_meta)       # logret_*: إحصاءات train المخزَّنة إلزامية (قبل أي جلب)
     tf_order = kwargs.get('tf_order') or config['tf_order']
     window_sizes = kwargs.get('window_sizes') or config['window_sizes']
     forecast_horizon = kwargs.get('forecast_horizon') or config['forecast_horizon']
@@ -233,7 +236,7 @@ def build_dataset_live(
     # الصورية. هذه فقط ميزاتها ملوَّثة فعلياً (مركزها شمعة صورية) ويجب حذفها؛
     # العيّنة الحقيقية المطلوبة (مركزها آخر شمعة حقيقية) هي التي تسبقها مباشرة.
     n_contaminated = _live_contamination_len(tf_order)
-    dataset = drop_tail_per_asset(raw, n_contaminated)
+    dataset = nz.prepare_live(drop_tail_per_asset(raw, n_contaminated), price_norm_meta)
 
     # ✅ شبكة أمان: الدفعة الصورية شموع مسطّحة تماماً (high=low=close) بالبناء —
     # حالة تكاد تستحيل في بيانات سوق حقيقية. إن ظهرت رغم الحذف أعلاه، هذا
