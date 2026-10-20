@@ -51,7 +51,7 @@ class DefaultsAreTheOldNotebookValues(unittest.TestCase):
             # settings the old notebook did not have as cell globals are new fields; the old ones are all covered above
             extra = set(got) - set(want)
             self.assertLessEqual(extra, {"fit_verbose", "early_stopping_patience", "split_dates", "model_tfs", "group_freq",
-                                         "mn_quantiles", "mn_universe", "config_overrides"}, section)
+                                         "mn_quantiles", "mn_universe", "config_overrides", "suspended_targets"}, section)
 
     def test_panel_presets_are_the_recorded_ones(self):
         ns = _ns()
@@ -66,7 +66,7 @@ class DefaultsAreTheOldNotebookValues(unittest.TestCase):
         sections = ns["RunSettings"].SECTIONS
         self.assertEqual(list(sections), ["project", "data", "target", "model", "train", "evaluation", "panel"])
         self.assertEqual({n: len(c.field_names()) for n, c in sections.items()},
-                         {"project": 1, "data": 7, "target": 3, "model": 3, "train": 14, "evaluation": 6, "panel": 20})
+                         {"project": 1, "data": 7, "target": 4, "model": 3, "train": 14, "evaluation": 6, "panel": 20})
 
 
 class Strictness(unittest.TestCase):

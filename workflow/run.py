@@ -65,7 +65,7 @@ class DatasetInfo:
 @_dc.dataclass(frozen=True)
 class ModelPlan:
     """The model-side facts derived from the settings, CONFIG and the dataset (plan_model)."""
-    price_targets: tuple      # the targets the model is trained and evaluated on (close suspended outside entry_range)
+    price_targets: tuple      # the targets the model is trained and evaluated on (close suspended outside entry_range, unless TargetSettings.suspended_targets says otherwise)
     suspended_targets: tuple
     model_overrides: dict     # the build_model_fn config
     seq_len: int              # window length of the base timeframe
@@ -242,9 +242,17 @@ def plan_model(settings, dataset, info, kit):
     # ويُقيَّم على high/low فقط. خط الأنابيب ما زال يحسب y_close_* — إعادته = إفراغ هذه القائمة، بلا إعادة بناء بيانات.
     # entry_range (القسم ٣-ب): close ليس اتجاهاً بل موقع الإغلاق داخل المدى المحقَّق [0,1]، فيُفعَّل (قرار المستخدم).
     entry_range = str(settings.target.target_mode or "").startswith("entry_range")
-    suspended = () if entry_range else ("close",)
+    suspended = settings.target.suspended_targets
+    if suspended is None:
+        suspended = () if entry_range else ("close",)
+    else:
+        unknown = sorted(set(suspended) - set(CONFIG["targets"]))
+        if unknown:
+            raise ValueError(f"TargetSettings.suspended_targets: unknown target(s) {unknown}; known: {list(CONFIG['targets'])}")
+        if set(CONFIG["targets"]) <= set(suspended):
+            raise ValueError("TargetSettings.suspended_targets suspends every target; the model needs at least one")
     price_targets = [t for t in CONFIG["targets"] if t not in suspended]
-    if entry_range:
+    if entry_range and settings.target.suspended_targets is None:
         print("ℹ️ entry_range: close = موقع الإغلاق داخل المدى المحقَّق [0,1] لا اتجاهه — مُفعَّل (suspended_targets = ()).")
     # ⚠️ OrderedMeans (enforce_order) يفرض عائد_high ≥ عائد_close ≥ عائد_low. هذا صحيح للأسعار لا للعوائد
     # حين يُقاس كل هدف من سعر نفس نوعه (reg_target_mode='return'): على شموع مشي عشوائي واقعية يخالف الهدف الحقيقي هذا القيد
