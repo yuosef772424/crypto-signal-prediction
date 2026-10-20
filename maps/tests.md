@@ -677,15 +677,15 @@
   - `class WiringSelfTest(unittest.TestCase)` L260
     - (1 methods)
 
-### `tests/test_run_tool.py` (154 lines)
+### `tests/test_run_tool.py` (157 lines)
 - PURPOSE: tools/evaluate_trained_model.py builds a RunSettings and calls the workflow/run.py steps: no main.ipynb cell text is read or patched. (from docstring)
 - DEPENDS: docs, tools, workflow
 - API:
-  - `class CommandLineToSettings(unittest.TestCase)` L33
+  - `class CommandLineToSettings(unittest.TestCase)` L34
     - (5 methods)
-  - `class ToolStructure(unittest.TestCase)` L100
+  - `class ToolStructure(unittest.TestCase)` L101
     - (3 methods)
-  - `class EndToEnd(unittest.TestCase)` L126
+  - `class EndToEnd(unittest.TestCase)` L127
     - (1 methods)
 
 ### `tests/test_sample_filters.py` (106 lines)
