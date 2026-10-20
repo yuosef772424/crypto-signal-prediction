@@ -239,8 +239,12 @@ class EvalSettings(_SettingsSection):
     #: (None = all coins | "categories" | a tuple of symbols).
     mn_quantiles: tuple = (0.05, 0.1, 0.2, 0.3, 0.5)
     mn_universe: _t.Union[str, tuple, None] = None
+    #: Opt-in column of the generalization-gap report (run_reports "gap"): per class head the AUC of the trivial rule "close position in the last
+    #: bar's range" (sign fitted on train) and the model's uplift over it. False = the report is exactly what it was.
+    trivial_baseline: bool = False
 
     def __post_init__(self):
+        _settings_check(isinstance(self.trivial_baseline, bool), "EvalSettings.trivial_baseline must be a bool")
         _settings_check(isinstance(self.calibrate_confidence, bool), "EvalSettings.calibrate_confidence must be a bool")
         _settings_check(self.calibration_method in CALIBRATION_METHODS,
                f"EvalSettings.calibration_method {self.calibration_method!r} unknown; known: {CALIBRATION_METHODS}")

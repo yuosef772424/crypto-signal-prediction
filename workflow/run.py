@@ -507,7 +507,8 @@ def run_reports(settings, which, kit, *, model, train, val, test, dataset, info,
 
     runs = [
         ("gap", "٧-ز فجوة التعميم",
-         lambda: generalization_gap_report(model, train, val, test, model_tf=tf_, price_targets=pt)),
+         lambda: generalization_gap_report(model, train, val, test, model_tf=tf_, price_targets=pt,
+                                   trivial_baseline=e.trivial_baseline)),
         ("verification", "٧-د التحقق المتكامل",
          lambda: run_full_verification(model, train, val, test, model_tf=tf_, out_dir="verification", price_targets=pt)),
         ("market_neutral", "٧-و المحفظة المحايدة للسوق",
