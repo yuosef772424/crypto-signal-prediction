@@ -95,6 +95,7 @@
 - auc vs p&l: edge_discovery/18_h13_pr7_signal
 - audit: tools/stale_bars_colab_job
 - audit_normalization: data/normalize
+- autocorrelation: tools/paired_compare
 - availability flags: data/funding_oi
 - availability mask: tools/intraday_features
 - available_features: data/features
@@ -121,7 +122,7 @@
 - binance vision: tools/fetch_history_colab_cell
 - binary_classification: model/heads
 - binomial test: evaluation/io_patterns
-- block bootstrap: h07_combos/01_combos, h07_volsizing/01_volsizing
+- block bootstrap: h07_combos/01_combos, h07_volsizing/01_volsizing, tools/paired_compare
 - boll: tools/gate_features
 - bollinger: tools/indicator_reverse
 - bollinger breakout: indicator_strategy/engine, tools/trade_engine
@@ -232,6 +233,7 @@
 - column order: core/schema
 - combo signal: edge_discovery/03_quintiles
 - compare: cross_asset/report
+- compare models: tools/paired_compare
 - compare_multiple_models: evaluation/legacy_assets
 - comprehensive_asset_analysis: evaluation/legacy_assets
 - comprehensive_uncertainty_analysis: evaluation/legacy_uncertainty
@@ -340,6 +342,7 @@
 - derivedmetrics: trainer/metrics
 - describe: data/runtime
 - descriptive: edge_discovery/28_token_decompose
+- design effect: tools/paired_compare
 - detect_success_failure_patterns: evaluation/patterns
 - deterministic build: tools/build_lock
 - dev val: strategy_discovery/grid, strategy_discovery/grid2, strategy_discovery/intraday_macd, strategy_discovery/seasonality15m
@@ -421,6 +424,7 @@
 - edge_data: edge_discovery/lib
 - edit notebook: tools/nb_cells
 - effective rank: norm_probe/run_norm_probe
+- effective sample size: tools/paired_compare
 - effective_sample_size: workflow/capacity
 - eligibility: tools/build_lock
 - ema weights: cross_asset/train
@@ -622,6 +626,7 @@
 - h22: edge_discovery/30_envelope_direction
 - h23: edge_discovery/31_wick_capture
 - h23-r: edge_discovery/32_breakout_stops
+- hac: tools/paired_compare
 - har-rv: h07_volsizing/01_volsizing
 - has_saved_state: trainer/checkpoints
 - hash ribbon: edge_discovery/20_onchain
@@ -799,6 +804,7 @@
 - long_short: workflow/market_neutral
 - look-ahead: data/align, tests/test_no_lookahead
 - loss: trainer/tasks
+- loss differential: tools/paired_compare
 - loss weights: data/heads
 - low_class: workflow/candle_baseline
 - lr schedule: cross_asset/train, trainer/schedules
@@ -896,6 +902,7 @@
 - mount_drive: data/drive
 - mount_drive_if_needed: trainer/env
 - moving average: model/decomposition, tools/indicator_reverse
+- moving block bootstrap: tools/paired_compare
 - multi timeframe input: workflow/splits
 - multi-task: trainer/trainer
 - multi-timeframe: model/builder
@@ -906,6 +913,7 @@
 - mvrv: edge_discovery/20_onchain
 - mydrive: data/drive
 - n_display: evaluation/unified
+- n_eff: tools/paired_compare
 - naive baseline: evaluation/integrity
 - natr: data/cross_sectional_features, tools/natr_range
 - natr range forecast: natr_range/run_natr_calibrate, natr_range/run_natr_confirm, natr_range/run_natr_confirm_forward, natr_range/run_natr_range, natr_range/run_natr_rolling
@@ -914,6 +922,7 @@
 - near duplicates: norm_probe/run_norm_probe
 - negative results: tools/experiment_registry
 - new listings: edge_discovery/12_listing
+- newey-west: tools/paired_compare
 - nig: core/constants
 - nig mixture: trainer/ensemble
 - nig-timenet v2: model/__init__
@@ -975,6 +984,7 @@
 - package entry: data/__init__, evaluation/__init__, model/__init__, signal_eval/__init__, trainer/__init__
 - package exports: cross_asset/__init__
 - padded bars: tools/trim_dead_tails
+- paired comparison: tools/paired_compare
 - pandas-ta-classic: tools/indicator_reverse
 - pandas_ta: data/features
 - pandas_ta survey: discovery/__init__
@@ -1013,6 +1023,7 @@
 - per-coin events: edge_discovery/events
 - per-layer probe: model/layer_report
 - per-sample loss: trainer/training_diagnostics
+- per-timestamp loss: tools/paired_compare
 - per_asset: data/split
 - per_asset_ci_table: evaluation/all_assets
 - per_head: evaluation/patterns
@@ -1323,6 +1334,7 @@
 - standardization: norm_probe/run_norm_probe
 - state_entries: trainer/checkpoints
 - state_from_config: data/normalizers
+- stationary bootstrap: tools/paired_compare
 - stats: edge_discovery/tsbt
 - stats_mode: model/input_norm
 - std_ic: signal_eval/windows
@@ -1357,6 +1369,7 @@
 - sys.path: tools/check_deps
 - t-stat: edge_discovery/04_screen_mean, edge_discovery/lib
 - t-statistic: indicator_strategy/screen
+- t2: tools/paired_compare
 - t_concat_splits_*: signal_eval/selftests
 - t_decile_*: signal_eval/selftests
 - t_evaluate_windows_*: signal_eval/selftests

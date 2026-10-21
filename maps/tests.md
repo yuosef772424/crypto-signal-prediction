@@ -598,6 +598,29 @@
   - `class LiveNormalizerTests(unittest.TestCase)` L33
     - (5 methods)
 
+### `tests/test_paired_compare.py` (330 lines)
+- PURPOSE: tools/paired_compare.py (card T2): per-timestamp loss, paired differential, block bootstrap, Newey-West, temporal design effect, (from docstring)
+- DEPENDS: tools
+- API:
+  - `def ar1(rng, T, rho, burn=200)` L18
+  - `def panel(T=120, coins=6, seed=0, shift=0.0)` L26
+  - `class TestPerTimestampLoss(unittest.TestCase)` L35
+    - (4 methods)
+  - `class TestPairedDifferential(unittest.TestCase)` L72
+    - (3 methods)
+  - `class TestNeweyWest(unittest.TestCase)` L98
+    - (5 methods)
+  - `class TestIid(unittest.TestCase)` L128
+    - (1 methods)
+  - `class TestAr1(unittest.TestCase)` L144
+    - (4 methods)
+  - `class TestDesignEffectClamp(unittest.TestCase)` L185
+    - (3 methods)
+  - `class TestBootstrapContract(unittest.TestCase)` L218
+    - (6 methods)
+  - `class TestCompareArms(unittest.TestCase)` L277
+    - (5 methods)
+
 ### `tests/test_pct_change_norm.py` (170 lines)
 - PURPOSE: price_norm_mode='pct_change': أعمدة price_level = تغيّر نسبي هندسي % عن الشمعة السابقة، وفكّه إلى الأسعار الحقيقية. (from docstring)
 - API:
