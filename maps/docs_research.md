@@ -232,7 +232,7 @@ Documents:
 - `COLAB_RUNNER.md` — Colab runner: one click per experiment
 - `DRIVE_SYNC.md` — Drive sync: update the Drive folder from GitHub
 - `KICKOFF.md` — Phase kickoff: how a builder agent starts a phase
-- `LAB_DESIGN.md` — LAB_DESIGN: the lightweight screening lane (`lab/`)
+- `LAB_DESIGN.md` — LAB_DESIGN: a screening kernel that absorbs legacy code (working name `lab/`)
 - `ROADMAP.md` — Research roadmap (2026-10 →)
 - `STATUS.md` — STATUS: research plan hand-off
 - `WORKING_METHOD.md` — Working method: one planner session, builder agents, low token cost
