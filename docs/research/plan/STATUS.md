@@ -58,6 +58,7 @@
 ## Open questions for the owner 🔒
 1. G stage 0: save the raw gate-cli JSON straight to files (no `head -c`, no LLM summary) — the nine calls of #16 §3
    plus `kline --with-indicators` for BTC/ETH/SOL at 15m/1h/4h/1d with the largest `--size`, and gate's history depth.
+2. Lightweight lane: `docs/research/plan/LAB_DESIGN.md` (PROPOSED 2026-10-21, nothing built): accept the `lab/` lane + legacy freeze, 6-week time-box, implement R1 on it, park E-rel-001? (5 decisions at the end of the doc).
 
 ## Known issues
 - Colab runner merged (#21, #23; `colab_runner.ipynb`, `COLAB_RUNNER.md`): owner one-time setup = token file in Drive.
