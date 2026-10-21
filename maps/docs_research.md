@@ -226,7 +226,7 @@ Documents:
 - `pr13_restructuring_history.md` — PR #13 restructuring: history facts (evil merges, move+modify commits, verbatim extraction)
 
 ## `docs/research/plan/`
-- Colab runner: one click per experiment | 0 scripts, 19 md, 6 data files (547 KB)
+- Colab runner: one click per experiment | 0 scripts, 20 md, 6 data files (547 KB)
 
 Documents:
 - `COLAB_RUNNER.md` — Colab runner: one click per experiment
@@ -246,6 +246,7 @@ Documents:
 - `decisions/D-008-gate-style-features.md` — D-008: Build gate-style derived features and test them as model inputs
 - `decisions/D-009-two-level-holdout.md` — D-009: Two-level holdout (level A untouched, level B daily-only touched)
 - `decisions/D-010-dead-coins-amendment.md` — D-010: R0 lock amendment, dead coins in the sealed buckets
+- `decisions/D-011-screening-kernel-dormant.md` — D-011: screening kernel (`LAB_DESIGN.md` rev. 2), accepted in principle and DORMANT
 - `decisions/README.md` — Owner decisions (ADR style)
 - `lock/README.md` — Lock: sealed-holdout specification (phase R0)
 

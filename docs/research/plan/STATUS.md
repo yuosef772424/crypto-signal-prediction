@@ -58,7 +58,7 @@
 ## Open questions for the owner 🔒
 1. G stage 0: save the raw gate-cli JSON straight to files (no `head -c`, no LLM summary) — the nine calls of #16 §3
    plus `kline --with-indicators` for BTC/ETH/SOL at 15m/1h/4h/1d with the largest `--size`, and gate's history depth.
-2. Screening kernel: `docs/research/plan/LAB_DESIGN.md` rev. 2 (PROPOSED 2026-10-21, nothing built): one importable package that ABSORBS legacy pieces (one-in-one-out, legacy lines/allowlist never grow), budget 4,000 lines / 16 modules / 6 weeks, retirement clause; implement R1 on it, park E-rel-001? (5 decisions at the end of the doc).
+2. Screening kernel (`LAB_DESIGN.md` rev. 2, D-011): accepted in principle, **DORMANT**. Nothing active (no freeze, no `lab/`, no phase) until the owner draws a roadmap/plan for completing the project and records an activation decision.
 
 ## Known issues
 - Colab runner merged (#21, #23; `colab_runner.ipynb`, `COLAB_RUNNER.md`): owner one-time setup = token file in Drive.

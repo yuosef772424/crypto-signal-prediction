@@ -1,9 +1,12 @@
 # LAB_DESIGN: a screening kernel that absorbs legacy code (working name `lab/`)
 
-> **Status: PROPOSED (rev. 2, 2026-10-21), not accepted.** Nothing here is built. It becomes binding only when the owner accepts it in
-> `decisions/` (see "Decisions needed"). New docs are in English (`STATUS.md` scope); Arabic summary first.
-> Rev. 2 replaces rev. 1 after the owner's review: it is no longer a parallel lane, it is the *destination* of extraction, with a
-> complexity budget, a retirement clause, and a one-in-one-out rule.
+> **Status: ACCEPTED IN PRINCIPLE, DORMANT (D-011, 2026-10-21).** Nothing here is built and **nothing in this document is active**: no freeze, budget, time-box,
+> parking or phase applies, and nobody relies on it, until the owner draws a roadmap/plan for completing the project and records an activation decision
+> (see D-011). At activation it is re-read against that plan and revised if needed. New docs are in English (`STATUS.md` scope); Arabic summary first.
+> Rev. 2 replaces rev. 1: it is no longer a parallel lane, it is the *destination* of extraction, with a complexity budget, a retirement clause,
+> and a one-in-one-out rule.
+
+> **حالة الوثيقة: جامدة.** لا تُنفَّذ ولا يُحتجّ بها حتى يرسم المالك خارطة وخطة لإتمام المشروع ويسجّل قرار التفعيل.
 
 **ملخص بالعربية.** `lab/` ليست شرطاً بحد ذاتها، واسمها مؤقت. الشرط أن يُكتب الكود الجديد **مستورَداً بمعاملات صريحة** لا داخل النطاق
 المشترك، لأن كل الحزم الحالية المناسبة (`signal_eval/`, `discovery/`) تعمل بالنطاق المشترك ووضع الجديد فيها يكرّر الترقيع. لذلك تُنشأ
@@ -205,12 +208,12 @@ ship what survived (range tool, H07 trend filter). **Relation to ROADMAP:** R1/R
 | D-L08 | 6-week box, 12-config family budget, 4,000-line / 16-module ceiling | the first screens show the numbers are too tight or too loose |
 | D-L09 | Heavy enforcement is deferred behind triggers (§8) | a drift happens that a deferred check would have caught |
 
-## Decisions needed from the owner (one message, with my recommendation)
-1. **Accept option C (absorbing kernel) and the freeze of feature work in shared-namespace packages?** Recommended: yes. Not "lab/" as a name: pick any.
-2. **Budget and box:** 4,000 lines / 16 modules / 6 weeks / 12 configs per family? Recommended: yes as defaults, changed only by a decision record.
-3. **Implement R1 on the kernel?** Recommended: yes.
-4. **First data:** 10 coins at 1h/4h in the cloud (exploration only, all "touched"), confirmation later on a sealed Drive bucket. Recommended: yes.
-5. **Park E-rel-001 until L1.** Recommended: yes.
+## Decisions (recorded in D-011: accepted in principle, dormant)
+1. Absorbing kernel (option C) and the freeze of feature work in shared-namespace packages: **accepted, applies only after activation.**
+2. Budget and box (4,000 lines / 16 modules / 6 weeks / 12 configs per family): **accepted as defaults, apply only after activation.**
+3. Implement R1 on the kernel: **accepted, after activation.**
+4. First data: 10 coins at 1h/4h in the cloud, confirmation later on a sealed Drive bucket: **accepted, after activation.**
+5. Park E-rel-001 until L1: **accepted, after activation.** Until then E-rel-001 is simply not run (its own decision is still open).
 
 *Not verified:* numbers in §0-§1 were measured from the repository on 2026-10-21; shim feasibility is verified only for the listed pure functions (others must be
 checked before moving); the MDE figure is an illustration; the meta-labeling attribution is from memory; nothing in `lab/` exists yet.
