@@ -64,7 +64,7 @@
 - Colab runner merged (#21, #23; `colab_runner.ipynb`, `COLAB_RUNNER.md`): owner one-time setup = token file in Drive.
 - stale-bars-002 result: trimmed data + `stale_bars={'min_run_hours':168}` adopted; never drop `y_close_reg == 0` rows.
 
-## Model line (2026-10-20, master after #49)
+## Model line (2026-10-21, master after #52)
 - Merged: #37 N1 `price_norm_mode` · #39 N2 Normalizer registry · #40 SIMD-path pins · #41 E-norm-002 card · #42 `ModelSettings.config_overrides` ·
   #43 `TargetSettings.suspended_targets` (`()` = train close too) · #44 `tools/drive_sync.py` + self-tests run only in the explicit
   `run_self_tests(globals())` cell of main.ipynb · #45 effective-sample unit fix (was 47, now ~1.5k for 4h/w32/s32 grid) ·
@@ -85,7 +85,10 @@
   Waiting on the owner's Arm-0 numbers (per-parameter floor shares; kurtosis, share |y|>=5, 1.4826·MAD/std, q001/q999 of
   y_high_reg/y_low_reg on train). Planned arms: λ sweep → target tail treatment (post-standardization clip or MAD scale) →
   beta_min 0.001 / smooth param → Huber/Gaussian head → Wu et al. L_U only if the floor persists.
-- T2 (to build): per-timestamp paired loss differential d_t, block bootstrap over whole timestamps + Newey-West; also
-  estimate the temporal design effect per target.
+- T2 done (#52, `tools/paired_compare.py`, docs `docs/research/paired_compare.md`): per-timestamp paired loss differential d_t,
+  stationary/moving block bootstrap over whole timestamps, Newey-West, temporal design effect per target (`compare_arms`).
+  Measured on AR(1) rho 0.8: HAC/bootstrap beat naive iid but still under-cover at T=500 (95% CI coverage 0.79-0.90 vs 0.44 iid),
+  so pass `lags="andrews"` / `block_len="auto_andrews"` under strong persistence and read a borderline p (~0.04) as not decisive.
+  Not wired into `workflow/capacity.py` (separate step).
 - Waiting on the owner's decision: absolute vs relative (market-residual / cross-sectional rank) targets.
-- E-rel-001 card written 2026-10-20 (`docs/research/cards/E-rel-001.md`), NOT run: absolute vs `return+relative` on the 4h line, Stage 0 (no training: shared-component share + ridge reference) gates Stage 1; needs T2 first. Prior art: relative 1d closed at economics (F-0031/F-0033), not information.
+- E-rel-001 card written 2026-10-20 (`docs/research/cards/E-rel-001.md`), NOT run: absolute vs `return+relative` on the 4h line, Stage 0 (no training: shared-component share + ridge reference) gates Stage 1; its T2 prerequisite is now built (#52). Dormant-design note: D-011 (`LAB_DESIGN.md`) accepted in principle, nothing active. Prior art: relative 1d closed at economics (F-0031/F-0033), not information.
