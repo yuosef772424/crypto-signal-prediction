@@ -210,12 +210,13 @@ Documents:
   - `def auc_pair(aligned)` L90
 
 ## `docs/research/cards/`
-- Experiment card — E-liq-001: does telling the model how liquid the coin is (A) or removing illiquid… | 0 scripts, 3 md, 0 data files (0 B)
+- Experiment card — E-liq-001: does telling the model how liquid the coin is (A) or removing illiquid… | 0 scripts, 4 md, 0 data files (0 B)
 
 Documents:
 - `E-liq-001.md` — Experiment card — E-liq-001: does telling the model how liquid the coin is (A) or removing illiquid…
 - `E-norm-001.md` — Experiment card — E-norm-001: train NIG-TimeNet with price_norm_mode=logret_std vs window_scale
 - `E-norm-002.md` — Experiment card — E-norm-002: logret_std inputs without the model's per-window InstanceNorm
+- `E-rel-001.md` — Experiment card — E-rel-001: absolute vs within-timestamp relative target on the current 4h model l…
 
 ## `docs/research/notes/`
 - External research takeaways (2026-10-20) | 0 scripts, 3 md, 0 data files (0 B)
@@ -226,12 +227,13 @@ Documents:
 - `pr13_restructuring_history.md` — PR #13 restructuring: history facts (evil merges, move+modify commits, verbatim extraction)
 
 ## `docs/research/plan/`
-- Colab runner: one click per experiment | 0 scripts, 18 md, 6 data files (547 KB)
+- Colab runner: one click per experiment | 0 scripts, 20 md, 6 data files (547 KB)
 
 Documents:
 - `COLAB_RUNNER.md` — Colab runner: one click per experiment
 - `DRIVE_SYNC.md` — Drive sync: update the Drive folder from GitHub
 - `KICKOFF.md` — Phase kickoff: how a builder agent starts a phase
+- `LAB_DESIGN.md` — LAB_DESIGN: a screening kernel that absorbs legacy code (working name `lab/`)
 - `ROADMAP.md` — Research roadmap (2026-10 →)
 - `STATUS.md` — STATUS: research plan hand-off
 - `WORKING_METHOD.md` — Working method: one planner session, builder agents, low token cost
@@ -245,6 +247,7 @@ Documents:
 - `decisions/D-008-gate-style-features.md` — D-008: Build gate-style derived features and test them as model inputs
 - `decisions/D-009-two-level-holdout.md` — D-009: Two-level holdout (level A untouched, level B daily-only touched)
 - `decisions/D-010-dead-coins-amendment.md` — D-010: R0 lock amendment, dead coins in the sealed buckets
+- `decisions/D-011-screening-kernel-dormant.md` — D-011: screening kernel (`LAB_DESIGN.md` rev. 2), accepted in principle and DORMANT
 - `decisions/README.md` — Owner decisions (ADR style)
 - `lock/README.md` — Lock: sealed-holdout specification (phase R0)
 

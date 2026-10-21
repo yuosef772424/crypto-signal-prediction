@@ -15,3 +15,4 @@ Do not re-argue an accepted decision; supersede it with a new file.
 | [D-008](D-008-gate-style-features.md) | Gate-style derived features (G2) | Accepted |
 | [D-009](D-009-two-level-holdout.md) | Two-level holdout (A untouched, B daily-only touched) | Accepted |
 | [D-010](D-010-dead-coins-amendment.md) | R0 lock amendment: dead coins in the sealed buckets (trim-tails-001) | Accepted |
+| [D-011](D-011-screening-kernel-dormant.md) | Screening kernel (`LAB_DESIGN.md`): accepted in principle, dormant until a project plan exists | Accepted (dormant) |
