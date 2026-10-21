@@ -137,15 +137,17 @@
   - `def pool_test_dict(test_dict, model_tf, n_per_asset=None)` L21
   - `def predict_pooled_batch_by_asset(model, pooled, model_tf, target_specs=None, n_display=5, y_true_pooled=None, timestamp_col=None, verbose=True)` L55
 
-### `workflow/reports.py` (72 lines)
-- PURPOSE: Section 7 reports on the trained model: latest trading report, real-price predictions, classification accuracy report.
-- TAGS: latest_trading_report, real_price_predictions, classification_accuracy_report, invert_reg_predictions
+### `workflow/reports.py` (187 lines)
+- PURPOSE: Section 7 reports on the trained model: latest trading report, real-price predictions, classification accuracy report, per-sample prediction table (decoded truth beside prediction, confidence, uncertainty, class).
+- TAGS: latest_trading_report, real_price_predictions, classification_accuracy_report, invert_reg_predictions, prediction_table, prediction_table_summary
 - PITFALLS: model, test / test_dict, eval_target_specs, price_targets and model_tf are explicit arguments (RunResult / ChicksInputs / ModelPlan / DatasetInfo of workflow/run.py): no notebook global is read. Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted from main.ipynb cell 23 (s…
 - USES: batches, data/runtime, data/windows, evaluation/live, retarget, splits
 - API:
   - `def latest_trading_report(model, test_dict, eval_target_specs, model_tf, n_display=5)` L6
   - `def real_price_predictions(model, test, asset, target, model_tf)` L15
   - `def classification_accuracy_report(model, test, price_targets, model_tf)` L55
+  - `def prediction_table(model, split_or_dict, model_tf, price_targets, batch_size=1024, outputs=None)` L115
+  - `def prediction_table_summary(df, price_targets, n_bins=5, verbose=True)` L137
 
 ### `workflow/retarget.py` (259 lines)
 - PURPOSE: Target-mode switching on already-built splits (return, return_close, scaled, magnitude, volnorm, entry_range, +relative): retarget_splits recomputes y_*_reg / y_*_class from raw last_candles; entry_range_to_prices inverts entry_range.
