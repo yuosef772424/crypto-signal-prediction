@@ -1070,6 +1070,8 @@
 - predict_with_evaluation_v3: evaluation/unified
 - predict_with_evaluation_v4: evaluation/__init__, evaluation/unified
 - predicted high low: edge_discovery/31_wick_capture, edge_discovery/32_breakout_stops, tools/bracket_eval
+- prediction_table: workflow/reports
+- prediction_table_summary: workflow/reports
 - premium index: tools/fetch_history_vision_colab
 - prepare_chicks: workflow/run
 - prepare_data: tools/colab_bridge
