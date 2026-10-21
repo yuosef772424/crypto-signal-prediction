@@ -20,6 +20,7 @@ PITFALLS: LAST_COLUMNS, TS_COL, LAST_DTYPE and TARGET_COLUMNS are defined once i
 # ~1.7e18 يفقد ~12 ثانية في float32) وأعمدة أسعار الأهداف (TARGET_COLUMNS: تبقى في البيانات حتى لو استُبعدت من مدخلات النموذج)
 # مصدرها الوحيد core/schema.py؛ تُربط هنا بالاسم نفسه فيبقى نطاق خط الأنابيب (والدفاتر والاختبارات) يراها كما كانت.
 from core.schema import LAST_COLUMNS, LAST_DTYPE, TARGET_COLUMNS, TS_COL
+import threading as _threading
 
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -102,19 +103,36 @@ def sample_filter_mask(df: pd.DataFrame, filters: Optional[List[dict]] = None,
     return mask
 
 
+_STALE_BARS_LOCK = _threading.Lock()
+_STALE_BARS_MODULE = None
+
+
 def _stale_bars_module():
-    """يحمّل tools/stale_bars_audit.py (التعريف الوحيد للشمعة الراكدة) من جذر المستودع الحاوي لحزمة data/."""
+    """يحمّل tools/stale_bars_audit.py (التعريف الوحيد للشمعة الراكدة) من جذر المستودع الحاوي لحزمة data/.
+
+    آمن عبر الخيوط: build_dataset يعالج العملات بخيوط متوازية وأول عملات كلها تطلب الوحدة معاً. كان التسجيل في sys.modules يسبق
+    انتهاء exec_module، فتأخذ الخيوط الأخرى وحدة نصف مبنيّة (AttributeError: لا resolve_min_run) بينما ينجح الخيط الذي حمّلها.
+    الآن: قفل، والتسجيل بعد نجاح التنفيذ، والكاش الخاص لا يُنشر إلا وحدةً كاملة."""
     import importlib.util as ilu
     import sys as _s
-    if 'stale_bars_audit' in _s.modules:
-        return _s.modules['stale_bars_audit']
-    from data._loader import REPO_ROOT
-    path = Path(REPO_ROOT) / 'tools' / 'stale_bars_audit.py'
-    spec = ilu.spec_from_file_location('stale_bars_audit', path)
-    mod = ilu.module_from_spec(spec)
-    _s.modules['stale_bars_audit'] = mod
-    spec.loader.exec_module(mod)
-    return mod
+    global _STALE_BARS_MODULE
+    mod = _STALE_BARS_MODULE
+    if mod is not None:
+        return mod
+    with _STALE_BARS_LOCK:
+        if _STALE_BARS_MODULE is None:
+            existing = _s.modules.get('stale_bars_audit')       # محمّلة من مكان آخر (مثلاً tools/ على sys.path): تُستعمل إن كاملة
+            if existing is not None and hasattr(existing, 'resolve_min_run'):
+                _STALE_BARS_MODULE = existing
+            else:
+                from data._loader import REPO_ROOT
+                path = Path(REPO_ROOT) / 'tools' / 'stale_bars_audit.py'
+                spec = ilu.spec_from_file_location('stale_bars_audit', path)
+                loaded = ilu.module_from_spec(spec)
+                spec.loader.exec_module(loaded)
+                _s.modules['stale_bars_audit'] = loaded
+                _STALE_BARS_MODULE = loaded
+        return _STALE_BARS_MODULE
 
 
 def stale_bars_min_run(config: Optional[dict] = None, base_tf: Optional[str] = None) -> Optional[int]:
