@@ -6,11 +6,15 @@ PURPOSE:  Download Binance spot OHLCV from the public GitHub dataset Speirsy11/c
 TAGS:     download history, ohlc, 5m, spot, github dataset, Speirsy11, LFS, media.githubusercontent, research data, H19
 PITFALLS: Listing uses a blob-less git clone (`git ls-tree --name-only` only — `-l` would fetch every blob); existing output
           files are skipped (delete to refresh); `--end` trims to a pre-registered test window so a newer snapshot does not
-          silently extend it (H19 used 2026-09-30 23:55).
+          silently extend it (H19 used 2026-09-30 23:55). `--trim-dead-tail` (off by default = old output) cuts the trailing
+          zero-volume candles of delisted coins back to the last candle with volume > 0 (applied after `--end`); zero-volume
+          candles in the middle are kept.
 
 Usage:
     python tools/fetch_crypto_dataset.py --out /home/user/research --interval 5m \\
         --coins BTCUSDT ETHUSDT SOLUSDT ADAUSDT BCHUSDT BNBUSDT DOGEUSDT TRXUSDT XRPUSDT ZECUSDT --end "2026-09-30 23:55"
+    # delisted coins: drop the dead zero-volume tail
+    python tools/fetch_crypto_dataset.py --out OUT --interval 1m --coins ... --trim-dead-tail
 """
 import argparse
 import io
@@ -52,8 +56,18 @@ def _get(path, retries=5):
     raise RuntimeError(f"{path}: {err}")
 
 
-def fetch(coins, interval="5m", out=".", end=None, workers=8, clone_dir=None, verbose=True):
-    """Download and merge each coin; returns {symbol: output path}. Existing outputs are kept as they are."""
+def trim_dead_tail(d):
+    """Cut the trailing candles with volume == 0 (a delisted coin keeps printing flat zero-volume bars) back to the last
+    candle with volume > 0. Zero-volume candles before that are kept. Raises if the coin never traded."""
+    traded = (d["volume"] > 0).to_numpy()
+    if not traded.any():
+        raise ValueError("no candle with volume > 0")
+    return d.iloc[: len(traded) - traded[::-1].argmax()]
+
+
+def fetch(coins, interval="5m", out=".", end=None, workers=8, clone_dir=None, verbose=True, trim_tail=False):
+    """Download and merge each coin; returns {symbol: output path}. Existing outputs are kept as they are.
+    trim_tail=True: drop the trailing zero-volume candles (delisted coins) after the `end` cut."""
     os.makedirs(out, exist_ok=True)
     paths = list_files(clone_dir)
     done = {}
@@ -72,10 +86,17 @@ def fetch(coins, interval="5m", out=".", end=None, workers=8, clone_dir=None, ve
         d = pd.concat(frames).drop_duplicates("timestamp").sort_values("timestamp").set_index("timestamp")[COLUMNS]
         if end is not None:
             d = d[d.index <= pd.Timestamp(end, tz="UTC")]
+        n_all = len(d)
+        if trim_tail:
+            try:
+                d = trim_dead_tail(d)
+            except ValueError as e:
+                raise ValueError(f"{sym} {interval}: {e}") from e
         d.to_parquet(dst)
         done[sym] = dst
         if verbose:
-            print(sym, len(ps), "files", d.shape, d.index.min(), "->", d.index.max(), flush=True)
+            print(sym, len(ps), "files", d.shape, d.index.min(), "->", d.index.max(),
+                  f"(trimmed {n_all - len(d)} dead-tail rows)" if trim_tail else "", flush=True)
     return done
 
 
@@ -86,8 +107,10 @@ def main(argv=None):
     ap.add_argument("--out", default=".")
     ap.add_argument("--end", default=None, help="inclusive UTC end, e.g. '2026-09-30 23:55'")
     ap.add_argument("--workers", type=int, default=8)
+    ap.add_argument("--trim-dead-tail", action="store_true",
+                    help="drop trailing zero-volume candles (delisted coins) back to the last candle with volume > 0")
     a = ap.parse_args(argv)
-    fetch(a.coins, a.interval, a.out, a.end, a.workers)
+    fetch(a.coins, a.interval, a.out, a.end, a.workers, trim_tail=a.trim_dead_tail)
     return 0
 
 
