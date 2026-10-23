@@ -67,6 +67,32 @@ class FetchDatasetTests(unittest.TestCase):
             fcd.list_files, fcd._get = old_list, old_get
             shutil.rmtree(tmp)
 
+    def test_trim_dead_tail(self):
+        idx = pd.date_range("2026-01-01", periods=8, freq="1min", tz="UTC")
+        vol = [0.0, 5.0, 0.0, 3.0, 0.0, 0.0, 0.0, 0.0]          # leading/middle zeros stay, only the tail goes
+        d = pd.DataFrame({"open": 1.0, "high": 1.0, "low": 1.0, "close": 1.0, "volume": vol}, index=idx)
+        self.assertEqual(list(fcd.trim_dead_tail(d).index), list(idx[:4]))
+        self.assertEqual(len(fcd.trim_dead_tail(d.assign(volume=1.0))), 8)         # nothing to trim
+        with self.assertRaises(ValueError):
+            fcd.trim_dead_tail(d.assign(volume=0.0))
+
+    def test_fetch_trim_flag_off_by_default(self):
+        idx = pd.date_range("2026-01-01", periods=6, freq="1min", tz="UTC")
+        p = "data/interval_id=1m/symbol_id=DEADUSDT/a.parquet"
+        df = pd.DataFrame({"symbol": "DEADUSDT", "timestamp": idx, "open": 1.0, "high": 1.0, "low": 1.0, "close": 1.0,
+                           "volume": [1.0, 2.0, 0.0, 0.0, 0.0, 0.0]})
+        old_list, old_get = fcd.list_files, fcd._get
+        fcd.list_files, fcd._get = (lambda clone_dir=None: [p]), (lambda q, retries=5: df)
+        tmp = tempfile.mkdtemp()
+        try:
+            a = fcd.fetch(["DEADUSDT"], "1m", os.path.join(tmp, "a"), verbose=False)
+            b = fcd.fetch(["DEADUSDT"], "1m", os.path.join(tmp, "b"), verbose=False, trim_tail=True)
+            self.assertEqual(len(pd.read_parquet(a["DEADUSDT"])), 6)
+            self.assertEqual(len(pd.read_parquet(b["DEADUSDT"])), 2)
+        finally:
+            fcd.list_files, fcd._get = old_list, old_get
+            shutil.rmtree(tmp)
+
 
 if __name__ == "__main__":
     unittest.main()
