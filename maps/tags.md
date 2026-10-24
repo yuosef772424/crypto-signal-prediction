@@ -32,7 +32,7 @@
 - _y_for: workflow/batches
 - a.2: edge_discovery/13_listing_stops
 - abstention: data/heads
-- accept rule: indicator_strategy/screen, indicator_strategy/test_final, strategy_discovery/oos
+- accept rule: indicator_strategy/screen, indicator_strategy/test_final, stop_grid_1m/run_stop_grid_1m, strategy_discovery/oos
 - access log: tools/holdout_guard
 - accumulator: data/pipeline
 - activations: model/diagnostics
@@ -112,7 +112,7 @@
 - batched predict: evaluation/predict
 - batches: workflow/batches
 - batching: cross_asset/data
-- benjamini-hochberg: strategy_discovery/grid
+- benjamini-hochberg: stop_grid_1m/run_stop_grid_1m, strategy_discovery/grid
 - best weights: trainer/best_tracker
 - bestmodeltracker: trainer/best_tracker
 - beta: model/nig_layers
@@ -128,7 +128,7 @@
 - boll: tools/gate_features
 - bollinger: tools/indicator_reverse
 - bollinger breakout: indicator_strategy/engine, tools/trade_engine
-- bonferroni: h07_combos/01_combos
+- bonferroni: h07_combos/01_combos, stop_grid_1m/run_stop_grid_1m
 - bootstrap: tools/drive_sync
 - bootstrap month blocks: norm_probe/run_norm_probe
 - bot2 get_range_forecast: tools/natr_range
@@ -224,7 +224,7 @@
 - closed bars: data/align, tools/gate_features
 - cnn: edge_discovery/25_image_cnn
 - coin categories: data/defaults
-- coin selection: tools/stop_grid_sim
+- coin selection: stop_grid_1m/run_stop_grid_1m, tools/stop_grid_sim
 - coinmetrics: edge_discovery/16_h07_oos, edge_discovery/20_onchain
 - coins_by_category: data/defaults
 - colab: data/drive, edge_discovery/25_image_cnn, tools/colab_bridge, tools/colab_runner, tools/colab_smoke, tools/data_manifest … (+2)
@@ -350,6 +350,7 @@
 - design effect: tools/paired_compare
 - detect_success_failure_patterns: evaluation/patterns
 - deterministic build: tools/build_lock
+- dev grid: stop_grid_1m/run_stop_grid_1m
 - dev val: strategy_discovery/grid, strategy_discovery/grid2, strategy_discovery/intraday_macd, strategy_discovery/seasonality15m
 - dev val split: indicator_strategy/screen
 - diag_sections: model/diagnostics
@@ -408,7 +409,7 @@
 - e-disc-006: strategy_discovery/significance, strategy_discovery/survivor_checks
 - e-fwd-001: strategy_discovery/forward
 - e-gate-001: gate_features/run_gate001
-- e-grid1m-001: tools/stop_grid_sim
+- e-grid1m-001: stop_grid_1m/run_stop_grid_1m, tools/stop_grid_sim
 - e-h07comb-1: h07_combos/01_combos
 - e-h07vs-1: h07_volsizing/01_volsizing
 - e-hedge-001: hedge_recovery/sim
@@ -553,7 +554,7 @@
 - fresh bars: strategy_discovery/oos, strategy_discovery/survivor_checks
 - from __future__: data/common
 - from __future__ annotations: signal_eval/common
-- frozen config: natr_range/run_natr_confirm_forward
+- frozen config: natr_range/run_natr_confirm_forward, stop_grid_1m/run_stop_grid_1m
 - frozen dataclass: workflow/settings
 - frozen hypothesis: strategy_discovery/forward
 - frozen rules: natr_range/freeze_rules, natr_range/run_natr_confirm
@@ -1117,7 +1118,7 @@
 - ram: data/disk_backed
 - ram cap: data/parallel
 - random control: hedge_recovery/sim, hedge_recovery/sim2
-- random walk null: tools/stop_grid_sim
+- random walk null: stop_grid_1m/run_stop_grid_1m, tools/stop_grid_sim
 - random-direction null: tools/bracket_eval
 - random_init_copy: model/layer_report
 - range fade: edge_discovery/21_range_fade
@@ -1296,7 +1297,7 @@
 - short new perps: edge_discovery/12_listing
 - shuffled labels: workflow/permutation_control
 - sign vs magnitude: edge_discovery/28_token_decompose
-- sign-flip null: tools/stop_grid_sim
+- sign-flip null: stop_grid_1m/run_stop_grid_1m, tools/stop_grid_sim
 - signal discovery lab: discovery/__init__
 - signal evaluation axis: signal_eval/__init__
 - signal families: strategy_discovery/grid
@@ -1353,6 +1354,7 @@
 - stats_mode: model/input_norm
 - std_ic: signal_eval/windows
 - stop grid: tools/stop_grid_sim
+- stop grid 1m: stop_grid_1m/run_stop_grid_1m
 - stop loss: edge_discovery/13_listing_stops, tools/bracket_eval
 - storage: data/storage
 - stress test: edge_discovery/17_h07_break
@@ -1381,6 +1383,7 @@
 - synthetic: discovery/selftest
 - synthetic data: cross_asset/selftest, data/selftests, signal_eval/selftests, workflow/wiring_selftest
 - synthetic dataset: tests/run_fixture
+- synthetic smoke: stop_grid_1m/run_stop_grid_1m
 - sys.path: tools/check_deps
 - t-stat: edge_discovery/04_screen_mean, edge_discovery/lib
 - t-statistic: indicator_strategy/screen
@@ -1418,6 +1421,7 @@
 - tensorflow: model/common
 - test: indicator_strategy/test_final
 - test auc: edge_discovery/26_h19_generalization
+- test once: stop_grid_1m/run_stop_grid_1m
 - test_all_assets: evaluation/all_assets
 - test_all_assets_v4: evaluation/__init__, evaluation/all_assets
 - test_dict: evaluation/all_assets, workflow/chicks_bridge

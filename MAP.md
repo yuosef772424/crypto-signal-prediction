@@ -42,7 +42,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `research/natr_range/` — natr_range — E-natr-001 (phase R3): calibrated next-range forecast from NATR_14 | 6 scripts, 37 data files (60 KB) → maps/research_natr_range.md
 - `research/norm_probe/` — norm_probe — differenced (log-return) input normalizations vs the current window_scale | 1 scripts, 3 data files (14 KB) → maps/research_norm_probe.md
 - `research/stale_bars/` — stale_bars — dead-coin tails vs exact-zero close_reg | 0 scripts, 2 data files (2 KB) → maps/research_stale_bars.md
-- `research/stop_grid_1m/` — (no README) | 0 scripts, 0 data files (0 B) → maps/research_stop_grid_1m.md
+- `research/stop_grid_1m/` — stop_grid_1m — شبكة أوامر الإيقاف (stop-order grid) على شموع الدقيقة — E-grid1m-001 | 1 scripts, 0 data files (0 B) → maps/research_stop_grid_1m.md
 - `research/strategy_discovery/` — strategy_discovery — البحث عن استراتيجية تداول قابلة للتحقق | 10 scripts, 15 data files (112 KB) → maps/research_strategy_discovery.md
 
 ## docs/research (legacy)
