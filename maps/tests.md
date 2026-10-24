@@ -766,7 +766,7 @@
   - `class TestRunnerReportOnly(unittest.TestCase)` L131
     - (1 methods)
 
-### `tests/test_stop_grid_sim.py` (555 lines)
+### `tests/test_stop_grid_sim.py` (662 lines)
 - PURPOSE: tools/stop_grid_sim.py: hand-computed fills/exits/PnL for every exit mode, gap fill at the open, slippage, intrabar orderings (from docstring)
 - DEPENDS: tools
 - API:
@@ -790,7 +790,9 @@
     - (2 methods)
   - `class Selection(unittest.TestCase)` L410
     - (6 methods)
-  - `class TestPinnedMetricsAndRecording(unittest.TestCase)` L494
+  - `class SignalTf5m(unittest.TestCase)` L494
+    - (7 methods)
+  - `class TestPinnedMetricsAndRecording(unittest.TestCase)` L601
     - (3 methods)
 
 ### `tests/test_suspended_targets.py` (99 lines)

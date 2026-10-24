@@ -19,6 +19,13 @@ Colab: `from google.colab import drive; drive.mount('/content/drive')` ثم
 `!python research/stop_grid_1m/run_stop_grid_1m.py --data /content/drive/MyDrive/history_1m --jobs 2`
 فحص سريع بلا بيانات: `python research/stop_grid_1m/run_stop_grid_1m.py --smoke` (يكتب في مجلد مؤقت).
 
+### تشغيل بإطار إشارة 5 دقائق (`--signal-tf 5m`)
+البوابات الثلاث (adx, vol, cost) تُحسب على شموع 5m (مُعاد تجميعها من 1m بحدود UTC: `ts // 5min`)، بنفس الفترات معدودةً بشموع 5m (`cost_window` يبقى بالدقائق ويصير `cost_window//5` شمعة، الأدنى 3)؛ التنفيذ والتحديث (بناء الشبكة، الوقف، الـtrailing، `time_every` بالدقائق) يبقى كله على 1m. الدقيقة t ترى آخر شمعة 5m **مكتملة** فقط (لا الشمعة الجارية)؛ شمعة 5m ناقصة الدقائق تُبنى من الدقائق الموجودة وشمعة غائبة كلياً تُتخطى (لا ملء أمامي). `signal_tf="5m"` يفرض `adx_tf="5m"` (التعارض يرفع خطأ). الشبكة المعلنة مسبقاً نفسها (لا تتضاعف؛ عدد الاختبارات المتعددة ثابت) وأسماء الإعدادات نفسها.
+```
+!python research/stop_grid_1m/run_stop_grid_1m.py --data /content/drive/MyDrive/history_1m --jobs 2 --signal-tf 5m --out /content/drive/MyDrive/stop_grid_1m_5m
+```
+عائلة إعدادات **جديدة**: النتائج إلى `--out` جديد (الأداة ترفض 5m بلا `--out`)، ولا تُكتب فوق نتائج 1m. قاعدة البطاقة E-grid1m-001 «TEST مرة واحدة لكل إعداد مجمَّد» تسري: اختلاف `signal_tf` = إعداد مجمَّد مختلف = تشغيل TEST خاص به. `signal_tf` يُسجَّل في `frozen_config.json` (وفي `config` عند 5m فقط حتى لا يتغيّر sha256 للإعدادات القديمة) وفي `verdict.json` وترويسة التقرير؛ `--report-only` يعيد إنتاج تشغيل 5m من `frozen_config.json` (لا تمرّر `--signal-tf`).
+
 ## سجل الصفقات والتقرير (وصفي فقط، لا يغيّر أي حكم)
 بعد التشغيل العادي يكتب المشغّل في `<out>/report/` (يُعطَّل بـ `--no-report`): `trades.csv.gz` (صفقة لكل سطر، للإعداد المجمَّد، `ordering`=lb/ub و`cost_mult`=1/2 و`split`)، `report.md` + `report.json` (+ PNG إن وُجد matplotlib)، و`events.csv.gz` فقط مع `--log-events` (سقفه `--log-events-max`, الافتراضي 2,000,000 سطر).
 أعمدة سجل الصفقات: coin, side, level, entry_ts, entry_px, trigger_px, exit_ts, exit_px, exit_reason (sl/trail/tp أو مركّب مثل `tp+trail` في نمط split، وeod)، hold_min, gross_bp, slip_bp, fee_bp, net_bp, mfe_bp, mae_bp, gap_fill, entry_range_bp, entry_quote_volume, exit_range_bp, exit_quote_volume, gate_adx, gate_vol_ratio, gate_cost_ratio, rebuild_id, concurrent, day.

@@ -76,6 +76,7 @@ class GridConfig:
     gates: Tuple[str, ...] = ()           # subset of GATES, all must be true to (re)build
     adx_thr: float = 25.0
     adx_tf: str = "1m"                    # '1m' or '5m' (5m = resampled, last COMPLETED 5m bar)
+    signal_tf: str = "1m"                 # timeframe of ALL gate indicators: '1m' (default) or '5m' (needs adx_tf='5m'); execution stays 1m
     adx_n: int = 14
     atr_fast: int = 14
     atr_slow: int = 100
@@ -94,6 +95,10 @@ class GridConfig:
             raise ValueError(f"rebuild {self.rebuild!r} not in {REBUILD_MODES}")
         if self.adx_tf not in ("1m", "5m"):
             raise ValueError("adx_tf must be '1m' or '5m'")
+        if self.signal_tf not in ("1m", "5m"):
+            raise ValueError("signal_tf must be '1m' or '5m'")
+        if self.signal_tf == "5m" and self.adx_tf != "5m":
+            raise ValueError("signal_tf='5m' conflicts with adx_tf='1m': all gates run on 5m bars, set adx_tf='5m' too")
         bad = [g for g in self.gates if g not in GATES]
         if bad:
             raise ValueError(f"unknown gates {bad}; known {GATES}")
@@ -141,19 +146,24 @@ def _adx_values(h: np.ndarray, l: np.ndarray, c: np.ndarray, n: int) -> np.ndarr
     return out
 
 
+def resample_5m(ts, h, l, c):
+    """1m -> 5m with UTC-aligned buckets (ts // 5min). Returns (h5, l5, c5, inv): ``inv[i]`` = index of the 5m bar holding 1m bar i.
+    Only buckets that contain at least one minute exist (a bucket with missing minutes is built from the minutes present: max high,
+    min low, last close; a fully missing bucket is simply absent from the 5m series, never forward-filled)."""
+    h, l, c = (np.asarray(a, dtype="float64") for a in (h, l, c))
+    bucket = np.asarray(ts, dtype="int64") // (5 * MS_MIN)
+    _, inv = np.unique(bucket, return_inverse=True)
+    g = pd.DataFrame({"h": h, "l": l, "c": c, "b": inv}).groupby("b", sort=True)
+    return g["h"].max().to_numpy(), g["l"].min().to_numpy(), g["c"].last().to_numpy(), inv
+
+
 def adx_signal(ts, h, l, c, n: int = 14, tf: str = "1m") -> np.ndarray:
     """ADX known at the START of each 1m bar. '1m': ADX of bar i-1. '5m': ADX of the last COMPLETED 5m bar before bar i's bucket."""
     h, l, c = (np.asarray(a, dtype="float64") for a in (h, l, c))
     if tf == "1m":
         a = _adx_values(h, l, c, n)
         return np.r_[np.nan, a[:-1]]
-    bucket = np.asarray(ts, dtype="int64") // (5 * MS_MIN)
-    ub, first, inv = np.unique(bucket, return_index=True, return_inverse=True)
-    df = pd.DataFrame({"h": h, "l": l, "c": c, "b": inv})
-    g = df.groupby("b", sort=True)
-    h5 = g["h"].max().to_numpy()
-    l5 = g["l"].min().to_numpy()
-    c5 = g["c"].last().to_numpy()
+    h5, l5, c5, inv = resample_5m(ts, h, l, c)
     a5 = _adx_values(h5, l5, c5, n)
     prev = np.r_[np.nan, a5[:-1]]                       # the previous bucket is complete when this bucket's bars trade
     return prev[inv]
@@ -180,20 +190,40 @@ def median_range_bp_signal(h, l, c, window: int = 60) -> np.ndarray:
     return np.r_[np.nan, m[:-1]]
 
 
+def signal_values(ts, h, l, c, cfg: GridConfig, which=("adx", "vol", "cost")) -> dict:
+    """Per-1m-bar gate indicator values known at the bar's open: 'adx', 'vol' (fast/slow ATR ratio), 'cost' (median range in bp).
+    ``cfg.signal_tf='5m'``: vol and cost are computed on 5m bars (periods counted in 5m bars; cost_window // 5 bars, min 3) and a 1m bar
+    sees the last COMPLETED 5m bar only (piecewise constant over each 5-minute block). adx uses ``cfg.adx_tf``."""
+    out = {}
+    if "adx" in which:
+        out["adx"] = adx_signal(ts, h, l, c, cfg.adx_n, cfg.adx_tf)
+    if cfg.signal_tf == "1m":
+        if "vol" in which:
+            out["vol"] = atr_ratio_signal(h, l, c, cfg.atr_fast, cfg.atr_slow)
+        if "cost" in which:
+            out["cost"] = median_range_bp_signal(h, l, c, cfg.cost_window)
+        return out
+    h5, l5, c5, inv = resample_5m(ts, h, l, c)
+    if "vol" in which:
+        out["vol"] = atr_ratio_signal(h5, l5, c5, cfg.atr_fast, cfg.atr_slow)[inv]
+    if "cost" in which:
+        out["cost"] = median_range_bp_signal(h5, l5, c5, max(3, cfg.cost_window // 5))[inv]
+    return out
+
+
 def gate_array(ts, o, h, l, c, cfg: GridConfig) -> Optional[np.ndarray]:
     """Boolean per bar: all gates in ``cfg.gates`` true (NaN -> False). None when there are no gates."""
     if not cfg.gates:
         return None
     ok = np.ones(len(c), dtype=bool)
-    if "adx" in cfg.gates:
-        with np.errstate(invalid="ignore"):
-            ok &= adx_signal(ts, h, l, c, cfg.adx_n, cfg.adx_tf) >= cfg.adx_thr
-    if "vol" in cfg.gates:
-        with np.errstate(invalid="ignore"):
-            ok &= atr_ratio_signal(h, l, c, cfg.atr_fast, cfg.atr_slow) >= cfg.vol_ratio
-    if "cost" in cfg.gates:
-        with np.errstate(invalid="ignore"):
-            ok &= median_range_bp_signal(h, l, c, cfg.cost_window) >= cfg.cost_k * cfg.round_trip_cost_bp
+    v = signal_values(ts, h, l, c, cfg, which=cfg.gates)
+    with np.errstate(invalid="ignore"):
+        if "adx" in cfg.gates:
+            ok &= v["adx"] >= cfg.adx_thr
+        if "vol" in cfg.gates:
+            ok &= v["vol"] >= cfg.vol_ratio
+        if "cost" in cfg.gates:
+            ok &= v["cost"] >= cfg.cost_k * cfg.round_trip_cost_bp
     return ok
 
 
@@ -541,9 +571,8 @@ def annotate_trades(trades: pd.DataFrame, arrs: dict, cfg: GridConfig, coin: str
     xb = trades["exit_bar"].to_numpy(dtype=int)
     rng_bp = (h - l) / c * 1e4
     with np.errstate(invalid="ignore", divide="ignore"):
-        adx = adx_signal(ts, h, l, c, cfg.adx_n, cfg.adx_tf)
-        vr = atr_ratio_signal(h, l, c, cfg.atr_fast, cfg.atr_slow)
-        cr = median_range_bp_signal(h, l, c, cfg.cost_window) / cfg.round_trip_cost_bp
+        sv = signal_values(ts, h, l, c, cfg)
+        adx, vr, cr = sv["adx"], sv["vol"], sv["cost"] / cfg.round_trip_cost_bp
     out = pd.DataFrame({
         "coin": coin, "ordering": ordering, "side": trades["side"].to_numpy(), "level": trades["level"].to_numpy(),
         "entry_ts": trades["entry_ts"].to_numpy(), "entry_px": trades["entry_px"].to_numpy(), "trigger_px": trades["trigger_px"].to_numpy(),

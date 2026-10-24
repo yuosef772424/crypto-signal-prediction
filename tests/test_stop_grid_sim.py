@@ -491,6 +491,113 @@ def _pin_data(seed, vol):
     return f, f["timestamp"].to_numpy("int64"), *(f[k].to_numpy(float) for k in ("open", "high", "low", "close"))
 
 
+class SignalTf5m(unittest.TestCase):
+    """signal_tf='5m': every gate indicator on UTC-aligned 5m bars, a 1m bar sees the last COMPLETED 5m bar. SYNTHETIC data only."""
+    KW = dict(gates=("adx", "vol", "cost"), signal_tf="5m", adx_tf="5m", adx_n=2, atr_fast=2, atr_slow=3, cost_window=15,
+              adx_thr=10.0, vol_ratio=0.0, cost_k=0.1, taker_bp=1.0, slip_bps=0.0)
+
+    @staticmethod
+    def series(n=60, seed=1, off=0):
+        rng = np.random.default_rng(seed)
+        c = 100.0 * np.exp(np.cumsum(rng.normal(0, 0.002, n)))
+        o = np.r_[c[0], c[:-1]]
+        h = np.maximum(o, c) * (1 + rng.random(n) * 0.002)
+        l = np.minimum(o, c) * (1 - rng.random(n) * 0.002)
+        ts = T0 + off * MIN + np.arange(n, dtype="int64") * MIN
+        return ts, o, h, l, c
+
+    def test_resample_alignment_and_last_completed_rule(self):
+        ts, o, h, l, c = self.series(30, off=2)               # starts at minute 2: first bucket holds only minutes 2,3,4
+        h5, l5, c5, inv = sg.resample_5m(ts, h, l, c)
+        self.assertEqual(list(inv[:4]), [0, 0, 0, 1])          # minutes 2,3,4 | 5..9
+        self.assertEqual(len(h5), 7)                           # minutes 2..31 -> buckets 0..6 (last one: minutes 30,31)
+        self.assertAlmostEqual(h5[1], h[3:8].max())
+        self.assertAlmostEqual(l5[1], l[3:8].min())
+        self.assertAlmostEqual(c5[1], c[7])                    # last close of the bucket
+        v = sg.signal_values(ts, h, l, c, sg.GridConfig(**self.KW))
+        # manual: bucket j (j>=1) sees the indicators of bucket j-1 (completed); first bucket sees nothing
+        tr5 = np.maximum(h5 - l5, np.maximum(np.abs(h5 - np.r_[np.nan, c5[:-1]]), np.abs(l5 - np.r_[np.nan, c5[:-1]])))
+        tr5[0] = h5[0] - l5[0]
+        ratio = pd.Series(tr5).rolling(2).mean() / pd.Series(tr5).rolling(3).mean()
+        med = pd.Series((h5 - l5) / c5 * 1e4).rolling(3).median()
+        adx5 = sg._adx_values(h5, l5, c5, 2)
+        for name, ser in (("vol", ratio.to_numpy()), ("cost", med.to_numpy()), ("adx", adx5)):
+            exp = np.r_[np.nan, ser[:-1]][inv]
+            np.testing.assert_allclose(v[name], exp, equal_nan=True, err_msg=name)
+        self.assertTrue(np.isnan(v["vol"][:3]).all())          # nothing completed yet inside the first bucket
+
+    def test_gate_series_piecewise_constant_over_5m_blocks(self):
+        ts, o, h, l, c = sg.synth_ohlc(3000, 11, daily_vol=0.06)
+        g = sg.gate_array(ts, o, h, l, c, sg.GridConfig(**{**self.KW, "adx_n": 14, "atr_fast": 14, "atr_slow": 100, "cost_window": 60}))
+        blocks = ts // (5 * MIN)
+        self.assertTrue(0 < g.mean() < 1)
+        for b in np.unique(blocks):
+            self.assertEqual(len(set(g[blocks == b].tolist())), 1, f"gate flips inside 5m block {b}")
+        self.assertTrue((np.diff(g.astype(int)) != 0).any())
+
+    def test_causal_future_bars_and_forming_bar_do_not_change_past(self):
+        ts, o, h, l, c = sg.synth_ohlc(2000, 5, daily_vol=0.06)
+        conf = sg.GridConfig(**{**self.KW, "adx_n": 14, "atr_fast": 14, "atr_slow": 100, "cost_window": 60}, spacing=0.0015,
+                             rebuild="breakout")
+        base_g = sg.gate_array(ts, o, h, l, c, conf)
+        base = sg.simulate(ts, o, h, l, c, conf, "hl")
+        for k in (1003, 1202):                                    # 1003 and 1202 sit inside a 5m bucket (not at its start)
+            o2, h2, l2, c2 = (a.copy() for a in (o, h, l, c))
+            o2[k:] *= 1.07; h2[k:] *= 1.09; l2[k:] *= 0.93; c2[k:] *= 1.05
+            g2 = sg.gate_array(ts, o2, h2, l2, c2, conf)
+            first_in_bucket = k - int((ts[k] // MIN) % 5)           # earlier minutes of the same bucket
+            np.testing.assert_array_equal(g2[:k], base_g[:k])      # also the minutes before k INSIDE the forming bar
+            self.assertGreaterEqual(k - first_in_bucket, 0)
+            d2 = sg.simulate(ts, o2, h2, l2, c2, conf, "hl")
+            a = base[base["exit_bar"] < k].reset_index(drop=True)
+            b = d2[d2["exit_bar"] < k].reset_index(drop=True)
+            pd.testing.assert_frame_equal(a, b)
+        # the bars of the CURRENT bucket never feed the gate seen inside it
+        k = 1003
+        bucket_start = k - int((ts[k] // MIN) % 5)
+        o2, h2, l2, c2 = (a.copy() for a in (o, h, l, c))
+        h2[k] *= 1.5; l2[k] *= 0.5; c2[k] *= 1.3
+        g2 = sg.gate_array(ts, o2, h2, l2, c2, conf)
+        np.testing.assert_array_equal(g2[bucket_start:k + 1], base_g[bucket_start:k + 1])
+
+    def test_invalid_values_and_conflict_raise(self):
+        with self.assertRaises(ValueError):
+            sg.GridConfig(signal_tf="15m")
+        with self.assertRaises(ValueError):
+            sg.GridConfig(signal_tf="5m", adx_tf="1m")
+        self.assertEqual(sg.GridConfig().signal_tf, "1m")
+        sg.GridConfig(signal_tf="5m", adx_tf="5m")
+
+    def test_default_signal_tf_equals_explicit_1m_and_deterministic_5m(self):
+        ts, o, h, l, c = sg.synth_ohlc(4000, 21, daily_vol=0.06)
+        kw = dict(gates=("adx", "vol", "cost"), adx_thr=15.0, vol_ratio=0.5, cost_k=0.2, taker_bp=1.0, slip_bps=0.0, spacing=0.0015)
+        d0 = sg.simulate(ts, o, h, l, c, sg.GridConfig(**kw), "hl")
+        d1 = sg.simulate(ts, o, h, l, c, sg.GridConfig(**kw, signal_tf="1m"), "hl")
+        pd.testing.assert_frame_equal(d0, d1)
+        c5 = sg.GridConfig(**kw, signal_tf="5m", adx_tf="5m")
+        r1 = sg.simulate(ts, o, h, l, c, c5, "hl")
+        r2 = sg.simulate(ts, o, h, l, c, c5, "hl")
+        pd.testing.assert_frame_equal(r1, r2)
+        self.assertGreater(len(r1), 0)
+
+    def test_gaps_incomplete_bucket_and_missing_bucket(self):
+        ts, o, h, l, c = self.series(40)
+        keep = np.ones(40, bool)
+        keep[[7, 8, 9]] = False                                   # bucket 1 keeps minutes 5,6 only
+        keep[20:25] = False                                       # bucket 4 entirely absent
+        t, h_, l_, c_ = ts[keep], h[keep], l[keep], c[keep]
+        h5, l5, c5, inv = sg.resample_5m(t, h_, l_, c_)
+        self.assertEqual(len(h5), 7)
+        self.assertAlmostEqual(c5[1], c[6])                       # built from the minutes present
+        self.assertAlmostEqual(h5[1], h[5:7].max())
+        v = sg.signal_values(t, h_, l_, c_, sg.GridConfig(**self.KW))
+        # the bucket after the absent one sees the last PRESENT bucket (no forward-filled phantom bar)
+        j = np.flatnonzero(np.diff(inv) > 0)
+        self.assertEqual(len(j), 6)
+        self.assertTrue(np.isfinite(v["cost"][inv == 4]).all() and np.isfinite(v["cost"][inv == 5]).all())
+        self.assertTrue(np.isnan(v["cost"][inv == 0]).all() and np.isnan(v["cost"][inv == 1]).all())
+
+
 class TestPinnedMetricsAndRecording(unittest.TestCase):
     """Summary metrics and the full trade table of several configs were captured BEFORE the recording hooks were added
     (tests/stop_grid_sim_pinned_metrics.json): the hooks must change nothing, and recording on/off must agree."""

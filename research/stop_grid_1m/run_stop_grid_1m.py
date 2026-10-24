@@ -14,6 +14,7 @@ PITFALLS: `--smoke` uses SYNTHETIC martingale data: its numbers are a pipeline c
 
 Usage:
     python research/stop_grid_1m/run_stop_grid_1m.py --data /content/drive/MyDrive/history_1m [--jobs 2] [--out research/stop_grid_1m/results]
+    python research/stop_grid_1m/run_stop_grid_1m.py --data <dir> --signal-tf 5m --out <NEW dir>   # gates on 5m bars, execution 1m (new config family)
     python research/stop_grid_1m/run_stop_grid_1m.py --smoke          # synthetic, 2 weeks, 5+ coins, writes to a temp dir
     # trade log + event log + report of an ALREADY FROZEN config (no grid re-run; never touches test_frozen.csv / verdict.json):
     python research/stop_grid_1m/run_stop_grid_1m.py --data <dir> --out <earlier out> --report-only [--report-scope dev|test|both] [--log-events]
@@ -65,7 +66,8 @@ SPACINGS = (0.001, 0.002)
 SLS = (0.005, 0.010)
 
 
-def build_grid(smoke=False):
+def build_grid(smoke=False, signal_tf="1m"):
+    """The pre-declared grid. ``signal_tf="5m"`` sets signal_tf (and adx_tf="5m") on EVERY config: same grid size, same names."""
     out = []
     spacings, sls = SPACINGS, SLS
     exits, rebs, gates = EXIT_VARIANTS, REBUILD_VARIANTS, GATE_VARIANTS
@@ -76,7 +78,10 @@ def build_grid(smoke=False):
         gates = {k: GATE_VARIANTS[k] for k in ("none", "volexp_1.2")}
     for s, sl, (en, e), (rn, r), (gn, g) in itertools.product(spacings, sls, exits.items(), rebs.items(), gates.items()):
         name = f"s{s}_sl{sl}_{en}_{rn}_{gn}"
-        out.append((name, sg.GridConfig(**FIXED, spacing=s, sl=sl, **e, **r, **g)))
+        kw = dict(FIXED, spacing=s, sl=sl, **e, **r, **g)
+        if signal_tf != "1m":
+            kw.update(signal_tf=signal_tf, adx_tf=signal_tf)
+        out.append((name, sg.GridConfig(**kw)))
     return out
 
 
@@ -100,7 +105,7 @@ _GATE_CACHE = {}
 
 
 def gates_for(key, arrs, cfg):
-    gk = (key, cfg.gates, cfg.adx_thr, cfg.adx_tf, cfg.adx_n, cfg.atr_fast, cfg.atr_slow, cfg.vol_ratio, cfg.cost_k,
+    gk = (key, cfg.gates, cfg.adx_thr, cfg.adx_tf, cfg.signal_tf, cfg.adx_n, cfg.atr_fast, cfg.atr_slow, cfg.vol_ratio, cfg.cost_k,
           cfg.cost_window, cfg.round_trip_cost_bp)
     if gk not in _GATE_CACHE:
         _GATE_CACHE[gk] = sg.gate_array(arrs["ts"], arrs["o"], arrs["h"], arrs["l"], arrs["c"], cfg)
@@ -340,7 +345,7 @@ def report_only(args, out):
     full = load_coins(syms, coins, window)
     scopes = ["dev", "test"] if args.report_scope == "both" else [args.report_scope]
     wins = {k: {c: slice_window(full[c], (sp[k]["start_ms"], sp[k]["end_ms"])) for c in coins} for k in scopes}
-    header = {"mode": "report-only", "note": label, "config": name, "config_json": json.dumps(dataclasses.asdict(cfg), default=list, sort_keys=True),
+    header = {"mode": "report-only", "note": label, "config": name, "signal_tf": cfg.signal_tf, "config_json": json.dumps(dataclasses.asdict(cfg), default=list, sort_keys=True),
               "coins": ",".join(coins), "splits": json.dumps({k: sp[k] for k in scopes}), "data": args.data}
     nulls = real = None
     if not args.config_json and os.path.exists(os.path.join(out, "nulls.csv")):
@@ -380,6 +385,8 @@ def main(argv=None):
     ap.add_argument("--data", help="dir with <SYMBOL>.csv.gz / .csv / .parquet or per-symbol sub-folders")
     ap.add_argument("--out", help="results dir (default research/stop_grid_1m/results; smoke: a temp dir)")
     ap.add_argument("--smoke", action="store_true", help="synthetic data, 2 weeks, tiny grid: pipeline check, NOT evidence")
+    ap.add_argument("--signal-tf", choices=("1m", "5m"), default="1m",
+                    help="timeframe of ALL gate indicators (execution stays 1m). 5m = a NEW configuration family: use a NEW --out")
     ap.add_argument("--top", type=int, default=5)
     ap.add_argument("--jobs", type=int, default=1)
     ap.add_argument("--null-draws", type=int, default=20)
@@ -400,6 +407,8 @@ def main(argv=None):
     if args.config_json and not args.report_only:
         ap.error("--config-json is only for --report-only")
     if args.report_only:
+        if args.signal_tf != "1m":
+            ap.error("--report-only takes signal_tf from the frozen config (or --config-json); do not pass --signal-tf")
         if args.smoke or not args.data or not args.out:
             ap.error("--report-only needs --data and --out of an earlier run (not --smoke)")
         return report_only(args, args.out)
@@ -414,6 +423,8 @@ def main(argv=None):
         print("SMOKE RUN: synthetic martingale data (9 fake coins, 14 days). Pipeline check only - NO evidence of any kind.")
     if not args.data:
         ap.error("--data is required (or --smoke)")
+    if args.signal_tf != "1m" and not args.out and not args.smoke:
+        ap.error("--signal-tf 5m is a NEW configuration family: pass a NEW --out (never the default results dir of the 1m run)")
     out = args.out or (os.path.join(tmp, "results") if args.smoke else os.path.join(HERE, "results"))
     os.makedirs(out, exist_ok=True)
     test_path = os.path.join(out, "test_frozen.csv")
@@ -448,7 +459,7 @@ def main(argv=None):
             print(f"  WARNING: {name} coverage below 0.9 for some selected coin (holes are NOT forward-filled)")
 
     # 3. DEV grid
-    grid = build_grid(args.smoke)
+    grid = build_grid(args.smoke, args.signal_tf)
     print(f"DEV grid: {len(grid)} configs x {len(sel)} coins x 2 orderings", flush=True)
     dev_df = scan_dev(grid, dev, args.jobs)
     dev_df = add_multiple_testing(dev_df)
@@ -464,7 +475,9 @@ def main(argv=None):
           f"BH passes: {int(dev_df['bh_pass'].sum())}  (best-of-{m} by construction: DEV numbers are not evidence)")
     cfg = next(c for n_, c in grid if n_ == best["name"])
     frozen_cfg = dataclasses.asdict(cfg)
-    frozen = {"name": best["name"], "config": {**frozen_cfg, "gates": list(frozen_cfg["gates"])}, "n_configs_scanned": m,
+    if cfg.signal_tf == "1m":
+        frozen_cfg.pop("signal_tf")                       # default: the config dict (and its sha256) is byte-identical to earlier runs
+    frozen = {"name": best["name"], "signal_tf": cfg.signal_tf, "config": {**frozen_cfg, "gates": list(frozen_cfg["gates"])}, "n_configs_scanned": m,
               "dev": {k: (None if (isinstance(best[k], float) and best[k] != best[k]) else best[k])
                       for k in ("net_lb", "net_ub", "t_lb", "p_lb", "p_bonferroni", "q_bh", "bonferroni_pass", "bh_pass", "trades_lb", "coins_pos_lb")},
               "coins": sel, "splits": splits.as_dict()}
@@ -493,7 +506,7 @@ def main(argv=None):
     nul = null_runs(cfg, test, args.null_draws)
     nul.to_csv(os.path.join(out, "nulls.csv"), index=False)
     verdict = accept_rule(res[1.0], res[2.0], nul)
-    verdict.update({"synthetic": bool(args.smoke), "config": best["name"], "frozen_sha256": frozen["sha256"],
+    verdict.update({"synthetic": bool(args.smoke), "config": best["name"], "signal_tf": cfg.signal_tf, "frozen_sha256": frozen["sha256"],
                     "test_1x": {k: res[1.0][k] for k in ("trades_lb", "gross_lb", "gross_noslip_lb", "net_lb", "net_ub", "t_lb", "coins_pos_lb")},
                     "test_2x_net_lb": res[2.0]["net_lb"],
                     "null_summary": {k: {"mean_gross_lb": float(g["gross_lb"].mean()), "mean_net_lb": float(g["net_lb"].mean()),
@@ -513,7 +526,7 @@ def main(argv=None):
             scopes = ["dev", "test"] if args.report_scope == "both" else [args.report_scope]
             wins = {"dev": dev, "test": test}
             hdr = {"mode": "after the normal run", "note": "descriptive trade-log report of the frozen config; not a new test, changes no verdict"
-                   + ("; SYNTHETIC smoke data: not evidence" if args.smoke else ""), "config": best["name"], "coins": ",".join(sel),
+                   + ("; SYNTHETIC smoke data: not evidence" if args.smoke else ""), "config": best["name"], "signal_tf": cfg.signal_tf, "coins": ",".join(sel),
                    "splits": json.dumps({k: splits.as_dict()[k] for k in scopes}), "data": args.data}
             write_report(os.path.join(out, "report"), cfg, {k: wins[k] for k in scopes}, hdr, args, nul, res[1.0]["net_lb"])
         except Exception as e:  # the report is additive: its failure must not hide a finished run, but it is printed loudly
