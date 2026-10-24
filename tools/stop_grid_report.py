@@ -352,9 +352,9 @@ def render_markdown(rep: dict) -> str:
             o.append("\n" + _table(f["table"], ["null", "mean_net", "p95_net", "real_net", "threshold", "status"]))
     o.append(f"\n## الملخّص (Scopes)  - {rep['n_trades_total']} trades in the log\n")
     keys = list(rep["scopes"])
-    main = [k for k in keys if k.endswith("|pooled")]
+    main = [k for k in keys if k.endswith("|pooled") and "|all|" not in k]  # "all" (lb+ub mixed) stays in the JSON only
     for k in main:
-        o.append(_scope_md(k, rep["scopes"][k], full=k.startswith("x1|") and not k.startswith("x1|all")))
+        o.append(_scope_md(k, rep["scopes"][k], full=k.startswith("x1|")))
     o.append("\n## لكل عملة (per coin) - net/trade bp, x1 cost\n")
     rows = []
     for k in keys:

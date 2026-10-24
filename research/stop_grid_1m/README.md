@@ -19,6 +19,19 @@ Colab: `from google.colab import drive; drive.mount('/content/drive')` ثم
 `!python research/stop_grid_1m/run_stop_grid_1m.py --data /content/drive/MyDrive/history_1m --jobs 2`
 فحص سريع بلا بيانات: `python research/stop_grid_1m/run_stop_grid_1m.py --smoke` (يكتب في مجلد مؤقت).
 
+## سجل الصفقات والتقرير (وصفي فقط، لا يغيّر أي حكم)
+بعد التشغيل العادي يكتب المشغّل في `<out>/report/` (يُعطَّل بـ `--no-report`): `trades.csv.gz` (صفقة لكل سطر، للإعداد المجمَّد، `ordering`=lb/ub و`cost_mult`=1/2 و`split`)، `report.md` + `report.json` (+ PNG إن وُجد matplotlib)، و`events.csv.gz` فقط مع `--log-events` (سقفه `--log-events-max`, الافتراضي 2,000,000 سطر).
+أعمدة سجل الصفقات: coin, side, level, entry_ts, entry_px, trigger_px, exit_ts, exit_px, exit_reason (sl/trail/tp أو مركّب مثل `tp+trail` في نمط split، وeod)، hold_min, gross_bp, slip_bp, fee_bp, net_bp, mfe_bp, mae_bp, gap_fill, entry_range_bp, entry_quote_volume, exit_range_bp, exit_quote_volume, gate_adx, gate_vol_ratio, gate_cost_ratio, rebuild_id, concurrent, day.
+أحداث `events.csv.gz`: placed / filled / cancelled / rebuilt / gate_on / gate_off / daily_cap_hit مع ts وcoin وordering وprice وqty (وحدات: 1 لكل أمر، 0.5 لكل ساقّ في split) وreason.
+أعلى `report.md` علامات السلامة PASS/WARN (الربح الإجمالي مقابل وسيط مدى الشمعة، الصفقات لكل يوم مقابل السيولة، حصة الدخول في دقائق حجمها < 20k$، حصة فجوات الافتتاح، ومقارنة الأصفار nulls: يجب أن يخسر المارتينجال ≈ التكلفة)، ثم التركّز (أكبر 1/10/50/100 صفقة، أعلى 1%/5%، أفضل 5 أيام، leave-one-coin-out، أكبر عملة) والتوزيع والتقسيمات (سبب الخروج، الساعة، اليوم، مدة الاحتفاظ، حجم تداول دقيقة الدخول، مدى الشمعة) ومنحنى الأسهم.
+
+### إعادة التقرير لإعداد مجمَّد سابقاً بلا إعادة مسح الشبكة (Colab)
+```
+!python research/stop_grid_1m/run_stop_grid_1m.py --data /content/h5 --out /content/drive/MyDrive/stop_grid_1m_trial --report-only --log-events
+```
+`--out` هو مجلد التشغيل السابق (فيه `frozen_config.json` و`splits.json` و`selection.csv`). يعيد محاكاة الإعداد المجمَّد فقط على `--report-scope dev|test|both` (الافتراضي test) ويكتب في `<out>/report/` فقط؛ **لا يلمس** `test_frozen.csv` ولا `verdict.json`، ورأس التقرير يذكر أنه إعادة تشغيل وصفية لإعداد مجمَّد.
+لإعداد صريح لأغراض التقرير فقط (يُوسَم "not frozen, not evidence"): `--report-only --config-json my_config.json` (حقول `GridConfig`، أو `{"config": {...}}` كما في `frozen_config.json`).
+
 ## التقسيم (يطبعه المشغّل ويحفظه في `results/splits.json`)
 | النافذة | الحصة من المدى الزمني المشترك | تُستخدم لـ |
 |---|---|---|

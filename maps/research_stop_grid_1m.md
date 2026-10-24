@@ -7,23 +7,28 @@ Documents:
 - `README.md` — stop_grid_1m — شبكة أوامر الإيقاف (stop-order grid) على شموع الدقيقة — E-grid1m-001
 - `cards/E-grid1m-001.md` — Experiment card — E-grid1m-001: owner's stop-order grid with trailing activation on 1-minute bars
 
-### `research/stop_grid_1m/run_stop_grid_1m.py` (375 lines)
+### `research/stop_grid_1m/run_stop_grid_1m.py` (528 lines)
 - PURPOSE: E-grid1m-001 runner: the owner's stop-order grid on 1-minute bars, tested honestly. Selects 5 coins on the SELECT window (first 40 percent of the common date range) by median 1m range / round-trip cost, scans a SMALL pre-declared parameter…
 - TAGS: stop grid 1m, e-grid1m-001, dev grid, frozen config, test once, sign-flip null, random walk null, benjamini-hochberg, bonferroni, accept rule, coin selection, synthetic smoke
 - PITFALLS: `--smoke` uses SYNTHETIC martingale data: its numbers are a pipeline check, never evidence. TEST is opened once: a second run refuses to overwrite results/test_frozen.csv (use --force-test only for a documented new config). The DEV pick is the best of many configs: judge it by the TEST rule, not by its DEV numbers. Funding ignored; LB = the worse of two fixed intrabar orderings (see tools/stop_gr…
 - DEPENDS: tools
 - API:
-  - `def build_grid(smoke=False)` L64
-  - `def slice_window(arrs, window)` L80
-  - `def load_coins(files_by_symbol, coins, splits)` L86
-  - `def gates_for(key, arrs, cfg)` L98
-  - `def evaluate(cfg, windows, key_prefix, cache_gates=True)` L107
-  - `def cfg_fields(cfg)` L150
-  - `def normal_sf(t)` L156
-  - `def add_multiple_testing(df, alpha=0.05)` L160
-  - `def scan_dev(grid, dev, jobs)` L189
-  - `def null_runs(cfg, test, draws)` L208
-  - `def accept_rule(real_1x, real_2x, null_df)` L221
-  - `def make_smoke_dir(tmp, days=14)` L235
-  - `def jdump(obj, path)` L246
-  - `def main(argv=None)` L251
+  - `def build_grid(smoke=False)` L68
+  - `def slice_window(arrs, window)` L84
+  - `def load_coins(files_by_symbol, coins, splits)` L90
+  - `def gates_for(key, arrs, cfg)` L102
+  - `def evaluate(cfg, windows, key_prefix, cache_gates=True)` L111
+  - `def cfg_fields(cfg)` L154
+  - `def normal_sf(t)` L160
+  - `def add_multiple_testing(df, alpha=0.05)` L164
+  - `def scan_dev(grid, dev, jobs)` L193
+  - `def null_runs(cfg, test, draws)` L212
+  - `def accept_rule(real_1x, real_2x, null_df)` L225
+  - `def trade_log(cfg, windows, split, want_events=False, events_max=2000000, cost_mults=(1.0, 2.0))` L239
+  - `def write_report(rdir, cfg, windows_by_split, header, args, nulls=None, real_net_lb=None)` L285
+  - `def cfg_from_dict(d)` L313
+  - `def report_only(args, out)` L319
+  - `def types_ns(**kw)` L356
+  - `def make_smoke_dir(tmp, days=14)` L362
+  - `def jdump(obj, path)` L373
+  - `def main(argv=None)` L378

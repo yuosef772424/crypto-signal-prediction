@@ -128,5 +128,28 @@ class TestReport(unittest.TestCase):
         json.dumps(self.rep)
 
 
+class TestRunnerReportOnly(unittest.TestCase):
+    def test_smoke_then_report_only_leaves_frozen_files_alone(self):
+        runner = os.path.join(ROOT, "research", "stop_grid_1m", "run_stop_grid_1m.py")
+        with tempfile.TemporaryDirectory() as tmp:
+            out = os.path.join(tmp, "out")
+            r = subprocess.run([sys.executable, runner, "--smoke", "--out", out], capture_output=True, text=True, cwd=ROOT)
+            self.assertEqual(r.returncode, 0, r.stdout[-2000:] + r.stderr[-2000:])
+            data = next(l.split(": ", 1)[1].strip() for l in r.stdout.splitlines() if l.startswith("SMOKE DATA DIR"))
+            self.assertTrue(os.path.exists(os.path.join(out, "report", "report.md")))
+            sha = {f: hashlib.sha256(open(os.path.join(out, f), "rb").read()).hexdigest() for f in ("test_frozen.csv", "verdict.json", "frozen_config.json")}
+            r = subprocess.run([sys.executable, runner, "--data", data, "--out", out, "--report-only", "--report-scope", "both", "--log-events"],
+                               capture_output=True, text=True, cwd=ROOT)
+            self.assertEqual(r.returncode, 0, r.stdout[-2000:] + r.stderr[-2000:])
+            for f, h in sha.items():
+                self.assertEqual(hashlib.sha256(open(os.path.join(out, f), "rb").read()).hexdigest(), h, f)
+            rd = os.path.join(out, "report")
+            for f in ("trades.csv.gz", "events.csv.gz", "report.md", "report.json"):
+                self.assertTrue(os.path.exists(os.path.join(rd, f)), f)
+            tr = pd.read_csv(os.path.join(rd, "trades.csv.gz"))
+            self.assertTrue({"ordering", "coin", "exit_reason", "entry_quote_volume", "net_bp", "rebuild_id", "split"} <= set(tr.columns))
+            self.assertIn("descriptive re-run", open(os.path.join(rd, "report.md"), encoding="utf-8").read())
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -756,13 +756,15 @@
   - `class MinRunHoursJobTests(unittest.TestCase)` L283
     - (2 methods)
 
-### `tests/test_stop_grid_report.py` (132 lines)
+### `tests/test_stop_grid_report.py` (155 lines)
 - PURPOSE: tools/stop_grid_report.py on a tiny hand-computed trade table (concentration, leave-one-coin-out, sanity flags, edge cases) (from docstring)
 - DEPENDS: tools
 - API:
   - `def table(nets_a, nets_b, qv=50000.0, gap=False, ordering='lb')` L23
   - `class TestReport(unittest.TestCase)` L34
     - (9 methods)
+  - `class TestRunnerReportOnly(unittest.TestCase)` L131
+    - (1 methods)
 
 ### `tests/test_stop_grid_sim.py` (555 lines)
 - PURPOSE: tools/stop_grid_sim.py: hand-computed fills/exits/PnL for every exit mode, gap fill at the open, slippage, intrabar orderings (from docstring)

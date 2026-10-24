@@ -15,6 +15,9 @@ PITFALLS: `--smoke` uses SYNTHETIC martingale data: its numbers are a pipeline c
 Usage:
     python research/stop_grid_1m/run_stop_grid_1m.py --data /content/drive/MyDrive/history_1m [--jobs 2] [--out research/stop_grid_1m/results]
     python research/stop_grid_1m/run_stop_grid_1m.py --smoke          # synthetic, 2 weeks, 5+ coins, writes to a temp dir
+    # trade log + event log + report of an ALREADY FROZEN config (no grid re-run; never touches test_frozen.csv / verdict.json):
+    python research/stop_grid_1m/run_stop_grid_1m.py --data <dir> --out <earlier out> --report-only [--report-scope dev|test|both] [--log-events]
+    python research/stop_grid_1m/run_stop_grid_1m.py --data <dir> --out <earlier out> --report-only --config-json cfg.json   # explicit config: not frozen, not evidence
 """
 import argparse
 import dataclasses
@@ -35,6 +38,7 @@ import pandas as pd
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
 import stop_grid_sim as sg  # noqa: E402
+import stop_grid_report as rp  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FIXED = dict(n_levels=10, max_positions=10, daily_loss_cap_bp=1000.0, taker_bp=5.0, maker_bp=2.0, slip_bps=1.0, slip_range_frac=0.0)
@@ -86,9 +90,9 @@ def slice_window(arrs, window):
 def load_coins(files_by_symbol, coins, splits):
     data = {}
     for s in coins:
-        d = sg.read_symbol(files_by_symbol[s], ["open", "high", "low", "close"], splits.start, splits.end)
+        d = sg.read_symbol(files_by_symbol[s], ["open", "high", "low", "close", "quote_volume"], splits.start, splits.end)
         data[s] = {"ts": d["timestamp"].to_numpy(dtype="int64"), "o": d["open"].to_numpy(float), "h": d["high"].to_numpy(float),
-                   "l": d["low"].to_numpy(float), "c": d["close"].to_numpy(float)}
+                   "l": d["low"].to_numpy(float), "c": d["close"].to_numpy(float), "qv": d["quote_volume"].to_numpy(float)}
     return data
 
 
@@ -231,6 +235,129 @@ def accept_rule(real_1x, real_2x, null_df):
     return {"conditions": conds, "sign_flip_null_p95_net_lb": p95, "verdict": "ACCEPT" if all(conds.values()) else "REJECT"}
 
 
+# --------------------------------------------------------------------------- trade log / event log / report (descriptive, additive)
+def trade_log(cfg, windows, split, want_events=False, events_max=2_000_000, cost_mults=(1.0, 2.0)):
+    """Re-simulate ``cfg`` on ``windows`` with recording on. Returns (trades_df, events_df, bar_stats). ordering = lb/ub by the pooled
+    mean net per cost multiple (same rule as evaluate()); ordering_raw = hl/lh. Events are logged at 1x cost only."""
+    trades, events, left = [], [], int(events_max)
+    for cm in cost_mults:
+        c = cfg.scaled_costs(cm)
+        runs = {od: [] for od in sg.ORDERINGS}
+        for coin, a in windows.items():
+            if len(a["ts"]) < 200:
+                continue
+            gate = sg.gate_array(a["ts"], a["o"], a["h"], a["l"], a["c"], c)
+            for od in sg.ORDERINGS:
+                ev = [] if (want_events and cm == 1.0 and left > 0) else None
+                d = sg.simulate(a["ts"], a["o"], a["h"], a["l"], a["c"], c, od, gate, record=True, events=ev, event_max=max(left, 1))
+                runs[od].append((coin, a, d))
+                if ev:
+                    left -= len(ev)
+                    events.append(sg.events_frame(ev, a["ts"], coin, od))
+        mean_net = {}
+        for od in sg.ORDERINGS:
+            allnet = np.concatenate([d["net_bp"].to_numpy() for _, _, d in runs[od]]) if runs[od] else np.array([])
+            mean_net[od] = float(allnet.mean()) if len(allnet) else 0.0
+        lb, ub = sorted(sg.ORDERINGS, key=lambda od: mean_net[od])
+        label = {lb: "lb", ub: "ub"}
+        for od in sg.ORDERINGS:
+            for coin, a, d in runs[od]:
+                t = sg.annotate_trades(d, a, c, coin, label[od])
+                t.insert(2, "ordering_raw", od)
+                t.insert(0, "split", split)
+                t.insert(1, "cost_mult", cm)
+                trades.append(t)
+    tdf = pd.concat(trades, ignore_index=True) if trades else pd.DataFrame()
+    edf = pd.concat(events, ignore_index=True) if events else pd.DataFrame(columns=["ts", "coin", "ordering", *sg.EVENT_COLUMNS])
+    if len(edf):
+        edf["ordering_raw"] = edf["ordering"]
+        edf["ordering"] = edf["ordering_raw"].map({od: "lb" if od == lb else "ub" for od in sg.ORDERINGS})
+        edf.insert(0, "split", split)
+    bar_stats = {}
+    for coin, a in windows.items():
+        if len(a["ts"]) > 1:
+            bar_stats[coin] = {"median_range_bp": float(np.median((a["h"] - a["l"]) / a["c"] * 1e4)),
+                               "median_qv": float(np.median(a["qv"])) if "qv" in a else None,
+                               "n_days": float((a["ts"][-1] - a["ts"][0]) / sg.MS_DAY)}
+    return tdf, edf, bar_stats
+
+
+def write_report(rdir, cfg, windows_by_split, header, args, nulls=None, real_net_lb=None):
+    """Writes <rdir>/trades.csv.gz, events.csv.gz (opt-in), report.md, report.json (+ PNGs if matplotlib). Never touches anything else."""
+    os.makedirs(rdir, exist_ok=True)
+    all_tr, all_ev, reps, md = [], [], {}, []
+    for split, windows in windows_by_split.items():
+        tdf, edf, bar_stats = trade_log(cfg, windows, split, args.log_events, args.log_events_max)
+        all_tr.append(tdf)
+        if len(edf):
+            all_ev.append(edf)
+        hdr = {**header, "split": split}
+        n_ = nulls if split == "test" else None
+        rep = rp.build_report(tdf, nulls=n_, cost_bp=cfg.round_trip_cost_bp, bar_stats=bar_stats, header=hdr,
+                              real_net_lb=real_net_lb if split == "test" else None) if len(tdf) else rp.build_report(tdf, header=hdr)
+        reps[split] = rep
+        md.append(f"# ===== split: {split} =====\n\n" + rp.render_markdown(rep))
+        print(f"report[{split}]: {len(tdf)} trade rows ({len(edf)} events)", flush=True)
+    trades = pd.concat(all_tr, ignore_index=True) if all_tr else pd.DataFrame()
+    trades.to_csv(os.path.join(rdir, "trades.csv.gz"), index=False, compression="gzip")
+    if args.log_events:
+        ev = pd.concat(all_ev, ignore_index=True) if all_ev else pd.DataFrame()
+        ev.to_csv(os.path.join(rdir, "events.csv.gz"), index=False, compression="gzip")
+    with open(os.path.join(rdir, "report.md"), "w", encoding="utf-8") as f:
+        f.write("\n\n".join(md))
+    jdump(reps, os.path.join(rdir, "report.json"))
+    pngs = rp.save_plots(trades, rdir) if len(trades) else []
+    print(f"report written to {rdir} (PNGs: {len(pngs) or 'skipped'})", flush=True)
+
+
+def cfg_from_dict(d):
+    d = dict(d)
+    d["gates"] = tuple(d.get("gates", ()))
+    return sg.GridConfig(**d)
+
+
+def report_only(args, out):
+    """Re-simulate ONLY the frozen (or explicit) config on the chosen split(s); no grid, no selection, no test_frozen/verdict writes."""
+    need = ["splits.json", "selection.csv"] + ([] if args.config_json else ["frozen_config.json"])
+    miss = [f for f in need if not os.path.exists(os.path.join(out, f))]
+    if miss:
+        sys.exit(f"--report-only needs an earlier run in {out}: missing {miss}")
+    sp = json.load(open(os.path.join(out, "splits.json")))
+    frozen = json.load(open(os.path.join(out, "frozen_config.json"))) if os.path.exists(os.path.join(out, "frozen_config.json")) else None
+    if args.config_json:
+        raw = json.load(open(args.config_json))
+        cfg = cfg_from_dict(raw.get("config", raw))
+        name = os.path.basename(args.config_json)
+        label = (f"EXPLICIT config from {args.config_json}: NOT FROZEN, NOT EVIDENCE (report for diagnosis only; no accept rule applies)")
+    else:
+        cfg = cfg_from_dict(frozen["config"])
+        name = frozen["name"]
+        label = (f"descriptive re-run of an already-frozen config ({frozen['name']}, sha256 {frozen['sha256'][:12]}): no grid was re-run, "
+                 f"test_frozen.csv and verdict.json were NOT touched; this report is not a new test and changes no verdict")
+    coins = frozen["coins"] if frozen else pd.read_csv(os.path.join(out, "selection.csv")).query("eligible")["symbol"].head(args.top).tolist()
+    syms = sg.list_symbols(args.data)
+    window = types_ns(start=sp["select"]["start_ms"], end=sp["test"]["end_ms"])
+    full = load_coins(syms, coins, window)
+    scopes = ["dev", "test"] if args.report_scope == "both" else [args.report_scope]
+    wins = {k: {c: slice_window(full[c], (sp[k]["start_ms"], sp[k]["end_ms"])) for c in coins} for k in scopes}
+    header = {"mode": "report-only", "note": label, "config": name, "config_json": json.dumps(dataclasses.asdict(cfg), default=list, sort_keys=True),
+              "coins": ",".join(coins), "splits": json.dumps({k: sp[k] for k in scopes}), "data": args.data}
+    nulls = real = None
+    if not args.config_json and os.path.exists(os.path.join(out, "nulls.csv")):
+        nulls = pd.read_csv(os.path.join(out, "nulls.csv"))
+        tf = os.path.join(out, "test_frozen.csv")
+        if os.path.exists(tf):
+            t = pd.read_csv(tf)
+            real = float(t[(t["scope"] == "pooled") & (t["cost_mult"] == 1.0)]["net_lb"].iloc[0])
+    write_report(os.path.join(out, "report"), cfg, wins, header, args, nulls, real)
+    return 0
+
+
+def types_ns(**kw):
+    import types
+    return types.SimpleNamespace(**kw)
+
+
 # --------------------------------------------------------------------------- smoke data
 def make_smoke_dir(tmp, days=14):
     n = days * 1440
@@ -258,11 +385,24 @@ def main(argv=None):
     ap.add_argument("--null-draws", type=int, default=20)
     ap.add_argument("--min-trades", type=int, default=300, help="DEV: a config needs this many pooled trades to be freezable")
     ap.add_argument("--min-quote-volume", type=float, default=20_000.0)
+    ap.add_argument("--report-only", action="store_true",
+                    help="re-simulate ONLY the frozen config of an earlier run in --out (no grid) and write <out>/report/; never touches test_frozen.csv / verdict.json")
+    ap.add_argument("--report-scope", choices=("dev", "test", "both"), default="test", help="split(s) for the trade log / report (default test)")
+    ap.add_argument("--log-events", action="store_true", help="also write report/events.csv.gz (orders placed/filled/cancelled, rebuilds, gate on/off, daily cap)")
+    ap.add_argument("--log-events-max", type=int, default=2_000_000, help="max event rows (default 2,000,000)")
+    ap.add_argument("--config-json", help="with --report-only: explicit GridConfig JSON for a report only (labelled NOT FROZEN, NOT EVIDENCE)")
+    ap.add_argument("--no-report", action="store_true", help="skip the trade-log report after the normal flow")
     ap.add_argument("--force-test", action="store_true", help="overwrite an existing test_frozen.csv (only for a documented new config)")
     args = ap.parse_args(argv)
 
     t0 = time.time()
     tmp = None
+    if args.config_json and not args.report_only:
+        ap.error("--config-json is only for --report-only")
+    if args.report_only:
+        if args.smoke or not args.data or not args.out:
+            ap.error("--report-only needs --data and --out of an earlier run (not --smoke)")
+        return report_only(args, args.out)
     if args.smoke:
         tmp = tempfile.mkdtemp(prefix="stop_grid_smoke_")
         make_smoke_dir(tmp)
@@ -270,6 +410,7 @@ def main(argv=None):
         args.null_draws = min(args.null_draws, 4)
         args.min_trades = min(args.min_trades, 30)
         args.min_quote_volume = 20_000.0
+        print(f"SMOKE DATA DIR: {tmp}")
         print("SMOKE RUN: synthetic martingale data (9 fake coins, 14 days). Pipeline check only - NO evidence of any kind.")
     if not args.data:
         ap.error("--data is required (or --smoke)")
@@ -367,6 +508,18 @@ def main(argv=None):
         print(f"  null {k:12s}: mean gross {v['mean_gross_lb']:.2f} bp, mean net LB {v['mean_net_lb']:.2f} bp, p95 net LB {v['p95_net_lb']:.2f}")
     print("accept rule:", json.dumps(verdict["conditions"]))
     print(f"VERDICT: {verdict['verdict']}" + ("  (SYNTHETIC smoke data: not evidence)" if args.smoke else ""))
+    if not args.no_report:
+        try:
+            scopes = ["dev", "test"] if args.report_scope == "both" else [args.report_scope]
+            wins = {"dev": dev, "test": test}
+            hdr = {"mode": "after the normal run", "note": "descriptive trade-log report of the frozen config; not a new test, changes no verdict"
+                   + ("; SYNTHETIC smoke data: not evidence" if args.smoke else ""), "config": best["name"], "coins": ",".join(sel),
+                   "splits": json.dumps({k: splits.as_dict()[k] for k in scopes}), "data": args.data}
+            write_report(os.path.join(out, "report"), cfg, {k: wins[k] for k in scopes}, hdr, args, nul, res[1.0]["net_lb"])
+        except Exception as e:  # the report is additive: its failure must not hide a finished run, but it is printed loudly
+            import traceback
+            traceback.print_exc()
+            print(f"WARNING: report failed ({e!r}); the run itself (test_frozen.csv, verdict.json) is complete")
     print(f"results in {out}  ({time.time() - t0:.0f}s)")
     return 0
 
