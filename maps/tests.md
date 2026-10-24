@@ -756,17 +756,17 @@
   - `class MinRunHoursJobTests(unittest.TestCase)` L283
     - (2 methods)
 
-### `tests/test_stop_grid_report.py` (155 lines)
+### `tests/test_stop_grid_report.py` (169 lines)
 - PURPOSE: tools/stop_grid_report.py on a tiny hand-computed trade table (concentration, leave-one-coin-out, sanity flags, edge cases) (from docstring)
 - DEPENDS: tools
 - API:
   - `def table(nets_a, nets_b, qv=50000.0, gap=False, ordering='lb')` L23
   - `class TestReport(unittest.TestCase)` L34
-    - (9 methods)
-  - `class TestRunnerReportOnly(unittest.TestCase)` L131
+    - (10 methods)
+  - `class TestRunnerReportOnly(unittest.TestCase)` L145
     - (1 methods)
 
-### `tests/test_stop_grid_sim.py` (662 lines)
+### `tests/test_stop_grid_sim.py` (702 lines)
 - PURPOSE: tools/stop_grid_sim.py: hand-computed fills/exits/PnL for every exit mode, gap fill at the open, slippage, intrabar orderings (from docstring)
 - DEPENDS: tools
 - API:
@@ -786,13 +786,15 @@
     - (3 methods)
   - `class Nulls(unittest.TestCase)` L310
     - (7 methods)
-  - `class Metrics(unittest.TestCase)` L374
+  - `class NullsOnRealShapedData(unittest.TestCase)` L374
+    - (3 methods)
+  - `class Metrics(unittest.TestCase)` L414
     - (2 methods)
-  - `class Selection(unittest.TestCase)` L410
+  - `class Selection(unittest.TestCase)` L450
     - (6 methods)
-  - `class SignalTf5m(unittest.TestCase)` L494
+  - `class SignalTf5m(unittest.TestCase)` L534
     - (7 methods)
-  - `class TestPinnedMetricsAndRecording(unittest.TestCase)` L601
+  - `class TestPinnedMetricsAndRecording(unittest.TestCase)` L641
     - (3 methods)
 
 ### `tests/test_suspended_targets.py` (99 lines)

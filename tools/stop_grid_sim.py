@@ -654,9 +654,36 @@ def sign_consistency(net_by_coin: Dict[str, float]) -> Tuple[int, int]:
 
 
 # --------------------------------------------------------------------------- null baselines
+def _valid_px(a):
+    return np.isfinite(a) & (a > 0)
+
+
+def _first_valid(c) -> float:
+    ok = _valid_px(c)
+    if not ok.any():
+        raise ValueError("null baselines need at least one finite positive close")
+    return float(c[np.argmax(ok)])
+
+
 def _rel(o, h, l, c):
-    pc = np.r_[c[0], c[:-1]]
-    return [np.log(a / pc) for a in (o, h, l, c)]
+    """Relative log OHLC vs the previous close. Real 1m files can hold NaN / zero / non-positive prices (dead coins, bad bars):
+    one such value used to make log() non-finite and the cumulative sum of the rebuilt walk NaN from there to the end (every
+    draw then traded nothing). Invalid values are treated as a FLAT bar: the previous valid close is carried (reference only),
+    an invalid price becomes 'no move' (o, c -> 0; h, l -> the bar's own o/c extreme). Clean data is untouched (byte-identical)."""
+    okc = _valid_px(c)
+    cc = pd.Series(np.where(okc, c, np.nan)).ffill().bfill().to_numpy()
+    pc = np.r_[cc[0], cc[:-1]]
+    with np.errstate(divide="ignore", invalid="ignore"):
+        ro, rh, rl, rc = [np.where(_valid_px(a), np.log(np.where(_valid_px(a), a, 1.0) / pc), np.nan) for a in (o, h, l, c)]
+    rc = np.where(np.isnan(rc), 0.0, rc)
+    ro = np.where(np.isnan(ro), 0.0, ro)
+    hi, lo = np.maximum(ro, rc), np.minimum(ro, rc)
+    rh = np.where(np.isnan(rh), hi, rh)
+    rl = np.where(np.isnan(rl), lo, rl)
+    bad = ~(_valid_px(o) & _valid_px(h) & _valid_px(l) & okc)
+    rh = np.where(bad, np.maximum(rh, hi), rh)
+    rl = np.where(bad, np.minimum(rl, lo), rl)
+    return [ro, rh, rl, rc]
 
 
 def _rebuild_ohlc(ro, rh, rl, rc, sgn, c0):
@@ -667,7 +694,10 @@ def _rebuild_ohlc(ro, rh, rl, rc, sgn, c0):
     rl_ = np.where(flip, -rh, rl)
     cl = np.log(c0) + np.cumsum(rc_)
     pcl = np.r_[np.log(c0), cl[:-1]]
-    return tuple(np.exp(pcl + r) for r in (ro_, rh_, rl_)) + (np.exp(cl),)
+    out = tuple(np.exp(pcl + r) for r in (ro_, rh_, rl_)) + (np.exp(cl),)
+    if not all(np.isfinite(x).all() and (x > 0).all() for x in out):
+        raise ValueError("null baseline produced a non-finite or non-positive price (overflow of the cumulative walk?)")
+    return out
 
 
 def sign_flip_null(ts, o, h, l, c, seed: int, flip_prob: float = 0.5):
@@ -680,7 +710,7 @@ def sign_flip_null(ts, o, h, l, c, seed: int, flip_prob: float = 0.5):
     sgn = np.where(rng.random(len(ud)) < flip_prob, -1.0, 1.0)[inv]
     ro, rh, rl, rc = _rel(o, h, l, c)
     sgn = sgn.copy()
-    return _rebuild_ohlc(ro, rh, rl, rc, sgn, c[0])
+    return _rebuild_ohlc(ro, rh, rl, rc, sgn, _first_valid(c))
 
 
 def random_walk_null(ts, o, h, l, c, seed: int):
@@ -691,7 +721,7 @@ def random_walk_null(ts, o, h, l, c, seed: int):
     ro, rh, rl, rc = _rel(o, h, l, c)
     perm = rng.permutation(len(c))
     sgn = np.where(rng.random(len(c)) < 0.5, -1.0, 1.0)
-    return _rebuild_ohlc(ro[perm], rh[perm], rl[perm], rc[perm], sgn, c[0])
+    return _rebuild_ohlc(ro[perm], rh[perm], rl[perm], rc[perm], sgn, _first_valid(c))
 
 
 # --------------------------------------------------------------------------- synthetic 1m data (tests / --smoke only)

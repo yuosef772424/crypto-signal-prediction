@@ -249,16 +249,22 @@ def sanity_flags(df: pd.DataFrame, bar_stats: Optional[Dict[str, dict]], nulls: 
     # 5 nulls
     if nulls is not None and len(nulls):
         rows, bad = [], []
+        notrade = []
         for kind, g in nulls.groupby("null"):
             mean, p95 = float(g["net_lb"].mean()), float(g["net_lb"].quantile(0.95))
             thr = T["null_mean_vs_cost"] * cost_bp
+            ntr = float(pd.to_numeric(g["trades_lb"], errors="coerce").fillna(0).sum()) if "trades_lb" in g else float("nan")
+            empty = (not np.isfinite(mean)) or ntr == 0     # NaN mean / zero trades: the comparison below would silently read PASS
+            if empty:
+                notrade.append(str(kind))
             rows.append({"null": str(kind), "mean_net": _f(mean), "p95_net": _f(p95), "real_net": _f(real_net_lb), "threshold": _f(thr),
-                         "status": "WARN" if mean > thr else "PASS"})
+                         "status": "WARN" if (empty or mean > thr) else "PASS"})
             if mean > thr:
                 bad.append(kind)
-        flags.append({"flag": "null_vs_real", "status": "WARN" if bad else "PASS", "table": rows,
+        flags.append({"flag": "null_vs_real", "status": "WARN" if (bad or notrade) else "PASS", "table": rows,
                       "detail": f"a martingale null must lose about the cost ({cost_bp:g}bp); WARN when its mean net > {T['null_mean_vs_cost']} x cost"
-                                + (f"; WARN: {', '.join(bad)}" if bad else "")})
+                                + (f"; WARN: {', '.join(bad)}" if bad else "")
+                                + (f"; WARN: null produced no trades: sanity not verified ({', '.join(notrade)})" if notrade else "")})
     else:
         flags.append({"flag": "null_vs_real", "status": "NA", "detail": "no null draws supplied"})
     return flags

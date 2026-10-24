@@ -552,18 +552,18 @@
   - `def run(cfg, out_dir, deadline)` L48
   - `def main(argv=None)` L92
 
-### `tools/stop_grid_report.py` (409 lines)
+### `tools/stop_grid_report.py` (415 lines)
 - PURPOSE: Descriptive report on a TRADE LOG of the stop-order grid (E-grid1m-001): concentration of profit (top 1/10/50/100 trades, top 1%/5%, best days, leave-one-coin-out, biggest coin), distribution, breakdowns (exit reason, hour, weekday, day, h…
 - TAGS: stop grid report, trade log, concentration, leave one coin out, profit factor, drawdown, sanity flags, null comparison, quote volume bucket, gap fill, e-grid1m-001, diagnostics
 - PITFALLS: Descriptive only: it never tests a hypothesis and never changes a verdict. Reads the trade table only (plus optional per-coin bar stats and null draws passed in); imports nothing from the repo. Shares of total are NaN when the total is 0 and meaningless when the total is negative (read the absolute numbers then). Thresholds of the flags are heuristics (THRESHOLDS), not tuned on data. Trade-level…
 - API:
   - `def analyze(df: pd.DataFrame) -> dict` L103
   - `def sanity_flags(df: pd.DataFrame, bar_stats: Optional[Dict[str, dict]], nulls: Optional[pd.DataFrame], cost_bp: float, real_net_lb: Optional[float]=None) -> list` L203
-  - `def build_report(trades_df: pd.DataFrame, nulls: Optional[pd.DataFrame]=None, cost_bp: float=12.0, bar_stats: Optional[Dict[str, dict]]=None, header: Optional[dict]=None, real_net_lb: Optional[float]=None) -> dict` L267
-  - `def render_markdown(rep: dict) -> str` L342
-  - `def save_plots(trades_df: pd.DataFrame, outdir: str) -> list` L370
+  - `def build_report(trades_df: pd.DataFrame, nulls: Optional[pd.DataFrame]=None, cost_bp: float=12.0, bar_stats: Optional[Dict[str, dict]]=None, header: Optional[dict]=None, real_net_lb: Optional[float]=None) -> dict` L273
+  - `def render_markdown(rep: dict) -> str` L348
+  - `def save_plots(trades_df: pd.DataFrame, outdir: str) -> list` L376
 
-### `tools/stop_grid_sim.py` (886 lines)
+### `tools/stop_grid_sim.py` (916 lines)
 - PURPOSE: Event-driven simulator of the owner's stop-order grid on 1-minute OHLC bars: N buy-stop-market orders above and N sell-stop-market orders below a reference price, every fill with an initial stop-loss and a fixed take-profit (limit), a trai…
 - TAGS: stop grid, buy stop, sell stop, trailing stop activation, take profit, 1m bars, intrabar ordering, lower bound, upper bound, rebuild trigger, breakout, regime gate, adx, atr ratio, cost viability, sign-flip null, random walk null, day-clustered t, coin selection, high volatility coins, slippage, taker fee, maker fee, e-grid1m-001, simulation
 - PITFALLS: Only OHLC is known: the order of the high and the low inside a bar is not, so trust LB only (same convention as tools/bracket_eval.py). LB is the worse of TWO FIXED global orderings, not a per-bar worst case: both can be optimistic (a bar visited O-H-L always lets the up-fills AND the down-fills profit from their own extreme), so the honest comparison is against the null baselines run with the sa…
@@ -586,18 +586,18 @@
   - `def summarize(trades: pd.DataFrame, n_bars: int, n_days: float) -> dict` L615
   - `def run_both(ts, o, h, l, c, cfg: GridConfig, gate: Optional[np.ndarray]=None) -> dict` L634
   - `def sign_consistency(net_by_coin: Dict[str, float]) -> Tuple[int, int]` L650
-  - `def sign_flip_null(ts, o, h, l, c, seed: int, flip_prob: float=0.5)` L673
-  - `def random_walk_null(ts, o, h, l, c, seed: int)` L686
-  - `def synth_ohlc(n: int, seed: int, daily_vol: float=0.04, vol_persist: float=0.98, vol_of_vol: float=0.15, p0: float=100.0, start_ms: int=...)` L698
-  - `def synth_frame(n: int, seed: int, daily_vol: float=0.04, qv_per_min: float=50000.0, start_ms: Optional[int]=None) -> pd.DataFrame` L730
-  - `def list_symbols(data_dir: str) -> Dict[str, List[str]]` L747
-  - `def read_symbol(files: List[str], columns: Optional[List[str]]=None, start_ms: Optional[int]=None, end_ms: Optional[int]=None) -> pd.DataFrame` L770
-  - `def date_range(files: List[str]) -> Tuple[int, int, int]` L791
-  - `class Splits` L800
-    - `.as_dict(self) -> dict` L808
-  - `def make_splits(start_ms: int, end_ms: int, fracs=(0.4, 0.3, 0.3)) -> Splits` L814
-  - `def common_range(ranges: Dict[str, Tuple[int, int, int]], quantile: float=0.8) -> Tuple[int, int]` L823
-  - `def select_coins(data_dir: str, top: int=5, taker_bp: float=5.0, slip_bps: float=1.0, min_quote_volume: float=20000.0, min_coverage: float=0.9, select_frac: float=0.4, range_quantile: float=0.8, edge_tolerance: floa…` L839
+  - `def sign_flip_null(ts, o, h, l, c, seed: int, flip_prob: float=0.5)` L703
+  - `def random_walk_null(ts, o, h, l, c, seed: int)` L716
+  - `def synth_ohlc(n: int, seed: int, daily_vol: float=0.04, vol_persist: float=0.98, vol_of_vol: float=0.15, p0: float=100.0, start_ms: int=...)` L728
+  - `def synth_frame(n: int, seed: int, daily_vol: float=0.04, qv_per_min: float=50000.0, start_ms: Optional[int]=None) -> pd.DataFrame` L760
+  - `def list_symbols(data_dir: str) -> Dict[str, List[str]]` L777
+  - `def read_symbol(files: List[str], columns: Optional[List[str]]=None, start_ms: Optional[int]=None, end_ms: Optional[int]=None) -> pd.DataFrame` L800
+  - `def date_range(files: List[str]) -> Tuple[int, int, int]` L821
+  - `class Splits` L830
+    - `.as_dict(self) -> dict` L838
+  - `def make_splits(start_ms: int, end_ms: int, fracs=(0.4, 0.3, 0.3)) -> Splits` L844
+  - `def common_range(ranges: Dict[str, Tuple[int, int, int]], quantile: float=0.8) -> Tuple[int, int]` L853
+  - `def select_coins(data_dir: str, top: int=5, taker_bp: float=5.0, slip_bps: float=1.0, min_quote_volume: float=20000.0, min_coverage: float=0.9, select_frac: float=0.4, range_quantile: float=0.8, edge_tolerance: floa…` L869
 
 ### `tools/touched_ledger.py` (191 lines)
 - PURPOSE: Generates the touched-data ledger docs/research/plan/lock/touched.csv (columns symbol_or_rule, kind, timeframe, period, source, note) from master as of 2026-10-13: every universe in docs/research/failure_registry.csv (F-0001..F-0079), the…

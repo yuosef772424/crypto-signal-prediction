@@ -110,6 +110,20 @@ class TestReport(unittest.TestCase):
                              bar_stats={"A": {"median_range_bp": 50.0, "median_qv": 1e6, "n_days": 5}, "B": {"median_range_bp": 50.0, "median_qv": 1e6, "n_days": 5}})
         self.assertTrue(all(f["status"] == "PASS" for f in ok["flags"]), ok["flags"])
 
+    def test_null_with_no_trades_or_nan_is_warn_not_pass(self):
+        nan = float("nan")
+        nul = pd.DataFrame({"null": ["random_walk"] * 3 + ["sign_flip"] * 3, "trades_lb": [0, 0, 0, 100, 120, 90],
+                            "net_lb": [nan, nan, nan, -13.0, -12.0, -14.0]})
+        rep = rp.build_report(table([1] * 5, [1] * 5), nulls=nul, cost_bp=12.0)
+        f = next(x for x in rep["flags"] if x["flag"] == "null_vs_real")
+        self.assertEqual(f["status"], "WARN")
+        self.assertEqual({r["null"]: r["status"] for r in f["table"]}, {"random_walk": "WARN", "sign_flip": "PASS"})
+        self.assertIn("null produced no trades: sanity not verified", f["detail"])
+        # zero trades with a numeric net (e.g. 0.0) is also not a pass
+        z = nul.assign(net_lb=[0.0, 0.0, 0.0, -13.0, -12.0, -14.0])
+        f2 = next(x for x in rp.build_report(table([1] * 5, [1] * 5), nulls=z, cost_bp=12.0)["flags"] if x["flag"] == "null_vs_real")
+        self.assertEqual(f2["status"], "WARN")
+
     def test_empty_and_single_trade(self):
         empty = table([], [])
         rep = rp.build_report(empty)

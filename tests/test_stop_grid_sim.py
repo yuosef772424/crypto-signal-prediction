@@ -371,6 +371,46 @@ class Nulls(unittest.TestCase):
         self.assertAlmostEqual(float(np.mean(np.diff(np.log(rc)) > 0)), 0.5, delta=0.02)
 
 
+class NullsOnRealShapedData(unittest.TestCase):
+    """Regression: on real 1m files the random-walk null traded nothing in every draw (NaN metrics). Real files hold NaN / zero
+    prices, zero-range stale bars and heavy tails; one non-finite price used to poison the whole rebuilt walk. SYNTHETIC data."""
+
+    @staticmethod
+    def real_shaped(n=20000, seed=4):
+        rng = np.random.default_rng(seed)
+        ts, o, h, l, c = sg.synth_ohlc(n, seed, daily_vol=0.05)
+        tail = rng.standard_t(2.5, n) * 0.0004                      # heavy-tailed extra bar moves
+        c = c * np.exp(np.cumsum(tail)); o = np.r_[c[0], c[:-1]]
+        h = np.maximum(o, c) * (1 + np.abs(rng.standard_t(3, n)) * 0.0006)
+        l = np.minimum(o, c) * (1 - np.abs(rng.standard_t(3, n)) * 0.0006)
+        stale = rng.random(n) < 0.2                                  # zero-range bars (no trade in the minute)
+        o[stale] = h[stale] = l[stale] = np.r_[c[0], c[:-1]][stale]
+        c[stale] = o[stale]
+        c[500] = np.nan                                              # bad rows seen in raw exchange files
+        o[900] = 0.0
+        l[1300] = 0.0
+        return ts, o, h, l, c
+
+    def test_random_walk_and_sign_flip_nulls_trade_and_stay_finite(self):
+        ts, o, h, l, c = self.real_shaped()
+        conf = sg.GridConfig(gates=("cost",), cost_k=0.5, spacing=0.0015, rebuild="breakout", taker_bp=2.0, slip_bps=0.0)
+        for fn in (sg.random_walk_null, sg.sign_flip_null):
+            for seed in (1, 2):
+                a = fn(ts, o, h, l, c, seed)
+                self.assertTrue(all(np.isfinite(x).all() and (x > 0).all() for x in a), fn.__name__)
+                self.assertTrue(np.all(a[1] >= np.maximum(a[0], a[3]) - 1e-12) and np.all(a[2] <= np.minimum(a[0], a[3]) + 1e-12))
+                g = sg.gate_array(ts, *a, conf)
+                self.assertGreater(g.mean(), 0.0, fn.__name__)
+                d = sg.simulate(ts, *a, conf, "hl", g)
+                self.assertGreater(len(d), 50, f"{fn.__name__} seed {seed} traded nothing")
+                self.assertTrue(np.isfinite(d["net_bp"]).all())
+
+    def test_all_invalid_closes_raise(self):
+        ts, o, h, l, c = sg.synth_ohlc(50, 1)
+        with self.assertRaises(ValueError):
+            sg.random_walk_null(ts, o, h, l, np.full(50, np.nan), 1)
+
+
 class Metrics(unittest.TestCase):
     def test_day_clustered_t(self):
         x = np.array([1.0, -2.0, 3.0, 0.5, -1.0, 2.0])
