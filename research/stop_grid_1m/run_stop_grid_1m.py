@@ -7,7 +7,9 @@ PURPOSE:  E-grid1m-001 runner: the owner's stop-order grid on 1-minute bars, tes
           cards/E-grid1m-001.md (results/verdict.json).
 TAGS:     stop grid 1m, E-grid1m-001, dev grid, frozen config, test once, sign-flip null, random walk null, Benjamini-Hochberg,
           Bonferroni, accept rule, coin selection, synthetic smoke
-PITFALLS: `--smoke` uses SYNTHETIC martingale data: its numbers are a pipeline check, never evidence. TEST is opened once: a
+PITFALLS: SPEED knobs never change a number: signal caches (always on, bit-identical), `--null-draws N`
+          (default 20 per kind; fewer = faster but a noisier null p95 for the accept rule: use the default for the verdict run) and
+          `--jobs` (DEV scan and null draws run in forked workers, results in the same order). `--smoke` uses SYNTHETIC martingale data: its numbers are a pipeline check, never evidence. TEST is opened once: a
           second run refuses to overwrite results/test_frozen.csv (use --force-test only for a documented new config). The
           DEV pick is the best of many configs: judge it by the TEST rule, not by its DEV numbers. Funding ignored; LB = the
           worse of two fixed intrabar orderings (see tools/stop_grid_sim.py PITFALLS). Run from the repo root.
@@ -16,6 +18,7 @@ Usage:
     python research/stop_grid_1m/run_stop_grid_1m.py --data /content/drive/MyDrive/history_1m [--jobs 2] [--out research/stop_grid_1m/results]
     python research/stop_grid_1m/run_stop_grid_1m.py --data <dir> --signal-tf 5m --out <NEW dir>   # gates on 5m bars, execution 1m (new config family)
     python research/stop_grid_1m/run_stop_grid_1m.py --smoke          # synthetic, 2 weeks, 5+ coins, writes to a temp dir
+    python research/stop_grid_1m/run_stop_grid_1m.py --data <dir> --jobs 2 --null-draws 5   # exploration: fewer null draws (the verdict run keeps the default 20)
     # trade log + event log + report of an ALREADY FROZEN config (no grid re-run; never touches test_frozen.csv / verdict.json):
     python research/stop_grid_1m/run_stop_grid_1m.py --data <dir> --out <earlier out> --report-only [--report-scope dev|test|both] [--log-events]
     python research/stop_grid_1m/run_stop_grid_1m.py --data <dir> --out <earlier out> --report-only --config-json cfg.json   # explicit config: not frozen, not evidence
@@ -101,27 +104,49 @@ def load_coins(files_by_symbol, coins, splits):
     return data
 
 
-_GATE_CACHE = {}
+_CACHES = {}
+
+
+def coin_cache(key, arrs):
+    """The SignalCache of one coin's window (gate series, 5m resample, null relative bars computed once and shared by every config,
+    both orderings, the 1x/2x cost runs and the trade-log re-simulation). ``key`` only names the slot: a slot whose bars differ from
+    ``arrs`` is rebuilt, so a stale name can never serve another window's series."""
+    cc = _CACHES.get(key)
+    if cc is None or not cc.matches(arrs["ts"], arrs["o"], arrs["h"], arrs["l"], arrs["c"]):
+        cc = sg.SignalCache(arrs["ts"], arrs["o"], arrs["h"], arrs["l"], arrs["c"])
+        _CACHES[key] = cc
+    return cc
 
 
 def gates_for(key, arrs, cfg):
-    gk = (key, cfg.gates, cfg.adx_thr, cfg.adx_tf, cfg.signal_tf, cfg.adx_n, cfg.atr_fast, cfg.atr_slow, cfg.vol_ratio, cfg.cost_k,
-          cfg.cost_window, cfg.round_trip_cost_bp)
-    if gk not in _GATE_CACHE:
-        _GATE_CACHE[gk] = sg.gate_array(arrs["ts"], arrs["o"], arrs["h"], arrs["l"], arrs["c"], cfg)
-    return _GATE_CACHE[gk]
+    return sg.gate_array(arrs["ts"], arrs["o"], arrs["h"], arrs["l"], arrs["c"], cfg, cache=coin_cache(key, arrs))
+
+
+def prewarm(windows, key_prefix, grid=None, nulls=False):
+    """Fill the caches in the parent process BEFORE forking workers (they inherit the entries): every gate series of the grid,
+    and optionally the null relative bars. Pure speed: nothing here changes a result."""
+    for coin, a in windows.items():
+        if len(a["ts"]) < 200:
+            continue
+        cc = coin_cache((key_prefix, coin), a)
+        for _, cfg in (grid or []):
+            sg.gate_array(a["ts"], a["o"], a["h"], a["l"], a["c"], cfg, cache=cc)
+        if nulls:
+            sg._null_base(a["o"], a["h"], a["l"], a["c"], cc)
 
 
 # --------------------------------------------------------------------------- evaluation of one config on one window set
 def evaluate(cfg, windows, key_prefix, cache_gates=True):
-    """windows: {coin: arrays}. Per coin both orderings; pooled by ordering; LB = the ordering with the lower pooled mean net."""
+    """windows: {coin: arrays}. Per coin both orderings; pooled by ordering; LB = the ordering with the lower pooled mean net.
+    ``cache_gates``: reuse the per-coin SignalCache named by ``key_prefix`` (off for the nulls: their prices differ per draw)."""
     per = {od: [] for od in sg.ORDERINGS}
     coin_stats = {od: {} for od in sg.ORDERINGS}
     tim = {od: [] for od in sg.ORDERINGS}
     for coin, a in windows.items():
         if len(a["ts"]) < 200:
             continue
-        gate = gates_for((key_prefix, coin), a, cfg) if cache_gates else sg.gate_array(a["ts"], a["o"], a["h"], a["l"], a["c"], cfg)
+        cc = coin_cache((key_prefix, coin), a) if cache_gates else None
+        gate = sg.gate_array(a["ts"], a["o"], a["h"], a["l"], a["c"], cfg, cache=cc)
         n_days = (a["ts"][-1] - a["ts"][0]) / sg.MS_DAY
         for od in sg.ORDERINGS:
             d = sg.simulate(a["ts"], a["o"], a["h"], a["l"], a["c"], cfg, od, gate)
@@ -198,6 +223,7 @@ def _dev_task(i):
 def scan_dev(grid, dev, jobs):
     _DEV["grid"], _DEV["windows"] = grid, dev
     t0 = time.time()
+    prewarm(dev, "dev", grid)                              # gate series once in the parent: forked workers inherit them
     rows = []
     if jobs > 1 and "fork" in mp.get_all_start_methods():
         with ProcessPoolExecutor(max_workers=jobs, mp_context=mp.get_context("fork")) as ex:
@@ -214,16 +240,33 @@ def scan_dev(grid, dev, jobs):
 
 
 # --------------------------------------------------------------------------- null runs
-def null_runs(cfg, test, draws):
-    rows = []
-    for kind, fn in (("sign_flip", sg.sign_flip_null), ("random_walk", sg.random_walk_null)):
-        for k in range(draws):
-            w = {}
-            for j, (coin, a) in enumerate(test.items()):
-                o, h, l, c = fn(a["ts"], a["o"], a["h"], a["l"], a["c"], 1000 + 100 * k + j)
-                w[coin] = {"ts": a["ts"], "o": o, "h": h, "l": l, "c": c}
-            r, _ = evaluate(cfg, w, None, cache_gates=False)
-            rows.append({"null": kind, "draw": k, **{x: r[x] for x in ("trades_lb", "gross_lb", "gross_noslip_lb", "net_lb", "net_ub", "t_lb")}})
+_NULL = {}
+NULL_KINDS = (("sign_flip", sg.sign_flip_null), ("random_walk", sg.random_walk_null))
+
+
+def _null_task(task):
+    """One null draw (all coins) -> one result row. Seeds depend on (draw, coin) only, so the row is the same in any order/process."""
+    kind, k = task
+    fn = dict(NULL_KINDS)[kind]
+    w = {}
+    for j, (coin, a) in enumerate(_NULL["test"].items()):
+        o, h, l, c = fn(a["ts"], a["o"], a["h"], a["l"], a["c"], 1000 + 100 * k + j, cache=coin_cache(("test", coin), a))
+        w[coin] = {"ts": a["ts"], "o": o, "h": h, "l": l, "c": c}
+    r, _ = evaluate(_NULL["cfg"], w, None, cache_gates=False)
+    return {"null": kind, "draw": k, **{x: r[x] for x in ("trades_lb", "gross_lb", "gross_noslip_lb", "net_lb", "net_ub", "t_lb")}}
+
+
+def null_runs(cfg, test, draws, jobs=1):
+    """``draws`` sign-flip + ``draws`` random-walk nulls on the TEST window. Draw k uses the same seeds whatever ``draws`` is (a smaller
+    ``--null-draws`` is a prefix of the default one). ``jobs`` > 1: draws run in forked workers (rows come back in the serial order)."""
+    _NULL["cfg"], _NULL["test"] = cfg, test
+    prewarm(test, "test", nulls=True)                      # relative bars of the real coins, once, before any fork
+    tasks = [(kind, k) for kind, _ in NULL_KINDS for k in range(draws)]
+    if jobs > 1 and "fork" in mp.get_all_start_methods():
+        with ProcessPoolExecutor(max_workers=jobs, mp_context=mp.get_context("fork")) as ex:
+            rows = list(ex.map(_null_task, tasks, chunksize=1))
+    else:
+        rows = [_null_task(t) for t in tasks]
     return pd.DataFrame(rows)
 
 
@@ -245,13 +288,14 @@ def trade_log(cfg, windows, split, want_events=False, events_max=2_000_000, cost
     """Re-simulate ``cfg`` on ``windows`` with recording on. Returns (trades_df, events_df, bar_stats). ordering = lb/ub by the pooled
     mean net per cost multiple (same rule as evaluate()); ordering_raw = hl/lh. Events are logged at 1x cost only."""
     trades, events, left = [], [], int(events_max)
+    caches = {coin: sg.SignalCache(a["ts"], a["o"], a["h"], a["l"], a["c"]) for coin, a in windows.items() if len(a["ts"]) >= 200}
     for cm in cost_mults:
         c = cfg.scaled_costs(cm)
         runs = {od: [] for od in sg.ORDERINGS}
         for coin, a in windows.items():
             if len(a["ts"]) < 200:
                 continue
-            gate = sg.gate_array(a["ts"], a["o"], a["h"], a["l"], a["c"], c)
+            gate = sg.gate_array(a["ts"], a["o"], a["h"], a["l"], a["c"], c, cache=caches[coin])
             for od in sg.ORDERINGS:
                 ev = [] if (want_events and cm == 1.0 and left > 0) else None
                 d = sg.simulate(a["ts"], a["o"], a["h"], a["l"], a["c"], c, od, gate, record=True, events=ev, event_max=max(left, 1))
@@ -267,7 +311,7 @@ def trade_log(cfg, windows, split, want_events=False, events_max=2_000_000, cost
         label = {lb: "lb", ub: "ub"}
         for od in sg.ORDERINGS:
             for coin, a, d in runs[od]:
-                t = sg.annotate_trades(d, a, c, coin, label[od])
+                t = sg.annotate_trades(d, a, c, coin, label[od], cache=caches[coin])
                 t.insert(2, "ordering_raw", od)
                 t.insert(0, "split", split)
                 t.insert(1, "cost_mult", cm)
@@ -388,8 +432,8 @@ def main(argv=None):
     ap.add_argument("--signal-tf", choices=("1m", "5m"), default="1m",
                     help="timeframe of ALL gate indicators (execution stays 1m). 5m = a NEW configuration family: use a NEW --out")
     ap.add_argument("--top", type=int, default=5)
-    ap.add_argument("--jobs", type=int, default=1)
-    ap.add_argument("--null-draws", type=int, default=20)
+    ap.add_argument("--jobs", type=int, default=1, help="forked workers for the DEV scan and the null draws (results identical for any value)")
+    ap.add_argument("--null-draws", type=int, default=20, help="draws per null kind (default 20 = 40 null runs); fewer is a prefix of the same draws but a noisier p95 for the accept rule")
     ap.add_argument("--min-trades", type=int, default=300, help="DEV: a config needs this many pooled trades to be freezable")
     ap.add_argument("--min-quote-volume", type=float, default=20_000.0)
     ap.add_argument("--report-only", action="store_true",
@@ -489,21 +533,21 @@ def main(argv=None):
     rows, trades_1x = [], None
     res = {}
     for mult in (1.0, 2.0):
-        r, tr = evaluate(cfg.scaled_costs(mult), test, "test%g" % mult)
+        r, tr = evaluate(cfg.scaled_costs(mult), test, "test")
         res[mult] = r
         rows.append({"scope": "pooled", "cost_mult": mult, "config": best["name"], **r})
         if mult == 1.0:
             trades_1x = tr
     # per-coin rows (1x), same global LB ordering
     for coin in sel:
-        r, _ = evaluate(cfg, {coin: test[coin]}, "testcoin")
+        r, _ = evaluate(cfg, {coin: test[coin]}, "test")
         rows.append({"scope": coin, "cost_mult": 1.0, "config": best["name"], **r})
     test_df = pd.DataFrame(rows)
     test_df.to_csv(test_path, index=False)
     if trades_1x is not None and len(trades_1x):
         trades_1x.to_csv(os.path.join(out, "test_trades_lb.csv.gz"), index=False, compression="gzip")
     print(f"nulls: {args.null_draws} sign-flip + {args.null_draws} random-walk draws x {len(sel)} coins", flush=True)
-    nul = null_runs(cfg, test, args.null_draws)
+    nul = null_runs(cfg, test, args.null_draws, args.jobs)
     nul.to_csv(os.path.join(out, "nulls.csv"), index=False)
     verdict = accept_rule(res[1.0], res[2.0], nul)
     verdict.update({"synthetic": bool(args.smoke), "config": best["name"], "signal_tf": cfg.signal_tf, "frozen_sha256": frozen["sha256"],

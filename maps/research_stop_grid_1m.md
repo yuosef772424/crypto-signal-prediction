@@ -7,28 +7,30 @@ Documents:
 - `README.md` — stop_grid_1m — شبكة أوامر الإيقاف (stop-order grid) على شموع الدقيقة — E-grid1m-001
 - `cards/E-grid1m-001.md` — Experiment card — E-grid1m-001: owner's stop-order grid with trailing activation on 1-minute bars
 
-### `research/stop_grid_1m/run_stop_grid_1m.py` (541 lines)
+### `research/stop_grid_1m/run_stop_grid_1m.py` (585 lines)
 - PURPOSE: E-grid1m-001 runner: the owner's stop-order grid on 1-minute bars, tested honestly. Selects 5 coins on the SELECT window (first 40 percent of the common date range) by median 1m range / round-trip cost, scans a SMALL pre-declared parameter…
 - TAGS: stop grid 1m, e-grid1m-001, dev grid, frozen config, test once, sign-flip null, random walk null, benjamini-hochberg, bonferroni, accept rule, coin selection, synthetic smoke
-- PITFALLS: `--smoke` uses SYNTHETIC martingale data: its numbers are a pipeline check, never evidence. TEST is opened once: a second run refuses to overwrite results/test_frozen.csv (use --force-test only for a documented new config). The DEV pick is the best of many configs: judge it by the TEST rule, not by its DEV numbers. Funding ignored; LB = the worse of two fixed intrabar orderings (see tools/stop_gr…
+- PITFALLS: SPEED knobs never change a number: signal caches (always on, bit-identical), `--null-draws N` (default 20 per kind; fewer = faster but a noisier null p95 for the accept rule: use the default for the verdict run) and `--jobs` (DEV scan and null draws run in forked workers, results in the same order). `--smoke` uses SYNTHETIC martingale data: its numbers are a pipeline check, never evidence. TEST i…
 - DEPENDS: tools
 - API:
-  - `def build_grid(smoke=False, signal_tf='1m')` L69
-  - `def slice_window(arrs, window)` L89
-  - `def load_coins(files_by_symbol, coins, splits)` L95
-  - `def gates_for(key, arrs, cfg)` L107
-  - `def evaluate(cfg, windows, key_prefix, cache_gates=True)` L116
-  - `def cfg_fields(cfg)` L159
-  - `def normal_sf(t)` L165
-  - `def add_multiple_testing(df, alpha=0.05)` L169
-  - `def scan_dev(grid, dev, jobs)` L198
-  - `def null_runs(cfg, test, draws)` L217
-  - `def accept_rule(real_1x, real_2x, null_df)` L230
-  - `def trade_log(cfg, windows, split, want_events=False, events_max=2000000, cost_mults=(1.0, 2.0))` L244
-  - `def write_report(rdir, cfg, windows_by_split, header, args, nulls=None, real_net_lb=None)` L290
-  - `def cfg_from_dict(d)` L318
-  - `def report_only(args, out)` L324
-  - `def types_ns(**kw)` L361
-  - `def make_smoke_dir(tmp, days=14)` L367
-  - `def jdump(obj, path)` L378
-  - `def main(argv=None)` L383
+  - `def build_grid(smoke=False, signal_tf='1m')` L72
+  - `def slice_window(arrs, window)` L92
+  - `def load_coins(files_by_symbol, coins, splits)` L98
+  - `def coin_cache(key, arrs)` L110
+  - `def gates_for(key, arrs, cfg)` L121
+  - `def prewarm(windows, key_prefix, grid=None, nulls=False)` L125
+  - `def evaluate(cfg, windows, key_prefix, cache_gates=True)` L139
+  - `def cfg_fields(cfg)` L184
+  - `def normal_sf(t)` L190
+  - `def add_multiple_testing(df, alpha=0.05)` L194
+  - `def scan_dev(grid, dev, jobs)` L223
+  - `def null_runs(cfg, test, draws, jobs=1)` L259
+  - `def accept_rule(real_1x, real_2x, null_df)` L273
+  - `def trade_log(cfg, windows, split, want_events=False, events_max=2000000, cost_mults=(1.0, 2.0))` L287
+  - `def write_report(rdir, cfg, windows_by_split, header, args, nulls=None, real_net_lb=None)` L334
+  - `def cfg_from_dict(d)` L362
+  - `def report_only(args, out)` L368
+  - `def types_ns(**kw)` L405
+  - `def make_smoke_dir(tmp, days=14)` L411
+  - `def jdump(obj, path)` L422
+  - `def main(argv=None)` L427

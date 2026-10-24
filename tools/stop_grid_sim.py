@@ -157,13 +157,14 @@ def resample_5m(ts, h, l, c):
     return g["h"].max().to_numpy(), g["l"].min().to_numpy(), g["c"].last().to_numpy(), inv
 
 
-def adx_signal(ts, h, l, c, n: int = 14, tf: str = "1m") -> np.ndarray:
-    """ADX known at the START of each 1m bar. '1m': ADX of bar i-1. '5m': ADX of the last COMPLETED 5m bar before bar i's bucket."""
+def adx_signal(ts, h, l, c, n: int = 14, tf: str = "1m", rs5=None) -> np.ndarray:
+    """ADX known at the START of each 1m bar. '1m': ADX of bar i-1. '5m': ADX of the last COMPLETED 5m bar before bar i's bucket.
+    ``rs5``: the precomputed ``resample_5m(ts, h, l, c)`` result (same bars), only to avoid recomputing it."""
     h, l, c = (np.asarray(a, dtype="float64") for a in (h, l, c))
     if tf == "1m":
         a = _adx_values(h, l, c, n)
         return np.r_[np.nan, a[:-1]]
-    h5, l5, c5, inv = resample_5m(ts, h, l, c)
+    h5, l5, c5, inv = resample_5m(ts, h, l, c) if rs5 is None else rs5
     a5 = _adx_values(h5, l5, c5, n)
     prev = np.r_[np.nan, a5[:-1]]                       # the previous bucket is complete when this bucket's bars trade
     return prev[inv]
@@ -190,41 +191,118 @@ def median_range_bp_signal(h, l, c, window: int = 60) -> np.ndarray:
     return np.r_[np.nan, m[:-1]]
 
 
-def signal_values(ts, h, l, c, cfg: GridConfig, which=("adx", "vol", "cost")) -> dict:
+class SignalCache:
+    """Per-coin memo of everything that depends only on the coin's bars and a few parameters, never on the rest of the grid
+    config: the 5m resample, each gate indicator series (key = indicator + exactly the parameters that influence it), the
+    final gate array (key = the used indicators + their thresholds) and the null-baseline relative bars. Bit-identical to
+    recomputing: the cached values ARE the computed ones (frozen read-only arrays). It holds the bars it was built from and
+    refuses (ValueError) any call with different bars, so a cache can never serve another coin's series. ``cache=None`` =
+    no caching anywhere (the reference behaviour). Not shared across processes (a forked worker inherits the parent's entries)."""
+
+    def __init__(self, ts, o, h, l, c):
+        self.ts = np.asarray(ts, dtype="int64")
+        self.o, self.h, self.l, self.c = (np.asarray(a, dtype="float64") for a in (o, h, l, c))
+        self._store: dict = {}
+        self.hits = 0
+        self.misses = 0
+
+    def matches(self, ts, o, h, l, c) -> bool:
+        """True when the given bars are the cache's bars (identity first, then exact equality; ``o`` may be None = not checked)."""
+        for mine, other, dt in ((self.ts, ts, "int64"), (self.o, o, "float64"), (self.h, h, "float64"), (self.l, l, "float64"),
+                                (self.c, c, "float64")):
+            if other is None:
+                continue
+            other = np.asarray(other, dtype=dt)
+            if other is not mine and (other.shape != mine.shape or not np.array_equal(other, mine, equal_nan=True)):
+                return False
+        return True
+
+    def require(self, ts, o, h, l, c):
+        if not self.matches(ts, o, h, l, c):
+            raise ValueError("SignalCache was built from different bars than the ones passed (one cache per coin and window)")
+
+    def memo(self, key, fn):
+        if key in self._store:
+            self.hits += 1
+            return self._store[key]
+        self.misses += 1
+        v = fn()
+        for a in (v if isinstance(v, (tuple, list)) else (v,)):
+            if isinstance(a, np.ndarray):
+                a.flags.writeable = False
+        self._store[key] = v
+        return v
+
+    def clear(self):
+        self._store.clear()
+        self.hits = self.misses = 0
+
+    def resample5(self):
+        return self.memo(("rs5",), lambda: resample_5m(self.ts, self.h, self.l, self.c))
+
+
+def signal_values(ts, h, l, c, cfg: GridConfig, which=("adx", "vol", "cost"), cache: Optional[SignalCache] = None) -> dict:
     """Per-1m-bar gate indicator values known at the bar's open: 'adx', 'vol' (fast/slow ATR ratio), 'cost' (median range in bp).
     ``cfg.signal_tf='5m'``: vol and cost are computed on 5m bars (periods counted in 5m bars; cost_window // 5 bars, min 3) and a 1m bar
-    sees the last COMPLETED 5m bar only (piecewise constant over each 5-minute block). adx uses ``cfg.adx_tf``."""
+    sees the last COMPLETED 5m bar only (piecewise constant over each 5-minute block). adx uses ``cfg.adx_tf``.
+    ``cache``: optional SignalCache of the SAME bars (bit-identical results, series computed once per parameter tuple)."""
+    if cache is not None:
+        cache.require(ts, None, h, l, c)
+    memo = (lambda key, fn: fn()) if cache is None else cache.memo
+    rs5 = (lambda: resample_5m(ts, h, l, c)) if cache is None else cache.resample5
     out = {}
     if "adx" in which:
-        out["adx"] = adx_signal(ts, h, l, c, cfg.adx_n, cfg.adx_tf)
+        out["adx"] = memo(("adx", cfg.adx_n, cfg.adx_tf),
+                          lambda: adx_signal(ts, h, l, c, cfg.adx_n, cfg.adx_tf, rs5=rs5() if cfg.adx_tf == "5m" else None))
     if cfg.signal_tf == "1m":
         if "vol" in which:
-            out["vol"] = atr_ratio_signal(h, l, c, cfg.atr_fast, cfg.atr_slow)
+            out["vol"] = memo(("vol", "1m", cfg.atr_fast, cfg.atr_slow), lambda: atr_ratio_signal(h, l, c, cfg.atr_fast, cfg.atr_slow))
         if "cost" in which:
-            out["cost"] = median_range_bp_signal(h, l, c, cfg.cost_window)
+            out["cost"] = memo(("cost", "1m", cfg.cost_window), lambda: median_range_bp_signal(h, l, c, cfg.cost_window))
         return out
-    h5, l5, c5, inv = resample_5m(ts, h, l, c)
     if "vol" in which:
-        out["vol"] = atr_ratio_signal(h5, l5, c5, cfg.atr_fast, cfg.atr_slow)[inv]
+        def _vol():
+            h5, l5, c5, inv = rs5()
+            return atr_ratio_signal(h5, l5, c5, cfg.atr_fast, cfg.atr_slow)[inv]
+        out["vol"] = memo(("vol", "5m", cfg.atr_fast, cfg.atr_slow), _vol)
     if "cost" in which:
-        out["cost"] = median_range_bp_signal(h5, l5, c5, max(3, cfg.cost_window // 5))[inv]
+        def _cost():
+            h5, l5, c5, inv = rs5()
+            return median_range_bp_signal(h5, l5, c5, max(3, cfg.cost_window // 5))[inv]
+        out["cost"] = memo(("cost", "5m", cfg.cost_window), _cost)
     return out
 
 
-def gate_array(ts, o, h, l, c, cfg: GridConfig) -> Optional[np.ndarray]:
-    """Boolean per bar: all gates in ``cfg.gates`` true (NaN -> False). None when there are no gates."""
+def gate_array(ts, o, h, l, c, cfg: GridConfig, cache: Optional[SignalCache] = None) -> Optional[np.ndarray]:
+    """Boolean per bar: all gates in ``cfg.gates`` true (NaN -> False). None when there are no gates. ``cache``: optional
+    SignalCache of the same bars (the gate is memoised under the indicators it uses and their thresholds only)."""
     if not cfg.gates:
         return None
-    ok = np.ones(len(c), dtype=bool)
-    v = signal_values(ts, h, l, c, cfg, which=cfg.gates)
-    with np.errstate(invalid="ignore"):
-        if "adx" in cfg.gates:
-            ok &= v["adx"] >= cfg.adx_thr
-        if "vol" in cfg.gates:
-            ok &= v["vol"] >= cfg.vol_ratio
-        if "cost" in cfg.gates:
-            ok &= v["cost"] >= cfg.cost_k * cfg.round_trip_cost_bp
-    return ok
+    if cache is not None:
+        cache.require(ts, o, h, l, c)
+
+    def compute():
+        ok = np.ones(len(c), dtype=bool)
+        v = signal_values(ts, h, l, c, cfg, which=cfg.gates, cache=cache)
+        with np.errstate(invalid="ignore"):
+            if "adx" in cfg.gates:
+                ok &= v["adx"] >= cfg.adx_thr
+            if "vol" in cfg.gates:
+                ok &= v["vol"] >= cfg.vol_ratio
+            if "cost" in cfg.gates:
+                ok &= v["cost"] >= cfg.cost_k * cfg.round_trip_cost_bp
+        return ok
+
+    if cache is None:
+        return compute()
+    key = ["gate"]
+    if "adx" in cfg.gates:
+        key.append(("adx", cfg.adx_n, cfg.adx_tf, cfg.adx_thr))
+    if "vol" in cfg.gates:
+        key.append(("vol", cfg.signal_tf, cfg.atr_fast, cfg.atr_slow, cfg.vol_ratio))
+    if "cost" in cfg.gates:
+        key.append(("cost", cfg.signal_tf, cfg.cost_window, cfg.cost_k * cfg.round_trip_cost_bp))
+    return cache.memo(tuple(key), compute)
 
 
 # --------------------------------------------------------------------------- the simulator
@@ -523,28 +601,37 @@ class _Sim:
         self.rng_i = 0.0
         for lg in list(self.legs):
             self._exit(lg, c[last], False, last, "eod")
-        cols = ["entry_bar", "exit_bar", "side", "level", "gross_bp", "gross_noslip_bp", "net_bp", "exit"]
-        df = pd.DataFrame(self.rows, columns=cols)
-        df.insert(0, "entry_ts", self.ts[df["entry_bar"].to_numpy(dtype=int)] if len(df) else np.array([], dtype="int64"))
-        if self.rec:
-            xc = ["trigger_px", "entry_px", "exit_px", "fee_bp", "slip_bp", "mfe_bp", "mae_bp", "gap_fill", "rebuild_id", "concurrent"]
-            ex = pd.DataFrame(self.extra, columns=xc)
-            df = pd.concat([df, ex], axis=1)
-            df["exit_ts"] = self.ts[df["exit_bar"].to_numpy(dtype=int)] if len(df) else np.array([], dtype="int64")
-        return df
+        return _frame(self.rows, self.extra, self.rec, self.ts)
+
+
+TRADE_COLUMNS = ["entry_bar", "exit_bar", "side", "level", "gross_bp", "gross_noslip_bp", "net_bp", "exit"]
+RECORD_COLUMNS = ["trigger_px", "entry_px", "exit_px", "fee_bp", "slip_bp", "mfe_bp", "mae_bp", "gap_fill", "rebuild_id", "concurrent"]
+
+
+def _frame(rows, extra, rec, ts) -> pd.DataFrame:
+    """Trade table of one run from the closed-parent rows (and the record columns when ``rec``). Built once for the simulator."""
+    df = pd.DataFrame(rows, columns=TRADE_COLUMNS)
+    df.insert(0, "entry_ts", ts[df["entry_bar"].to_numpy(dtype=int)] if len(df) else np.array([], dtype="int64"))
+    if rec:
+        ex = pd.DataFrame(extra, columns=RECORD_COLUMNS)
+        df = pd.concat([df, ex], axis=1)
+        df["exit_ts"] = ts[df["exit_bar"].to_numpy(dtype=int)] if len(df) else np.array([], dtype="int64")
+    return df
 
 
 EVENT_COLUMNS = ["bar", "event", "side", "level", "price", "qty", "reason"]
 
 
 def simulate(ts, o, h, l, c, cfg: GridConfig, order: str = "hl", gate: Optional[np.ndarray] = None,
-             return_stats: bool = False, record: bool = False, events: Optional[list] = None, event_max: int = 2_000_000):
+             return_stats: bool = False, record: bool = False, events: Optional[list] = None, event_max: int = 2_000_000,
+             cache: Optional[SignalCache] = None):
     """One run with ONE intrabar ordering ('hl' = O-H-L-C, 'lh' = O-L-H-C). ``gate``: bool per bar, default computed from cfg.
     ``record=True`` appends trade columns (trigger_px, entry_px, exit_px, fee_bp, slip_bp, mfe_bp, mae_bp, gap_fill, rebuild_id,
     concurrent, exit_ts) AFTER the usual ones; ``events`` (a list) collects EVENT_COLUMNS tuples up to ``event_max``. Pure
-    observation: the trades and every summary metric are identical with or without them."""
+    observation: the trades and every summary metric are identical with or without them.
+    ``cache``: optional SignalCache of the same bars (only used to get the default gate)."""
     if gate is None:
-        gate = gate_array(ts, o, h, l, c, cfg)
+        gate = gate_array(ts, o, h, l, c, cfg, cache=cache)
     sim = _Sim(ts, o, h, l, c, cfg, order, gate, record, events, event_max)
     df = sim.run()
     return (df, sim.stats) if return_stats else df
@@ -560,10 +647,12 @@ def events_frame(events: list, ts, coin: str = "", ordering: str = "") -> pd.Dat
     return df
 
 
-def annotate_trades(trades: pd.DataFrame, arrs: dict, cfg: GridConfig, coin: str = "", ordering: str = "") -> pd.DataFrame:
+def annotate_trades(trades: pd.DataFrame, arrs: dict, cfg: GridConfig, coin: str = "", ordering: str = "",
+                    cache: Optional[SignalCache] = None) -> pd.DataFrame:
     """Trade-log view of a ``simulate(..., record=True)`` result: English column names, entry/exit minute range_bp and
     quote_volume (needs ``arrs['qv']``; NaN when absent), gate values at the entry (adx, vol ratio, cost ratio; computed with the
-    same no-look-ahead signals as the gates, whatever gates the config uses), hold_min, UTC day. Reads only; changes nothing."""
+    same no-look-ahead signals as the gates, whatever gates the config uses), hold_min, UTC day. Reads only; changes nothing.
+    ``cache``: optional SignalCache of the same bars (the signals do not depend on costs or exits, so one cache serves every config)."""
     ts = np.asarray(arrs["ts"], dtype="int64")
     o, h, l, c = (np.asarray(arrs[k], dtype="float64") for k in ("o", "h", "l", "c"))
     qv = np.asarray(arrs["qv"], dtype="float64") if "qv" in arrs else np.full(len(ts), np.nan)
@@ -571,7 +660,7 @@ def annotate_trades(trades: pd.DataFrame, arrs: dict, cfg: GridConfig, coin: str
     xb = trades["exit_bar"].to_numpy(dtype=int)
     rng_bp = (h - l) / c * 1e4
     with np.errstate(invalid="ignore", divide="ignore"):
-        sv = signal_values(ts, h, l, c, cfg)
+        sv = signal_values(ts, h, l, c, cfg, cache=cache)
         adx, vr, cr = sv["adx"], sv["vol"], sv["cost"] / cfg.round_trip_cost_bp
     out = pd.DataFrame({
         "coin": coin, "ordering": ordering, "side": trades["side"].to_numpy(), "level": trades["level"].to_numpy(),
@@ -631,12 +720,12 @@ def summarize(trades: pd.DataFrame, n_bars: int, n_days: float) -> dict:
             "fills_per_day": float(n / max(n_days, 1e-9))}
 
 
-def run_both(ts, o, h, l, c, cfg: GridConfig, gate: Optional[np.ndarray] = None) -> dict:
-    """Both intrabar orderings. LB = the ordering with the lower mean net bp per trade, UB = the higher.
+def run_both(ts, o, h, l, c, cfg: GridConfig, gate: Optional[np.ndarray] = None, cache: Optional[SignalCache] = None) -> dict:
+    """Both intrabar orderings (``cache`` as in ``simulate``). LB = the ordering with the lower mean net bp per trade, UB = the higher.
     Returns {'LB': summary, 'UB': summary, 'LB_order', 'UB_order', 'trades': {'hl': df, 'lh': df}, 'n_bars', 'n_days'}."""
     ts = np.asarray(ts, dtype="int64")
     if gate is None:
-        gate = gate_array(ts, o, h, l, c, cfg)
+        gate = gate_array(ts, o, h, l, c, cfg, cache=cache)
     n_days = (ts[-1] - ts[0]) / MS_DAY if len(ts) > 1 else 0.0
     out, summ = {}, {}
     for od in ORDERINGS:
@@ -700,7 +789,15 @@ def _rebuild_ohlc(ro, rh, rl, rc, sgn, c0):
     return out
 
 
-def sign_flip_null(ts, o, h, l, c, seed: int, flip_prob: float = 0.5):
+def _null_base(o, h, l, c, cache: Optional[SignalCache]):
+    """(relative OHLC, first valid close) of the real bars; memoised per coin in ``cache`` (they do not depend on the draw)."""
+    if cache is None:
+        return _rel(o, h, l, c), _first_valid(c)
+    cache.require(cache.ts, o, h, l, c)
+    return cache.memo(("null_rel",), lambda: _rel(o, h, l, c)), cache.memo(("null_c0",), lambda: _first_valid(c))
+
+
+def sign_flip_null(ts, o, h, l, c, seed: int, flip_prob: float = 0.5, cache: Optional[SignalCache] = None):
     """Flip the sign of the log-returns of randomly chosen WHOLE UTC days (the bar's O/H/L mirror with them): the volatility
     structure and the intraday shape are kept, the direction across days is randomised. Returns (o, h, l, c)."""
     o, h, l, c = (np.asarray(a, dtype="float64") for a in (o, h, l, c))
@@ -708,20 +805,20 @@ def sign_flip_null(ts, o, h, l, c, seed: int, flip_prob: float = 0.5):
     day = np.asarray(ts, dtype="int64") // MS_DAY
     ud, inv = np.unique(day, return_inverse=True)
     sgn = np.where(rng.random(len(ud)) < flip_prob, -1.0, 1.0)[inv]
-    ro, rh, rl, rc = _rel(o, h, l, c)
+    (ro, rh, rl, rc), c0 = _null_base(o, h, l, c, cache)
     sgn = sgn.copy()
-    return _rebuild_ohlc(ro, rh, rl, rc, sgn, _first_valid(c))
+    return _rebuild_ohlc(ro, rh, rl, rc, sgn, c0)
 
 
-def random_walk_null(ts, o, h, l, c, seed: int):
+def random_walk_null(ts, o, h, l, c, seed: int, cache: Optional[SignalCache] = None):
     """Pure random walk with the same marginal bar shapes: the bars (relative O/H/L/C) are shuffled i.i.d. and each gets a
     random sign. No volatility clustering, no intraday autocorrelation: a martingale. Returns (o, h, l, c)."""
     o, h, l, c = (np.asarray(a, dtype="float64") for a in (o, h, l, c))
     rng = np.random.default_rng(seed)
-    ro, rh, rl, rc = _rel(o, h, l, c)
+    (ro, rh, rl, rc), c0 = _null_base(o, h, l, c, cache)
     perm = rng.permutation(len(c))
     sgn = np.where(rng.random(len(c)) < 0.5, -1.0, 1.0)
-    return _rebuild_ohlc(ro[perm], rh[perm], rl[perm], rc[perm], sgn, _first_valid(c))
+    return _rebuild_ohlc(ro[perm], rh[perm], rl[perm], rc[perm], sgn, c0)
 
 
 # --------------------------------------------------------------------------- synthetic 1m data (tests / --smoke only)
