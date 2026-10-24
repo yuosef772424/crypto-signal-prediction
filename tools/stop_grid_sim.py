@@ -203,7 +203,8 @@ class _Leg:
 
 
 class _Par:
-    __slots__ = ("side", "entry_ns", "entry", "bar", "k", "open_legs", "gross", "gross_ns", "net", "exit_bar", "kinds")
+    __slots__ = ("side", "entry_ns", "entry", "bar", "k", "open_legs", "gross", "gross_ns", "net", "exit_bar", "kinds",
+                 "xval", "fee", "gapfill", "rid", "conc", "mfe", "mae")
 
 
 class _Grid:
@@ -211,7 +212,8 @@ class _Grid:
 
 
 class _Sim:
-    def __init__(self, ts, o, h, l, c, cfg: GridConfig, order: str, gate: Optional[np.ndarray]):
+    def __init__(self, ts, o, h, l, c, cfg: GridConfig, order: str, gate: Optional[np.ndarray],
+                 record: bool = False, events: Optional[list] = None, event_max: int = 2_000_000):
         if order not in ORDERINGS + DIAG_ORDERINGS:
             raise ValueError(f"order must be one of {ORDERINGS + DIAG_ORDERINGS}")
         self.rand = np.random.default_rng(12345).random(len(c)).tolist() if order == "rand" else None
@@ -233,6 +235,17 @@ class _Sim:
         self.stats = {"skipped_cap": 0, "halted_days": 0, "builds": 0}
         self.i = 0
         self.rng_i = 0.0
+        # additive recording (off by default; never read by the simulation logic)
+        self.rec = bool(record)
+        self.ev, self.ev_max = events, int(event_max)
+        self.extra: List[tuple] = []
+        self.rid = 0
+        self.why = "initial"
+        self.gate_state = None
+
+    def _ev(self, i: int, kind: str, side: int, level: int, price: float, qty: float, reason: str):
+        if self.ev is not None and len(self.ev) < self.ev_max:
+            self.ev.append((i, kind, side, level, price, qty, reason))
 
     # ----- grid
     def _build(self, i: int):
@@ -247,20 +260,30 @@ class _Sim:
         g.bot = p0 * (1.0 - (n + cfg.breakout_x) * s)
         self.grid = g
         self.stats["builds"] += 1
+        if self.rec or self.ev is not None:
+            self.rid += 1
+            self._ev(i, "rebuilt", 0, 0, p0, float(2 * n), f"{self.why}#{self.rid}")
+            if self.ev is not None:
+                for k in range(1, n + 1):
+                    self._ev(i, "placed", 1, k, self.buys[k - 1][0], 1.0, f"buy_stop#{self.rid}")
+                    self._ev(i, "placed", -1, k, self.sells[k - 1][0], 1.0, f"sell_stop#{self.rid}")
 
-    def _cancel_pending(self):
+    def _cancel_pending(self, why: str = "rebuild"):
+        if self.ev is not None and (self.buys or self.sells):
+            self._ev(self.i, "cancelled", 0, 0, float("nan"), float(len(self.buys) + len(self.sells)), why)
         self.buys, self.sells, self.grid = [], [], None
 
     def _decide(self, i: int):
         cfg = self.cfg
         if self.halted:
             if self.buys or self.sells or self.grid is not None:
-                self._cancel_pending()
+                self._cancel_pending("halted")
             return
         g = self.grid
         need = g is None
         if not need:
             m = cfg.rebuild
+            self.why = m
             if m == "breakout":
                 pc = self.c[i - 1]
                 need = pc > g.top or pc < g.bot
@@ -270,7 +293,9 @@ class _Sim:
                 need = i - g.bar >= cfg.time_every
         if not need:
             return
-        self._cancel_pending()
+        if g is None:
+            self.why = "initial"
+        self._cancel_pending("rebuild")
         if self.gate is None or self.gate[i]:
             self._build(i)
 
@@ -278,7 +303,14 @@ class _Sim:
     def _slip(self, base: float) -> float:
         return base * self.cfg.slip_bps / 1e4 + self.cfg.slip_range_frac * self.rng_i
 
-    def _enter(self, side: int, trig: float, k: int, cf: float, i: int):
+    def _track(self, p: _Par, px: float):
+        m = p.side * (px / p.entry - 1.0) * 1e4
+        if m > p.mfe:
+            p.mfe = m
+        if m < p.mae:
+            p.mae = m
+
+    def _enter(self, side: int, trig: float, k: int, cf: float, i: int, gap: bool = False):
         cfg = self.cfg
         base = max(trig, cf) if side > 0 else min(trig, cf)
         fill = base + side * self._slip(base)
@@ -287,6 +319,8 @@ class _Sim:
         p.gross = p.gross_ns = p.net = 0.0
         p.exit_bar = i
         p.kinds = []
+        p.xval = p.fee = p.mfe = p.mae = 0.0
+        p.gapfill, p.rid = gap, self.rid
         specs = {"tp": [("tp", 1.0)], "trail": [("trail", 1.0)], "split": [("tp", 0.5), ("trail", 0.5)]}[cfg.exit_mode]
         p.open_legs = len(specs)
         for kind, w in specs:
@@ -298,8 +332,11 @@ class _Sim:
             lg.activated, lg.ext, lg.trail = False, base, 0.0
             self.legs.append(lg)
         self.n_open_par += 1
+        p.conc = self.n_open_par
         if self.grid is not None:
             self.grid.fills += 1
+        if self.ev is not None:
+            self._ev(i, "filled", side, k, fill, 1.0, "entry_gap" if gap else "entry")
 
     def _exit(self, leg: _Leg, base: float, limit: bool, i: int, kind: str):
         cfg, p = self.cfg, leg.par
@@ -315,18 +352,26 @@ class _Sim:
         p.net += gross - (cfg.taker_bp + fee) * w
         p.kinds.append(kind)
         p.exit_bar = i
+        if self.rec or self.ev is not None:
+            p.xval += fill * w
+            p.fee += (cfg.taker_bp + fee) * w
+            self._track(p, fill)
+            self._ev(i, "filled", -side, p.k, fill, w, "exit_" + kind)
         self.legs.remove(leg)
         p.open_legs -= 1
         if p.open_legs == 0:
             self.n_open_par -= 1
             self.last_close_bar = i
             self.rows.append((p.bar, i, p.side, p.k, p.gross, p.gross_ns, p.net, "+".join(p.kinds)))
+            if self.rec:
+                self.extra.append((p.entry_ns, p.entry, p.xval, p.fee, p.gross_ns - p.gross, p.mfe, p.mae, p.gapfill, p.rid, p.conc))
             self.day_pnl += p.net
             cap = cfg.daily_loss_cap_bp
             if cap is not None and not self.halted and self.day_pnl <= -cap:
                 self.halted = True
                 self.stats["halted_days"] += 1
-                self._cancel_pending()
+                self._ev(i, "daily_cap_hit", 0, 0, float("nan"), 0.0, f"day_pnl_bp={self.day_pnl:.1f}")
+                self._cancel_pending("daily_cap")
 
     # ----- one monotone price segment p -> q (gap=True: the opening jump, stops fill at the open q)
     def _seg(self, p: float, q: float, gap: bool, i: int):
@@ -382,9 +427,12 @@ class _Sim:
                 side = 1 if up else -1
                 if self.n_open_par >= cfg.max_positions:
                     self.stats["skipped_cap"] += 1
+                    self._ev(i, "cancelled", side, obj[1], trig, 1.0, "position_cap")
                 else:
-                    self._enter(side, trig, obj[1], cf, i)
+                    self._enter(side, trig, obj[1], cf, i, gap)
                     if cfg.cancel_opposite_on_fill:
+                        if self.ev is not None and (self.sells if up else self.buys):
+                            self._ev(i, "cancelled", -side, 0, float("nan"), float(len(self.sells if up else self.buys)), "opposite_on_fill")
                         if up:
                             self.sells = []
                         else:
@@ -398,6 +446,9 @@ class _Sim:
                 cur = trig if (trig > cur) == up else cur
         # end of segment: trailing legs see the new extreme
         gp = cfg.gap
+        if self.rec:
+            for lg in self.legs:
+                self._track(lg.par, q)
         for lg in self.legs:
             if lg.kind != "trail":
                 continue
@@ -418,6 +469,10 @@ class _Sim:
             d = self.days[i]
             if d != self.day:
                 self.day, self.day_pnl, self.halted = d, 0.0, False
+            self.i = i
+            if self.ev is not None and self.gate is not None and self.gate[i] != self.gate_state:
+                self.gate_state = self.gate[i]
+                self._ev(i, "gate_on" if self.gate_state else "gate_off", 0, 0, self.c[i - 1], 0.0, "gate")
             self._decide(i)
             if not (self.legs or self.buys or self.sells):
                 continue
@@ -441,17 +496,68 @@ class _Sim:
         cols = ["entry_bar", "exit_bar", "side", "level", "gross_bp", "gross_noslip_bp", "net_bp", "exit"]
         df = pd.DataFrame(self.rows, columns=cols)
         df.insert(0, "entry_ts", self.ts[df["entry_bar"].to_numpy(dtype=int)] if len(df) else np.array([], dtype="int64"))
+        if self.rec:
+            xc = ["trigger_px", "entry_px", "exit_px", "fee_bp", "slip_bp", "mfe_bp", "mae_bp", "gap_fill", "rebuild_id", "concurrent"]
+            ex = pd.DataFrame(self.extra, columns=xc)
+            df = pd.concat([df, ex], axis=1)
+            df["exit_ts"] = self.ts[df["exit_bar"].to_numpy(dtype=int)] if len(df) else np.array([], dtype="int64")
         return df
 
 
+EVENT_COLUMNS = ["bar", "event", "side", "level", "price", "qty", "reason"]
+
+
 def simulate(ts, o, h, l, c, cfg: GridConfig, order: str = "hl", gate: Optional[np.ndarray] = None,
-             return_stats: bool = False):
-    """One run with ONE intrabar ordering ('hl' = O-H-L-C, 'lh' = O-L-H-C). ``gate``: bool per bar, default computed from cfg."""
+             return_stats: bool = False, record: bool = False, events: Optional[list] = None, event_max: int = 2_000_000):
+    """One run with ONE intrabar ordering ('hl' = O-H-L-C, 'lh' = O-L-H-C). ``gate``: bool per bar, default computed from cfg.
+    ``record=True`` appends trade columns (trigger_px, entry_px, exit_px, fee_bp, slip_bp, mfe_bp, mae_bp, gap_fill, rebuild_id,
+    concurrent, exit_ts) AFTER the usual ones; ``events`` (a list) collects EVENT_COLUMNS tuples up to ``event_max``. Pure
+    observation: the trades and every summary metric are identical with or without them."""
     if gate is None:
         gate = gate_array(ts, o, h, l, c, cfg)
-    sim = _Sim(ts, o, h, l, c, cfg, order, gate)
+    sim = _Sim(ts, o, h, l, c, cfg, order, gate, record, events, event_max)
     df = sim.run()
     return (df, sim.stats) if return_stats else df
+
+
+def events_frame(events: list, ts, coin: str = "", ordering: str = "") -> pd.DataFrame:
+    """EVENT_COLUMNS tuples -> DataFrame with ts (ms), coin and ordering columns (bar index kept)."""
+    df = pd.DataFrame(events, columns=EVENT_COLUMNS)
+    ts = np.asarray(ts, dtype="int64")
+    df.insert(0, "ts", ts[df["bar"].to_numpy(dtype=int)] if len(df) else np.array([], dtype="int64"))
+    df.insert(1, "coin", coin)
+    df.insert(2, "ordering", ordering)
+    return df
+
+
+def annotate_trades(trades: pd.DataFrame, arrs: dict, cfg: GridConfig, coin: str = "", ordering: str = "") -> pd.DataFrame:
+    """Trade-log view of a ``simulate(..., record=True)`` result: English column names, entry/exit minute range_bp and
+    quote_volume (needs ``arrs['qv']``; NaN when absent), gate values at the entry (adx, vol ratio, cost ratio; computed with the
+    same no-look-ahead signals as the gates, whatever gates the config uses), hold_min, UTC day. Reads only; changes nothing."""
+    ts = np.asarray(arrs["ts"], dtype="int64")
+    o, h, l, c = (np.asarray(arrs[k], dtype="float64") for k in ("o", "h", "l", "c"))
+    qv = np.asarray(arrs["qv"], dtype="float64") if "qv" in arrs else np.full(len(ts), np.nan)
+    eb = trades["entry_bar"].to_numpy(dtype=int)
+    xb = trades["exit_bar"].to_numpy(dtype=int)
+    rng_bp = (h - l) / c * 1e4
+    with np.errstate(invalid="ignore", divide="ignore"):
+        adx = adx_signal(ts, h, l, c, cfg.adx_n, cfg.adx_tf)
+        vr = atr_ratio_signal(h, l, c, cfg.atr_fast, cfg.atr_slow)
+        cr = median_range_bp_signal(h, l, c, cfg.cost_window) / cfg.round_trip_cost_bp
+    out = pd.DataFrame({
+        "coin": coin, "ordering": ordering, "side": trades["side"].to_numpy(), "level": trades["level"].to_numpy(),
+        "entry_ts": trades["entry_ts"].to_numpy(), "entry_px": trades["entry_px"].to_numpy(), "trigger_px": trades["trigger_px"].to_numpy(),
+        "exit_ts": trades["exit_ts"].to_numpy(), "exit_px": trades["exit_px"].to_numpy(), "exit_reason": [("+".join(dict.fromkeys(x.split("+")))) for x in trades["exit"]],
+        "hold_min": (ts[xb] - ts[eb]) / MS_MIN if len(trades) else np.array([]),
+        "gross_bp": trades["gross_bp"].to_numpy(), "slip_bp": trades["slip_bp"].to_numpy(), "fee_bp": trades["fee_bp"].to_numpy(),
+        "net_bp": trades["net_bp"].to_numpy(), "mfe_bp": trades["mfe_bp"].to_numpy(), "mae_bp": trades["mae_bp"].to_numpy(),
+        "gap_fill": trades["gap_fill"].to_numpy(dtype=bool),
+        "entry_range_bp": rng_bp[eb], "entry_quote_volume": qv[eb], "exit_range_bp": rng_bp[xb], "exit_quote_volume": qv[xb],
+        "gate_adx": adx[eb], "gate_vol_ratio": vr[eb], "gate_cost_ratio": cr[eb],
+        "rebuild_id": trades["rebuild_id"].to_numpy(), "concurrent": trades["concurrent"].to_numpy(),
+        "day": pd.to_datetime(ts[eb] // MS_DAY * MS_DAY, unit="ms", utc=True).strftime("%Y-%m-%d") if len(trades) else [],
+    })
+    return out
 
 
 # --------------------------------------------------------------------------- metrics

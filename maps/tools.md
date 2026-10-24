@@ -552,7 +552,7 @@
   - `def run(cfg, out_dir, deadline)` L48
   - `def main(argv=None)` L92
 
-### `tools/stop_grid_sim.py` (751 lines)
+### `tools/stop_grid_sim.py` (857 lines)
 - PURPOSE: Event-driven simulator of the owner's stop-order grid on 1-minute OHLC bars: N buy-stop-market orders above and N sell-stop-market orders below a reference price, every fill with an initial stop-loss and a fixed take-profit (limit), a trai…
 - TAGS: stop grid, buy stop, sell stop, trailing stop activation, take profit, 1m bars, intrabar ordering, lower bound, upper bound, rebuild trigger, breakout, regime gate, adx, atr ratio, cost viability, sign-flip null, random walk null, day-clustered t, coin selection, high volatility coins, slippage, taker fee, maker fee, e-grid1m-001, simulation
 - PITFALLS: Only OHLC is known: the order of the high and the low inside a bar is not, so trust LB only (same convention as tools/bracket_eval.py). LB is the worse of TWO FIXED global orderings, not a per-bar worst case: both can be optimistic (a bar visited O-H-L always lets the up-fills AND the down-fills profit from their own extreme), so the honest comparison is against the null baselines run with the sa…
@@ -565,24 +565,26 @@
   - `def atr_ratio_signal(h, l, c, fast: int=14, slow: int=100) -> np.ndarray` L169
   - `def median_range_bp_signal(h, l, c, window: int=60) -> np.ndarray` L176
   - `def gate_array(ts, o, h, l, c, cfg: GridConfig) -> Optional[np.ndarray]` L183
-  - `def simulate(ts, o, h, l, c, cfg: GridConfig, order: str='hl', gate: Optional[np.ndarray]=None, return_stats: bool=False)` L447
-  - `def day_clustered_t(x, t_ms) -> float` L458
-  - `def max_drawdown_bp(net_bp, exit_order) -> float` L470
-  - `def summarize(trades: pd.DataFrame, n_bars: int, n_days: float) -> dict` L480
-  - `def run_both(ts, o, h, l, c, cfg: GridConfig, gate: Optional[np.ndarray]=None) -> dict` L499
-  - `def sign_consistency(net_by_coin: Dict[str, float]) -> Tuple[int, int]` L515
-  - `def sign_flip_null(ts, o, h, l, c, seed: int, flip_prob: float=0.5)` L538
-  - `def random_walk_null(ts, o, h, l, c, seed: int)` L551
-  - `def synth_ohlc(n: int, seed: int, daily_vol: float=0.04, vol_persist: float=0.98, vol_of_vol: float=0.15, p0: float=100.0, start_ms: int=...)` L563
-  - `def synth_frame(n: int, seed: int, daily_vol: float=0.04, qv_per_min: float=50000.0, start_ms: Optional[int]=None) -> pd.DataFrame` L595
-  - `def list_symbols(data_dir: str) -> Dict[str, List[str]]` L612
-  - `def read_symbol(files: List[str], columns: Optional[List[str]]=None, start_ms: Optional[int]=None, end_ms: Optional[int]=None) -> pd.DataFrame` L635
-  - `def date_range(files: List[str]) -> Tuple[int, int, int]` L656
-  - `class Splits` L665
-    - `.as_dict(self) -> dict` L673
-  - `def make_splits(start_ms: int, end_ms: int, fracs=(0.4, 0.3, 0.3)) -> Splits` L679
-  - `def common_range(ranges: Dict[str, Tuple[int, int, int]], quantile: float=0.8) -> Tuple[int, int]` L688
-  - `def select_coins(data_dir: str, top: int=5, taker_bp: float=5.0, slip_bps: float=1.0, min_quote_volume: float=20000.0, min_coverage: float=0.9, select_frac: float=0.4, range_quantile: float=0.8, edge_tolerance: floa…` L704
+  - `def simulate(ts, o, h, l, c, cfg: GridConfig, order: str='hl', gate: Optional[np.ndarray]=None, return_stats: bool=False, record: bool=False, events: Optional[list]=None, event_max: int=2000000)` L510
+  - `def events_frame(events: list, ts, coin: str='', ordering: str='') -> pd.DataFrame` L523
+  - `def annotate_trades(trades: pd.DataFrame, arrs: dict, cfg: GridConfig, coin: str='', ordering: str='') -> pd.DataFrame` L533
+  - `def day_clustered_t(x, t_ms) -> float` L564
+  - `def max_drawdown_bp(net_bp, exit_order) -> float` L576
+  - `def summarize(trades: pd.DataFrame, n_bars: int, n_days: float) -> dict` L586
+  - `def run_both(ts, o, h, l, c, cfg: GridConfig, gate: Optional[np.ndarray]=None) -> dict` L605
+  - `def sign_consistency(net_by_coin: Dict[str, float]) -> Tuple[int, int]` L621
+  - `def sign_flip_null(ts, o, h, l, c, seed: int, flip_prob: float=0.5)` L644
+  - `def random_walk_null(ts, o, h, l, c, seed: int)` L657
+  - `def synth_ohlc(n: int, seed: int, daily_vol: float=0.04, vol_persist: float=0.98, vol_of_vol: float=0.15, p0: float=100.0, start_ms: int=...)` L669
+  - `def synth_frame(n: int, seed: int, daily_vol: float=0.04, qv_per_min: float=50000.0, start_ms: Optional[int]=None) -> pd.DataFrame` L701
+  - `def list_symbols(data_dir: str) -> Dict[str, List[str]]` L718
+  - `def read_symbol(files: List[str], columns: Optional[List[str]]=None, start_ms: Optional[int]=None, end_ms: Optional[int]=None) -> pd.DataFrame` L741
+  - `def date_range(files: List[str]) -> Tuple[int, int, int]` L762
+  - `class Splits` L771
+    - `.as_dict(self) -> dict` L779
+  - `def make_splits(start_ms: int, end_ms: int, fracs=(0.4, 0.3, 0.3)) -> Splits` L785
+  - `def common_range(ranges: Dict[str, Tuple[int, int, int]], quantile: float=0.8) -> Tuple[int, int]` L794
+  - `def select_coins(data_dir: str, top: int=5, taker_bp: float=5.0, slip_bps: float=1.0, min_quote_volume: float=20000.0, min_coverage: float=0.9, select_frac: float=0.4, range_quantile: float=0.8, edge_tolerance: floa…` L810
 
 ### `tools/touched_ledger.py` (191 lines)
 - PURPOSE: Generates the touched-data ledger docs/research/plan/lock/touched.csv (columns symbol_or_rule, kind, timeframe, period, source, note) from master as of 2026-10-13: every universe in docs/research/failure_registry.csv (F-0001..F-0079), the…

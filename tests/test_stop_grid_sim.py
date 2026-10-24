@@ -475,6 +475,81 @@ class Selection(unittest.TestCase):
             d = sg.read_symbol(sg.list_symbols(tmp)["XXX"])
             self.assertEqual(len(d), 500)
 
+PIN_CFGS = {
+    "trail": dict(spacing=0.001, sl=0.005, exit_mode="trail", rebuild="breakout"),
+    "tp_time": dict(spacing=0.002, sl=0.01, exit_mode="tp", rebuild="time", time_every=30),
+    "split_flat": dict(spacing=0.001, sl=0.005, exit_mode="split", rebuild="flat", slip_range_frac=0.1),
+    "gated_cap": dict(spacing=0.001, sl=0.005, exit_mode="trail", rebuild="breakout", gates=("vol",), vol_ratio=1.0,
+                      daily_loss_cap_bp=150.0, max_positions=3),
+    "adx_cancel": dict(spacing=0.0015, sl=0.007, exit_mode="split", rebuild="once", gates=("adx",), adx_tf="5m", adx_thr=15.0,
+                       cancel_opposite_on_fill=True),
+}
+
+
+def _pin_data(seed, vol):
+    f = sg.synth_frame(6 * 1440, seed, daily_vol=vol)
+    return f, f["timestamp"].to_numpy("int64"), *(f[k].to_numpy(float) for k in ("open", "high", "low", "close"))
+
+
+class TestPinnedMetricsAndRecording(unittest.TestCase):
+    """Summary metrics and the full trade table of several configs were captured BEFORE the recording hooks were added
+    (tests/stop_grid_sim_pinned_metrics.json): the hooks must change nothing, and recording on/off must agree."""
+
+    def test_pinned_summary_and_trade_hash(self):
+        import hashlib
+        import json
+        pinned = json.load(open(os.path.join(ROOT, "tests", "stop_grid_sim_pinned_metrics.json")))
+        got = {}
+        for seed, vol in ((11, 0.04), (12, 0.07)):
+            f, ts, o, h, l, c = _pin_data(seed, vol)
+            for name, kw in PIN_CFGS.items():
+                r = sg.run_both(ts, o, h, l, c, sg.GridConfig(**kw))
+                for od in sg.ORDERINGS:
+                    d = r["trades"][od]
+                    s = sg.summarize(d, len(ts), r["n_days"])
+                    s["hash"] = hashlib.sha256(d.to_csv(index=False).encode()).hexdigest()[:16]
+                    got[f"{seed}|{name}|{od}"] = json.loads(json.dumps(s, default=lambda x: None if x != x else x))
+        self.assertEqual(sorted(got), sorted(pinned))
+        for k in pinned:
+            self.assertEqual(got[k], pinned[k], k)
+
+    def test_recording_does_not_change_trades_and_adds_columns(self):
+        f, ts, o, h, l, c = _pin_data(11, 0.04)
+        for name, kw in PIN_CFGS.items():
+            cfg_ = sg.GridConfig(**kw)
+            for od in sg.ORDERINGS:
+                base = sg.simulate(ts, o, h, l, c, cfg_, od)
+                ev = []
+                rec = sg.simulate(ts, o, h, l, c, cfg_, od, record=True, events=ev)
+                pd.testing.assert_frame_equal(rec[list(base.columns)], base)
+                self.assertEqual(len(rec), len(base))
+                if len(rec):
+                    self.assertLess(np.abs(rec["net_bp"] - (rec["gross_bp"] - rec["fee_bp"])).max(), 1e-9)
+                    self.assertLess(np.abs(rec["slip_bp"] - (rec["gross_noslip_bp"] - rec["gross_bp"])).max(), 1e-9)
+                    self.assertTrue((rec["mfe_bp"] >= 0).all() and (rec["mae_bp"] <= 0).all())
+                    self.assertTrue((rec["exit_ts"] >= rec["entry_ts"]).all())
+                n_entry = sum(1 for e in ev if e[1] == "filled" and e[6].startswith("entry"))
+                self.assertEqual(n_entry, len(base))
+
+    def test_event_cap_and_hand_computed_events(self):
+        t, o, h, l, c = bars([(100, 100, 100, 100), (100, 101.5, 100, 101.2), (101.2, 101.2, 98.9, 99.0)])
+        ev = []
+        d = sg.simulate(t, o, h, l, c, cfg(), "hl", record=True, events=ev)
+        kinds = [e[1] for e in ev]
+        self.assertEqual(kinds.count("placed"), 2)
+        self.assertEqual(kinds.count("rebuilt"), 1)
+        self.assertIn("filled", kinds)
+        self.assertEqual(float(d["trigger_px"].iloc[0]), 101.0)
+        self.assertEqual(float(d["entry_px"].iloc[0]), 101.0)
+        self.assertEqual(int(d["concurrent"].iloc[0]), 1)
+        capped = []
+        sg.simulate(t, o, h, l, c, cfg(), "hl", events=capped, event_max=2)
+        self.assertEqual(len(capped), 2)
+        a = sg.annotate_trades(d, {"ts": t, "o": o, "h": h, "l": l, "c": c}, cfg(), "X", "hl")
+        self.assertEqual(len(a), len(d))
+        self.assertTrue(a["entry_quote_volume"].isna().all())
+        self.assertEqual(len(sg.events_frame(ev, t, "X", "hl")), len(ev))
+
 
 if __name__ == "__main__":
     unittest.main()
