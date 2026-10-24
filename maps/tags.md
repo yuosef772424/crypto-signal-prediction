@@ -6,6 +6,7 @@
 - 136 tests: edge_discovery/04_screen_mean
 - 15m: data/phase2, strategy_discovery/intraday_macd, strategy_discovery/seasonality15m, tools/intraday_features
 - 1h: strategy_discovery/intraday_macd
+- 1m bars: tools/stop_grid_sim
 - 2018-2023: edge_discovery/16_h07_oos
 - 21-23 utc: edge_discovery/06_seasonality
 - 4 outputs: edge_discovery/29_path_envelope
@@ -31,7 +32,7 @@
 - _y_for: workflow/batches
 - a.2: edge_discovery/13_listing_stops
 - abstention: data/heads
-- accept rule: indicator_strategy/screen, indicator_strategy/test_final, strategy_discovery/oos
+- accept rule: indicator_strategy/screen, indicator_strategy/test_final, stop_grid_1m/run_stop_grid_1m, strategy_discovery/oos
 - access log: tools/holdout_guard
 - accumulator: data/pipeline
 - activations: model/diagnostics
@@ -48,7 +49,7 @@
 - addendum l: edge_discovery/31_wick_capture
 - addendum l.1: edge_discovery/32_breakout_stops
 - adverse selection: edge_discovery/31_wick_capture
-- adx: tools/gate_features, tools/indicator_reverse
+- adx: tools/gate_features, tools/indicator_reverse, tools/stop_grid_sim
 - adx trend: indicator_strategy/engine, tools/trade_engine
 - aggregate long/short: edge_discovery/11_more
 - aggregate oi change: edge_discovery/09_market_flush
@@ -89,6 +90,7 @@
 - asymmetry: edge_discovery/29_path_envelope
 - ath distance: data/custom
 - atomic_write_json: trainer/env
+- atr ratio: tools/stop_grid_sim
 - atr stop: edge_discovery/24_pullback_maker, indicator_strategy/engine, tools/trade_engine
 - attention: model/diagnostics, model/transformer
 - attentionpool: model/readout
@@ -110,7 +112,8 @@
 - batched predict: evaluation/predict
 - batches: workflow/batches
 - batching: cross_asset/data
-- benjamini-hochberg: strategy_discovery/grid
+- benchmark: tools/stop_grid_bench
+- benjamini-hochberg: stop_grid_1m/run_stop_grid_1m, strategy_discovery/grid
 - best weights: trainer/best_tracker
 - bestmodeltracker: trainer/best_tracker
 - beta: model/nig_layers
@@ -126,7 +129,7 @@
 - boll: tools/gate_features
 - bollinger: tools/indicator_reverse
 - bollinger breakout: indicator_strategy/engine, tools/trade_engine
-- bonferroni: h07_combos/01_combos
+- bonferroni: h07_combos/01_combos, stop_grid_1m/run_stop_grid_1m
 - bootstrap: tools/drive_sync
 - bootstrap month blocks: norm_probe/run_norm_probe
 - bot2 get_range_forecast: tools/natr_range
@@ -134,7 +137,7 @@
 - bracket table: cross_asset/report
 - break attempt: edge_discovery/17_h07_break
 - break-even hit rate: tools/bracket_eval
-- breakout: edge_discovery/05_events, strategy_discovery/grid
+- breakout: edge_discovery/05_events, strategy_discovery/grid, tools/stop_grid_sim
 - breakout stops: edge_discovery/32_breakout_stops
 - breakout_stops_results.csv: edge_discovery/32_breakout_stops
 - btc: data/market_context, tools/h07_forward
@@ -168,6 +171,7 @@
 - bundle: tools/colab_runner
 - buy and hold: edge_discovery/14_holdout
 - buy and hold benchmark: edge_discovery/16_h07_oos
+- buy stop: tools/stop_grid_sim
 - calibration: tools/natr_range
 - calibration report: natr_range/run_natr_range
 - calibration_report: evaluation/trust_calibration
@@ -221,6 +225,7 @@
 - closed bars: data/align, tools/gate_features
 - cnn: edge_discovery/25_image_cnn
 - coin categories: data/defaults
+- coin selection: stop_grid_1m/run_stop_grid_1m, tools/stop_grid_sim
 - coinmetrics: edge_discovery/16_h07_oos, edge_discovery/20_onchain
 - coins_by_category: data/defaults
 - colab: data/drive, edge_discovery/25_image_cnn, tools/colab_bridge, tools/colab_runner, tools/colab_smoke, tools/data_manifest … (+2)
@@ -242,6 +247,7 @@
 - compute_loss: trainer/trainer
 - compute_trading_performance_metrics: evaluation/tearsheet
 - concat_splits: signal_eval/integration
+- concentration: tools/stop_grid_report
 - confidence: evaluation/trust_calibration, workflow/selective_eval
 - confidencehead: model/nig_layers
 - config: data/__init__, data/runtime
@@ -258,6 +264,7 @@
 - cosine_warm_restarts: trainer/schedules
 - cost in r: edge_discovery/23_chart_rules_gross, indicator_strategy/engine, strategy_discovery/intraday_macd, tools/trade_engine
 - cost stress: edge_discovery/15_h07_robust, edge_discovery/17_h07_break, strategy_discovery/robustness
+- cost viability: tools/stop_grid_sim
 - cost x2: strategy_discovery/significance
 - cost_big cost_small: edge_discovery/03_quintiles
 - count balancing: hedge_recovery/sim2
@@ -303,7 +310,7 @@
 - day bootstrap: workflow/candle_baseline, workflow/verification
 - day grouping: cross_asset/data
 - day of week: edge_discovery/06_seasonality
-- day-clustered t: edge_discovery/events, strategy_discovery/significance, tools/bracket_eval
+- day-clustered t: edge_discovery/events, strategy_discovery/significance, tools/bracket_eval, tools/stop_grid_sim
 - day_pearson: cross_asset/train
 - dead coins: tools/stale_bars_audit
 - dead tail: tools/trim_dead_tails, tools/trim_dead_tails_colab_job
@@ -345,6 +352,7 @@
 - design effect: tools/paired_compare
 - detect_success_failure_patterns: evaluation/patterns
 - deterministic build: tools/build_lock
+- dev grid: stop_grid_1m/run_stop_grid_1m
 - dev val: strategy_discovery/grid, strategy_discovery/grid2, strategy_discovery/intraday_macd, strategy_discovery/seasonality15m
 - dev val split: indicator_strategy/screen
 - diag_sections: model/diagnostics
@@ -352,7 +360,7 @@
 - diagnose_feature_availability: data/diagnostics
 - diagnose_model: model/diagnostics
 - diagnostic: edge_discovery/23_chart_rules_gross
-- diagnostics: data/diagnostics, workflow/diagnostics
+- diagnostics: data/diagnostics, tools/stop_grid_report, workflow/diagnostics
 - diagnostics callback: trainer/training_diagnostics
 - dip buying: edge_discovery/09_market_flush
 - direction accuracy: evaluation/metrics
@@ -375,7 +383,7 @@
 - dose-response: edge_discovery/10_flush_curve
 - download history: tools/fetch_crypto_dataset, tools/fetch_history_colab_cell, tools/fetch_history_csv_concurrent, tools/fetch_history_vision_colab
 - download_notebook_from_drive: signal_eval/bootstrap
-- drawdown: evaluation/tearsheet
+- drawdown: evaluation/tearsheet, tools/stop_grid_report
 - drift: natr_range/run_natr_rolling
 - drive: data/storage, tools/drive_sync, tools/trim_dead_tails, tools/trim_dead_tails_colab_job
 - drive bootstrap: signal_eval/bootstrap
@@ -403,6 +411,7 @@
 - e-disc-006: strategy_discovery/significance, strategy_discovery/survivor_checks
 - e-fwd-001: strategy_discovery/forward
 - e-gate-001: gate_features/run_gate001
+- e-grid1m-001: stop_grid_1m/run_stop_grid_1m, tools/stop_grid_bench, tools/stop_grid_numba, tools/stop_grid_report, tools/stop_grid_sim
 - e-h07comb-1: h07_combos/01_combos
 - e-h07vs-1: h07_volsizing/01_volsizing
 - e-hedge-001: hedge_recovery/sim
@@ -436,6 +445,7 @@
 - enabled_heads: data/heads
 - encoder: model/builder
 - end condition: strategy_discovery/forward
+- engine: tools/stop_grid_bench, tools/stop_grid_numba
 - engulfing: edge_discovery/22_chart_rules
 - ensemble: h07_combos/01_combos, trainer/ensemble
 - ensemble_predict_evidential: trainer/ensemble
@@ -547,7 +557,7 @@
 - fresh bars: strategy_discovery/oos, strategy_discovery/survivor_checks
 - from __future__: data/common
 - from __future__ annotations: signal_eval/common
-- frozen config: natr_range/run_natr_confirm_forward
+- frozen config: natr_range/run_natr_confirm_forward, stop_grid_1m/run_stop_grid_1m
 - frozen dataclass: workflow/settings
 - frozen hypothesis: strategy_discovery/forward
 - frozen rules: natr_range/freeze_rules, natr_range/run_natr_confirm
@@ -562,6 +572,7 @@
 - futures_metrics folder: edge_discovery/data_tools/folder_index
 - g2: gate_features/run_gate001, tools/gate_features
 - gap: workflow/generalization
+- gap fill: tools/stop_grid_report
 - gap report: tools/evaluate_trained_model
 - gaps report: tools/fetch_history_vision_colab
 - gate: indicator_strategy/engine, tools/gate_features, tools/trade_engine
@@ -638,6 +649,7 @@
 - heads: data/heads
 - health_thresholds: model/diagnostics
 - hedge recovery: hedge_recovery/sim
+- high volatility coins: tools/stop_grid_sim
 - high-natr calibration: natr_range/run_natr_calibrate
 - high_class: workflow/candle_baseline
 - high_low_close_order_penalty: trainer/example
@@ -695,6 +707,7 @@
 - instancenorm: model/input_norm
 - integrity checks: cross_asset/data
 - interrupt: trainer/smoke_test
+- intrabar ordering: tools/stop_grid_sim
 - intraday: strategy_discovery/intraday_macd
 - intraday efficiency: data/funding_oi
 - intraday features: tools/intraday_features
@@ -707,6 +720,7 @@
 - is_colab: data/drive
 - isolation forest: evaluation/patterns
 - isotonic: evaluation/trust_calibration
+- jit: tools/stop_grid_numba
 - job queue: tools/colab_runner
 - job.json: tools/colab_runner, tools/colab_smoke
 - json format: tools/nb_cells
@@ -750,6 +764,7 @@
 - leakage check: workflow/permutation_control
 - learning curve: gate_features/run_gate001
 - learning_curve: workflow/capacity
+- leave one coin out: tools/stop_grid_report
 - ledger: tools/experiment_registry, tools/h07_forward, tools/touched_ledger
 - legacy report: evaluation/legacy_assets, evaluation/legacy_uncertainty
 - length_sweep: discovery/survey
@@ -807,6 +822,7 @@
 - loss differential: tools/paired_compare
 - loss weights: data/heads
 - low_class: workflow/candle_baseline
+- lower bound: tools/stop_grid_sim
 - lr schedule: cross_asset/train, trainer/schedules
 - ls_acc: edge_discovery/features
 - ma_alignment: tools/gate_features
@@ -836,6 +852,7 @@
 - make_splits: workflow/run
 - make_training_config: workflow/run
 - make_training_diagnostics: workflow/diagnostics
+- maker fee: tools/stop_grid_sim
 - maker limit: edge_discovery/24_pullback_maker
 - manifest: tools/colab_runner, tools/colab_smoke
 - manifest ingest: tools/build_lock
@@ -955,10 +972,11 @@
 - notebooks: tools/build_map
 - npy_dir: data/storage
 - nu: model/nig_layers
+- null comparison: tools/stop_grid_report
 - null distribution: signal_eval/core
 - num_kv_heads: model/transformer
 - num_patches: model/patches
-- numba: edge_discovery/21_range_fade, edge_discovery/22_chart_rules
+- numba: edge_discovery/21_range_fade, edge_discovery/22_chart_rules, tools/stop_grid_bench, tools/stop_grid_numba
 - numpy: model/common
 - ohlc: tools/fetch_crypto_dataset
 - ohlcv: data/features
@@ -1008,6 +1026,7 @@
 - parallel: data/parallel, discovery/batch_runner
 - param_variants: discovery/survey
 - paramscheduler: trainer/schedules
+- parity: tools/stop_grid_bench, tools/stop_grid_numba
 - parquet: edge_discovery/data_tools/build_panel
 - partial ic: cross_asset/report
 - pass: signal_eval/selftests
@@ -1085,7 +1104,7 @@
 - print_trade_selection: evaluation/trade_selection
 - print_verdicts: model/diagnostics
 - process_windows: data/normalize
-- profit factor: indicator_strategy/screen
+- profit factor: indicator_strategy/screen, tools/stop_grid_report
 - profit target: hedge_recovery/sim2
 - projectsettings: workflow/settings
 - provenance: tools/touched_ledger
@@ -1101,12 +1120,14 @@
 - quarterly consistency: edge_discovery/01_screen
 - quintile spread: edge_discovery/04_screen_mean
 - quintiles: edge_discovery/03_quintiles
+- quote volume bucket: tools/stop_grid_report
 - r multiple: edge_discovery/22_chart_rules, indicator_strategy/engine, tools/trade_engine
 - r0: tools/build_lock, tools/data_manifest, tools/data_manifest_colab_cell, tools/holdout_guard, tools/touched_ledger
 - r3: natr_range/freeze_rules, natr_range/run_natr_calibrate, natr_range/run_natr_confirm, natr_range/run_natr_confirm_forward, natr_range/run_natr_range, natr_range/run_natr_rolling … (+1)
 - ram: data/disk_backed
 - ram cap: data/parallel
 - random control: hedge_recovery/sim, hedge_recovery/sim2
+- random walk null: stop_grid_1m/run_stop_grid_1m, tools/stop_grid_sim
 - random-direction null: tools/bracket_eval
 - random_init_copy: model/layer_report
 - range fade: edge_discovery/21_range_fade
@@ -1126,6 +1147,7 @@
 - real_price_predictions: tests/test_real_price_modes, workflow/reports
 - realized variance: h07_volsizing/01_volsizing
 - rebound: edge_discovery/09_market_flush
+- rebuild trigger: tools/stop_grid_sim
 - recorder: workflow/diagnostics
 - recurrence plot: edge_discovery/27_repr_info
 - redundancy: edge_discovery/02_fmb
@@ -1136,6 +1158,7 @@
 - reg_target_mode: data/windows
 - reg_target_scale: evaluation/decode, workflow/retarget
 - regime: indicator_strategy/engine, tools/trade_engine
+- regime gate: tools/stop_grid_sim
 - region bars: indicator_strategy/charts
 - register: model/common
 - register_head_type: model/heads
@@ -1235,6 +1258,7 @@
 - sample size guard: strategy_discovery/oos, strategy_discovery/survivor_checks
 - sample_filters: data/windows
 - sample_idx_key: trainer/training_diagnostics
+- sanity flags: tools/stop_grid_report
 - sar: tools/gate_features
 - save load: model/selftests
 - save_config: data/runtime
@@ -1267,6 +1291,7 @@
 - self-tests: data/selftests, tools/run_self_tests
 - selftest: cross_asset/selftest, model/selftests, tools/run_self_tests
 - selftests: signal_eval/selftests
+- sell stop: tools/stop_grid_sim
 - settings: data/defaults, workflow/settings
 - settings interval start funding open_interest: tools/fetch_history_colab_cell
 - sha256: natr_range/freeze_rules, tools/colab_runner, tools/trim_dead_tails
@@ -1282,6 +1307,7 @@
 - short new perps: edge_discovery/12_listing
 - shuffled labels: workflow/permutation_control
 - sign vs magnitude: edge_discovery/28_token_decompose
+- sign-flip null: stop_grid_1m/run_stop_grid_1m, tools/stop_grid_sim
 - signal discovery lab: discovery/__init__
 - signal evaluation axis: signal_eval/__init__
 - signal families: strategy_discovery/grid
@@ -1293,13 +1319,15 @@
 - significance: strategy_discovery/significance
 - simulate_equity_curve: evaluation/tearsheet
 - simulate_rr_trades: workflow/selective_eval
+- simulation: tools/stop_grid_sim
+- simulation speed: tools/stop_grid_numba
 - single source: core/__init__
 - single touch: edge_discovery/14_holdout
 - size vs direction: edge_discovery/29_path_envelope
 - skew: edge_discovery/04_screen_mean
 - skip_labels: data/pipeline
 - sl_room: tools/bracket_eval
-- slippage: edge_discovery/32_breakout_stops
+- slippage: edge_discovery/32_breakout_stops, tools/stop_grid_sim
 - small_array_bytes: data/disk_backed
 - smart-minus-retail: edge_discovery/features
 - smoke: model/selftests
@@ -1310,6 +1338,7 @@
 - source github/drive: tools/data_manifest_colab_cell, tools/fetch_history_colab_cell
 - sources: data/sources
 - spearman: signal_eval/core
+- speed: tools/stop_grid_bench
 - speirsy11: tools/fetch_crypto_dataset
 - spill: data/disk_backed
 - split: data/split
@@ -1336,6 +1365,9 @@
 - stats: edge_discovery/tsbt
 - stats_mode: model/input_norm
 - std_ic: signal_eval/windows
+- stop grid: tools/stop_grid_bench, tools/stop_grid_numba, tools/stop_grid_sim
+- stop grid 1m: stop_grid_1m/run_stop_grid_1m
+- stop grid report: tools/stop_grid_report
 - stop loss: edge_discovery/13_listing_stops, tools/bracket_eval
 - storage: data/storage
 - stress test: edge_discovery/17_h07_break
@@ -1364,6 +1396,7 @@
 - synthetic: discovery/selftest
 - synthetic data: cross_asset/selftest, data/selftests, signal_eval/selftests, workflow/wiring_selftest
 - synthetic dataset: tests/run_fixture
+- synthetic smoke: stop_grid_1m/run_stop_grid_1m
 - sys.path: tools/check_deps
 - t-stat: edge_discovery/04_screen_mean, edge_discovery/lib
 - t-statistic: indicator_strategy/screen
@@ -1374,8 +1407,9 @@
 - t_extract_*: signal_eval/selftests
 - t_ic_*: signal_eval/selftests
 - t_permutation_*: signal_eval/selftests
-- take profit: tools/bracket_eval
+- take profit: tools/bracket_eval, tools/stop_grid_sim
 - taker extremes: edge_discovery/05_events
+- taker fee: tools/stop_grid_sim
 - taker ratio: tools/intraday_features
 - taker stop orders: edge_discovery/32_breakout_stops
 - taker_z: edge_discovery/features
@@ -1400,6 +1434,7 @@
 - tensorflow: model/common
 - test: indicator_strategy/test_final
 - test auc: edge_discovery/26_h19_generalization
+- test once: stop_grid_1m/run_stop_grid_1m
 - test_all_assets: evaluation/all_assets
 - test_all_assets_v4: evaluation/__init__, evaluation/all_assets
 - test_dict: evaluation/all_assets, workflow/chicks_bridge
@@ -1430,11 +1465,12 @@
 - tp sl: edge_discovery/29_path_envelope
 - tp_room: tools/bracket_eval
 - trade engine: tools/trade_engine
-- trade log: indicator_strategy/screen, indicator_strategy/test_final, strategy_discovery/significance
+- trade log: indicator_strategy/screen, indicator_strategy/test_final, strategy_discovery/significance, tools/stop_grid_report
 - trade selection: evaluation/trade_selection
 - trade simulator: indicator_strategy/engine, tools/trade_engine
 - trades: tools/bracket_eval
 - trailing quantile baseline: tools/natr_range
+- trailing stop activation: tools/stop_grid_sim
 - trailing_close_sigma: data/normalizers
 - train<=2021 val 2022 test 2023-26: edge_discovery/27_repr_info
 - train_labels: cross_asset/report
@@ -1484,6 +1520,7 @@
 - up_share: cross_asset/report
 - update drive from github: tools/drive_sync
 - update_config: data/runtime
+- upper bound: tools/stop_grid_sim
 - use_mixed_precision: trainer/perf
 - used by: tools/implicit_deps
 - uses: tools/implicit_deps
