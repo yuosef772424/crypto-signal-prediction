@@ -112,6 +112,7 @@
 - batched predict: evaluation/predict
 - batches: workflow/batches
 - batching: cross_asset/data
+- benchmark: tools/stop_grid_bench
 - benjamini-hochberg: stop_grid_1m/run_stop_grid_1m, strategy_discovery/grid
 - best weights: trainer/best_tracker
 - bestmodeltracker: trainer/best_tracker
@@ -410,7 +411,7 @@
 - e-disc-006: strategy_discovery/significance, strategy_discovery/survivor_checks
 - e-fwd-001: strategy_discovery/forward
 - e-gate-001: gate_features/run_gate001
-- e-grid1m-001: stop_grid_1m/run_stop_grid_1m, tools/stop_grid_report, tools/stop_grid_sim
+- e-grid1m-001: stop_grid_1m/run_stop_grid_1m, tools/stop_grid_bench, tools/stop_grid_numba, tools/stop_grid_report, tools/stop_grid_sim
 - e-h07comb-1: h07_combos/01_combos
 - e-h07vs-1: h07_volsizing/01_volsizing
 - e-hedge-001: hedge_recovery/sim
@@ -444,6 +445,7 @@
 - enabled_heads: data/heads
 - encoder: model/builder
 - end condition: strategy_discovery/forward
+- engine: tools/stop_grid_bench, tools/stop_grid_numba
 - engulfing: edge_discovery/22_chart_rules
 - ensemble: h07_combos/01_combos, trainer/ensemble
 - ensemble_predict_evidential: trainer/ensemble
@@ -718,6 +720,7 @@
 - is_colab: data/drive
 - isolation forest: evaluation/patterns
 - isotonic: evaluation/trust_calibration
+- jit: tools/stop_grid_numba
 - job queue: tools/colab_runner
 - job.json: tools/colab_runner, tools/colab_smoke
 - json format: tools/nb_cells
@@ -973,7 +976,7 @@
 - null distribution: signal_eval/core
 - num_kv_heads: model/transformer
 - num_patches: model/patches
-- numba: edge_discovery/21_range_fade, edge_discovery/22_chart_rules
+- numba: edge_discovery/21_range_fade, edge_discovery/22_chart_rules, tools/stop_grid_bench, tools/stop_grid_numba
 - numpy: model/common
 - ohlc: tools/fetch_crypto_dataset
 - ohlcv: data/features
@@ -1023,6 +1026,7 @@
 - parallel: data/parallel, discovery/batch_runner
 - param_variants: discovery/survey
 - paramscheduler: trainer/schedules
+- parity: tools/stop_grid_bench, tools/stop_grid_numba
 - parquet: edge_discovery/data_tools/build_panel
 - partial ic: cross_asset/report
 - pass: signal_eval/selftests
@@ -1316,6 +1320,7 @@
 - simulate_equity_curve: evaluation/tearsheet
 - simulate_rr_trades: workflow/selective_eval
 - simulation: tools/stop_grid_sim
+- simulation speed: tools/stop_grid_numba
 - single source: core/__init__
 - single touch: edge_discovery/14_holdout
 - size vs direction: edge_discovery/29_path_envelope
@@ -1333,6 +1338,7 @@
 - source github/drive: tools/data_manifest_colab_cell, tools/fetch_history_colab_cell
 - sources: data/sources
 - spearman: signal_eval/core
+- speed: tools/stop_grid_bench
 - speirsy11: tools/fetch_crypto_dataset
 - spill: data/disk_backed
 - split: data/split
@@ -1359,7 +1365,7 @@
 - stats: edge_discovery/tsbt
 - stats_mode: model/input_norm
 - std_ic: signal_eval/windows
-- stop grid: tools/stop_grid_sim
+- stop grid: tools/stop_grid_bench, tools/stop_grid_numba, tools/stop_grid_sim
 - stop grid 1m: stop_grid_1m/run_stop_grid_1m
 - stop grid report: tools/stop_grid_report
 - stop loss: edge_discovery/13_listing_stops, tools/bracket_eval

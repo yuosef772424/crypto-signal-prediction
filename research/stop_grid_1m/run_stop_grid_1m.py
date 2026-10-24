@@ -7,7 +7,8 @@ PURPOSE:  E-grid1m-001 runner: the owner's stop-order grid on 1-minute bars, tes
           cards/E-grid1m-001.md (results/verdict.json).
 TAGS:     stop grid 1m, E-grid1m-001, dev grid, frozen config, test once, sign-flip null, random walk null, Benjamini-Hochberg,
           Bonferroni, accept rule, coin selection, synthetic smoke
-PITFALLS: SPEED knobs never change a number: signal caches (always on, bit-identical), `--null-draws N`
+PITFALLS: SPEED knobs never change a number: signal caches (always on, bit-identical), `--engine numba` (opt-in JIT of the same
+          event loop, default python; raises if numba is missing; verify with tools/stop_grid_bench.py --parity), `--null-draws N`
           (default 20 per kind; fewer = faster but a noisier null p95 for the accept rule: use the default for the verdict run) and
           `--jobs` (DEV scan and null draws run in forked workers, results in the same order). `--smoke` uses SYNTHETIC martingale data: its numbers are a pipeline check, never evidence. TEST is opened once: a
           second run refuses to overwrite results/test_frozen.csv (use --force-test only for a documented new config). The
@@ -18,7 +19,8 @@ Usage:
     python research/stop_grid_1m/run_stop_grid_1m.py --data /content/drive/MyDrive/history_1m [--jobs 2] [--out research/stop_grid_1m/results]
     python research/stop_grid_1m/run_stop_grid_1m.py --data <dir> --signal-tf 5m --out <NEW dir>   # gates on 5m bars, execution 1m (new config family)
     python research/stop_grid_1m/run_stop_grid_1m.py --smoke          # synthetic, 2 weeks, 5+ coins, writes to a temp dir
-    python research/stop_grid_1m/run_stop_grid_1m.py --data <dir> --jobs 2 --null-draws 5   # exploration: fewer null draws (the verdict run keeps the default 20)
+    python tools/stop_grid_bench.py --parity                           # once per runtime BEFORE using --engine numba (exit code != 0 on mismatch)
+    python research/stop_grid_1m/run_stop_grid_1m.py --data <dir> --jobs 2 --engine numba   # same numbers, faster (needs numba); --null-draws 5 for exploration
     # trade log + event log + report of an ALREADY FROZEN config (no grid re-run; never touches test_frozen.csv / verdict.json):
     python research/stop_grid_1m/run_stop_grid_1m.py --data <dir> --out <earlier out> --report-only [--report-scope dev|test|both] [--log-events]
     python research/stop_grid_1m/run_stop_grid_1m.py --data <dir> --out <earlier out> --report-only --config-json cfg.json   # explicit config: not frozen, not evidence
@@ -136,9 +138,10 @@ def prewarm(windows, key_prefix, grid=None, nulls=False):
 
 
 # --------------------------------------------------------------------------- evaluation of one config on one window set
-def evaluate(cfg, windows, key_prefix, cache_gates=True):
+def evaluate(cfg, windows, key_prefix, cache_gates=True, engine="python"):
     """windows: {coin: arrays}. Per coin both orderings; pooled by ordering; LB = the ordering with the lower pooled mean net.
-    ``cache_gates``: reuse the per-coin SignalCache named by ``key_prefix`` (off for the nulls: their prices differ per draw)."""
+    ``cache_gates``: reuse the per-coin SignalCache named by ``key_prefix`` (off for the nulls: their prices differ per draw).
+    ``engine``: 'python' (default) or 'numba' (same numbers, see tools/stop_grid_numba.py)."""
     per = {od: [] for od in sg.ORDERINGS}
     coin_stats = {od: {} for od in sg.ORDERINGS}
     tim = {od: [] for od in sg.ORDERINGS}
@@ -149,7 +152,7 @@ def evaluate(cfg, windows, key_prefix, cache_gates=True):
         gate = sg.gate_array(a["ts"], a["o"], a["h"], a["l"], a["c"], cfg, cache=cc)
         n_days = (a["ts"][-1] - a["ts"][0]) / sg.MS_DAY
         for od in sg.ORDERINGS:
-            d = sg.simulate(a["ts"], a["o"], a["h"], a["l"], a["c"], cfg, od, gate)
+            d = sg.simulate(a["ts"], a["o"], a["h"], a["l"], a["c"], cfg, od, gate, engine=engine)
             d = d.assign(coin=coin, exit_ts=a["ts"][d["exit_bar"].to_numpy(dtype=int)] if len(d) else np.array([], dtype="int64"))
             per[od].append(d)
             s = sg.summarize(d, len(a["ts"]), n_days)
@@ -216,12 +219,12 @@ _DEV = {}
 
 def _dev_task(i):
     name, cfg = _DEV["grid"][i]
-    row, _ = evaluate(cfg, _DEV["windows"], "dev")
+    row, _ = evaluate(cfg, _DEV["windows"], "dev", engine=_DEV["engine"])
     return {"name": name, **cfg_fields(cfg), **row}
 
 
-def scan_dev(grid, dev, jobs):
-    _DEV["grid"], _DEV["windows"] = grid, dev
+def scan_dev(grid, dev, jobs, engine="python"):
+    _DEV["grid"], _DEV["windows"], _DEV["engine"] = grid, dev, engine
     t0 = time.time()
     prewarm(dev, "dev", grid)                              # gate series once in the parent: forked workers inherit them
     rows = []
@@ -252,14 +255,14 @@ def _null_task(task):
     for j, (coin, a) in enumerate(_NULL["test"].items()):
         o, h, l, c = fn(a["ts"], a["o"], a["h"], a["l"], a["c"], 1000 + 100 * k + j, cache=coin_cache(("test", coin), a))
         w[coin] = {"ts": a["ts"], "o": o, "h": h, "l": l, "c": c}
-    r, _ = evaluate(_NULL["cfg"], w, None, cache_gates=False)
+    r, _ = evaluate(_NULL["cfg"], w, None, cache_gates=False, engine=_NULL["engine"])
     return {"null": kind, "draw": k, **{x: r[x] for x in ("trades_lb", "gross_lb", "gross_noslip_lb", "net_lb", "net_ub", "t_lb")}}
 
 
-def null_runs(cfg, test, draws, jobs=1):
+def null_runs(cfg, test, draws, jobs=1, engine="python"):
     """``draws`` sign-flip + ``draws`` random-walk nulls on the TEST window. Draw k uses the same seeds whatever ``draws`` is (a smaller
     ``--null-draws`` is a prefix of the default one). ``jobs`` > 1: draws run in forked workers (rows come back in the serial order)."""
-    _NULL["cfg"], _NULL["test"] = cfg, test
+    _NULL["cfg"], _NULL["test"], _NULL["engine"] = cfg, test, engine
     prewarm(test, "test", nulls=True)                      # relative bars of the real coins, once, before any fork
     tasks = [(kind, k) for kind, _ in NULL_KINDS for k in range(draws)]
     if jobs > 1 and "fork" in mp.get_all_start_methods():
@@ -284,9 +287,10 @@ def accept_rule(real_1x, real_2x, null_df):
 
 
 # --------------------------------------------------------------------------- trade log / event log / report (descriptive, additive)
-def trade_log(cfg, windows, split, want_events=False, events_max=2_000_000, cost_mults=(1.0, 2.0)):
+def trade_log(cfg, windows, split, want_events=False, events_max=2_000_000, cost_mults=(1.0, 2.0), engine="python"):
     """Re-simulate ``cfg`` on ``windows`` with recording on. Returns (trades_df, events_df, bar_stats). ordering = lb/ub by the pooled
-    mean net per cost multiple (same rule as evaluate()); ordering_raw = hl/lh. Events are logged at 1x cost only."""
+    mean net per cost multiple (same rule as evaluate()); ordering_raw = hl/lh. Events are logged at 1x cost only (the numba engine has
+    no event log: a run that logs events uses the python engine for that run, same trades either way)."""
     trades, events, left = [], [], int(events_max)
     caches = {coin: sg.SignalCache(a["ts"], a["o"], a["h"], a["l"], a["c"]) for coin, a in windows.items() if len(a["ts"]) >= 200}
     for cm in cost_mults:
@@ -298,7 +302,8 @@ def trade_log(cfg, windows, split, want_events=False, events_max=2_000_000, cost
             gate = sg.gate_array(a["ts"], a["o"], a["h"], a["l"], a["c"], c, cache=caches[coin])
             for od in sg.ORDERINGS:
                 ev = [] if (want_events and cm == 1.0 and left > 0) else None
-                d = sg.simulate(a["ts"], a["o"], a["h"], a["l"], a["c"], c, od, gate, record=True, events=ev, event_max=max(left, 1))
+                d = sg.simulate(a["ts"], a["o"], a["h"], a["l"], a["c"], c, od, gate, record=True, events=ev, event_max=max(left, 1),
+                                engine="python" if ev is not None else engine)
                 runs[od].append((coin, a, d))
                 if ev:
                     left -= len(ev)
@@ -336,7 +341,7 @@ def write_report(rdir, cfg, windows_by_split, header, args, nulls=None, real_net
     os.makedirs(rdir, exist_ok=True)
     all_tr, all_ev, reps, md = [], [], {}, []
     for split, windows in windows_by_split.items():
-        tdf, edf, bar_stats = trade_log(cfg, windows, split, args.log_events, args.log_events_max)
+        tdf, edf, bar_stats = trade_log(cfg, windows, split, args.log_events, args.log_events_max, engine=args.engine)
         all_tr.append(tdf)
         if len(edf):
             all_ev.append(edf)
@@ -433,6 +438,8 @@ def main(argv=None):
                     help="timeframe of ALL gate indicators (execution stays 1m). 5m = a NEW configuration family: use a NEW --out")
     ap.add_argument("--top", type=int, default=5)
     ap.add_argument("--jobs", type=int, default=1, help="forked workers for the DEV scan and the null draws (results identical for any value)")
+    ap.add_argument("--engine", choices=sg.ENGINES, default="python",
+                    help="simulation engine: python (default, reference) or numba (opt-in JIT, same trade table, needs numba; run tools/stop_grid_bench.py --parity once per runtime)")
     ap.add_argument("--null-draws", type=int, default=20, help="draws per null kind (default 20 = 40 null runs); fewer is a prefix of the same draws but a noisier p95 for the accept rule")
     ap.add_argument("--min-trades", type=int, default=300, help="DEV: a config needs this many pooled trades to be freezable")
     ap.add_argument("--min-quote-volume", type=float, default=20_000.0)
@@ -445,6 +452,12 @@ def main(argv=None):
     ap.add_argument("--no-report", action="store_true", help="skip the trade-log report after the normal flow")
     ap.add_argument("--force-test", action="store_true", help="overwrite an existing test_frozen.csv (only for a documented new config)")
     args = ap.parse_args(argv)
+    try:
+        sg.require_engine(args.engine)
+    except RuntimeError as e:
+        ap.error(str(e))
+    if args.engine == "numba":
+        print(f"engine numba: JIT ready in {sg.warmup_numba():.1f}s (compile or on-disk cache)", flush=True)
 
     t0 = time.time()
     tmp = None
@@ -505,7 +518,7 @@ def main(argv=None):
     # 3. DEV grid
     grid = build_grid(args.smoke, args.signal_tf)
     print(f"DEV grid: {len(grid)} configs x {len(sel)} coins x 2 orderings", flush=True)
-    dev_df = scan_dev(grid, dev, args.jobs)
+    dev_df = scan_dev(grid, dev, args.jobs, args.engine)
     dev_df = add_multiple_testing(dev_df)
     dev_df.to_csv(os.path.join(out, "dev_grid.csv"), index=False)
     ok = dev_df[dev_df["trades_lb"] >= args.min_trades]
@@ -533,21 +546,21 @@ def main(argv=None):
     rows, trades_1x = [], None
     res = {}
     for mult in (1.0, 2.0):
-        r, tr = evaluate(cfg.scaled_costs(mult), test, "test")
+        r, tr = evaluate(cfg.scaled_costs(mult), test, "test", engine=args.engine)
         res[mult] = r
         rows.append({"scope": "pooled", "cost_mult": mult, "config": best["name"], **r})
         if mult == 1.0:
             trades_1x = tr
     # per-coin rows (1x), same global LB ordering
     for coin in sel:
-        r, _ = evaluate(cfg, {coin: test[coin]}, "test")
+        r, _ = evaluate(cfg, {coin: test[coin]}, "test", engine=args.engine)
         rows.append({"scope": coin, "cost_mult": 1.0, "config": best["name"], **r})
     test_df = pd.DataFrame(rows)
     test_df.to_csv(test_path, index=False)
     if trades_1x is not None and len(trades_1x):
         trades_1x.to_csv(os.path.join(out, "test_trades_lb.csv.gz"), index=False, compression="gzip")
     print(f"nulls: {args.null_draws} sign-flip + {args.null_draws} random-walk draws x {len(sel)} coins", flush=True)
-    nul = null_runs(cfg, test, args.null_draws, args.jobs)
+    nul = null_runs(cfg, test, args.null_draws, args.jobs, args.engine)
     nul.to_csv(os.path.join(out, "nulls.csv"), index=False)
     verdict = accept_rule(res[1.0], res[2.0], nul)
     verdict.update({"synthetic": bool(args.smoke), "config": best["name"], "signal_tf": cfg.signal_tf, "frozen_sha256": frozen["sha256"],

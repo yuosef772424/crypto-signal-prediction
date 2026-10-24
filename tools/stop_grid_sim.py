@@ -609,7 +609,7 @@ RECORD_COLUMNS = ["trigger_px", "entry_px", "exit_px", "fee_bp", "slip_bp", "mfe
 
 
 def _frame(rows, extra, rec, ts) -> pd.DataFrame:
-    """Trade table of one run from the closed-parent rows (and the record columns when ``rec``). Built once for the simulator."""
+    """Trade table of one run from the closed-parent rows (and the record columns when ``rec``). Shared by both engines."""
     df = pd.DataFrame(rows, columns=TRADE_COLUMNS)
     df.insert(0, "entry_ts", ts[df["entry_bar"].to_numpy(dtype=int)] if len(df) else np.array([], dtype="int64"))
     if rec:
@@ -622,16 +622,75 @@ def _frame(rows, extra, rec, ts) -> pd.DataFrame:
 EVENT_COLUMNS = ["bar", "event", "side", "level", "price", "qty", "reason"]
 
 
+ENGINES = ("python", "numba")
+
+
+def numba_available() -> bool:
+    try:
+        _numba_module()
+        return True
+    except RuntimeError:
+        return False
+
+
+def _numba_module():
+    """The optional JIT engine module (tools/stop_grid_numba.py). Raises RuntimeError when numba is missing: never a silent fallback."""
+    try:
+        import stop_grid_numba as m
+    except ModuleNotFoundError as e:
+        if e.name == "stop_grid_numba":             # tools/ not on sys.path: load the sibling file
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("stop_grid_numba", os.path.join(os.path.dirname(os.path.abspath(__file__)), "stop_grid_numba.py"))
+            m = importlib.util.module_from_spec(spec)
+            try:
+                spec.loader.exec_module(m)
+            except ImportError as e2:
+                raise RuntimeError(f"engine='numba' needs numba ({e2}); install it (pip install numba) or use engine='python'") from e2
+            return m
+        raise RuntimeError(f"engine='numba' needs numba ({e}); install it (pip install numba) or use engine='python'") from e
+    except ImportError as e:
+        raise RuntimeError(f"engine='numba' needs numba ({e}); install it (pip install numba) or use engine='python'") from e
+    return m
+
+
+def require_engine(engine: str) -> str:
+    """Validate an engine name (and that numba is importable for 'numba'); returns it. Unknown names raise ValueError."""
+    if engine not in ENGINES:
+        raise ValueError(f"engine {engine!r} not in {ENGINES}")
+    if engine == "numba":
+        _numba_module()
+    return engine
+
+
+def warmup_numba() -> float:
+    """Compile (or load from the on-disk cache) the JIT engine on a tiny run; returns the seconds it took."""
+    import time
+    t0 = time.time()
+    ts, o, h, l, c = synth_ohlc(300, 1, daily_vol=0.03)
+    simulate(ts, o, h, l, c, GridConfig(), "hl", engine="numba", record=True)
+    return time.time() - t0
+
+
 def simulate(ts, o, h, l, c, cfg: GridConfig, order: str = "hl", gate: Optional[np.ndarray] = None,
              return_stats: bool = False, record: bool = False, events: Optional[list] = None, event_max: int = 2_000_000,
-             cache: Optional[SignalCache] = None):
+             engine: str = "python", cache: Optional[SignalCache] = None):
     """One run with ONE intrabar ordering ('hl' = O-H-L-C, 'lh' = O-L-H-C). ``gate``: bool per bar, default computed from cfg.
     ``record=True`` appends trade columns (trigger_px, entry_px, exit_px, fee_bp, slip_bp, mfe_bp, mae_bp, gap_fill, rebuild_id,
     concurrent, exit_ts) AFTER the usual ones; ``events`` (a list) collects EVENT_COLUMNS tuples up to ``event_max``. Pure
     observation: the trades and every summary metric are identical with or without them.
-    ``cache``: optional SignalCache of the same bars (only used to get the default gate)."""
+    ``engine``: 'python' (default, the reference) or 'numba' (opt-in JIT of the same event loop: same trade table; no ``events``
+    support; raises when numba is missing). ``cache``: optional SignalCache of the same bars (only used to get the default gate)."""
+    require_engine(engine)
+    if order not in ORDERINGS + DIAG_ORDERINGS:
+        raise ValueError(f"order must be one of {ORDERINGS + DIAG_ORDERINGS}")
     if gate is None:
         gate = gate_array(ts, o, h, l, c, cfg, cache=cache)
+    if engine == "numba":
+        if events is not None:
+            raise ValueError("engine='numba' does not support the events log: use engine='python' with events")
+        rows, extra, stats = _numba_module().simulate_raw(ts, o, h, l, c, cfg, order, gate, record)
+        df = _frame(rows, extra, record, np.asarray(ts, dtype="int64"))
+        return (df, stats) if return_stats else df
     sim = _Sim(ts, o, h, l, c, cfg, order, gate, record, events, event_max)
     df = sim.run()
     return (df, sim.stats) if return_stats else df
@@ -720,8 +779,9 @@ def summarize(trades: pd.DataFrame, n_bars: int, n_days: float) -> dict:
             "fills_per_day": float(n / max(n_days, 1e-9))}
 
 
-def run_both(ts, o, h, l, c, cfg: GridConfig, gate: Optional[np.ndarray] = None, cache: Optional[SignalCache] = None) -> dict:
-    """Both intrabar orderings (``cache`` as in ``simulate``). LB = the ordering with the lower mean net bp per trade, UB = the higher.
+def run_both(ts, o, h, l, c, cfg: GridConfig, gate: Optional[np.ndarray] = None, engine: str = "python",
+             cache: Optional[SignalCache] = None) -> dict:
+    """Both intrabar orderings (``engine`` / ``cache`` as in ``simulate``). LB = the ordering with the lower mean net bp per trade, UB = the higher.
     Returns {'LB': summary, 'UB': summary, 'LB_order', 'UB_order', 'trades': {'hl': df, 'lh': df}, 'n_bars', 'n_days'}."""
     ts = np.asarray(ts, dtype="int64")
     if gate is None:
@@ -729,7 +789,7 @@ def run_both(ts, o, h, l, c, cfg: GridConfig, gate: Optional[np.ndarray] = None,
     n_days = (ts[-1] - ts[0]) / MS_DAY if len(ts) > 1 else 0.0
     out, summ = {}, {}
     for od in ORDERINGS:
-        out[od] = simulate(ts, o, h, l, c, cfg, od, gate)
+        out[od] = simulate(ts, o, h, l, c, cfg, od, gate, engine=engine)
         summ[od] = summarize(out[od], len(ts), n_days)
     key = lambda od: (summ[od]["net_bp"] if summ[od]["trades"] else 0.0)  # noqa: E731
     lb, ub = sorted(ORDERINGS, key=key)
