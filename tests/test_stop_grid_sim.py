@@ -5,6 +5,7 @@ SYNTHETIC data only: nothing here is evidence about real markets.
     python -m pytest tests/test_stop_grid_sim.py -q
 """
 import gzip
+import math
 import os
 import sys
 import tempfile
@@ -642,11 +643,20 @@ class TestPinnedMetricsAndRecording(unittest.TestCase):
     """Summary metrics and the full trade table of several configs were captured BEFORE the recording hooks were added
     (tests/stop_grid_sim_pinned_metrics.json): the hooks must change nothing, and recording on/off must agree."""
 
-    def test_pinned_summary_and_trade_hash(self):
+    @staticmethod
+    def _assert_close(got, want, msg):
+        """Floats may differ in the last digits between numpy builds; everything else is compared exactly."""
+        if isinstance(want, float) and isinstance(got, float):
+            assert math.isclose(got, want, rel_tol=1e-9, abs_tol=1e-9), f"{msg}: {got!r} != {want!r}"
+        else:
+            assert got == want, f"{msg}: {got!r} != {want!r}"
+
+    @staticmethod
+    def _pinned_cases():
+        """Yield (key, summary-with-hashes) for every pinned case. ``hash`` is the raw trade-table hash (bit-exact: only
+        stable on one numpy build and CPU); ``hash_r`` hashes the table rounded to 6 decimals (portable across builds)."""
         import hashlib
         import json
-        pinned = json.load(open(os.path.join(ROOT, "tests", "stop_grid_sim_pinned_metrics.json")))
-        got = {}
         for seed, vol in ((11, 0.04), (12, 0.07)):
             f, ts, o, h, l, c = _pin_data(seed, vol)
             for name, kw in PIN_CFGS.items():
@@ -655,10 +665,35 @@ class TestPinnedMetricsAndRecording(unittest.TestCase):
                     d = r["trades"][od]
                     s = sg.summarize(d, len(ts), r["n_days"])
                     s["hash"] = hashlib.sha256(d.to_csv(index=False).encode()).hexdigest()[:16]
-                    got[f"{seed}|{name}|{od}"] = json.loads(json.dumps(s, default=lambda x: None if x != x else x))
+                    s["hash_r"] = hashlib.sha256(d.round(6).to_csv(index=False).encode()).hexdigest()[:16]
+                    yield f"{seed}|{name}|{od}", json.loads(json.dumps(s, default=lambda x: None if x != x else x))
+
+    def test_pinned_summary_and_trade_hash(self):
+        import json
+        pinned = json.load(open(os.path.join(ROOT, "tests", "stop_grid_sim_pinned_metrics.json")))
+        got = dict(self._pinned_cases())
         self.assertEqual(sorted(got), sorted(pinned))
+        strict = os.environ.get("PINNED_STRICT_HASH") == "1"   # bit-exact raw hash only on the machine that pinned it
+        problems = []
         for k in pinned:
-            self.assertEqual(got[k], pinned[k], k)
+            g, p = dict(got[k]), dict(pinned[k])
+            if not strict:
+                g.pop("hash", None)
+                p.pop("hash", None)
+            # A degenerate sample (all trades with the same return) has a standard error of floating-point noise, so
+            # t_net is astronomically large and differs between numpy builds: compare only its sign there.
+            tg, tp = g.pop("t_net", None), p.pop("t_net", None)
+            try:
+                if tp is not None and abs(tp) > 1e9:
+                    assert tg is not None and abs(tg) > 1e9 and (tg > 0) == (tp > 0), f"{k}:t_net {tg!r} vs {tp!r}"
+                else:
+                    self._assert_close(tg, tp, f"{k}:t_net")
+                assert sorted(g) == sorted(p), f"{k}: fields {sorted(g)} != {sorted(p)}"
+                for f in p:
+                    self._assert_close(g[f], p[f], f"{k}:{f}")
+            except AssertionError as e:
+                problems.append(str(e))
+        self.assertEqual(problems, [], "pinned metrics changed (all mismatches listed)")
 
     def test_recording_does_not_change_trades_and_adds_columns(self):
         f, ts, o, h, l, c = _pin_data(11, 0.04)
