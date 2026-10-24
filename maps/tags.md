@@ -246,6 +246,7 @@
 - compute_loss: trainer/trainer
 - compute_trading_performance_metrics: evaluation/tearsheet
 - concat_splits: signal_eval/integration
+- concentration: tools/stop_grid_report
 - confidence: evaluation/trust_calibration, workflow/selective_eval
 - confidencehead: model/nig_layers
 - config: data/__init__, data/runtime
@@ -358,7 +359,7 @@
 - diagnose_feature_availability: data/diagnostics
 - diagnose_model: model/diagnostics
 - diagnostic: edge_discovery/23_chart_rules_gross
-- diagnostics: data/diagnostics, workflow/diagnostics
+- diagnostics: data/diagnostics, tools/stop_grid_report, workflow/diagnostics
 - diagnostics callback: trainer/training_diagnostics
 - dip buying: edge_discovery/09_market_flush
 - direction accuracy: evaluation/metrics
@@ -381,7 +382,7 @@
 - dose-response: edge_discovery/10_flush_curve
 - download history: tools/fetch_crypto_dataset, tools/fetch_history_colab_cell, tools/fetch_history_csv_concurrent, tools/fetch_history_vision_colab
 - download_notebook_from_drive: signal_eval/bootstrap
-- drawdown: evaluation/tearsheet
+- drawdown: evaluation/tearsheet, tools/stop_grid_report
 - drift: natr_range/run_natr_rolling
 - drive: data/storage, tools/drive_sync, tools/trim_dead_tails, tools/trim_dead_tails_colab_job
 - drive bootstrap: signal_eval/bootstrap
@@ -409,7 +410,7 @@
 - e-disc-006: strategy_discovery/significance, strategy_discovery/survivor_checks
 - e-fwd-001: strategy_discovery/forward
 - e-gate-001: gate_features/run_gate001
-- e-grid1m-001: stop_grid_1m/run_stop_grid_1m, tools/stop_grid_sim
+- e-grid1m-001: stop_grid_1m/run_stop_grid_1m, tools/stop_grid_report, tools/stop_grid_sim
 - e-h07comb-1: h07_combos/01_combos
 - e-h07vs-1: h07_volsizing/01_volsizing
 - e-hedge-001: hedge_recovery/sim
@@ -569,6 +570,7 @@
 - futures_metrics folder: edge_discovery/data_tools/folder_index
 - g2: gate_features/run_gate001, tools/gate_features
 - gap: workflow/generalization
+- gap fill: tools/stop_grid_report
 - gap report: tools/evaluate_trained_model
 - gaps report: tools/fetch_history_vision_colab
 - gate: indicator_strategy/engine, tools/gate_features, tools/trade_engine
@@ -759,6 +761,7 @@
 - leakage check: workflow/permutation_control
 - learning curve: gate_features/run_gate001
 - learning_curve: workflow/capacity
+- leave one coin out: tools/stop_grid_report
 - ledger: tools/experiment_registry, tools/h07_forward, tools/touched_ledger
 - legacy report: evaluation/legacy_assets, evaluation/legacy_uncertainty
 - length_sweep: discovery/survey
@@ -966,6 +969,7 @@
 - notebooks: tools/build_map
 - npy_dir: data/storage
 - nu: model/nig_layers
+- null comparison: tools/stop_grid_report
 - null distribution: signal_eval/core
 - num_kv_heads: model/transformer
 - num_patches: model/patches
@@ -1096,7 +1100,7 @@
 - print_trade_selection: evaluation/trade_selection
 - print_verdicts: model/diagnostics
 - process_windows: data/normalize
-- profit factor: indicator_strategy/screen
+- profit factor: indicator_strategy/screen, tools/stop_grid_report
 - profit target: hedge_recovery/sim2
 - projectsettings: workflow/settings
 - provenance: tools/touched_ledger
@@ -1112,6 +1116,7 @@
 - quarterly consistency: edge_discovery/01_screen
 - quintile spread: edge_discovery/04_screen_mean
 - quintiles: edge_discovery/03_quintiles
+- quote volume bucket: tools/stop_grid_report
 - r multiple: edge_discovery/22_chart_rules, indicator_strategy/engine, tools/trade_engine
 - r0: tools/build_lock, tools/data_manifest, tools/data_manifest_colab_cell, tools/holdout_guard, tools/touched_ledger
 - r3: natr_range/freeze_rules, natr_range/run_natr_calibrate, natr_range/run_natr_confirm, natr_range/run_natr_confirm_forward, natr_range/run_natr_range, natr_range/run_natr_rolling … (+1)
@@ -1249,6 +1254,7 @@
 - sample size guard: strategy_discovery/oos, strategy_discovery/survivor_checks
 - sample_filters: data/windows
 - sample_idx_key: trainer/training_diagnostics
+- sanity flags: tools/stop_grid_report
 - sar: tools/gate_features
 - save load: model/selftests
 - save_config: data/runtime
@@ -1355,6 +1361,7 @@
 - std_ic: signal_eval/windows
 - stop grid: tools/stop_grid_sim
 - stop grid 1m: stop_grid_1m/run_stop_grid_1m
+- stop grid report: tools/stop_grid_report
 - stop loss: edge_discovery/13_listing_stops, tools/bracket_eval
 - storage: data/storage
 - stress test: edge_discovery/17_h07_break
@@ -1452,7 +1459,7 @@
 - tp sl: edge_discovery/29_path_envelope
 - tp_room: tools/bracket_eval
 - trade engine: tools/trade_engine
-- trade log: indicator_strategy/screen, indicator_strategy/test_final, strategy_discovery/significance
+- trade log: indicator_strategy/screen, indicator_strategy/test_final, strategy_discovery/significance, tools/stop_grid_report
 - trade selection: evaluation/trade_selection
 - trade simulator: indicator_strategy/engine, tools/trade_engine
 - trades: tools/bracket_eval
