@@ -1,12 +1,24 @@
 """
 PURPOSE:  Bridge from model heads to trainer_framework targets: build_target_configs (true_key vs output_keys, derived from core.heads.HeadSet) and the naive majority-class baseline for val_accuracy.
-TAGS:     build_target_configs, true_key, output_keys, label_smoothing, class_baselines, _naive_class_baseline, trainer targets
+TAGS:     build_target_configs, build_head_set, loss_weights, true_key, output_keys, label_smoothing, class_baselines, _naive_class_baseline, trainer targets
 PITFALLS: Pipeline labels are +1/-1 (batches._to_unit_label converts to {0,1} at feed time); the names come from core/heads.py HeadSet (the one place where data keys and model output keys are tied together). Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cells 15 and 17 (section 5).
 """
 from core.heads import HeadSet as _HeadSet
+from core.loss_plan import check_loss_weights as _check_loss_weights
 
 
-def build_target_configs(price_targets, label_smoothing=0.0, class_only=False):
+def build_head_set(price_targets, label_smoothing=0.0, class_only=False, loss_weights=None):
+    """The HeadSet a run trains: today's heads for ``price_targets`` with the loss plan's static weights applied
+    (``loss_weights`` = ``RunSettings.train.loss.weights``, ``{head name: weight}``; an unknown head raises). The one place
+    ``train.loss`` weights enter a head (``HeadSet.with_loss_weights``); build_target_configs and the selection-metric check
+    both read it."""
+    heads = _HeadSet.default(price_targets, class_only=class_only, label_smoothing=label_smoothing)
+    if not loss_weights:
+        return heads
+    return heads.with_loss_weights(_check_loss_weights(loss_weights, heads, "loss weights of the plan (train.loss.weights)"))
+
+
+def build_target_configs(price_targets, label_smoothing=0.0, class_only=False, loss_weights=None):
     """يبني قسم targets لإعداد trainer_framework — رأسا انحدار وتصنيف معاً
     لكل هدف، مطابقة لِما ينتجه build_model_fn الآن افتراضياً (class_only: رؤوس
     التصنيف وحدها). مشتقّ من ``core.heads.HeadSet.default`` — المصدر الوحيد لأسماء
@@ -18,8 +30,11 @@ def build_target_configs(price_targets, label_smoothing=0.0, class_only=False):
     y_{t}_confidence التي تعرضها chicks أوزاناً عشوائية غير مُدرَّبة (يضيفهما HeadKind nig_regression).
 
     label_smoothing: لرؤوس التصنيف (مقاومة الحفظ، PR #7) — تسمية اتجاه عائد شبه صفري ضجيج خالص، وبلا تنعيم
-    تدفع BCE النموذجَ لحفظها بثقة كاملة."""
-    return _HeadSet.default(price_targets, class_only=class_only, label_smoothing=label_smoothing).target_configs()
+    تدفع BCE النموذجَ لحفظها بثقة كاملة.
+
+    loss_weights: أوزان الخسارة الثابتة {اسم الرأس: وزن} من خطة الخسارة (RunSettings.train.loss.weights)؛ رأس مجهول يرفع
+    ValueError؛ None/{} = الأوزان الافتراضية (لا يُكتب loss_weight)."""
+    return build_head_set(price_targets, label_smoothing, class_only, loss_weights).target_configs()
 
 
 import numpy as np

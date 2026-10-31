@@ -43,6 +43,11 @@ class DefaultsAreTheOldNotebookValues(unittest.TestCase):
             if section == "panel_presets":
                 continue
             got = getattr(s, section).to_dict()
+            if section == "train":
+                # the old notebook globals that moved into the loss plan (train.loss, PR 9): same values, new home
+                loss = got["loss"]
+                got.update(lambda_reg=loss["schedules"]["lambda_reg"], lambda_calib=loss["schedules"]["lambda_calib"],
+                           use_uncertainty_weighting=loss["balancing"] == "kendall")
             want = dict(want)
             if section == "panel":
                 want["baseline"] = "auto" if want["baseline"] == "model" else want["baseline"]   # "model" when RUN_MAIN_TRAINING (default)
@@ -52,7 +57,7 @@ class DefaultsAreTheOldNotebookValues(unittest.TestCase):
             extra = set(got) - set(want)
             self.assertLessEqual(extra, {"fit_verbose", "early_stopping_patience", "split_dates", "model_tfs", "group_freq",
                                          "mn_quantiles", "mn_universe", "config_overrides", "suspended_targets",
-                                         "trivial_baseline", "seed", "calibration_source"}, section)
+                                         "trivial_baseline", "seed", "calibration_source", "loss"}, section)
 
     def test_panel_presets_are_the_recorded_ones(self):
         ns = _ns()
@@ -67,7 +72,7 @@ class DefaultsAreTheOldNotebookValues(unittest.TestCase):
         sections = ns["RunSettings"].SECTIONS
         self.assertEqual(list(sections), ["project", "data", "target", "model", "train", "evaluation", "panel"])
         self.assertEqual({n: len(c.field_names()) for n, c in sections.items()},
-                         {"project": 1, "data": 7, "target": 4, "model": 3, "train": 15, "evaluation": 8, "panel": 20})
+                         {"project": 1, "data": 7, "target": 4, "model": 3, "train": 13, "evaluation": 8, "panel": 20})
 
 
 class Strictness(unittest.TestCase):
@@ -102,8 +107,8 @@ class Strictness(unittest.TestCase):
         self.assertEqual((t.train.epochs, t.target.target_mode, t.train.batch_size), (5, "relative", 64))
         # dict-valued defaults are never shared between instances
         a, b = ns["TrainSettings"](), ns["TrainSettings"]()
-        a.lambda_reg["end"] = 9.0
-        self.assertEqual(b.lambda_reg["end"], 0.05)
+        a.loss.schedules["lambda_reg"]["end"] = 9.0
+        self.assertEqual(b.loss.schedules["lambda_reg"]["end"], 0.05)
 
     def test_roundtrip(self):
         ns = _ns()

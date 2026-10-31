@@ -61,9 +61,10 @@ def variants():
         ("class_only_am_off", {"model": {"class_only": True, "anti_memorization": False}}),
         ("label_smoothing_zero", {"train": {"anti_memorization_label_smoothing": 0.0}}),
         ("label_smoothing_03", {"train": {"anti_memorization_label_smoothing": 0.3}}),
-        ("no_kendall", {"train": {"use_uncertainty_weighting": False}}),
-        ("lambda_schedules", {"train": {"lambda_reg": {"start": 0.0, "end": 0.2, "warmup_epochs": 9, "schedule": "sqrt"},
-                                        "lambda_calib": {"start": 0.01, "end": 0.01, "warmup_epochs": 0, "schedule": "linear"}}}),
+        ("no_kendall", {"train": {"loss": {"balancing": "static"}}}),
+        ("lambda_schedules", {"train": {"loss": {"schedules": {
+            "lambda_reg": {"start": 0.0, "end": 0.2, "warmup_epochs": 9, "schedule": "sqrt"},
+            "lambda_calib": {"start": 0.01, "end": 0.01, "warmup_epochs": 0, "schedule": "linear"}}}}}),
         ("anti_memorization_trainer_override", {"train": {"anti_memorization_trainer": {"optimizer": {"lr_initial": 1e-4}}}}),
         ("target_return", {"target": {"target_mode": "return"}}),
         ("target_relative", {"target": {"target_mode": "relative"}}),

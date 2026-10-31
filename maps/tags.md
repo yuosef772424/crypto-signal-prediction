@@ -104,6 +104,7 @@
 - available_features: data/features
 - axis evaluation: discovery/evaluation
 - backtest: edge_discovery/tsbt
+- balancing: workflow/settings
 - base64: edge_discovery/data_tools/dec
 - base_params last_close: workflow/chicks_bridge
 - base_rate: evaluation/calibrators
@@ -158,6 +159,7 @@
 - build_dataset_live: data/live
 - build_flat_dataframe: evaluation/flat
 - build_head_outputs: model/heads
+- build_head_set: workflow/training_config
 - build_hourly_4h_dataset: data/presets
 - build_hourly_pct_dataset: data/presets
 - build_hourly_w32_s8_dataset: data/presets
@@ -209,6 +211,8 @@
 - chart patterns: edge_discovery/22_chart_rules
 - charts: indicator_strategy/charts
 - check: signal_eval/selftests
+- check_loss_schedules: core/loss_plan
+- check_loss_weights: core/loss_plan
 - check_missing_values: data/diagnostics
 - check_run_identity: trainer/identity
 - checkpoint: trainer/checkpoints
@@ -446,6 +450,8 @@
 - e-srch-002: strategy_discovery/intraday_macd
 - e-srch-003: strategy_discovery/seasonality15m
 - early stopping: cross_asset/train, trainer/best_tracker
+- early stopping monitor: core/loss_plan
+- early_stopping_monitor: workflow/settings
 - ece: evaluation/trust_calibration
 - edge vs uncertainty: evaluation/trade_selection
 - edge_data: edge_discovery/lib
@@ -757,6 +763,7 @@
 - kdj: tools/gate_features, tools/indicator_reverse
 - keep_asset_test_separate: signal_eval/integration
 - keltner squeeze: strategy_discovery/grid2
+- kendall: core/loss_plan
 - keras 2/3: trainer/env
 - keras layers: model/common
 - key mask: cross_asset/model
@@ -851,8 +858,12 @@
 - look-ahead: data/align, tests/test_no_lookahead
 - loss: trainer/tasks
 - loss differential: tools/paired_compare
-- loss weights: data/heads
+- loss plan: core/loss_plan, workflow/settings
+- loss weights: core/loss_plan, data/heads, workflow/settings
+- loss_balancers: core/loss_plan
 - loss_weight: core/heads
+- loss_weights: workflow/training_config
+- losssettings: workflow/settings
 - low_class: workflow/candle_baseline
 - lr schedule: cross_asset/train, trainer/schedules
 - ls_acc: edge_discovery/features
@@ -1009,6 +1020,7 @@
 - num_patches: model/patches
 - numba: edge_discovery/21_range_fade, edge_discovery/22_chart_rules
 - numpy: model/common
+- objective independent: core/loss_plan
 - ohlc: tools/fetch_crypto_dataset
 - ohlcv: data/features
 - oi change: edge_discovery/features
@@ -1017,7 +1029,7 @@
 - old vs new feature set: gate_features/run_gate001
 - on-chain: edge_discovery/20_onchain
 - one click: tools/colab_runner
-- one component one interface: core/heads, core/registry, evaluation/calibrators
+- one component one interface: core/heads, core/loss_plan, core/registry, evaluation/calibrators
 - one model call: evaluation/pooled
 - one-shot: indicator_strategy/test_final
 - only shrinks: tools/check_patterns
@@ -1234,6 +1246,7 @@
 - reset_config: data/runtime
 - residual: model/decomposition
 - resolve_phase2_toggles: data/phase2
+- resolve_selection_metric: core/loss_plan
 - resolve_targets: evaluation/targets
 - restore: tools/trim_dead_tails
 - restore best: trainer/best_tracker
@@ -1326,6 +1339,7 @@
 - scaling in: edge_discovery/24_pullback_maker
 - scan_candidates: discovery/__init__, discovery/scanner
 - scanner: discovery/scanner
+- schedule_curves: core/loss_plan
 - schedule_value: trainer/schedules
 - schema: core/__init__, core/schema
 - scratch: data/disk_backed
@@ -1339,6 +1353,9 @@
 - seed spread: edge_discovery/26_h19_generalization
 - seed_everything: core/seeds
 - select_and_rank_trades: evaluation/trade_selection
+- selection metric: core/loss_plan, workflow/settings
+- selection_metrics: core/loss_plan
+- selectionchoice: core/loss_plan
 - selective trading: tools/bracket_eval
 - selective_direction_report: workflow/selective_eval
 - selective_evaluation: workflow/selective_eval
@@ -1418,6 +1435,7 @@
 - standardization: norm_probe/run_norm_probe
 - state_entries: trainer/checkpoints
 - state_from_config: data/normalizers
+- static: core/loss_plan
 - stationary bootstrap: tools/paired_compare
 - stats: edge_discovery/tsbt
 - stats_mode: model/input_norm
@@ -1429,6 +1447,7 @@
 - strict side: tools/touched_ledger
 - stride: model/patches
 - stumpy: discovery/phase3_tools
+- sub_term_schedules: core/loss_plan
 - summarize: cross_asset/report
 - summarize_dataset: data/diagnostics
 - summarize_verification: evaluation/all_assets
@@ -1477,6 +1496,7 @@
 - targets: data/cross_sectional_norm, data/windows
 - targetsettings: workflow/settings
 - targetspec: evaluation/targets
+- task balancing: core/loss_plan
 - task weighting: trainer/task_weighting
 - task_registry: trainer/tasks
 - taskweightupdater: trainer/metrics
@@ -1496,7 +1516,7 @@
 - tf.data: workflow/batches
 - tf.keras.model subclass: trainer/trainer
 - threads: data/parallel
-- tier 0: core/__init__, core/heads, core/registry, core/roles, core/seeds
+- tier 0: core/__init__, core/heads, core/loss_plan, core/registry, core/roles, core/seeds
 - time of day: strategy_discovery/seasonality15m
 - time seal: natr_range/run_natr_confirm_forward, tools/holdout_guard
 - time-series screen: edge_discovery/08_ts_screen
@@ -1535,6 +1555,7 @@
 - trainer targets: workflow/training_config
 - trainer_default_config: trainer/config
 - trainer_framework_v2: trainer/__init__
+- trainer_loss_section: core/loss_plan
 - trainer_registry: trainer/checkpoints, trainer/smoke_test
 - trainingdiagnostics: trainer/training_diagnostics
 - trainsettings: workflow/settings
@@ -1579,6 +1600,7 @@
 - uses: tools/implicit_deps
 - v0-v4: edge_discovery/21_range_fade
 - val auc: edge_discovery/26_h19_generalization
+- val_raw_loss: core/loss_plan
 - valid_train_modes: trainer/config
 - validate_config: trainer/config
 - validate_head_config: data/heads

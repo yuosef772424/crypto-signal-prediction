@@ -49,19 +49,19 @@
   - `def build_trainer_variables(trainer: 'GenericTrainer', sample_batch: Tuple[Any, ...])` L127
   - `def stage_warm_start_weights(config: dict) -> Tuple[str, int, int]` L139
 
-### `trainer/config.py` (621 lines)
+### `trainer/config.py` (622 lines)
 - PURPOSE: TRAINER_DEFAULT_CONFIG (alias DEFAULT_CONFIG; the trainer's single source of truth), deep_update, build_config (merge + validate_config, the ONE place that validates), config_fingerprint, model_signature.
 - TAGS: trainer_default_config, default_config, build_config, validate_config, _config_schema, strict config, deep_update, config_fingerprint, model_signature, valid_train_modes, trainer config
 - PITFALLS: build_config validates through validate_config (aggregated ValueError): an unknown key at any level (with a did-you-mean), a non-finite / negative / non-number loss_weight, an unregistered task_type, a key of another task type, a schedule name (lambda_*_var, constraint weight_var) not defined in loss.schedules, an early-stopping monitor the trainer never logs, a knob that would be silently ignore…
 - DEPENDS: core
 - USED BY: example, identity, smoke_test, system, tasks, trainer, workflow/capacity, workflow/permutation_control, workflow/wiring_selftest
 - API:
-  - `def deep_update(base: dict, override: dict) -> dict` L234
-  - `def build_config(user_config: dict) -> dict` L245
-  - `def validate_config(cfg: dict) -> dict` L547
-  - `def fingerprint_payload(cfg: dict, extra_ignored_run_keys: tuple=()) -> dict` L601
-  - `def config_fingerprint(cfg: dict, extra_ignored_run_keys: tuple=()) -> str` L610
-  - `def model_signature(model: tf.keras.Model) -> list` L614
+  - `def deep_update(base: dict, override: dict) -> dict` L235
+  - `def build_config(user_config: dict) -> dict` L246
+  - `def validate_config(cfg: dict) -> dict` L548
+  - `def fingerprint_payload(cfg: dict, extra_ignored_run_keys: tuple=()) -> dict` L602
+  - `def config_fingerprint(cfg: dict, extra_ignored_run_keys: tuple=()) -> str` L611
+  - `def model_signature(model: tf.keras.Model) -> list` L615
 
 ### `trainer/ensemble.py` (66 lines)
 - PURPOSE: Optional ensemble inference for evidential targets: ensemble_predict_evidential(_meinert).

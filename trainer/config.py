@@ -30,6 +30,7 @@ import inspect as _inspect
 import math as _math
 import re as _re
 
+from core.loss_plan import SCHEDULE_CURVES as _SCHEDULE_CURVES
 from core.registry import Contract as _Contract, Registry as _Registry
 
 VALID_TRAIN_MODES = ("auto", "new", "resume", "warm_start")
@@ -331,7 +332,7 @@ def _r_any(v):
     return None
 
 
-_SCHEDULE_NAMES = ("linear", "cosine", "exponential", "sqrt")
+_SCHEDULE_NAMES = _SCHEDULE_CURVES   # one list of curve names: core/loss_plan.py (the plan validates against it at settings construction)
 _LR_SCHEDULE_TYPES = ("constant", "cosine", "cosine_restarts")
 _COMMON_TARGET_KEYS = ("true_key", "task_type", "output_keys", "loss_weight", "flood_level")
 _TARGET_VALUE_RULES = {
