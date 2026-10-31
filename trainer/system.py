@@ -24,6 +24,9 @@ trainer.fit(train_ds, validation_data=val_ds,
   كل المتغيرات قبل أي استرجاع — انظر القسم 7).
 """
 # @title 8) build_optimizer + build_training_system
+from core.seeds import seed_everything
+
+
 def enable_ema_warmup(opt):
     """EMA بإحماء: الزخم الفعلي min(سقف, (1+t)/(10+t)) (نفس num_updates في tf.train.ExponentialMovingAverage
     و timm ModelEmaV3). بدونه يبقى 0.999^N من وزن المتوسط على أوزان أول الخطوات: 60 حقبة × 16 خطوة (بيانات قليلة
@@ -130,6 +133,8 @@ def build_training_system(
     model_builder_fn: Callable[[], tf.keras.Model],
     config: dict,
     sample_batch: Tuple[Any, Any],
+    data_fingerprint: Optional[str] = None,
+    parent_hashes: tuple = (),
 ):
     """نقطة الدخول الوحيدة. تُستدعى بنفس الطريقة دائمًا؛ السلوك يُحدَّده config['run']['train_mode']:
 
@@ -139,6 +144,10 @@ def build_training_system(
       "warm_start"       : يحمّل أوزان model فقط من config['run']['warm_start']['weights_path'] (optimizer/
                            الجداول جديدة)، ويستأنف جداول العقوبات من epochs_done بدل الصفر — هذا يحل مباشرة
                            مشكلة «عقوبات الثقة تبدأ من صفر عند إكمال التدريب فتفسد الموثوقية».
+
+    هوية التشغيل (trainer/identity.py): تُكتب identity.json في run_dir عند بدء new/warm_start، وعند resume تُقارَن بصمة
+    config بالمخزَّنة: اختلاف الهدف التدريبي يرفع RunIdentityMismatch بقائمة المفاتيح المتغيّرة؛ مجلد قديم بلا identity.json
+    يُستأنف كما هو مع تحذير ويتبنّى الهوية. data_fingerprint وparent_hashes اختياريان (لا يُحسبان في المسار الرئيسي بعد).
     """
     run = config["run"]
     run_dir = run["run_dir"]
@@ -173,6 +182,10 @@ def build_training_system(
             f"❌ run.train_mode='resume' لكن لا يوجد checkpoint في {run_dir}. "
             f"استخدم train_mode='new' للبدء من الصفر عمدًا، أو 'auto' ليختار الإطار تلقائيًا.")
 
+    identity = collect_run_identity(config, data_fingerprint=data_fingerprint, parent_hashes=parent_hashes)
+    if is_resuming:
+        check_run_identity(run_dir, identity)   # يرفع إن تغيّر الهدف التدريبي؛ مجلد قديم بلا هوية: تحذير + تبنٍّ
+
     warm_start_staged = warm_start_epochs_done = warm_rewarm_epochs = None
     if train_mode == "warm_start":
         warm_start_staged, warm_start_epochs_done, warm_rewarm_epochs = stage_warm_start_weights(config)
@@ -186,7 +199,10 @@ def build_training_system(
         dest = archive_state(run_dir, tag)
         print(f"🗄️ أُرشِفت حالة التشغيل السابقة إلى: {dest} (لم تُحذف)")
 
-    tf.keras.utils.set_random_seed(run.get("seed", 42))
+    if not is_resuming:
+        write_run_identity(run_dir, identity)   # بعد أرشفة الحالة السابقة (identity.json ضمن STATE_ENTRIES)
+
+    seed_everything(run["seed"])   # يُعاد هنا قبل بناء النموذج: أوزانه الابتدائية تتبع البذرة وحدها (مجموعة البيانات بُنيت قبلها)
 
     base_model = model_builder_fn()
     if train_mode == "warm_start":

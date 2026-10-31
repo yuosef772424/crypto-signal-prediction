@@ -46,7 +46,7 @@
 | `ANTI_MEMORIZATION`، `CLASS_ONLY` | `settings.model.anti_memorization` / `.class_only` |
 | (جديد) | `settings.model.config_overrides` — تجاوزات معمارية إضافية فوق `ANTI_MEMORIZATION_CONFIG`؛ مفاتيح مجهولة أو `price_targets`/`head_types`/`enforce_order` = خطأ؛ تغيّر اسم المجلد |
 | (جديد) | `settings.target.suspended_targets` — `None` = القاعدة القديمة (close معلّق خارج entry_range)؛ `()` = تدريب كل الأهداف (close أيضاً)؛ tuple = تعليق هذه فقط؛ اسم مجهول أو تعليق الكل = خطأ؛ غير `None` يغيّر اسم المجلد (`_susp-none` / `_susp-<أسماء>`) |
-| `RUN_MAIN_TRAINING`، `run_dir`، `epochs`، `batch_size`، `train_mode`، جداول `lambda_*`، `ANTI_MEMORIZATION_TRAINER` | `settings.train.*` |
+| `RUN_MAIN_TRAINING`، `run_dir`، `epochs`، `batch_size`، `train_mode`، `seed` (جديد: لم يكن في الدفتر، الافتراضي 42)، جداول `lambda_*`، `ANTI_MEMORIZATION_TRAINER` | `settings.train.*` |
 | `CALIBRATE_CONFIDENCE`، `CALIBRATION_METHOD` | `settings.evaluation.calibrate_confidence` / `.calibration_method` |
 | (جديد) | `settings.evaluation.trivial_baseline` — `False` (الافتراضي) = تقرير فجوة التعميم كما كان؛ `True` يضيف لكل رأس تصنيف `trivial_auc_{val,test}` (AUC قاعدة موقع الإغلاق داخل مدى الشمعة الأخيرة، إشارتها مثبّتة على train) و`uplift_vs_trivial_{val,test}` وحكم «لا معلومة بعد ميكانيكا المدى» حين uplift ≤ `TRIVIAL_UPLIFT_MIN` (0.01)؛ غير `bool` = خطأ |
 | `PANEL_MODE`، `PANEL_*`، `PANEL_PRESET`/`PANEL_PRESETS` | `settings.panel.enabled`، `settings.panel.*`، `.preset` / `PANEL_PRESETS` |

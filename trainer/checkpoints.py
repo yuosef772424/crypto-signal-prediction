@@ -53,7 +53,7 @@ PITFALLS: Build optimizer variables BEFORE restoring, or the optimizer momentum 
 TRAINER_REGISTRY: Dict[str, Dict[str, Any]] = {}  # run_dir -> {trainer, ckpt_mgr, callbacks, fingerprint, model_sig}
 
 # ما يُعدّ «حالة تشغيل سابقة» داخل run_dir (تُنقل كلها معًا إلى _archive عند البدء من جديد)
-STATE_ENTRIES = ("checkpoint", "meta.json", "best.weights.h5", "best_meta.json", "best.prev.weights.h5")
+STATE_ENTRIES = ("checkpoint", "meta.json", "best.weights.h5", "best_meta.json", "best.prev.weights.h5", "identity.json")
 
 
 def has_saved_state(directory: Optional[str]) -> bool:

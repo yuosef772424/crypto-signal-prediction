@@ -109,6 +109,7 @@
 - baseline: tools/check_patterns
 - baseline comparison: cross_asset/experiment
 - baseline signals: workflow/panel_bridge
+- batch order: core/seeds
 - batch runner: discovery/batch_runner
 - batch shape: cross_asset/data
 - batched evaluation: evaluation/pooled
@@ -201,6 +202,7 @@
 - charts: indicator_strategy/charts
 - check: signal_eval/selftests
 - check_missing_values: data/diagnostics
+- check_run_identity: trainer/identity
 - checkpoint: trainer/checkpoints
 - checkpoint_dir: data/checkpoints
 - checkpointmanager: trainer/checkpoints
@@ -225,6 +227,7 @@
 - close_reg: tools/stale_bars_audit, tools/stale_bars_colab_job
 - closed bars: data/align, tools/gate_features
 - cnn: edge_discovery/25_image_cnn
+- code version: trainer/identity
 - coin categories: data/defaults
 - coinmetrics: edge_discovery/16_h07_oos, edge_discovery/20_onchain
 - coins_by_category: data/defaults
@@ -234,6 +237,7 @@
 - colab job: natr_range/run_natr_calibrate, natr_range/run_natr_confirm, natr_range/run_natr_confirm_forward, natr_range/run_natr_rolling, tools/stale_bars_colab_job, tools/trim_dead_tails_colab_job
 - colab-queue: tools/colab_runner
 - colab-results: tools/colab_runner
+- collect_run_identity: trainer/identity
 - collect_signals: workflow/selective_eval
 - column order: core/schema
 - combo signal: edge_discovery/03_quintiles
@@ -251,6 +255,7 @@
 - confidencehead: model/nig_layers
 - config: data/__init__, data/runtime
 - config default: tools/check_patterns
+- config diff: trainer/identity
 - config keys: data/defaults
 - config_fingerprint: trainer/config
 - confirmation: tools/holdout_guard
@@ -679,6 +684,7 @@
 - ic by quarter: edge_discovery/08_ts_screen
 - ic loss: cross_asset/train
 - ic loss test: cross_asset/selftest
+- identity.json: trainer/identity
 - image_cnn_results.csv: edge_discovery/25_image_cnn
 - imap_ordered: data/parallel, discovery/batch_runner
 - implicit dependencies: tools/check_deps, tools/implicit_deps
@@ -1029,6 +1035,7 @@
 - parallel: data/parallel, discovery/batch_runner
 - param_variants: discovery/survey
 - paramscheduler: trainer/schedules
+- parent_hashes: trainer/identity
 - parquet: edge_discovery/data_tools/build_panel
 - partial ic: cross_asset/report
 - pass: signal_eval/selftests
@@ -1184,6 +1191,7 @@
 - repo_root: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, trainer/_loader … (+1)
 - representation collapse: norm_probe/run_norm_probe
 - representation information: edge_discovery/27_repr_info
+- reproducibility: core/seeds
 - reproduction check: tools/colab_runner
 - require_phase2_data: data/phase2
 - resample_timeframes: data/sources
@@ -1198,6 +1206,7 @@
 - results flattening: evaluation/flat
 - resumable: edge_discovery/25_image_cnn
 - resume: cross_asset/train, data/checkpoints, tools/fetch_history_csv_concurrent, tools/fetch_history_vision_colab, trainer/best_tracker, trainer/checkpoints … (+2)
+- resume check: trainer/identity
 - resume per fold: trainer/kfold
 - retail long/short ratio: edge_discovery/02_fmb
 - retail positioning: edge_discovery/11_more
@@ -1226,6 +1235,7 @@
 - rule_cpos: workflow/candle_baseline
 - run contract: gate_features/run_gate001, natr_range/run_natr_confirm, natr_range/run_natr_range, tools/colab_runner, tools/colab_smoke, tools/stale_bars_colab_job … (+1)
 - run fixture: tests/run_fixture
+- run identity: core/seeds, trainer/identity
 - run_batch_and_register: discovery/__init__, discovery/batch_runner
 - run_chicks: workflow/run
 - run_dir_for: workflow/settings
@@ -1251,6 +1261,8 @@
 - run_trainer_smoke_test: tools/run_self_tests
 - run_weights: edge_discovery/tsbt
 - run_wiring_selftest: workflow/wiring_selftest
+- runidentity: trainer/identity
+- runidentitymismatch: trainer/identity
 - runner: tools/colab_runner, tools/colab_smoke
 - runner notebook: data/__init__, evaluation/__init__, model/__init__, signal_eval/__init__, trainer/__init__
 - runresult: workflow/run
@@ -1282,9 +1294,10 @@
 - sealed holdout: tools/build_lock
 - seasonality: edge_discovery/06_seasonality, strategy_discovery/seasonality15m
 - section 7 reports: workflow/__init__
-- seed: signal_eval/core
+- seed: core/seeds, signal_eval/core, trainer/identity
 - seed literal: tools/check_patterns
 - seed spread: edge_discovery/26_h19_generalization
+- seed_everything: core/seeds
 - select_and_rank_trades: evaluation/trade_selection
 - selective trading: tools/bracket_eval
 - selective_direction_report: workflow/selective_eval
@@ -1294,6 +1307,7 @@
 - self-tests: data/selftests, tools/run_self_tests
 - selftest: cross_asset/selftest, model/selftests, tools/run_self_tests
 - selftests: signal_eval/selftests
+- set_random_seed: core/seeds
 - settings: data/defaults, workflow/settings
 - settings interval start funding open_interest: tools/fetch_history_colab_cell
 - sha256: natr_range/freeze_rules, tools/colab_runner, tools/trim_dead_tails
@@ -1437,7 +1451,7 @@
 - tf.data: workflow/batches
 - tf.keras.model subclass: trainer/trainer
 - threads: data/parallel
-- tier 0: core/__init__, core/registry
+- tier 0: core/__init__, core/registry, core/seeds
 - time of day: strategy_discovery/seasonality15m
 - time seal: natr_range/run_natr_confirm_forward, tools/holdout_guard
 - time-series screen: edge_discovery/08_ts_screen
@@ -1469,6 +1483,7 @@
 - train_mode: trainer/system
 - train_model: workflow/run
 - train_step: trainer/trainer
+- trainer: trainer/identity
 - trainer config: trainer/config
 - trainer framework: trainer/__init__
 - trainer package: trainer/_loader

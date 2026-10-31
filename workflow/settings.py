@@ -187,6 +187,10 @@ class TrainSettings(_SettingsSection):
     epochs: int = 60
     batch_size: int = 64
     train_mode: str = "auto"
+    #: THE seed of the run: seed_everything before the training dataset is built (so it fixes the batch order), the model init and
+    #: the run identity. None = the trainer's default run.seed (42, the value model init already used): not passed to the trainer,
+    #: so the config the trainer gets (and its golden) is unchanged for every existing setting.
+    seed: _t.Optional[int] = None
     #: None = the trainer's default patience.
     early_stopping_patience: _t.Optional[int] = None
     #: Keras fit verbosity (1 = progress bar, 2 = one line per epoch, 0 = silent).
@@ -212,6 +216,8 @@ class TrainSettings(_SettingsSection):
         _settings_check(_settings_is_int(self.epochs) and self.epochs > 0, "TrainSettings.epochs must be a positive int")
         _settings_check(_settings_is_int(self.batch_size) and self.batch_size > 0, "TrainSettings.batch_size must be a positive int")
         _settings_check(isinstance(self.train_mode, str), "TrainSettings.train_mode must be a str")
+        _settings_check(self.seed is None or (_settings_is_int(self.seed) and 0 <= self.seed < 2 ** 32),
+               "TrainSettings.seed must be an int in [0, 2**32) or None (the trainer's default seed)")
         _settings_check(self.early_stopping_patience is None or (_settings_is_int(self.early_stopping_patience) and self.early_stopping_patience > 0),
                "TrainSettings.early_stopping_patience must be a positive int or None")
         _settings_check(_settings_is_int(self.fit_verbose) and self.fit_verbose in (0, 1, 2), "TrainSettings.fit_verbose must be 0, 1 or 2")

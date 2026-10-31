@@ -555,10 +555,17 @@ def _canonical(o):
     return o if isinstance(o, (int, float, str, bool, type(None))) else repr(o)
 
 
-def config_fingerprint(cfg: dict) -> str:
+def fingerprint_payload(cfg: dict, extra_ignored_run_keys: tuple = ()) -> dict:
+    """The canonical (JSON-ready) dict that config_fingerprint hashes: the whole config minus the run keys that do not change what is trained.
+    ``extra_ignored_run_keys`` drops more run keys (run identity ignores the run LOCATION keys, see trainer/identity.py)."""
     c = {k: v for k, v in cfg.items() if k != "run"}
-    c["run"] = {k: v for k, v in cfg["run"].items() if k not in _FINGERPRINT_IGNORED_RUN_KEYS}
-    return hashlib.sha256(json.dumps(_canonical(c), sort_keys=True).encode("utf-8")).hexdigest()[:16]
+    skip = _FINGERPRINT_IGNORED_RUN_KEYS + tuple(extra_ignored_run_keys)
+    c["run"] = {k: v for k, v in cfg["run"].items() if k not in skip}
+    return _canonical(c)
+
+
+def config_fingerprint(cfg: dict, extra_ignored_run_keys: tuple = ()) -> str:
+    return hashlib.sha256(json.dumps(fingerprint_payload(cfg, extra_ignored_run_keys), sort_keys=True).encode("utf-8")).hexdigest()[:16]
 
 
 def model_signature(model: tf.keras.Model) -> list:
