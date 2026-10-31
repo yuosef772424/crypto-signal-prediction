@@ -200,7 +200,7 @@
   - `def rr_trading_report(val_df, test_df, rr=2.0, stop_mode='nig', stop_k=1.0, cost_pct=0.08, min_trades=200, quantiles=(0.5, 0.7, 0.8, 0.9, 0.95), target='close', seed=0, verbose=True)` L220
   - `def selective_evaluation(model=None, val_split=None, test_split=None, model_tf=None, target_acc=0.65, rr=2.0, stop_mode='nig', min_n=200, val_df=None, test_df=None, verbose=True, price_targets=None)` L270
 
-### `workflow/settings.py` (508 lines)
+### `workflow/settings.py` (520 lines)
 - PURPOSE: RunSettings: every setting of a main run (dataset, target mode, model options, training, evaluation, panel model) in one strict, frozen object whose defaults are the values main.ipynb always held; main.ipynb, tools/evaluate_trained_model.p…
 - TAGS: runsettings, settings, projectsettings, datasettings, targetsettings, modelsettings, trainsettings, losssettings, loss plan, loss weights, balancing, selection metric, early_stopping_monitor, evalsettings, panelsettings, target_mode, entry_close_reg, anti_memorization, class_only, run_main_training, panel_presets, run_dir_for, strict config, frozen dataclass
 - PITFALLS: Defaults must stay equal to the notebook values the golden test records (tests/golden_run_settings.json): change one only as a new experiment (its checkpoints live in a folder named after the settings, see run_dir_for). Unknown field names raise (constructor: TypeError; RunSettings.from_dict / .updated and every section's .updated: ValueError listing the known names), values are validated at cons…
@@ -210,18 +210,18 @@
   - `class ProjectSettings(_SettingsSection)` L100
   - `class DataSettings(_SettingsSection)` L110
   - `class TargetSettings(_SettingsSection)` L145
-  - `class ModelSettings(_SettingsSection)` L175
-  - `class LossSettings(_SettingsSection)` L203
-  - `class TrainSettings(_SettingsSection)` L242
-    - `.check_against_heads(self, heads)` L314
-  - `class EvalSettings(_SettingsSection)` L328
-  - `class PanelSettings(_SettingsSection)` L371
-    - `.applied(self)` L441
-  - `class RunSettings` L448
-    - `.from_dict(cls, d)` L469
-    - `.updated(self, changes)` L476
-    - `.to_dict(self)` L484
-  - `def run_dir_for(settings, reg_target_scale, model_tfs)` L488
+  - `class ModelSettings(_SettingsSection)` L185
+  - `class LossSettings(_SettingsSection)` L213
+  - `class TrainSettings(_SettingsSection)` L252
+    - `.check_against_heads(self, heads)` L324
+  - `class EvalSettings(_SettingsSection)` L338
+  - `class PanelSettings(_SettingsSection)` L381
+    - `.applied(self)` L451
+  - `class RunSettings` L458
+    - `.from_dict(cls, d)` L479
+    - `.updated(self, changes)` L486
+    - `.to_dict(self)` L494
+  - `def run_dir_for(settings, reg_target_scale, model_tfs)` L498
 
 ### `workflow/splits.py` (62 lines)
 - PURPOSE: Helpers over train/val/test splits: model input (single or multi-timeframe), per-split stamps (reg scale, target mode, entry close definition).

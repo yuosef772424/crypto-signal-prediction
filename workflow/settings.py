@@ -156,6 +156,10 @@ class TargetSettings(_SettingsSection):
     #: targets raise in workflow.run.plan_model. Not None changes the run folder name (run_dir_for: "_susp-none" / "_susp-<names>").
     #: A JSON round-trip gives a list: it is normalised to a tuple.
     suspended_targets: _t.Optional[tuple] = None
+    #: Clip (+-, in target units) of the regression targets that retarget_splits recomputes for ``target_mode``. None = the mode's
+    #: old default (10 for scaled / volnorm, 1 for the others: workflow/retarget.py _DEFAULT_CLIP). Needs a target_mode (the pipeline's
+    #: own targets are not recomputed); not None changes the run folder name (run_dir_for: "_clip<value>").
+    clip: _t.Optional[float] = None
 
     def __post_init__(self):
         if self.suspended_targets is not None:
@@ -169,6 +173,12 @@ class TargetSettings(_SettingsSection):
         _settings_check(self.entry_close_reg in _ENTRY_CLOSE_REGS,
                f"TargetSettings.entry_close_reg {self.entry_close_reg!r} unknown; known: {_ENTRY_CLOSE_REGS}")
         _settings_check(self.group_freq is None or isinstance(self.group_freq, str), "TargetSettings.group_freq must be a str or None")
+        if self.clip is not None:
+            _settings_check(isinstance(self.clip, (int, float)) and not isinstance(self.clip, bool) and 0 < self.clip < float("inf"),
+                            f"TargetSettings.clip must be None or a finite number > 0, got {self.clip!r}")
+            _settings_check(self.target_mode is not None, "TargetSettings.clip needs a target_mode (it clips the targets retarget_splits "
+                                                          "recomputes; the pipeline's own targets are not recomputed)")
+            _settings_set(self, clip=float(self.clip))
 
 
 @_dc.dataclass(frozen=True)
@@ -493,6 +503,8 @@ def run_dir_for(settings, reg_target_scale, model_tfs):
             + (f"_{tm}" if tm else "")
             # تعريف close في entry_range جزء من الهدف: تعريف آخر = مجلد آخر
             + (f"_{settings.target.entry_close_reg}" if tm == "entry_range" else "")
+            # قصّ آخر للهدف = هدف آخر: مجلد آخر؛ None (قصّ الوضع الافتراضي) لا يضيف شيئاً
+            + (f"_clip{settings.target.clip:g}" if settings.target.clip is not None else "")
             # هدف بمقياس آخر (reg_target_scale من البيانات) = مجلد آخر: لا يُستأنف نموذج دُرِّب على عوائد خام
             + (f"_s{reg_target_scale:g}" if reg_target_scale != 1.0 else "")
             + ("_am" if settings.model.anti_memorization else "")

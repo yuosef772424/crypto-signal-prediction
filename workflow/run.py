@@ -219,7 +219,7 @@ def retarget(settings, train, val, test, info):
     t = settings.target
     if t.target_mode:
         train, val, test = retarget_splits(train, val, test, mode=t.target_mode, reg_target_scale=info.reg_target_scale,
-                                           close_reg=t.entry_close_reg, group_freq=t.group_freq)
+                                           close_reg=t.entry_close_reg, group_freq=t.group_freq, clip=t.clip)
     elif _split_parts(train)[0][1].get("target_mode") not in (None, "return"):
         # عودة إلى None بعد تجربة وضع آخر في نفس الجلسة: نعيد أهداف خط الأنابيب ('return')
         train, val, test = retarget_splits(train, val, test, mode="return", reg_target_scale=info.reg_target_scale,
