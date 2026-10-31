@@ -68,12 +68,13 @@
 - PURPOSE: Evaluates any signals file (current model or panel) with the same metrics: AUC, daily IC, vol-controlled IC, +/-B bracket, market-neutral portfolio.
 - TAGS: evaluation, metrics, daily ic, partial ic, vol-quintile ic, market-neutral portfolio, bracket table, up_share, compare, summarize, signals file, train_labels
 - PITFALLS: Judge on test only (val is reference); relative targets are rebuilt from prices and must match retarget_splits(mode='relative'); previous-day vol uses shift(1) to avoid look-ahead.
+- DEPENDS: stats
 - API:
-  - `def train_labels(d, raw, target_mode=None)` L37
-  - `def prepare(df, group_ns=None, target_mode=None)` L66
-  - `def daily_ic(d, score, target='r', min_coins=10)` L94
-  - `def vol_quintile_ic(d, score, target='r', n_q=5, min_cell=5)` L100
-  - `def partial_ic(d, score, target='r', min_coins=10)` L110
+  - `def train_labels(d, raw, target_mode=None)` L39
+  - `def prepare(df, group_ns=None, target_mode=None)` L68
+  - `def daily_ic(d, score, target='r', min_coins=10)` L96
+  - `def vol_quintile_ic(d, score, target='r', n_q=5, min_cell=5)` L102
+  - `def partial_ic(d, score, target='r', min_coins=10)` L112
   - `def mn_portfolio(d, score, q=0.5, cost_pct=0.0, min_coins=20)` L120
   - `def bracket_table(d, score='p_up_close', B=0.05, first_touch=None, n_dec=10)` L147
   - `def summarize(val_df, test_df, first_touch=None, B=0.05, min_coins=10, group_ns=None, target_mode=None)` L172

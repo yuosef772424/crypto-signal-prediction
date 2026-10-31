@@ -30,6 +30,8 @@ import warnings
 import numpy as np
 import pandas as pd
 
+from stats.metrics import partial_spearman, spearman
+
 warnings.filterwarnings("ignore", message="An input array is constant")
 DAY = pd.Timedelta(days=1)
 
@@ -93,7 +95,7 @@ def _t(x):
 
 def daily_ic(d, score, target="r", min_coins=10):
     g = d.groupby("timestamp")
-    ic = g.apply(lambda x: x[score].corr(x[target], method="spearman") if len(x) >= min_coins else np.nan)
+    ic = g.apply(lambda x: spearman(x[score], x[target], nan_policy="drop", min_n=1) if len(x) >= min_coins else np.nan)
     return _t(ic)
 
 
@@ -102,7 +104,7 @@ def vol_quintile_ic(d, score, target="r", n_q=5, min_cell=5):
         if len(x) < n_q * min_cell:
             return np.nan
         q = pd.qcut(x["pvol"].rank(method="first"), n_q, labels=False)
-        v = [c[score].corr(c[target], method="spearman") for _, c in x.groupby(q) if len(c) >= min_cell]
+        v = [spearman(c[score], c[target], nan_policy="drop", min_n=1) for _, c in x.groupby(q) if len(c) >= min_cell]
         return np.nanmean(v) if v else np.nan
     return _t(d.groupby("timestamp").apply(per_day))
 
@@ -111,9 +113,7 @@ def partial_ic(d, score, target="r", min_coins=10):
     def per_day(x):
         if len(x) < min_coins:
             return np.nan
-        z = np.c_[np.ones(len(x)), x["pvol"].rank().to_numpy()]
-        res = [a - z @ np.linalg.lstsq(z, a, rcond=None)[0] for a in (x[score].rank().to_numpy(), x[target].rank().to_numpy())]
-        return np.corrcoef(res[0], res[1])[0, 1]
+        return partial_spearman(x[score], x[target], x["pvol"])
     return _t(d.groupby("timestamp").apply(per_day))
 
 
