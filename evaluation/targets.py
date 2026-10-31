@@ -26,6 +26,7 @@ import tensorflow as tf
 import pandas as pd
 from dataclasses import dataclass, field, replace
 from typing import Tuple, Dict, Optional, List, Union, Literal, Iterable
+from core.schema import LAST_COLUMN_INDEX as _LAST_COLUMN_INDEX
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -120,7 +121,7 @@ class TargetSpec:
         ``split['price_norm_meta']['targets'][name]``). المرساة last_close (``price_index=2``). subclass لا حقل جديد في
         TargetSpec: بصمات الأوضاع القديمة (tests/golden_run_settings.json) لا تتغيّر."""
         kw = {name: getattr(self, name) for name in self.__dataclass_fields__}
-        kw.update(price_index=2, entry_col=2)
+        kw.update(price_index=_LAST_COLUMN_INDEX['last_close'], entry_col=_LAST_COLUMN_INDEX['last_close'])
         return LogNormTargetSpec(**kw, log_norm=(float(mean), float(std)))
 
 
@@ -133,7 +134,7 @@ class LogNormTargetSpec(TargetSpec):
 
     def __post_init__(self):
         super().__post_init__()
-        if (self.kind != 'continuous' or self.price_index != 2 or self.relative_to_entry or self.range_of
+        if (self.kind != 'continuous' or self.price_index != _LAST_COLUMN_INDEX['last_close'] or self.relative_to_entry or self.range_of
                 or self.signed_by_class or not float(self.log_norm[1]) > 0):
             raise ValueError(f"الهدف '{self.name}': log_norm=(mean, std>0) يحتاج هدفاً مستمراً بـ price_index=2 (last_close) "
                              "وبلا relative_to_entry/range_of/signed_by_class.")
@@ -141,9 +142,12 @@ class LogNormTargetSpec(TargetSpec):
 
 # ─── إعداد افتراضي متوافق مع النسخة الأصلية ───
 DEFAULT_PRICE_TARGETS: List[TargetSpec] = [
-    TargetSpec(name='high',  kind='continuous', has_uncertainty=True, price_index=0, future_col=6),
-    TargetSpec(name='low',   kind='continuous', has_uncertainty=True, price_index=1, future_col=5),
-    TargetSpec(name='close', kind='continuous', has_uncertainty=True, price_index=2, future_col=4),
+    TargetSpec(name='high',  kind='continuous', has_uncertainty=True, price_index=_LAST_COLUMN_INDEX['last_high'],
+               future_col=_LAST_COLUMN_INDEX['future_high_max']),
+    TargetSpec(name='low',   kind='continuous', has_uncertainty=True, price_index=_LAST_COLUMN_INDEX['last_low'],
+               future_col=_LAST_COLUMN_INDEX['future_low_min']),
+    TargetSpec(name='close', kind='continuous', has_uncertainty=True, price_index=_LAST_COLUMN_INDEX['last_close'],
+               future_col=_LAST_COLUMN_INDEX['future_close']),
 ]
 
 

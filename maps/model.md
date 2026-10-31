@@ -182,9 +182,10 @@
 - PURPOSE: run_model_selftests: data-free self-test of registry, head expansion and full save/load; defined here, run by tools/run_self_tests.run_self_tests.
 - TAGS: run_model_selftests, self-test, selftest, smoke, head registry, save load
 - PITFALLS: Loading only defines it (no call at module level). load_into(ns, exclude=('selftests',)) still skips it. Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: core
 - USES: config, input_norm
 - API:
-  - `def run_model_selftests(verbose: bool=True) -> bool` L16
+  - `def run_model_selftests(verbose: bool=True) -> bool` L20
 
 ### `model/transformer.py` (149 lines)
 - PURPOSE: Transformer block parts: RMSNorm, RelativeGQAttention (GQA + relative bias), SwiGLU, TransformerBlock.

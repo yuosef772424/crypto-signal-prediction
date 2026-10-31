@@ -63,9 +63,9 @@ def entry_range_target_spec(s, test):
     _range_pos = entry_close_reg_of(test) == "range_pos"
     _cls = dict(class_key=_output_name(s.name, "logits"))
     if s.name == "close" and _range_pos:
-        return dataclasses.replace(s, price_index=2, entry_col=2, range_of=("high", "low"), **_cls)
+        return dataclasses.replace(s, price_index=LAST_CLOSE_COL, entry_col=LAST_CLOSE_COL, range_of=("high", "low"), **_cls)
     if s.name == "close":
-        return dataclasses.replace(s, relative_to_entry=True, price_index=2, entry_col=2,
+        return dataclasses.replace(s, relative_to_entry=True, price_index=LAST_CLOSE_COL, entry_col=LAST_CLOSE_COL,
                                    reg_scale=reg_scale_of(test, "close"), signed_by_class=True, **_cls)
-    return dataclasses.replace(s, relative_to_entry=True, price_index=2, entry_col=2,
+    return dataclasses.replace(s, relative_to_entry=True, price_index=LAST_CLOSE_COL, entry_col=LAST_CLOSE_COL,
                                reg_scale=(-1.0 if s.name == "low" else 1.0) * reg_scale_of(test, s.name), **_cls)

@@ -227,21 +227,21 @@
   - `def predict_batch_v4(model, X_inputs: Tuple[np.ndarray, ...], target_specs: List['TargetSpec'], batch_size: int=256, verbose: bool=False, unc_max: Optional[float]=None) -> Dict[str, np.ndarray]` L30
   - `def predict_batch(model, X_inputs, batch_size: int=256, verbose: bool=False) -> Dict[str, np.ndarray]` L122
 
-### `evaluation/targets.py` (378 lines)
+### `evaluation/targets.py` (382 lines)
 - PURPOSE: Shared imports of the evaluation package plus TargetSpec/resolve_targets (which targets a model outputs: continuous or categorical), NIG uncertainty bounding and the Wilson CI.
 - TAGS: targetspec, resolve_targets, make_categorical_spec, get_model_target_names, nig_uncertainty_bounded, wilson_ci, imports, shared namespace
 - PITFALLS: Loaded first: later modules use its imports (re, warnings, np, tf, pd, dataclass, typing names) without importing them. Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
 - DEPENDS: core
 - USED BY: all_assets, decode, flat, full_analysis, integrity, io_patterns, latest_table, live, metrics, pooled +4
 - API:
-  - `class TargetSpec` L36
-    - `.with_log_norm(self, mean: float, std: float) -> 'LogNormTargetSpec'` L117
-  - `class LogNormTargetSpec(TargetSpec)` L128
-  - `def make_categorical_spec(name: str, class_names: List[str], has_uncertainty: bool=False) -> TargetSpec` L150
-  - `def nig_uncertainty_bounded(nu, alpha, beta, unc_max=None, alpha_den_min=NIG_ALPHA_DEN_MIN)` L214
-  - `def wilson_ci(k, n, z: float=1.96)` L228
-  - `def resolve_targets(targets=None, available: Optional[Iterable[str]]=None) -> List[TargetSpec]` L286
-  - `def get_model_target_names(model, X_inputs=None) -> Optional[List[str]]` L348
+  - `class TargetSpec` L37
+    - `.with_log_norm(self, mean: float, std: float) -> 'LogNormTargetSpec'` L118
+  - `class LogNormTargetSpec(TargetSpec)` L129
+  - `def make_categorical_spec(name: str, class_names: List[str], has_uncertainty: bool=False) -> TargetSpec` L154
+  - `def nig_uncertainty_bounded(nu, alpha, beta, unc_max=None, alpha_den_min=NIG_ALPHA_DEN_MIN)` L218
+  - `def wilson_ci(k, n, z: float=1.96)` L232
+  - `def resolve_targets(targets=None, available: Optional[Iterable[str]]=None) -> List[TargetSpec]` L290
+  - `def get_model_target_names(model, X_inputs=None) -> Optional[List[str]]` L352
 
 ### `evaluation/tearsheet.py` (341 lines)
 - PURPOSE: Tearsheet-style trading metrics (Sharpe, Sortino, Omega, profit factor, SQN, drawdown), equity curve and signal significance report.

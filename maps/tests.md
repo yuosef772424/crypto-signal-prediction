@@ -109,7 +109,7 @@
   - `class RunChicksCalibrationTests(unittest.TestCase)` L377
     - (2 methods)
 
-### `tests/test_check_patterns.py` (283 lines)
+### `tests/test_check_patterns.py` (285 lines)
 - PURPOSE: tools/check_patterns.py: the generic pattern ratchet. A planted violation per rule must fail, the baseline can only (from docstring)
 - DEPENDS: tools
 - API:

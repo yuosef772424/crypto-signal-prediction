@@ -50,7 +50,6 @@
    "discovery/scanner.py": 1,
    "discovery/selftest.py": 2,
    "evaluation/legacy_uncertainty.py": 1,
-   "model/selftests.py": 3,
    "trainer/example.py": 1,
    "workflow/retarget.py": 2
   },
@@ -69,7 +68,6 @@
    "workflow/selective_eval.py": 1
   },
   "output-name-literal": {
-   "model/selftests.py": 12,
    "trainer/example.py": 20,
    "trainer/smoke_test.py": 12
   },
