@@ -240,7 +240,22 @@ class HeadConsumersKeepTheirOutputs(unittest.TestCase):
 
     def test_permutation_control(self):
         k = "return3/permutation_control_summary"
-        self.assertEqual(rf.close(self.got[k], self.gold[k], k, 0.2), [], k)
+        # its formatted text cells ('-0.43558 [-0.48340, -0.39667]') are compared exactly as strings, so a last-digit
+        # float difference between machines (seen on CI) failed the test; round the numbers inside text cells to 3 decimals
+        # (consistent with the loose rtol 0.2 of the numeric cells)
+        self.assertEqual(rf.close(_round_text(self.got[k]), _round_text(self.gold[k]), k, 0.2), [], k)
+
+
+def _round_text(x):
+    """Copy of a fingerprint with every decimal number inside a string rounded to 3 places."""
+    import re
+    if isinstance(x, str):
+        return re.sub(r"-?\d+\.\d+", lambda m: f"{float(m.group()):.3f}", x)
+    if isinstance(x, dict):
+        return {k: _round_text(v) for k, v in x.items()}
+    if isinstance(x, list):
+        return [_round_text(v) for v in x]
+    return x
 
 
 if __name__ == "__main__":

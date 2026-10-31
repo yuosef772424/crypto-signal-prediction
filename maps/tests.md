@@ -431,7 +431,7 @@
   - `class ShadowVariantTests(unittest.TestCase)` L65
     - (2 methods)
 
-### `tests/test_head_consumers.py` (247 lines)
+### `tests/test_head_consumers.py` (262 lines)
 - PURPOSE: Output-name consumers (model diagnostics / layer reports, workflow reports, selective eval, generalization, capacity, candle baseline, (from docstring)
 - PITFALLS: fingerprints are (shape, sums) / per-column sums compared with a loose relative tolerance (1e-3): float32 model outputs differ in
 - DEPENDS: docs, tools
