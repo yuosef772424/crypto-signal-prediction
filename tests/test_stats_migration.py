@@ -450,5 +450,30 @@ class WorkflowCandleBaselineMigration(unittest.TestCase):
             new(np.r_[np.zeros(5, int), np.ones(5, int)], np.r_[np.nan, np.arange(9.0)], np.arange(10.0), np.arange(10), n_boot=5)
 
 
+# ───────────────────────── workflow/market_neutral.py (_rank_ic) ─────────────────────────
+def _legacy_rank_ic(frame, min_assets):
+    ics = [g["score"].corr(g["r"], method="spearman") for _, g in frame.groupby("ts") if len(g) >= min_assets]
+    ics = np.asarray([x for x in ics if np.isfinite(x)])
+    if len(ics) < 3:
+        return {"ic_mean": np.nan, "ic_t": np.nan, "n": len(ics)}
+    return {"ic_mean": ics.mean(), "ic_t": ics.mean() / ics.std(ddof=1) * np.sqrt(len(ics)), "n": len(ics)}
+
+
+class WorkflowMarketNeutralMigration(unittest.TestCase):
+    def test_rank_ic_matches_the_old_pandas_version(self):
+        import _nbload
+        ns = {"__name__": "audit_nb", "np": np, "pd": pd}
+        _nbload.workflow_package().load_into(ns, only=("market_neutral",))
+        new = ns["_rank_ic"]
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            for seed in range(8):
+                f = panel_frame(seed, nan_frac=0.1).rename(columns={"timestamp": "ts", "target": "r"})
+                for min_assets in (3, 10, 40):
+                    got, want = new(f, min_assets), _legacy_rank_ic(f, min_assets)
+                    self.assertEqual(got["n"], want["n"])
+                    close(self, [got["ic_mean"], got["ic_t"]], [want["ic_mean"], want["ic_t"]])
+
+
 if __name__ == "__main__":
     unittest.main()

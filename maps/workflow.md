@@ -93,15 +93,16 @@
   - `def trivial_range_baseline(last_candles, y_class, target, sign=None)` L158
   - `def generalization_gap_report(model, train_split, val_split, test_split, model_tf=None, max_n=20000, auc_gap_max=0.03, linear_reference=True, verbose=True, price_targets=None, trivial_baseline=False)` L209
 
-### `workflow/market_neutral.py` (321 lines)
+### `workflow/market_neutral.py` (323 lines)
 - PURPOSE: Section 7-f: market-neutral portfolio report (long_short, short_only, long_only, rank_weighted, rank_weighted_vol) with net-of-cost bootstrap and a last-step GBM baseline.
 - TAGS: market_neutral_report, split_asset_names, rank ic, decile table, rank_weighted, long_short, portfolio
 - PITFALLS: (side, q) are picked on val only; the full test grid is shown for transparency, not for selection. split_asset_names is also used by workflow/run.py (run_reports). Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 34 (section 7-f).
+- DEPENDS: stats
 - USES: data/runtime, data/split, selective_eval, splits
 - USED BY: panel_bridge, run, wiring_selftest
 - API:
-  - `def split_asset_names(dataset, split='val', config=None)` L29
-  - `def market_neutral_report(model, train_split, val_split, test_split, model_tf=None, score='p_up_close', quantiles=(0.05, 0.1, 0.2, 0.3), sides=_MN_SIDES, cost_pct=0.08, universe=None, min_assets=20, min_per_leg=5, cost_model…` L233
+  - `def split_asset_names(dataset, split='val', config=None)` L31
+  - `def market_neutral_report(model, train_split, val_split, test_split, model_tf=None, score='p_up_close', quantiles=(0.05, 0.1, 0.2, 0.3), sides=_MN_SIDES, cost_pct=0.08, universe=None, min_assets=20, min_per_leg=5, cost_model…` L235
 
 ### `workflow/model_build.py` (12 lines)
 - PURPOSE: make_model_builder: the zero-argument model_builder required by build_training_system (same architecture every call, needed to resume saved state).

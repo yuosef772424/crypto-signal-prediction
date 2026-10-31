@@ -6,6 +6,8 @@ PITFALLS: (side, q) are picked on val only; the full test grid is shown for tran
 import numpy as np
 import pandas as pd
 
+from stats.metrics import spearman as stats_spearman
+
 _MN_SIDES = ("long_short", "short_only", "long_only", "rank_weighted", "rank_weighted_vol")
 
 
@@ -154,7 +156,7 @@ def _mn_stats(ret, periods_per_year, n_boot, seed):
 
 
 def _rank_ic(frame, min_assets):
-    ics = [g["score"].corr(g["r"], method="spearman") for _, g in frame.groupby("ts") if len(g) >= min_assets]
+    ics = [stats_spearman(g["score"], g["r"], nan_policy="drop", min_n=1) for _, g in frame.groupby("ts") if len(g) >= min_assets]
     ics = np.asarray([x for x in ics if np.isfinite(x)])
     if len(ics) < 3:
         return {"ic_mean": np.nan, "ic_t": np.nan, "n": len(ics)}
