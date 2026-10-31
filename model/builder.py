@@ -1,15 +1,24 @@
 """
 PURPOSE:  build_nig_timenet_v2: the model architecture builder (+ DEFAULT_HEAD_TYPES).
 TAGS:     build_nig_timenet_v2, DEFAULT_HEAD_TYPES, encoder, multi-timeframe, anti-memorization options, model builder
-PITFALLS: Every anti-memorization option defaults to the OLD behaviour exactly, so older checkpoints still load.
+PITFALLS: Every anti-memorization option defaults to the OLD behaviour exactly, so older checkpoints still load. The nig_regression output names come from the HeadKind in core/heads.py (never spell y_<t>_nu etc. here); the model's outputs are listed nig heads first, then the other heads per target (HeadSet.output_names is per head: compare sorted).
           Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from
           other modules resolve at call time.
 
 ## 8) بناء النموذج
 """
+from core.heads import HEAD_KINDS as _HEAD_KINDS, y_name as _y_name
+from core.schema import TARGET_COLUMNS as _TARGET_COLUMNS
+
+
+def _nig_outputs(target):
+    """{دور المخرج: اسمه} لرأس nig_regression لهذا الهدف، من HeadKind المسجَّل في core/heads.py (المصدر الوحيد للأسماء)."""
+    return {role: _y_name(target, suffix) for role, suffix in _HEAD_KINDS["nig_regression"].outputs.items()}
+
+
 # احتياطي build_nig_timenet_v2 الداخلي فقط، لاستدعاء مباشر بلا head_types ولا
 # عبر MODEL_CONFIG (الذي يحدّد فعلياً تصنيفاً+انحداراً معاً — انظر MODEL_CONFIG أدناه).
-DEFAULT_HEAD_TYPES = {"high": ["nig_regression"], "low": ["nig_regression"], "close": ["nig_regression"]}
+DEFAULT_HEAD_TYPES = {t: ["nig_regression"] for t in _TARGET_COLUMNS}
 
 
 def build_nig_timenet_v2(
@@ -18,7 +27,7 @@ def build_nig_timenet_v2(
     patch_len=4, stride=2, kernel_sizes=(3, 5, 9, 17), max_rel_pos=16,
     dropout=0.1, attn_dropout=0.0, causal=False, window=None,
     use_instance_norm=True, use_decomposition=True, use_linear_path=True,
-    price_targets=("high", "low", "close"), head_types=None,
+    price_targets=_TARGET_COLUMNS, head_types=None,
     enforce_order=True, head_hidden=128,
     nu_min=0.1, alpha_min=2.0, beta_min=0.01, unc_max=20.0,
     class_head_hidden=64, n_classes=3,
@@ -213,7 +222,7 @@ def build_nig_timenet_v2(
         nig = NIGHead(head_hidden, dropout, nu_min, alpha_min, beta_min, name=f"nig_{t}")
         raw_nig[t] = nig(h)  # (mu_raw, nu, alpha, beta)
 
-    apply_order = enforce_order and {"high", "low", "close"}.issubset(nig_targets)
+    apply_order = enforce_order and set(_TARGET_COLUMNS).issubset(nig_targets)
     if apply_order:
         mu_h, mu_c, mu_l = OrderedMeans(name="ordered_means")(
             [raw_nig["close"][0], raw_nig["high"][0], raw_nig["low"][0]])
@@ -226,10 +235,10 @@ def build_nig_timenet_v2(
         _, nu, alpha, beta = raw_nig[t]
         epi, ale = NIGUncertainty(unc_max=unc_max, name=f"unc_{t}")([nu, alpha, beta])
         conf = ConfidenceHead(name=f"conf_{t}")([h, nu, alpha, beta])
-        outputs.update({
-            f"y_{t}": mus[t], f"y_{t}_nu": nu, f"y_{t}_alpha": alpha, f"y_{t}_beta": beta,
-            f"y_{t}_epistemic": epi, f"y_{t}_aleatoric": ale, f"y_{t}_confidence": conf,
-        })
+        # أسماء المخرجات من core.heads (HeadKind nig_regression)، لا من نصوص هنا: نفس الترتيب ونفس الأسماء تماماً
+        names = _nig_outputs(t)
+        outputs.update({names["mu"]: mus[t], names["nu"]: nu, names["alpha"]: alpha, names["beta"]: beta,
+                        names["epistemic"]: epi, names["aleatoric"]: ale, names["confidence"]: conf})
 
     # -- كل أنواع الرؤوس الأخرى (تصنيف، ...): مستقلّة لكل هدف، عبر السجلّ --
     for t in price_targets:

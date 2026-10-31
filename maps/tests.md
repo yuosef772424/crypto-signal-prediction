@@ -109,7 +109,7 @@
   - `class RunChicksCalibrationTests(unittest.TestCase)` L377
     - (2 methods)
 
-### `tests/test_check_patterns.py` (282 lines)
+### `tests/test_check_patterns.py` (283 lines)
 - PURPOSE: tools/check_patterns.py: the generic pattern ratchet. A planted violation per rule must fail, the baseline can only (from docstring)
 - DEPENDS: tools
 - API:
@@ -431,7 +431,7 @@
   - `class ShadowVariantTests(unittest.TestCase)` L65
     - (2 methods)
 
-### `tests/test_head_vocabulary.py` (299 lines)
+### `tests/test_head_vocabulary.py` (459 lines)
 - PURPOSE: The head vocabulary (audit C1, PR 7): one declaration (core/heads.py HeadSet) is the source of the trainer `targets`, the model (from docstring)
 - DEPENDS: core, docs
 - API:
@@ -445,6 +445,12 @@
   - `def record()` L129
   - `class HeadSetUnits(unittest.TestCase)` L157
     - (10 methods)
+  - `class ConsumersAreDerivedViews(unittest.TestCase)` L299
+    - (7 methods)
+  - `class PipelineHeadsAreAView(unittest.TestCase)` L386
+    - (2 methods)
+  - `class ModelHeadsAgreeWithTheirKinds(unittest.TestCase)` L416
+    - (4 methods)
 
 ### `tests/test_holdout_forward.py` (115 lines)
 - PURPOSE: tools/holdout_guard.load_forward: the reviewed forward-read path (bars with open time >= 2026-10-01, unsealed coins only, a (from docstring)

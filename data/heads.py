@@ -1,5 +1,5 @@
 """
-PURPOSE:  Output-head helpers: {target}_class / {target}_reg names, enabled heads, abstention/uncertainty switches, head config validation and loss weights.
+PURPOSE:  Output-head helpers (a derived view of core.heads.HeadSet): {target}_class / {target}_reg names, enabled heads, abstention/uncertainty switches, head config validation and loss weights.
 TAGS:     heads, get_target_heads, enabled_heads, class head, reg head, output names, abstention, loss weights, validate_head_config
 PITFALLS: enabled_heads is a dict {head: bool}, not a list of names. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
 
@@ -24,16 +24,21 @@ PITFALLS: enabled_heads is a dict {head: bool}, not a list of names. Executed in
 ``CONFIG['enabled_heads']`` يسري تلقائياً على النظام كله.
 """
 
-HEAD_KINDS: Tuple[str, str] = ('class', 'reg')
+from core.heads import (HeadSet as _HeadSet, OUTPUT_PREFIX as _CORE_OUTPUT_PREFIX, head_name as _core_head_name,
+                        parse_head_name as _core_parse_head_name, y_name as _core_y_name)
+
+#: أنواع الرأس في خط الأنابيب (لاحقة اسم الرأس): مشتقّة من ``HeadSet.default`` (core/heads.py) — رؤوس خط الأنابيب هي رؤوس
+#: المجموعة الافتراضية: ``{target}_class`` و``{target}_reg``. الترتيب ثابت (class ثم reg) كما كان.
+HEAD_KINDS: Tuple[str, ...] = tuple(sorted({_core_parse_head_name(n)[1] for n in _HeadSet.default(('x',)).names}))
 
 #: بادئة اسم طبقة/مفتاح المخرج المقابل لكل رأس.
 #: اسم الرأس ``'close_class'`` ⇄ اسم المخرج ``'y_close_class'``.
-OUTPUT_PREFIX = 'y_'
+OUTPUT_PREFIX = _CORE_OUTPUT_PREFIX
 
 
 def output_name(head: str) -> str:
-    """اسم مخرج النموذج المقابل لرأس: ``'close_class'`` → ``'y_close_class'``."""
-    return head if head.startswith(OUTPUT_PREFIX) else f'{OUTPUT_PREFIX}{head}'
+    """اسم مخرج النموذج المقابل لرأس: ``'close_class'`` → ``'y_close_class'`` (التنسيق في ``core.heads.y_name``)."""
+    return head if head.startswith(OUTPUT_PREFIX) else _core_y_name(head)
 
 
 def head_name(output: str) -> str:
@@ -66,19 +71,29 @@ def get_target_heads(targets: Optional[List[str]] = None,
     heads: List[str] = []
     for t in targets:
         for kind in HEAD_KINDS:
-            head = f'{t}_{kind}'
+            head = _core_head_name(t, kind)
             if include_disabled or enabled.get(head, True):
                 heads.append(head)
     return heads
 
 
+def enabled_head_set(targets: Optional[List[str]] = None, config: Optional[dict] = None):
+    """``core.heads.HeadSet`` of the model heads that match the ENABLED pipeline heads (``get_target_heads``): the default head set of
+    ``targets`` restricted to ``enabled_heads`` (the pipeline head names ARE the HeadSet head names). Raises if every head is
+    disabled (a model without outputs); ``validate_head_config`` reports that case as a warning instead."""
+    names = set(get_target_heads(targets, config))
+    return _HeadSet.default(targets if targets is not None else (CONFIG if config is None else config)['targets']).select_names(names)
+
+
 def split_head_name(head: str) -> Tuple[str, str]:
     """``'low_reg'`` → ``('low', 'reg')``."""
-    for kind in HEAD_KINDS:
-        suffix = f'_{kind}'
-        if head.endswith(suffix):
-            return head[: -len(suffix)], kind
-    raise ValueError(f"اسم رأس غير معروف (لا ينتهي بـ _class أو _reg): {head}")
+    try:
+        target, kind = _core_parse_head_name(head)
+    except ValueError:
+        kind = None
+    if kind not in HEAD_KINDS:
+        raise ValueError(f"اسم رأس غير معروف (لا ينتهي بـ _class أو _reg): {head}")
+    return target, kind
 
 
 def is_regression_head(head: str) -> bool:
@@ -104,7 +119,7 @@ def paired_targets(config: Optional[dict] = None) -> List[str]:
     config = CONFIG if config is None else config
     heads = get_target_heads(config=config)
     return [t for t in config['targets']
-            if f'{t}_class' in heads and f'{t}_reg' in heads]
+            if _core_head_name(t, 'class') in heads and _core_head_name(t, 'reg') in heads]
 
 
 # ══════════════════════════════════════════════════════════════════════════

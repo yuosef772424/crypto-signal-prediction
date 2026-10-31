@@ -13,6 +13,7 @@ from copy import deepcopy as _deepcopy
 
 import numpy as np
 
+from core.heads import HeadSet as _HeadSet
 from core.roles import role_of as _role_of
 from core.seeds import seed_everything
 
@@ -277,8 +278,7 @@ def plan_model(settings, dataset, info, kit):
     # رؤوس النموذج للأهداف المفعّلة فقط (بلا رأس close المعلّق). class_only: رؤوس التصنيف وحدها (بلا NIG/الثقة) — تجربة لمعرفة هل
     # تعدّد الخسائر يشتّت النموذج؛ خلايا التقييم التي تحتاج رؤوس الانحدار (chicks، الأسعار المتوقعة، الإشارات) تُتخطّى فيه.
     overrides.update(price_targets=tuple(price_targets),
-                     head_types={t: (["binary_classification"] if settings.model.class_only
-                                     else ["nig_regression", "binary_classification"]) for t in price_targets})
+                     head_types=_HeadSet.default(price_targets, class_only=settings.model.class_only).head_types())
     return ModelPlan(price_targets=tuple(price_targets), suspended_targets=tuple(suspended), model_overrides=overrides,
                      seq_len=seq_len, n_features=n_features, model_seq_len=model_seq_len, model_n_features=model_n_features)
 
@@ -312,10 +312,8 @@ def make_training_config(settings, plan, info, val, kit):
             # None = the trainer's default seed: the key is then absent (the config the trainer gets is the one it always got)
             **({"seed": tr.seed} if tr.seed is not None else {}),
         },
-        "targets": {k: v for k, v in build_target_configs(
-                        list(plan.price_targets),
-                        label_smoothing=tr.anti_memorization_label_smoothing if _am else 0.0).items()
-                    if not (class_only and v["task_type"] != "classification")},
+        "targets": build_target_configs(list(plan.price_targets), class_only=class_only,
+                                        label_smoothing=tr.anti_memorization_label_smoothing if _am else 0.0),
         "loss": {
             # Kendall تبقى لرؤوس التصنيف فقط؛ رؤوس evidential (NLL قد تكون سالبة) تُستثنى افتراضياً في
             # trainer_framework — معها كانت الخسارة الكلية تنهار نحو -∞ (راجع ملاحظة القسم 4 هناك).

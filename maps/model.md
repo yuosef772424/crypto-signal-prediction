@@ -17,14 +17,15 @@
   - `def module_path(name: str) -> Path` L38
   - `def load_into(ns: dict, exclude=()) -> dict` L45
 
-### `model/builder.py` (243 lines)
+### `model/builder.py` (252 lines)
 - PURPOSE: build_nig_timenet_v2: the model architecture builder (+ DEFAULT_HEAD_TYPES).
 - TAGS: build_nig_timenet_v2, default_head_types, encoder, multi-timeframe, anti-memorization options, model builder
-- PITFALLS: Every anti-memorization option defaults to the OLD behaviour exactly, so older checkpoints still load. Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
+- PITFALLS: Every anti-memorization option defaults to the OLD behaviour exactly, so older checkpoints still load. The nig_regression output names come from the HeadKind in core/heads.py (never spell y_<t>_nu etc. here); the model's outputs are listed nig heads first, then the other heads per target (HeadSet.output_names is per head: compare sorted). Executed into the one shared model namespace by model/_loa…
+- DEPENDS: core
 - USES: decomposition, heads, input_norm, nig_layers, patches, readout, transformer
 - USED BY: config
 - API:
-  - `def build_nig_timenet_v2(seq_len, n_features, d_model=128, num_layers=4, num_heads=4, num_kv_heads=2, patch_len=4, stride=2, kernel_sizes=(3, 5, 9, 17), max_rel_pos=16, dropout=0.1, attn_dropout=0.0, causal=False, window=No…` L15
+  - `def build_nig_timenet_v2(seq_len, n_features, d_model=128, num_layers=4, num_heads=4, num_kv_heads=2, patch_len=4, stride=2, kernel_sizes=(3, 5, 9, 17), max_rel_pos=16, dropout=0.1, attn_dropout=0.0, causal=False, window=No…` L24
 
 ### `model/common.py` (13 lines)
 - PURPOSE: Shared imports (numpy, tensorflow, keras layers) and the `register` decorator (keras serializable, package 'nigts').
@@ -32,14 +33,15 @@
 - PITFALLS: `register` must exist before any layer module runs; the registered name is 'nigts>ClassName', so renaming a class breaks saved models. Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
 - USED BY: decomposition, input_norm, nig_layers, patches, readout, transformer
 
-### `model/config.py` (95 lines)
+### `model/config.py` (94 lines)
 - PURPOSE: MODEL_CONFIG, ANTI_MEMORIZATION_CONFIG and build_model_fn, the entry point used by main.ipynb.
 - TAGS: model_config, anti_memorization_config, build_model_fn, head_types, model config
 - PITFALLS: MODEL_CONFIG is a live dict mutated by main.ipynb (MODEL_CONFIG['head_types'] = ...); build_model_fn reads it at call time. Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: core
 - USES: builder
 - USED BY: selftests, workflow/wiring_selftest
 - API:
-  - `def build_model_fn(seq_len, n_features, config=None)` L87
+  - `def build_model_fn(seq_len, n_features, config=None)` L86
 
 ### `model/decomposition.py` (49 lines)
 - PURPOSE: CausalMultiScaleDecomp: causal multi-scale trend/residual split (no future leakage).
@@ -65,17 +67,17 @@
   - `def model_health_verdicts(rep, recorder_stats=None, thresholds=None)` L563
   - `def print_verdicts(v, title='🩺 تقرير صحّة النموذج')` L695
 
-### `model/heads.py` (93 lines)
+### `model/heads.py` (103 lines)
 - PURPOSE: HEAD_REGISTRY: pluggable output heads (register_head_type, build_head_outputs, binary/multiclass classification heads).
 - TAGS: head_registry, register_head_type, build_head_outputs, binary_classification, multiclass_classification, head types
 - PITFALLS: An unregistered head type raises (no silent default); this is the single place to add a new output type. HEAD_REGISTRY is a core.registry Registry: registering a name twice raises DuplicateNameError (a notebook cell that re-registers must unregister first), the builder must accept (h, target, cfg), and writes are register_head_type only (HEAD_REGISTRY[name] = fn raises TypeError). Executed into t…
 - DEPENDS: core
 - USED BY: builder
 - API:
-  - `def register_head_type(name, version=1)` L47
-  - `def build_head_outputs(head_type, h, target, cfg)` L55
-  - `def build_binary_classification_head(h, target, cfg)` L67
-  - `def build_multiclass_classification_head(h, target, cfg)` L80
+  - `def register_head_type(name, version=1)` L48
+  - `def build_head_outputs(head_type, h, target, cfg)` L56
+  - `def build_binary_classification_head(h, target, cfg)` L75
+  - `def build_multiclass_classification_head(h, target, cfg)` L89
 
 ### `model/input_norm.py` (89 lines)
 - PURPOSE: InstanceNorm (RevIN-style per-window normalisation with stats path) and SymLog level passthrough.

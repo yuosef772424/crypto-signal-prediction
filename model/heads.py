@@ -22,6 +22,7 @@ PITFALLS: An unregistered head type raises (no silent default); this is the sing
 """
 import inspect as _inspect
 
+from core.heads import HEAD_KINDS as _HEAD_KINDS, y_name as _y_name
 from core.registry import Contract as _Contract, Registry as _Registry
 
 
@@ -60,7 +61,14 @@ def build_head_outputs(head_type, h, target, cfg):
             f"نوع رأس غير مسجَّل: '{head_type}'. الأنواع المتاحة: {sorted(HEAD_REGISTRY)}. "
             f"سجّل دالة جديدة بـ @register_head_type('{head_type}') قبل استخدامه في head_types."
         )
-    return HEAD_REGISTRY[head_type](h, target, cfg)
+    outputs = HEAD_REGISTRY[head_type](h, target, cfg)
+    if head_type in _HEAD_KINDS:
+        # الرأس والـ HeadKind المسجَّل له في core/heads.py يتفقان على أسماء المخرجات (مصدر واحد): خلافهما يُكتشف هنا لا في تقييم متأخر
+        want = {_y_name(target, suffix) for suffix in _HEAD_KINDS[head_type].outputs.values()}
+        if set(outputs) != want:
+            raise ValueError(f"رأس '{head_type}' للهدف '{target}' أخرج {sorted(outputs)} بينما HeadKind المسجَّل في "
+                             f"core/heads.py يعلن {sorted(want)}")
+    return outputs
 
 
 @register_head_type("binary_classification")
@@ -72,8 +80,9 @@ def build_binary_classification_head(h, target, cfg):
     dropout = cfg.get("dropout", 0.1)
     x = layers.Dense(hidden, activation="relu", name=f"class_fc_{target}")(h)
     x = layers.Dropout(dropout, name=f"class_drop_{target}")(x)
-    prob = layers.Dense(1, activation="sigmoid", name=f"y_{target}_class_logits", dtype="float32")(x)
-    return {f"y_{target}_class_logits": prob}
+    out_name = _y_name(target, _HEAD_KINDS["binary_classification"].outputs["logits"])
+    prob = layers.Dense(1, activation="sigmoid", name=out_name, dtype="float32")(x)
+    return {out_name: prob}
 
 
 @register_head_type("multiclass_classification")
@@ -89,5 +98,6 @@ def build_multiclass_classification_head(h, target, cfg):
     # softmax لا logits خام: classification_task_loss في trainer_framework يستدعي
     # sparse_categorical_crossentropy بـ from_logits=False (الافتراضي) — يتوقّع
     # توزيع احتمالات جاهزاً، تماماً كرأس التصنيف الثنائي (sigmoid لا logit خام).
-    probs = layers.Dense(n_classes, activation="softmax", name=f"y_{target}_class_logits", dtype="float32")(x)
-    return {f"y_{target}_class_logits": probs}
+    out_name = _y_name(target, _HEAD_KINDS["multiclass_classification"].outputs["logits"])
+    probs = layers.Dense(n_classes, activation="softmax", name=out_name, dtype="float32")(x)
+    return {out_name: probs}

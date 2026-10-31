@@ -275,7 +275,8 @@ class LiveRepoTests(unittest.TestCase):
         self.assertIn("workflow/retarget.py", found["target-mode-branch"])
         self.assertIn("trainer/system.py", found["seed-literal"])
         self.assertIn("signal_eval/core.py", found["metric-def-outside-stats"])
-        self.assertIn("model/config.py", found["hlc-target-tuple"])
+        # PR 7 (core/heads.py) removed the literal of model/config.py (MODEL_CONFIG derives it from core.schema / HeadSet); another audit site stays
+        self.assertIn("cross_asset/model.py", found["hlc-target-tuple"])
 
 
 if __name__ == "__main__":

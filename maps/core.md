@@ -13,7 +13,7 @@
 - TAGS: nig_alpha_den_min, nig, alpha, uncertainty floor, constants
 - PITFALLS: NIG_ALPHA_DEN_MIN is used by model/nig_layers.py (training-time layer) and evaluation/targets.py (post-hoc decoding of the raw NIG outputs): the two MUST agree or the evaluated uncertainty differs from the trained one. Do not change the value without a new experiment card (it changes recorded uncertainty numbers when alpha is close to 1).
 
-### `core/heads.py` (411 lines)
+### `core/heads.py` (419 lines)
 - PURPOSE: The ONE declaration of "a head / a target / a loss weight" (tier 0, stdlib + core.registry): `HeadSpec` (name, target, target columns, head type, task type, role, loss, loss weight, label key, loss-facing output keys, ALL model output name…
 - TAGS: headset, headspec, headkind, head_kinds, register_head_kind, y_name, label_key, head_name, parse_head_name, parse_output_name, target_configs, from_target_configs, head_types, output_names, loss_weight, head vocabulary, output names, label key, role, confidence head, uncertainty head, cascaded stages, forecast input features, one component one interface, tier 0
 - PITFALLS: A head TYPE (what the model builds: nig_regression, binary_classification, ...) is a `HeadKind` registered in HEAD_KINDS with its output suffixes, trainer task type, role and fixed trainer options; a `HeadSpec` is one head of one target built ONLY by `HeadSpec.make(target, head_type, ...)` (direct construction re-derives every derived field and raises on a mismatch). `HeadSet.default(price_target…
@@ -38,10 +38,11 @@
     - `.label_keys(self) -> Tuple[str, ...]` L357
     - `.loss_weights(self) -> dict` L360
     - `.select(self, *, role: Optional[str]=None, task_type: Optional[str]=None, targets: Optional[Iterable[str]]=None) -> 'HeadSet'` L364
-    - `.with_loss_weights(self, weights: Mapping[str, float]) -> 'HeadSet'` L372
-    - `.extended(self, *more: HeadSpec) -> 'HeadSet'` L381
-  - `def parse_head_name(name: str) -> Tuple[str, str]` L386
-  - `def parse_output_name(key: str) -> Tuple[str, str]` L396
+    - `.select_names(self, names: Iterable[str]) -> 'HeadSet'` L372
+    - `.with_loss_weights(self, weights: Mapping[str, float]) -> 'HeadSet'` L380
+    - `.extended(self, *more: HeadSpec) -> 'HeadSet'` L389
+  - `def parse_head_name(name: str) -> Tuple[str, str]` L394
+  - `def parse_output_name(key: str) -> Tuple[str, str]` L404
 
 ### `core/price_norm.py` (20 lines)
 - PURPOSE: The ONE pair of formulas that maps a future price to the standardized log-return target space of price_norm_mode 'logret_*' and back: z = (log(price / anchor) - mean) / std. Used by data.normalizers (pipeline) and evaluation.decode (model…

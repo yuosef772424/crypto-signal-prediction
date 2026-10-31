@@ -50,8 +50,6 @@
    "discovery/scanner.py": 1,
    "discovery/selftest.py": 2,
    "evaluation/legacy_uncertainty.py": 1,
-   "model/builder.py": 2,
-   "model/config.py": 1,
    "model/selftests.py": 3,
    "trainer/example.py": 1,
    "workflow/generalization.py": 1,
@@ -75,9 +73,7 @@
    "workflow/selective_eval.py": 1
   },
   "output-name-literal": {
-   "model/builder.py": 6,
    "model/diagnostics.py": 18,
-   "model/heads.py": 4,
    "model/layer_report.py": 3,
    "model/selftests.py": 12,
    "tools/bracket_eval.py": 1,
@@ -90,7 +86,6 @@
    "workflow/permutation_control.py": 3,
    "workflow/reports.py": 3,
    "workflow/selective_eval.py": 7,
-   "workflow/training_config.py": 5,
    "workflow/wiring_selftest.py": 1
   },
   "per-asset-model-call-loop": {

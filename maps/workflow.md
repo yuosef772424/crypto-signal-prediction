@@ -149,35 +149,35 @@
   - `def retarget_splits(train_split, val_split, test_split, mode='return', targets=None, clip=None, center='median', group_freq=None, min_group=5, drop_small_groups=False, close_reg='abs_return', verbose=True, reg_target_s…` L146
   - `def entry_range_to_prices(last_close, high=None, low=None, close=None, close_reg='abs_return', p_close_up=None)` L234
 
-### `workflow/run.py` (581 lines)
+### `workflow/run.py` (579 lines)
 - PURPOSE: The steps of a main run as functions of (RunSettings, explicit inputs) -> outputs: load data, adapt CONFIG, split, retarget, plan and build the model, training config and datasets, train, prepare the chicks evaluation, run it, panel model,…
 - TAGS: run_main, load_dataset, apply_dataset_config, make_splits, retarget, plan_model, build_model, make_training_config, make_datasets, train_model, prepare_chicks, run_chicks, run_panel, run_reports, toolkit, datasetinfo, modelplan, chicksinputs, runresult, runsettings steps
 - PITFALLS: Steps read no notebook global: settings come as the first argument and everything else (the pipeline/model/trainer/chicks entry points = Toolkit.from_namespace(globals()), the loaded data, the splits, the derived facts DatasetInfo / ModelPlan / ChicksInputs) as explicit arguments. They still call the other workflow modules and the pipeline's own CONFIG-reading helpers late-bound in the shared nam…
 - DEPENDS: core, cross_asset
 - USES: batches, candle_baseline, chicks_bridge, dataset_io, generalization, market_neutral, model_build, panel_bridge, retarget, selective_eval, settings, splits, training_config, verification
 - API:
-  - `class Toolkit` L24
-    - `.from_namespace(cls, ns)` L52
-  - `class DatasetInfo` L61
-  - `class ModelPlan` L69
-  - `class ChicksInputs` L81
-  - `class RunResult` L90
-  - `def apply_project_config(settings, kit)` L112
-  - `def load_dataset(settings, kit)` L118
-  - `def apply_dataset_config(settings, dataset, kit)` L145
-  - `def make_splits(settings, dataset, info, kit)` L195
-  - `def retarget(settings, train, val, test, info)` L214
-  - `def plan_model(settings, dataset, info, kit)` L231
+  - `class Toolkit` L25
+    - `.from_namespace(cls, ns)` L53
+  - `class DatasetInfo` L62
+  - `class ModelPlan` L70
+  - `class ChicksInputs` L82
+  - `class RunResult` L91
+  - `def apply_project_config(settings, kit)` L113
+  - `def load_dataset(settings, kit)` L119
+  - `def apply_dataset_config(settings, dataset, kit)` L146
+  - `def make_splits(settings, dataset, info, kit)` L196
+  - `def retarget(settings, train, val, test, info)` L215
+  - `def plan_model(settings, dataset, info, kit)` L232
   - `def build_model(plan, kit, summary=True)` L286
   - `def make_training_config(settings, plan, info, val, kit)` L298
-  - `def make_datasets(main_config, train, val, info)` L349
-  - `def train_model(settings, kit, *, model, model_builder, main_config, train_ds, val_ds, sample_batch)` L361
-  - `def prepare_chicks(settings, plan, info, test, kit)` L378
-  - `def calibration_split_of(eval_settings, val)` L423
-  - `def run_chicks(settings, kit, *, model, val, chicks, info)` L431
-  - `def run_panel(settings, kit, *, dataset, train, val, test, info, plan, model, model_builder, main_config, apply_preset=True)` L464
-  - `def run_reports(settings, which, kit, *, model, train, val, test, dataset, info, plan, chicks)` L506
-  - `def run_main(settings, kit, dataset=None, summary=True)` L563
+  - `def make_datasets(main_config, train, val, info)` L347
+  - `def train_model(settings, kit, *, model, model_builder, main_config, train_ds, val_ds, sample_batch)` L359
+  - `def prepare_chicks(settings, plan, info, test, kit)` L376
+  - `def calibration_split_of(eval_settings, val)` L421
+  - `def run_chicks(settings, kit, *, model, val, chicks, info)` L429
+  - `def run_panel(settings, kit, *, dataset, train, val, test, info, plan, model, model_builder, main_config, apply_preset=True)` L462
+  - `def run_reports(settings, which, kit, *, model, train, val, test, dataset, info, plan, chicks)` L504
+  - `def run_main(settings, kit, dataset=None, summary=True)` L561
 
 ### `workflow/selective_eval.py` (299 lines)
 - PURPOSE: Section 7-b: selective evaluation (accuracy at confident slices, 2:1 trades): collect_signals, thresholds picked on val only, Wilson intervals, rr_trading_report.
@@ -229,13 +229,14 @@
   - `def target_mode_of(split_or_dict)` L53
   - `def entry_close_reg_of(split_or_dict)` L59
 
-### `workflow/training_config.py` (53 lines)
-- PURPOSE: Bridge from model heads to trainer_framework targets: build_target_configs (true_key vs output_keys) and the naive majority-class baseline for val_accuracy.
+### `workflow/training_config.py` (38 lines)
+- PURPOSE: Bridge from model heads to trainer_framework targets: build_target_configs (true_key vs output_keys, derived from core.heads.HeadSet) and the naive majority-class baseline for val_accuracy.
 - TAGS: build_target_configs, true_key, output_keys, label_smoothing, class_baselines, _naive_class_baseline, trainer targets
-- PITFALLS: Pipeline labels are +1/-1 (batches._to_unit_label converts to {0,1} at feed time); this is the only place where data keys and model output keys are tied together. Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cells 15 and 17 (section 5).
+- PITFALLS: Pipeline labels are +1/-1 (batches._to_unit_label converts to {0,1} at feed time); the names come from core/heads.py HeadSet (the one place where data keys and model output keys are tied together). Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipyn…
+- DEPENDS: core
 - USED BY: run, wiring_selftest
 - API:
-  - `def build_target_configs(price_targets, label_smoothing=0.0)` L6
+  - `def build_target_configs(price_targets, label_smoothing=0.0, class_only=False)` L9
 
 ### `workflow/verification.py` (177 lines)
 - PURPOSE: Section 7-d: one-call integrated verification (data integrity, naive baselines, confidence/trading, candle shape) with a single verdict table.

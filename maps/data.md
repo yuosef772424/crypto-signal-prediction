@@ -165,30 +165,32 @@
   - `def load_intraday_volume_concentration_archive(symbol: str, config: Optional[dict]=None) -> Optional[pd.DataFrame]` L302
   - `def add_intraday_volume_concentration_features(dfs: Dict[str, pd.DataFrame], symbol: str, config: Optional[dict]=None) -> Dict[str, pd.DataFrame]` L319
 
-### `data/heads.py` (223 lines)
-- PURPOSE: Output-head helpers: {target}_class / {target}_reg names, enabled heads, abstention/uncertainty switches, head config validation and loss weights.
+### `data/heads.py` (238 lines)
+- PURPOSE: Output-head helpers (a derived view of core.heads.HeadSet): {target}_class / {target}_reg names, enabled heads, abstention/uncertainty switches, head config validation and loss weights.
 - TAGS: heads, get_target_heads, enabled_heads, class head, reg head, output names, abstention, loss weights, validate_head_config
 - PITFALLS: enabled_heads is a dict {head: bool}, not a list of names. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: core
 - USES: runtime
 - USED BY: cross_sectional_norm, normalizers, pipeline, runtime, windows
 - API:
-  - `def output_name(head: str) -> str` L34
-  - `def head_name(output: str) -> str` L39
-  - `def get_output_names(targets: Optional[List[str]]=None, config: Optional[dict]=None) -> List[str]` L44
-  - `def get_target_heads(targets: Optional[List[str]]=None, config: Optional[dict]=None, include_disabled: bool=False) -> List[str]` L50
-  - `def split_head_name(head: str) -> Tuple[str, str]` L75
-  - `def is_regression_head(head: str) -> bool` L84
-  - `def is_class_head(head: str) -> bool` L88
-  - `def get_class_heads(config: Optional[dict]=None) -> List[str]` L92
-  - `def get_reg_heads(config: Optional[dict]=None) -> List[str]` L97
-  - `def paired_targets(config: Optional[dict]=None) -> List[str]` L102
-  - `def abstention_cfg(config: Optional[dict]=None) -> dict` L113
-  - `def abstention_enabled(config: Optional[dict]=None) -> bool` L119
-  - `def uncertainty_head_enabled(config: Optional[dict]=None) -> bool` L123
-  - `def signal_enabled(name: str, config: Optional[dict]=None) -> bool` L132
-  - `def decision_head(config: Optional[dict]=None) -> Optional[str]` L140
-  - `def validate_head_config(config: Optional[dict]=None, verbose: bool=True) -> List[str]` L154
-  - `def head_loss_weights(config: Optional[dict]=None, as_outputs: bool=True) -> Dict[str, float]` L211
+  - `def output_name(head: str) -> str` L39
+  - `def head_name(output: str) -> str` L44
+  - `def get_output_names(targets: Optional[List[str]]=None, config: Optional[dict]=None) -> List[str]` L49
+  - `def get_target_heads(targets: Optional[List[str]]=None, config: Optional[dict]=None, include_disabled: bool=False) -> List[str]` L55
+  - `def enabled_head_set(targets: Optional[List[str]]=None, config: Optional[dict]=None)` L80
+  - `def split_head_name(head: str) -> Tuple[str, str]` L88
+  - `def is_regression_head(head: str) -> bool` L99
+  - `def is_class_head(head: str) -> bool` L103
+  - `def get_class_heads(config: Optional[dict]=None) -> List[str]` L107
+  - `def get_reg_heads(config: Optional[dict]=None) -> List[str]` L112
+  - `def paired_targets(config: Optional[dict]=None) -> List[str]` L117
+  - `def abstention_cfg(config: Optional[dict]=None) -> dict` L128
+  - `def abstention_enabled(config: Optional[dict]=None) -> bool` L134
+  - `def uncertainty_head_enabled(config: Optional[dict]=None) -> bool` L138
+  - `def signal_enabled(name: str, config: Optional[dict]=None) -> bool` L147
+  - `def decision_head(config: Optional[dict]=None) -> Optional[str]` L155
+  - `def validate_head_config(config: Optional[dict]=None, verbose: bool=True) -> List[str]` L169
+  - `def head_loss_weights(config: Optional[dict]=None, as_outputs: bool=True) -> Dict[str, float]` L226
 
 ### `data/live.py` (257 lines)
 - PURPOSE: Live dataset built with the very same prepare_single_asset (Binance instead of Drive): dummy tail padding, drop_tail_per_asset, extract_last_batch.

@@ -294,6 +294,166 @@ class HeadSetUnits(unittest.TestCase):
 HEAD_ROLES_OF = {"nig_regression": ("mu", "nu", "alpha", "beta", "epistemic", "aleatoric", "confidence"),
                  "binary_classification": ("logits",)}
 
+
+# ───────────────────────────── the consumers are derived views (golden recorded before core/heads.py) ─────────────────────────────
+class ConsumersAreDerivedViews(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        import core.heads as ch
+        cls.ch = ch
+        cls.ns = run_ns()
+        cls.gold = json.load(open(GOLDEN_PATH, encoding="utf-8"))
+        cls.cases = all_cases(cls.ns)
+
+    def test_the_golden_says_where_it_came_from(self):
+        self.assertEqual(self.gold["meta"]["recorded_from_commit"], RECORDED_FROM)
+        self.assertEqual(sorted(self.cases), sorted(self.gold["variants"]), "the variant set changed: re-record on the OLD code only")
+
+    def test_every_variant_keeps_its_targets_and_head_types_and_is_a_headset(self):
+        ns, ch = self.ns, self.ch
+        for name, settings in self.cases.items():
+            with self.subTest(variant=name):
+                rec = self.gold["variants"][name]
+                t_sha, head_types, pts = head_vocabulary_of(ns, settings)
+                self.assertEqual((t_sha, head_types, pts), (rec["targets_sha"], rec["head_types"], rec["price_targets"]))
+                # the three views of one HeadSet agree: head_types -> HeadSet -> target configs -> HeadSet
+                hs = ch.HeadSet.from_head_types(head_types, label_smoothing=0.0)
+                self.assertEqual(hs.head_types(), head_types)
+                self.assertEqual(ch.HeadSet.from_target_configs(hs.target_configs()), hs)
+
+    def test_the_built_models_have_the_recorded_outputs_and_exactly_the_headset_outputs(self):
+        ns, ch = self.ns, self.ch
+        for key, names in self.gold["output_names_by_combo"].items():
+            pts, head_types = json.loads(key)
+            with self.subTest(combo=key[:70]):
+                built = built_output_names(ns, pts, head_types)
+                self.assertEqual(built, names, "the builder's outputs (names and order) changed")
+                hs = ch.HeadSet.from_head_types(head_types)
+                self.assertEqual(sorted(built), sorted(hs.output_names()))
+                self.assertEqual(sorted(hs.output_names()), sorted(set(hs.output_names())))
+                # every output the trainer reads (output_keys) and every label the pipeline writes' model-side name exists
+                loss_outs = {v for tc in hs.target_configs().values() for v in tc["output_keys"].values()}
+                self.assertLessEqual(loss_outs, set(built))
+
+    def test_variant_targets_round_trip_through_the_headset(self):
+        ns, ch = self.ns, self.ch
+        for name in ("default", "class_only", "target_entry_range", "label_smoothing_03", "suspended_nothing"):
+            with self.subTest(variant=name):
+                settings = self.cases[name]
+                ds, kit = _stub_inputs()
+                info = types.SimpleNamespace(model_tf="1h", model_tfs=("1h",), reg_target_scale=1.0)
+                plan = _quiet(ns["plan_model"], settings, ds, info, kit)
+                class_only = settings.model.class_only
+                ls = settings.train.anti_memorization_label_smoothing if settings.model.anti_memorization else 0.0
+                cfgs = ns["build_target_configs"](list(plan.price_targets), label_smoothing=ls, class_only=class_only)
+                hs = ch.HeadSet.from_target_configs(cfgs)
+                self.assertEqual(hs.head_types(), plan.model_overrides["head_types"])
+                self.assertEqual(hs.target_configs(), cfgs)
+                self.assertEqual(hs.targets, plan.price_targets)
+
+    def test_a_non_default_loss_weight_reaches_the_trainer_and_the_default_is_silent(self):
+        ns, ch = self.ns, self.ch
+        sched = {"lambda_reg": {"start": 0.0, "end": 0.0}, "lambda_calib": {"start": 0.0, "end": 0.0}}
+
+        def user(targets):
+            return {"run": {"run_dir": "/tmp/head_vocab_cfg"}, "targets": targets, "loss": {"schedules": sched}}
+        hs = ch.HeadSet.default(("high", "low")).with_loss_weights({"high_class": 0.5})
+        cfg = ns["build_config"](user(hs.target_configs()))
+        self.assertEqual(cfg["targets"]["high_class"]["loss_weight"], 0.5)
+        self.assertNotIn("loss_weight", cfg["targets"]["low_class"])
+        base = ns["build_config"](user(ch.HeadSet.default(("high", "low")).target_configs()))
+        self.assertNotEqual(ns["config_fingerprint"](cfg), ns["config_fingerprint"](base))
+        bad = hs.target_configs()
+        bad["high_class"]["loss_weight"] = -1.0
+        with self.assertRaisesRegex(ValueError, "loss_weight"):          # the trainer's own validation still guards the value
+            ns["build_config"](user(bad))
+
+    def test_one_epoch_loss_equals_the_one_recorded_before_the_refactor(self):
+        from test_run_steps import _dataset, settings_for
+        ns = self.ns
+        gold = variants()[1]["return_trained_holdout"]["scenario"]
+        work = tempfile.mkdtemp(prefix="head_vocab_epoch_")
+        settings = settings_for(ns, gold, os.path.join(work, "run"))
+        kit = ns["Toolkit"].from_namespace(ns)
+        res = _quiet(ns["run_main"], settings, kit, dataset=_dataset(gold["two_tf"], gold["holdout"]), summary=False)
+        got = {k: [float(x) for x in v] for k, v in res.history.history.items()}
+        want = self.gold["one_epoch_history"]
+        self.assertEqual(sorted(got), sorted(want))
+        for k in want:
+            np.testing.assert_allclose(got[k], want[k], rtol=1e-2, atol=1e-6, err_msg=k)
+
+
+class PipelineHeadsAreAView(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        import core.heads as ch
+        cls.ch = ch
+        cls.ns = run_ns()
+
+    def test_pipeline_head_names_are_the_default_headsets(self):
+        ns, ch = self.ns, self.ch
+        self.assertEqual(ns["HEAD_KINDS"], ("class", "reg"))
+        self.assertEqual(ns["OUTPUT_PREFIX"], ch.OUTPUT_PREFIX)
+        cfgs = [{"targets": ["high", "low", "close"], "enabled_heads": {}},
+                {"targets": ["high", "low"], "enabled_heads": {"high_class": False}},
+                {"targets": ["close"], "enabled_heads": {"close_reg": False}},
+                {"targets": ["high", "low", "close"], "enabled_heads": {"low_class": False, "low_reg": False}}]
+        for cfg in cfgs:
+            with self.subTest(enabled=cfg["enabled_heads"]):
+                heads = ns["get_target_heads"](config=cfg)
+                hs = ns["enabled_head_set"](config=cfg)
+                self.assertEqual(sorted(heads), sorted(hs.names))
+                for h in heads:
+                    target, slot = ns["split_head_name"](h)
+                    self.assertEqual(ch.parse_head_name(h), (target, slot))
+                    self.assertEqual(ns["output_name"](h), hs[h].label_key)
+                    self.assertEqual(hs[h].target, target)
+        self.assertEqual(ns["get_target_heads"](["high"], {"targets": ["high"]}), ["high_class", "high_reg"])
+        with self.assertRaisesRegex(ValueError, "اسم رأس غير معروف"):
+            ns["split_head_name"]("high_foo")
+
+
+class ModelHeadsAgreeWithTheirKinds(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        import core.heads as ch
+        cls.ch = ch
+        cls.ns = run_ns()
+
+    def test_every_kind_has_a_model_builder_and_the_builder_emits_the_kinds_outputs(self):
+        ns, ch = self.ns, self.ch
+        for head_type in ch.HEAD_KINDS:
+            if head_type != "nig_regression":                 # built by build_nig_timenet_v2 (cross-target OrderedMeans)
+                self.assertIn(head_type, ns["HEAD_REGISTRY"], f"{head_type}: HeadKind without a model head builder")
+        # all three kinds at once (multiclass beside binary needs another target: the same output name would clash)
+        heads = {"high": ["nig_regression", "binary_classification"], "low": ["nig_regression", "multiclass_classification"]}
+        built = built_output_names(ns, ("high", "low"), heads)
+        self.assertEqual(sorted(built), sorted(ch.HeadSet.from_head_types(heads).output_names()))
+
+    def test_a_model_head_that_disagrees_with_its_kind_raises_at_build(self):
+        ns = self.ns
+        import tensorflow as tf
+        ns["HEAD_REGISTRY"].register("binary_classification_renamed", lambda h, t, c: {f"y_{t}_oops": h}, version=1)
+        self.ch.register_head_kind(self.ch.HeadKind(
+            "binary_classification_renamed", "class2", "classification2", "classification", "classification2",
+            {"logits": "_class_logits"}, ("logits",)))
+        try:
+            with self.assertRaisesRegex(ValueError, "HeadKind"):
+                ns["build_head_outputs"]("binary_classification_renamed", tf.zeros((2, 4)), "high", {})
+        finally:
+            ns["HEAD_REGISTRY"].unregister("binary_classification_renamed")
+            self.ch.HEAD_KINDS.unregister("binary_classification_renamed")
+
+    def test_builder_defaults_are_the_old_values(self):
+        ns = self.ns
+        import inspect
+        self.assertEqual(inspect.signature(ns["build_nig_timenet_v2"]).parameters["price_targets"].default, ("high", "low", "close"))
+        self.assertEqual(ns["DEFAULT_HEAD_TYPES"], {t: ["nig_regression"] for t in ("high", "low", "close")})
+        self.assertEqual(ns["MODEL_CONFIG"]["price_targets"], ("high", "low", "close"))
+        self.assertEqual(ns["MODEL_CONFIG"]["head_types"],
+                         {t: ["nig_regression", "binary_classification"] for t in ("high", "low", "close")})
+
+
 if __name__ == "__main__" and "--record" in sys.argv:
     record()
     sys.exit(0)
