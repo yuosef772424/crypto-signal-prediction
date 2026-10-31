@@ -229,16 +229,9 @@ def nig_uncertainty_bounded(nu, alpha, beta, unc_max=None, alpha_den_min=NIG_ALP
     return epi, ale, (c1 | c2)
 
 
-def wilson_ci(k, n, z: float = 1.96):
-    """فاصل Wilson 95% لنسبة k/n → (low, high) بين 0 و1؛ n = 0 ← (NaN, NaN). صالح لـ n صغير ونسب قرب 0/1 (عكس Wald)."""
-    n = float(n)
-    if n <= 0:
-        return float('nan'), float('nan')
-    p = float(k) / n
-    den = 1.0 + z * z / n
-    centre = (p + z * z / (2.0 * n)) / den
-    half = z * np.sqrt(p * (1.0 - p) / n + z * z / (4.0 * n * n)) / den
-    return float(max(0.0, centre - half)), float(min(1.0, centre + half))
+# فاصل Wilson 95% لنسبة k/n → (low, high) بين 0 و1؛ n = 0 ← (NaN, NaN). التعريف الوحيد في stats/metrics.py (wilson_interval)؛
+# الاسم wilson_ci باقٍ لأن وحدات evaluation الأخرى تستدعيه من النطاق المشترك.
+from stats.metrics import wilson_interval as wilson_ci
 
 
 # ─────────────────────────────────────────────────────────────────────────────

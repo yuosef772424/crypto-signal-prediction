@@ -129,5 +129,33 @@ class CrossAssetTrainMigration(unittest.TestCase):
                          _legacy_group_ic(ps, d["score"].to_numpy(), d["target"].to_numpy(), min_n))
 
 
+# ───────────────────────── evaluation/targets.py (wilson_ci) ─────────────────────────
+def _legacy_wilson_ci(k, n, z: float = 1.96):
+    n = float(n)
+    if n <= 0:
+        return float('nan'), float('nan')
+    p = float(k) / n
+    den = 1.0 + z * z / n
+    centre = (p + z * z / (2.0 * n)) / den
+    half = z * np.sqrt(p * (1.0 - p) / n + z * z / (4.0 * n * n)) / den
+    return float(max(0.0, centre - half)), float(min(1.0, centre + half))
+
+
+class EvaluationTargetsMigration(unittest.TestCase):
+    def test_wilson_ci_is_bit_equal_to_the_old_definition(self):
+        import _nbload
+        ns = _nbload.exec_evaluation_module("targets", {"__name__": "audit_nb"})
+        new = ns["wilson_ci"]
+        ks_ns = [(0, 0), (0, 1), (1, 1), (5, 10), (0, 20), (20, 20), (3, 7), (500, 1000), (np.int64(12), np.int64(40)),
+                 (np.float64(2.0), 9), (4, -3)]
+        rng = np.random.default_rng(0)
+        for n in rng.integers(1, 3000, 300):
+            ks_ns.append((int(rng.integers(0, n + 1)), int(n)))
+        for k, n in ks_ns:
+            for z in (1.96, 1.0, 2.576):
+                same(self, new(k, n, z), _legacy_wilson_ci(k, n, z), f"k={k} n={n} z={z}")
+        same(self, new(5, 10), _legacy_wilson_ci(5, 10))
+
+
 if __name__ == "__main__":
     unittest.main()
