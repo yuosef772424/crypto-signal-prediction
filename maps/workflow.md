@@ -28,15 +28,15 @@
   - `def make_shuffled_dataset(X, y_dict, batch_size, seed=None, shuffle=True)` L30
   - `def make_eval_dataset(X, y_dict, batch_size)` L67
 
-### `workflow/candle_baseline.py` (155 lines)
+### `workflow/candle_baseline.py` (159 lines)
 - PURPOSE: Section 7-c: does the model add anything over the last candle's shape? Candle/last-step baselines and the day-bootstrap AUC difference.
 - TAGS: candle_baseline_report, rule_cpos, candle_gbm, laststep_gbm, high_class, low_class, day bootstrap
 - PITFALLS: Baselines train on train only; the verdict is on test AUC difference with a day-clustered bootstrap. Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 28 (section 7-c).
-- DEPENDS: core
+- DEPENDS: core, stats
 - USES: selective_eval, splits
 - USED BY: run, verification, wiring_selftest
 - API:
-  - `def candle_baseline_report(model, train_split, val_split, test_split, model_tf=None, targets=('high', 'low'), max_train=300000, n_boot=300, seed=0, batch_size=1024, min_auc_gain=0.005, verbose=True)` L59
+  - `def candle_baseline_report(model, train_split, val_split, test_split, model_tf=None, targets=('high', 'low'), max_train=300000, n_boot=300, seed=0, batch_size=1024, min_auc_gain=0.005, verbose=True)` L63
 
 ### `workflow/capacity.py` (370 lines)
 - PURPOSE: Section 7-j: capacity vs effective sample size: effective_sample_size, simple_baseline, feature_count_sweep, learning_curve, capacity_verdict, capacity_report.

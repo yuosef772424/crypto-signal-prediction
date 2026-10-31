@@ -412,5 +412,43 @@ class PairedCompareMigration(unittest.TestCase):
                 pd.testing.assert_series_equal(got, want, check_exact=True)
 
 
+# ───────────────────────── workflow/candle_baseline.py (_day_bootstrap_auc_diff) ─────────────────────────
+def _legacy_day_bootstrap_auc_diff(y, s_a, s_b, days, n_boot=300, seed=0):
+    from sklearn.metrics import roc_auc_score
+    rng = np.random.default_rng(seed)
+    uniq, inv = np.unique(days, return_inverse=True)
+    groups = [np.where(inv == k)[0] for k in range(len(uniq))]
+    diffs = []
+    for _ in range(n_boot):
+        idx = np.concatenate([groups[k] for k in rng.integers(0, len(groups), len(groups))])
+        if len(np.unique(y[idx])) < 2:
+            continue
+        diffs.append(roc_auc_score(y[idx], s_a[idx]) - roc_auc_score(y[idx], s_b[idx]))
+    point = roc_auc_score(y, s_a) - roc_auc_score(y, s_b)
+    lo, hi = (np.percentile(diffs, [2.5, 97.5]) if diffs else (np.nan, np.nan))
+    return point, lo, hi
+
+
+class WorkflowCandleBaselineMigration(unittest.TestCase):
+    def test_day_bootstrap_auc_diff_matches_sklearn_version_to_1e12(self):
+        import _nbload
+        ns = {"__name__": "audit_nb", "np": np, "pd": pd}
+        _nbload.workflow_package().load_into(ns, only=("candle_baseline",))
+        new = ns["_day_bootstrap_auc_diff"]
+        rng = np.random.default_rng(3)
+        for seed in range(5):
+            n = int(rng.integers(200, 600))
+            days = rng.integers(0, 40, n)
+            y = (rng.random(n) < 0.45).astype(int)
+            s_a = np.round(rng.normal(size=n) + 0.5 * y, 1)                     # ties
+            s_b = rng.normal(size=n)
+            close(self, new(y, s_a, s_b, days, n_boot=60, seed=seed), _legacy_day_bootstrap_auc_diff(y, s_a, s_b, days, 60, seed))
+        y1 = np.ones(10, int)
+        with self.assertRaises(ValueError):
+            new(y1, np.arange(10.0), np.arange(10.0), np.arange(10), n_boot=5)
+        with self.assertRaises(ValueError):
+            new(np.r_[np.zeros(5, int), np.ones(5, int)], np.r_[np.nan, np.arange(9.0)], np.arange(10.0), np.arange(10), n_boot=5)
+
+
 if __name__ == "__main__":
     unittest.main()
