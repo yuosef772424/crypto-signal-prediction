@@ -154,13 +154,14 @@ def test_masking(encoder=None, seq_len=8, n_features=5):
 
 def test_ic_loss():
     import tensorflow as tf
+    from stats.metrics import pearson
     from .train import day_pearson
     rng = np.random.default_rng(0)
     day = np.repeat(np.arange(4), [12, 3, 15, 11]).astype("int32")
     pred, tgt = rng.normal(size=len(day)).astype("float32"), rng.normal(size=len(day)).astype("float32")
     tgt[day == 0] += pred[day == 0]
     val, n_valid = day_pearson(tf.constant(pred), tf.constant(tgt), tf.constant(day), 4, 10.0)
-    ref = np.mean([np.corrcoef(pred[day == d], tgt[day == d])[0, 1] for d in (0, 2, 3)])
+    ref = np.mean([pearson(pred[day == d], tgt[day == d]) for d in (0, 2, 3)])   # الأداة الوحيدة: stats.metrics.pearson
     _check(abs(float(val) - ref) < 1e-4 and int(n_valid) == 3, f"IC {float(val)} ≠ {ref}")
     return True
 

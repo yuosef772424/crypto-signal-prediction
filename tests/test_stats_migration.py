@@ -103,5 +103,31 @@ class CrossAssetReportMigration(unittest.TestCase):
                 same(self, self.report.partial_ic(d, "score", "target", 3), _legacy_partial_ic(d, "score", "target", 3))
 
 
+# ───────────────────────── cross_asset/train.py (group_ic) ─────────────────────────
+def _legacy_group_ic(ps, score, target, min_n=10):
+    df = pd.DataFrame({"g": ps.day_key, "s": np.asarray(score, "float64"), "r": np.asarray(target, "float64")})
+    df = df[df.groupby("g")["g"].transform("size") >= min_n]
+    if df.empty:
+        return float("nan")
+    rk = df.groupby("g")[["s", "r"]].rank()
+    rk["g"] = df["g"]
+    ic = rk.groupby("g").apply(lambda x: x["s"].corr(x["r"]))
+    return float(ic.mean())
+
+
+class CrossAssetTrainMigration(unittest.TestCase):
+    def test_group_ic_is_bit_equal_to_the_old_pandas_version(self):
+        from types import SimpleNamespace
+        from cross_asset import train
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            for seed in range(8):
+                d = panel_frame(seed, nan_frac=0.1 if seed % 2 else 0.0)
+                ps = SimpleNamespace(day_key=d["timestamp"].to_numpy())
+                for min_n in (3, 10, 100):
+                    same(self, train.group_ic(ps, d["score"].to_numpy(), d["target"].to_numpy(), min_n),
+                         _legacy_group_ic(ps, d["score"].to_numpy(), d["target"].to_numpy(), min_n))
+
+
 if __name__ == "__main__":
     unittest.main()

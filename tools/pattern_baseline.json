@@ -55,7 +55,7 @@
   },
   "metric-def-outside-stats": {
    "cross_asset/report.py": 3,
-   "cross_asset/train.py": 3,
+   "cross_asset/train.py": 2,
    "evaluation/targets.py": 1,
    "evaluation/trust_calibration.py": 1,
    "model/diagnostics.py": 2,

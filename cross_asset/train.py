@@ -28,6 +28,7 @@ import pandas as pd
 import tensorflow as tf
 
 from core.schema import LAST_COLUMN_INDEX as LC
+from stats.metrics import pearson
 
 from .data import entry_range_to_prices
 
@@ -92,7 +93,7 @@ def day_pearson(pred, target, day, n_days, min_n):
     return tf.reduce_sum(corr * valid) / tf.maximum(tf.reduce_sum(valid), 1.0), tf.reduce_sum(valid)
 
 
-def _ic_index(targets):
+def _primary_target_index(targets):
     """هدف حدّ IC: close إن وُجد، وإلا آخر الأهداف (مثلاً low حين close معلّق)."""
     return targets.index("close") if "close" in targets else len(targets) - 1
 
@@ -108,7 +109,7 @@ def panel_loss(out, batch, cfg, reg_scale, targets=("high", "low", "close")):
     total = cfg["w_cls"] * tf.reduce_sum(bce) + cfg["w_reg"] * tf.reduce_sum(huber)
     comps = {**{f"bce_{t}": bce[i] for i, t in enumerate(targets)},
              **{f"huber_{t}": huber[i] for i, t in enumerate(targets)}}
-    ci = _ic_index(list(targets))
+    ci = _primary_target_index(list(targets))
     n_days = tf.reduce_max(batch["day"]) + 1
     ics = []
     for k in cfg["ic_on"]:
@@ -235,7 +236,7 @@ class PanelTrainer:
             y = ps.ycls[:, i]
             if 0 < y.mean() < 1:
                 res[f"val_auc_{t}"] = float(roc_auc_score(y, logits[:, i]))
-        ci = _ic_index(list(ps.targets))
+        ci = _primary_target_index(list(ps.targets))
         df = pd.DataFrame({"d": ps.day_key, "s": logits[:, ci], "r": ps.yreg[:, ci]})
         ic = df.groupby("d").filter(lambda g: len(g) >= 10).groupby("d").apply(
             lambda g: g["s"].corr(g["r"], method="spearman"))
@@ -359,8 +360,8 @@ class PanelTrainer:
                 print(f"[{epoch + 1:>3}/{c['epochs']}] {row['sec']:.0f}s {n_b} خطوة | train loss {tr['train_loss']:.4f} | "
                       f"val loss {va['val_loss']:.4f} | AUC h/l/c {va.get('val_auc_high', np.nan):.3f}/"
                       f"{va.get('val_auc_low', np.nan):.3f}/{va.get('val_auc_close', np.nan):.3f} | "
-                      f"IC {self.targets[_ic_index(list(self.targets))]} "
-                      f"{va[f'val_ic_{self.targets[_ic_index(list(self.targets))]}']:+.4f}" + (" ⭐" if improved else f" (صبر {state['wait']}/{c['patience']})"),
+                      f"IC {self.targets[_primary_target_index(list(self.targets))]} "
+                      f"{va[f'val_ic_{self.targets[_primary_target_index(list(self.targets))]}']:+.4f}" + (" ⭐" if improved else f" (صبر {state['wait']}/{c['patience']})"),
                       flush=True)
         return state
 
@@ -396,7 +397,7 @@ def group_ic(ps, score, target, min_n=10):
         return float("nan")
     rk = df.groupby("g")[["s", "r"]].rank()
     rk["g"] = df["g"]
-    ic = rk.groupby("g").apply(lambda x: x["s"].corr(x["r"]))
+    ic = rk.groupby("g").apply(lambda x: pearson(x["s"], x["r"], nan_policy="drop", min_n=1))
     return float(ic.mean())
 
 

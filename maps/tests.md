@@ -929,7 +929,7 @@
   - `class TierOneTests(unittest.TestCase)` L143
     - (4 methods)
 
-### `tests/test_stats_migration.py` (107 lines)
+### `tests/test_stats_migration.py` (133 lines)
 - PURPOSE: Old-vs-new proof for the consumers migrated to stats/ (hardening audit C7, PR 10): each class pins the migrated consumer to a (from docstring)
 - DEPENDS: cross_asset
 - API:
@@ -938,6 +938,8 @@
   - `def panel_frame(seed, n_days=14, n_coins=30, levels=5, nan_frac=0.08)` L33
   - `class CrossAssetReportMigration(unittest.TestCase)` L84
     - (3 methods)
+  - `class CrossAssetTrainMigration(unittest.TestCase)` L118
+    - (1 methods)
 
 ### `tests/test_suspended_targets.py` (99 lines)
 - PURPOSE: TargetSettings.suspended_targets: None = the old rule (close suspended outside entry_range) and the old folder name; () trains close (from docstring)
