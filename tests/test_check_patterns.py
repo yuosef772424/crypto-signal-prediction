@@ -268,7 +268,9 @@ class LiveRepoTests(unittest.TestCase):
     def test_the_audit_sites_are_found(self):
         found = cp.scan(ROOT)
         loops = set(found["per-asset-model-call-loop"])
-        self.assertTrue({"evaluation/all_assets.py", "evaluation/live.py", "workflow/reports.py"} <= loops, loops)
+        # PR 2 (pooled evaluation predict) removed the per-asset model calls of live.py and reports.py; all_assets.py keeps one
+        # match: its per-asset loop calls predict_with_evaluation_v4(raw_preds=...) on already-pooled outputs (no model call).
+        self.assertEqual(loops, {"evaluation/all_assets.py"}, loops)
         self.assertIn("model/diagnostics.py", found["output-name-literal"])
         self.assertIn("workflow/retarget.py", found["target-mode-branch"])
         self.assertIn("trainer/system.py", found["seed-literal"])
