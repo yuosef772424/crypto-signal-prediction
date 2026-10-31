@@ -198,6 +198,7 @@
 - capacity_thresholds: workflow/capacity
 - capacity_verdict: workflow/capacity
 - cards: tools/build_map
+- cascaded stages: core/heads
 - categorical states: tools/gate_features
 - causal: model/decomposition
 - causal alignment: tools/intraday_features
@@ -261,6 +262,7 @@
 - concat_splits: signal_eval/integration
 - confidence: evaluation/trust_calibration, workflow/selective_eval
 - confidence calibration: evaluation/calibrators
+- confidence head: core/heads
 - confidencehead: model/nig_layers
 - config: data/__init__, data/runtime
 - config default: tools/check_patterns
@@ -562,6 +564,7 @@
 - flatten_coins_by_category: data/sources
 - float16: evaluation/legacy_uncertainty, workflow/batches
 - flush curve: edge_discovery/10_flush_curve
+- forecast input features: core/heads
 - format_latest_table: evaluation/latest_table
 - forward confirmation: natr_range/run_natr_confirm_forward
 - forward reference: tools/implicit_deps
@@ -574,6 +577,7 @@
 - fresh bars: strategy_discovery/oos, strategy_discovery/survivor_checks
 - from __future__: data/common
 - from __future__ annotations: signal_eval/common
+- from_target_configs: core/heads
 - frozen config: natr_range/run_natr_confirm_forward
 - frozen counts: tools/check_patterns
 - frozen dataclass: workflow/settings
@@ -662,9 +666,15 @@
 - hdbscan: discovery/phase3_tools
 - head registry: model/selftests
 - head types: model/heads
+- head vocabulary: core/heads
+- head_kinds: core/heads
+- head_name: core/heads
 - head_registry: model/heads
-- head_types: model/config
+- head_types: core/heads, model/config
+- headkind: core/heads
 - heads: data/heads
+- headset: core/heads
+- headspec: core/heads
 - health_thresholds: model/diagnostics
 - hedge recovery: hedge_recovery/sim
 - high-natr calibration: natr_range/run_natr_calibrate
@@ -754,7 +764,9 @@
 - kmeans: evaluation/patterns
 - lab: discovery/selftest
 - label checks: workflow/verification
+- label key: core/heads
 - label-shift null: gate_features/run_gate001
+- label_key: core/heads
 - label_smoothing: workflow/training_config
 - lag scan: evaluation/integrity
 - last n samples: evaluation/live
@@ -840,6 +852,7 @@
 - loss: trainer/tasks
 - loss differential: tools/paired_compare
 - loss weights: data/heads
+- loss_weight: core/heads
 - low_class: workflow/candle_baseline
 - lr schedule: cross_asset/train, trainer/schedules
 - ls_acc: edge_discovery/features
@@ -1004,7 +1017,7 @@
 - old vs new feature set: gate_features/run_gate001
 - on-chain: edge_discovery/20_onchain
 - one click: tools/colab_runner
-- one component one interface: core/registry, evaluation/calibrators
+- one component one interface: core/heads, core/registry, evaluation/calibrators
 - one model call: evaluation/pooled
 - one-shot: indicator_strategy/test_final
 - only shrinks: tools/check_patterns
@@ -1016,8 +1029,9 @@
 - out-of-sample: strategy_discovery/oos
 - output management: evaluation/outputs
 - output name literal: tools/check_patterns
-- output names: data/heads
+- output names: core/heads, data/heads
 - output_keys: workflow/training_config
+- output_names: core/heads
 - overwrite keep: tools/drive_sync
 - own-kind reference trap: discovery/evaluation
 - p_value: signal_eval/core
@@ -1050,6 +1064,8 @@
 - paramscheduler: trainer/schedules
 - parent_hashes: trainer/identity
 - parquet: edge_discovery/data_tools/build_panel
+- parse_head_name: core/heads
+- parse_output_name: core/heads
 - partial ic: cross_asset/report
 - pass: signal_eval/selftests
 - paste bundle: tools/data_manifest, tools/data_manifest_colab_cell
@@ -1186,6 +1202,7 @@
 - regime: indicator_strategy/engine, tools/trade_engine
 - region bars: indicator_strategy/charts
 - register: core/registry, model/common
+- register_head_kind: core/heads
 - register_head_type: model/heads
 - register_hypothesis: discovery/batch_runner, signal_eval/__init__, signal_eval/registry
 - register_keras_serializable: model/common
@@ -1240,6 +1257,7 @@
 - rmsnorm: model/transformer
 - robustness: edge_discovery/15_h07_robust, strategy_discovery/robustness, strategy_discovery/survivor_checks
 - robustness_agg: discovery/survey
+- role: core/heads
 - role check: evaluation/calibrators
 - role stamp: core/roles
 - role_of: core/roles
@@ -1452,6 +1470,7 @@
 - target scale: cross_asset/data
 - target-mode: tools/evaluate_trained_model
 - target_columns: core/schema
+- target_configs: core/heads
 - target_mode: tests/test_real_price_modes, workflow/retarget, workflow/settings
 - target_mode_of: workflow/splits
 - target_modes: core/__init__, core/schema
@@ -1477,7 +1496,7 @@
 - tf.data: workflow/batches
 - tf.keras.model subclass: trainer/trainer
 - threads: data/parallel
-- tier 0: core/__init__, core/registry, core/roles, core/seeds
+- tier 0: core/__init__, core/heads, core/registry, core/roles, core/seeds
 - time of day: strategy_discovery/seasonality15m
 - time seal: natr_range/run_natr_confirm_forward, tools/holdout_guard
 - time-series screen: edge_discovery/08_ts_screen
@@ -1543,6 +1562,7 @@
 - typing: data/common, signal_eval/common
 - uncertainty: evaluation/legacy_uncertainty
 - uncertainty floor: core/constants
+- uncertainty head: core/heads
 - uncertaintyweightedloss: trainer/task_weighting
 - unified pipeline: evaluation/unified
 - unit tests: cross_asset/selftest
@@ -1605,6 +1625,7 @@
 - wr: tools/gate_features
 - xla: trainer/perf
 - y_ target head names: tools/check_patterns
+- y_name: core/heads
 - year stability: strategy_discovery/robustness
 - z-score: strategy_discovery/forward
 - zero cost: edge_discovery/23_chart_rules_gross

@@ -328,8 +328,8 @@ _CONFIG_PKGS = tuple(f"{p}/**/*.py" for p in ("cross_asset", "data", "model", "t
 RULES: tuple[Rule, ...] = (
     Rule("output-name-literal", "C1",
          "Model output keys (`y_{t}_class_logits`, `..._nu/_alpha/_beta/_confidence/_epistemic/_aleatoric`) are spelled "
-         "in many files; one owner (a future core/heads.py) must format them. Counts string literals/f-strings.",
-         exclude=_NOT_SELF, matcher=match_output_name_literal),
+         "in many files; one owner (core/heads.py, excluded from this rule) formats them. Counts string literals/f-strings.",
+         exclude=_NOT_SELF + ("core/heads.py",), matcher=match_output_name_literal),
     Rule("hlc-target-tuple", "C1",
          "The literal ('high','low','close') repeated instead of core.schema.TARGET_COLUMNS.",
          exclude=_NOT_SELF + ("core/schema.py",), matcher=match_hlc_target_tuple),
