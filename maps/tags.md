@@ -2,6 +2,7 @@
 
 - %run: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, trainer/_loader … (+1)
 - +1/-1 labels: workflow/wiring_selftest
+- .get default: tools/check_patterns
 - 0.5% sizing: hedge_recovery/sim2
 - 136 tests: edge_discovery/04_screen_mean
 - 15m: data/phase2, strategy_discovery/intraday_macd, strategy_discovery/seasonality15m, tools/intraday_features
@@ -72,6 +73,7 @@
 - anchor: core/price_norm
 - anti-memorization: cross_asset/__init__, model/input_norm
 - anti-memorization options: model/builder
+- anti-pattern guard: tools/check_patterns
 - anti_memorization: workflow/settings
 - anti_memorization_config: model/config
 - api: data/binance_client
@@ -84,7 +86,7 @@
 - assembly: workflow/__init__
 - asset_bounds: data/pipeline, workflow/pooling
 - asset_registry: tools/fetch_history_csv_concurrent, tools/fetch_history_vision_colab
-- ast: discovery/axis_loader, tools/build_map
+- ast: discovery/axis_loader, tools/build_map, tools/check_patterns
 - asym_score: cross_asset/train
 - asymmetry: edge_discovery/29_path_envelope
 - ath distance: data/custom
@@ -103,6 +105,7 @@
 - backtest: edge_discovery/tsbt
 - base64: edge_discovery/data_tools/dec
 - base_params last_close: workflow/chicks_bridge
+- baseline: tools/check_patterns
 - baseline comparison: cross_asset/experiment
 - baseline signals: workflow/panel_bridge
 - batch runner: discovery/batch_runner
@@ -204,7 +207,7 @@
 - chicks_target_modes: workflow/chicks_bridge
 - chicks_v4_5: evaluation/__init__
 - chicksinputs: workflow/run
-- ci: tools/build_map, tools/check_deps
+- ci: tools/build_map, tools/check_deps, tools/check_patterns
 - ci guard: tests/test_no_lookahead
 - class head: data/heads
 - class_baselines: trainer/metrics, workflow/training_config
@@ -245,6 +248,7 @@
 - confidence: evaluation/trust_calibration, workflow/selective_eval
 - confidencehead: model/nig_layers
 - config: data/__init__, data/runtime
+- config default: tools/check_patterns
 - config keys: data/defaults
 - config_fingerprint: trainer/config
 - confirmation: tools/holdout_guard
@@ -252,6 +256,8 @@
 - consistency check: indicator_strategy/variants
 - consistent_sign: signal_eval/windows
 - constants: core/__init__, core/constants
+- contract: core/registry
+- contract check at registration: core/registry
 - cooldown: edge_discovery/09_market_flush, edge_discovery/events
 - copy trading: edge_discovery/19_hl_copy
 - core: core/__init__, core/price_norm
@@ -354,6 +360,7 @@
 - diagnostic: edge_discovery/23_chart_rules_gross
 - diagnostics: data/diagnostics, workflow/diagnostics
 - diagnostics callback: trainer/training_diagnostics
+- did you mean: core/registry
 - dip buying: edge_discovery/09_market_flush
 - direction accuracy: evaluation/metrics
 - directional_bias: evaluation/integrity
@@ -395,6 +402,7 @@
 - dsr: edge_discovery/17_h07_break
 - dummy tail: data/live
 - duplicate definitions: tools/check_deps, tools/implicit_deps
+- duplicate name: core/registry
 - e-disc-001: strategy_discovery/grid
 - e-disc-002: strategy_discovery/robustness
 - e-disc-003: strategy_discovery/oos, strategy_discovery/significance
@@ -503,6 +511,7 @@
 - f-0083: natr_range/run_natr_calibrate
 - f-0084: natr_range/run_natr_rolling
 - fail: signal_eval/selftests
+- fail early: core/registry
 - failed breakout: edge_discovery/11_more
 - failure registry: tools/experiment_registry
 - fama-macbeth: edge_discovery/02_fmb
@@ -548,6 +557,7 @@
 - from __future__: data/common
 - from __future__ annotations: signal_eval/common
 - frozen config: natr_range/run_natr_confirm_forward
+- frozen counts: tools/check_patterns
 - frozen dataclass: workflow/settings
 - frozen hypothesis: strategy_discovery/forward
 - frozen rules: natr_range/freeze_rules, natr_range/run_natr_confirm
@@ -628,6 +638,7 @@
 - h23-r: edge_discovery/32_breakout_stops
 - hac: tools/paired_compare
 - har-rv: h07_volsizing/01_volsizing
+- hardening: tools/check_patterns
 - has_saved_state: trainer/checkpoints
 - hash ribbon: edge_discovery/20_onchain
 - hdbscan: discovery/phase3_tools
@@ -646,6 +657,7 @@
 - history_15m: tools/data_manifest, tools/data_manifest_colab_cell, tools/stale_bars_colab_job, tools/trim_dead_tails, tools/trim_dead_tails_colab_job
 - history_1d: tools/colab_bridge
 - hl_positions: edge_discovery/19_hl_copy
+- hlc tuple: tools/check_patterns
 - hold length: strategy_discovery/seasonality15m
 - holdout: data/split, edge_discovery/14_holdout, natr_range/run_natr_confirm, tools/holdout_guard
 - holdout flag: edge_discovery/13_listing_stops
@@ -758,7 +770,7 @@
 - limit orders: edge_discovery/21_range_fade, edge_discovery/31_wick_capture
 - linear probe: norm_probe/run_norm_probe
 - linear reference: workflow/generalization
-- lint: tools/check_deps
+- lint: tools/check_deps, tools/check_patterns
 - list_registry: signal_eval/registry
 - listing: edge_discovery/13_listing_stops
 - listing month clustering: edge_discovery/12_listing
@@ -861,6 +873,7 @@
 - memmap: data/disk_backed, data/storage, workflow/batches
 - memorization: workflow/generalization
 - memory growth: trainer/perf
+- metric definition: tools/check_patterns
 - metrics: cross_asset/report, evaluation/metrics, trainer/metrics
 - metrics_new: edge_discovery/12_listing, edge_discovery/data_tools/sweep
 - metricslogger: trainer/metrics
@@ -870,6 +883,7 @@
 - mixed precision: trainer/perf
 - mixed timestamps: cross_asset/data
 - mkt_: data/market_context
+- mode name branch: tools/check_patterns
 - model: model/__init__
 - model builder: model/builder
 - model config: model/config
@@ -968,7 +982,9 @@
 - old vs new feature set: gate_features/run_gate001
 - on-chain: edge_discovery/20_onchain
 - one click: tools/colab_runner
+- one component one interface: core/registry
 - one-shot: indicator_strategy/test_final
+- only shrinks: tools/check_patterns
 - open interest: data/binance_client, data/funding_oi, tools/fetch_history_csv_concurrent, tools/fetch_history_vision_colab
 - opt_variables: trainer/env
 - optimizer state: trainer/smoke_test
@@ -976,6 +992,7 @@
 - out of sample: edge_discovery/16_h07_oos, strategy_discovery/forward, tools/h07_forward
 - out-of-sample: strategy_discovery/oos
 - output management: evaluation/outputs
+- output name literal: tools/check_patterns
 - output names: data/heads
 - output_keys: workflow/training_config
 - overwrite keep: tools/drive_sync
@@ -1017,8 +1034,10 @@
 - path envelope: edge_discovery/29_path_envelope
 - patience: trainer/best_tracker
 - pattern discovery: evaluation/patterns
+- pattern ratchet: tools/check_patterns
 - pct_change: data/normalize
 - pct_change_overrides: data/presets
+- per-asset predict loop: tools/check_patterns
 - per-coin consistency: indicator_strategy/screen
 - per-coin events: edge_discovery/events
 - per-layer probe: model/layer_report
@@ -1052,6 +1071,7 @@
 - plot_confusion_matrix_heatmap: evaluation/plots
 - plot_equity_curve: evaluation/plots
 - plot_pattern_validation: evaluation/io_patterns
+- plugin: core/registry
 - pool_test_dict: workflow/pooling
 - pooled z*y: edge_discovery/08_ts_screen
 - pooling: model/readout
@@ -1137,13 +1157,13 @@
 - reg_target_scale: evaluation/decode, workflow/retarget
 - regime: indicator_strategy/engine, tools/trade_engine
 - region bars: indicator_strategy/charts
-- register: model/common
+- register: core/registry, model/common
 - register_head_type: model/heads
 - register_hypothesis: discovery/batch_runner, signal_eval/__init__, signal_eval/registry
 - register_keras_serializable: model/common
 - register_sample_filter: data/windows
 - register_task_type: trainer/tasks
-- registry: discovery/batch_runner, tools/touched_ledger
+- registry: core/__init__, core/registry, discovery/batch_runner, tools/touched_ledger
 - registry selftests: signal_eval/registry_selftests
 - registry.json: signal_eval/registry
 - registry_statuses: signal_eval/registry
@@ -1257,6 +1277,7 @@
 - seasonality: edge_discovery/06_seasonality, strategy_discovery/seasonality15m
 - section 7 reports: workflow/__init__
 - seed: signal_eval/core
+- seed literal: tools/check_patterns
 - seed spread: edge_discovery/26_h19_generalization
 - select_and_rank_trades: evaluation/trade_selection
 - selective trading: tools/bracket_eval
@@ -1409,7 +1430,7 @@
 - tf.data: workflow/batches
 - tf.keras.model subclass: trainer/trainer
 - threads: data/parallel
-- tier 0: core/__init__
+- tier 0: core/__init__, core/registry
 - time of day: strategy_discovery/seasonality15m
 - time seal: natr_range/run_natr_confirm_forward, tools/holdout_guard
 - time-series screen: edge_discovery/08_ts_screen
@@ -1479,6 +1500,7 @@
 - unit tests: cross_asset/selftest
 - universe: h07_combos/01_combos, tools/touched_ledger
 - universe mask: edge_discovery/lib
+- unknown name: core/registry
 - unseen assets: strategy_discovery/oos, strategy_discovery/significance, strategy_discovery/survivor_checks
 - untouched coins: edge_discovery/24_pullback_maker
 - up_share: cross_asset/report
@@ -1533,6 +1555,7 @@
 - workflow.run steps: tools/evaluate_trained_model
 - wr: tools/gate_features
 - xla: trainer/perf
+- y_ target head names: tools/check_patterns
 - year stability: strategy_discovery/robustness
 - z-score: strategy_discovery/forward
 - zero cost: edge_discovery/23_chart_rules_gross

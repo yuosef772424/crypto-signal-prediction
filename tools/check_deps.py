@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-PURPOSE:  Enforce the import direction of PHILOSOPHY.md section 2 with `ast` (modules are never imported): code packages must not import research/docs/tests, `core/` (tier 0) imports nothing from the repo, and a research study must not import another study; path-based coupling is reported as warnings. Also gates the IMPLICIT dependencies of the shared-namespace packages (new cross-package / forward / notebook-global references and new duplicate top-level definitions, via tools/implicit_deps.py) against tools/implicit_deps_allowlist.txt.
+PURPOSE:  Enforce the import direction of PHILOSOPHY.md section 2 with `ast` (modules are never imported): code packages must not import research/docs/tests, `core/` (tier 0) imports nothing from the repo, and a research study must not import another study; path-based coupling is reported as warnings. Also gates the IMPLICIT dependencies of the shared-namespace packages (new cross-package / forward / notebook-global references and new duplicate top-level definitions, via tools/implicit_deps.py) against tools/implicit_deps_allowlist.txt, and the anti-pattern counts of tools/check_patterns.py (pattern ratchet) against tools/pattern_baseline.json.
 TAGS:     dependencies, imports, import direction, zones, architecture, lint, ci, sys.path, implicit dependencies, duplicate definitions, allowlist, اتجاه الاعتماد
-PITFALLS: Also hosts the shared repo helpers (Repo, zone_of, file_imports, classify) that tools/build_map.py reuses for DEPENDS. Bare imports (`import lib`) are resolved by a repo-wide module-name index, so only unambiguous names (one zone) are classified. Existing violations are never fixed here: they go in ALLOWLIST below, with a reason. The implicit-dependency allowlist may only shrink (a stale entry fails, see tools/implicit_deps.py --prune-allowlist).
+PITFALLS: Also hosts the shared repo helpers (Repo, zone_of, file_imports, classify) that tools/build_map.py reuses for DEPENDS. Bare imports (`import lib`) are resolved by a repo-wide module-name index, so only unambiguous names (one zone) are classified. Existing violations are never fixed here: they go in ALLOWLIST below, with a reason. The implicit-dependency allowlist and the pattern baseline may only shrink (a stale entry fails, see tools/implicit_deps.py --prune-allowlist and tools/check_patterns.py --update-baseline).
 
 Usage: python tools/check_deps.py        (exit 1 on any non-allowlisted error)
 """
@@ -293,6 +293,16 @@ def implicit_deps_problems(root: Path) -> tuple[list[str], int]:
     return implicit_deps.check(root)
 
 
+def pattern_problems(root: Path) -> tuple[list[str], int]:
+    """Growth / stale entries of the pattern ratchet (tools/check_patterns.py, baseline tools/pattern_baseline.json)."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    try:
+        import check_patterns
+    finally:
+        sys.path.pop(0)
+    return check_patterns.check(root)
+
+
 def run(repo: Repo) -> tuple[list[str], int, int, int, int]:
     lines: list[str] = []
     errors = warnings = allowed = 0
@@ -314,6 +324,11 @@ def run(repo: Repo) -> tuple[list[str], int, int, int, int]:
         lines.append(f"error[implicit-dependency] — {text}")
         errors += 1
     allowed += n_allowed_implicit
+    patterns, n_allowed_patterns = pattern_problems(repo.root)
+    for text in patterns:
+        lines.append(f"error[pattern-ratchet] — {text}")
+        errors += 1
+    allowed += n_allowed_patterns
     notebooks = [f for f in repo.files if "/" not in f and f.endswith(".ipynb")]
     for rel in notebooks:
         for where, line, sev, rule, text in check_notebook(repo, rel):
