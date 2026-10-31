@@ -16,6 +16,7 @@
 - _asymmetric_momentum: discovery/hypothesis_predictors
 - _checkpoint_fingerprint: data/checkpoints
 - _cmo_reversal: discovery/hypothesis_predictors
+- _config_schema: trainer/config
 - _copy_chunk_bytes: data/disk_backed
 - _find_on_drive: workflow/dataset_io
 - _merge_spilled: data/disk_backed
@@ -1366,7 +1367,7 @@
 - stop loss: edge_discovery/13_listing_stops, tools/bracket_eval
 - storage: data/storage
 - stress test: edge_discovery/17_h07_break
-- strict config: workflow/settings
+- strict config: trainer/config, workflow/settings
 - strict side: tools/touched_ledger
 - stride: model/patches
 - stumpy: discovery/phase3_tools
@@ -1518,6 +1519,7 @@
 - v0-v4: edge_discovery/21_range_fade
 - val auc: edge_discovery/26_h19_generalization
 - valid_train_modes: trainer/config
+- validate_config: trainer/config
 - validate_head_config: data/heads
 - variance ratio: data/custom
 - variant arms: indicator_strategy/variants

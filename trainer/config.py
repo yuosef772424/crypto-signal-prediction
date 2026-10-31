@@ -1,8 +1,8 @@
 """
-PURPOSE:  TRAINER_DEFAULT_CONFIG (alias DEFAULT_CONFIG; the trainer's single source of truth), deep_update, build_config, config_fingerprint, model_signature.
-TAGS:     TRAINER_DEFAULT_CONFIG, DEFAULT_CONFIG, build_config, deep_update, config_fingerprint, model_signature, VALID_TRAIN_MODES, trainer
+PURPOSE:  TRAINER_DEFAULT_CONFIG (alias DEFAULT_CONFIG; the trainer's single source of truth), deep_update, build_config (merge + validate_config, the ONE place that validates), config_fingerprint, model_signature.
+TAGS:     TRAINER_DEFAULT_CONFIG, DEFAULT_CONFIG, build_config, validate_config, _CONFIG_SCHEMA, strict config, deep_update, config_fingerprint, model_signature, VALID_TRAIN_MODES, trainer
           config
-PITFALLS: Unknown config keys raise in build_config; the fingerprint decides whether a saved run may resume. Code here must use TRAINER_DEFAULT_CONFIG, never the bare DEFAULT_CONFIG: data/defaults.py binds a different DEFAULT_CONFIG (the pipeline's ~100 keys) and the two meet in main.ipynb's namespace. Executed
+PITFALLS: build_config validates through validate_config (aggregated ValueError): an unknown key at any level (with a did-you-mean), a non-finite / negative / non-number loss_weight, an unregistered task_type, a key of another task type, a schedule name (lambda_*_var, constraint weight_var) not defined in loss.schedules, an early-stopping monitor the trainer never logs, a knob that would be silently ignored. Every key of TRAINER_DEFAULT_CONFIG must have a rule in _CONFIG_SCHEMA (tests/test_config_strictness.py fails otherwise); keys a task type reads are declared at register_task_type(config_keys=...), never as a second list here. A default value is never changed by validation (tests/golden_trainer_configs.json pins the configs and fingerprints). The fingerprint decides whether a saved run may resume. Code here must use TRAINER_DEFAULT_CONFIG, never the bare DEFAULT_CONFIG: data/defaults.py binds a different DEFAULT_CONFIG (the pipeline's ~100 keys) and the two meet in main.ipynb's namespace. Executed
           into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other
           modules resolve at call time.
 
@@ -25,6 +25,10 @@ PITFALLS: Unknown config keys raise in build_config; the fingerprint decides whe
 فوق الافتراضي.
 """
 # @title 2) قاموس الإعدادات الافتراضي + دالة الدمج
+import difflib as _difflib
+import math as _math
+import re as _re
+
 VALID_TRAIN_MODES = ("auto", "new", "resume", "warm_start")
 
 #: name -> {"fn", "stat_keys", "supports_sample_weight"}: filled by register_task_type (trainer/tasks.py). Created here, in the module that loads
@@ -196,29 +200,341 @@ def deep_update(base: dict, override: dict) -> dict:
 
 
 def build_config(user_config: dict) -> dict:
-    """يدمج إعدادات المستخدم فوق إعدادات الإطار الافتراضية، ويتحقق من الحد الأدنى اللازم"""
+    """يدمج إعدادات المستخدم فوق إعدادات الإطار الافتراضية ثم يتحقّق منها كلها في مكان واحد (validate_config):
+    مفتاح مجهول أو خاطئ الكتابة، وزن غير منتهٍ/سالب، نوع مهمة غير مسجَّل، مرجع جدول لا وجود له، مقياس لا يسجّله المدرّب... كلها ترفع ValueError."""
     cfg = deep_update(TRAINER_DEFAULT_CONFIG, user_config)
+    return validate_config(cfg)
+
+
+# ───────────────────────────── التحقّق الصارم (مكان واحد) ─────────────────────────────
+# كل مفتاح في الإعداد له قاعدة هنا؛ مفتاح بلا قاعدة = خطأ (مع أقرب اسم معروف). build_config يستدعي validate_config وحدها،
+# فلا تُوزَّع فحوص متناثرة في الوحدات الأخرى. إضافة مفتاح افتراضي جديد في TRAINER_DEFAULT_CONFIG بلا قاعدة هنا يُفشل
+# tests/test_config_strictness.py (التغطية)، فلا يعود «مفتاح مقبول بلا معنى» ممكناً.
+def _is_int(v):
+    return isinstance(v, (int, np.integer)) and not isinstance(v, (bool, np.bool_))
+
+
+def _is_real(v):
+    return isinstance(v, (int, float, np.integer, np.floating)) and not isinstance(v, (bool, np.bool_))
+
+
+def _r_int(ge=None):
+    def rule(v):
+        if not _is_int(v):
+            return f"must be an int, got {v!r}"
+        if ge is not None and v < ge:
+            return f"must be an int >= {ge}, got {v!r}"
+    return rule
+
+
+def _r_real(ge=None, gt=None, lt=None):
+    def rule(v):
+        if not _is_real(v) or not _math.isfinite(float(v)):
+            return f"must be a finite number, got {v!r}"
+        if ge is not None and v < ge:
+            return f"must be >= {ge}, got {v!r}"
+        if gt is not None and v <= gt:
+            return f"must be > {gt}, got {v!r}"
+        if lt is not None and v >= lt:
+            return f"must be < {lt}, got {v!r}"
+    return rule
+
+
+def _r_bool(v):
+    if not isinstance(v, (bool, np.bool_)):
+        return f"must be a bool, got {v!r}"
+
+
+def _r_str(v):
+    if not isinstance(v, str) or not v:
+        return f"must be a non-empty str, got {v!r}"
+
+
+def _r_path(v):
+    if not isinstance(v, (str, os.PathLike)) or not str(v):
+        return f"must be a non-empty path, got {v!r}"
+
+
+def _r_enum(*options):
+    def rule(v):
+        if v not in options:
+            return f"must be one of {list(options)}, got {v!r}"
+    return rule
+
+
+def _r_opt(inner):
+    """None أو القاعدة `inner`."""
+    return lambda v: None if v is None else inner(v)
+
+
+def _r_regex_list(v):
+    if not isinstance(v, (list, tuple)):
+        return f"must be a list of regex strings, got {v!r}"
+    for p in v:
+        try:
+            _re.compile(p)
+        except (TypeError, _re.error) as e:
+            return f"invalid regex {p!r}: {e}"
+
+
+def _r_int_list(v):
+    if not isinstance(v, (list, tuple, set)) or not all(_is_int(e) and e >= 1 for e in v):
+        return f"must be a list of epoch numbers (ints >= 1), got {v!r}"
+
+
+#: المخططات: {مفتاح: قاعدة | مخطط متداخل}. القسم الكامل dict؛ المفاتيح التي تُدار بتحقّق خاص (targets, schedules, constraints...)
+#: لها قاعدة `_r_any` هنا ويفحصها فاحص تقاطعي مخصّص في validate_config.
+def _r_any(v):
+    return None
+
+
+_SCHEDULE_NAMES = ("linear", "cosine", "exponential", "sqrt")
+_LR_SCHEDULE_TYPES = ("constant", "cosine", "cosine_restarts")
+_COMMON_TARGET_KEYS = ("true_key", "task_type", "output_keys", "loss_weight", "flood_level")
+_TARGET_VALUE_RULES = {
+    "true_key": _r_str, "task_type": _r_str, "loss_weight": _r_real(ge=0.0),
+    "flood_level": _r_opt(_r_real(ge=0.0)),
+    "use_calibration_loss": _r_bool, "lambda_reg_var": _r_str, "lambda_calib_var": _r_str,
+    "normalize_reg": _r_bool, "normalize_reg_stop_grad": _r_bool, "alpha_floor_straight_through": _r_bool,
+    "beta_nll": _r_real(ge=0.0), "huber_weight": _r_real(ge=0.0), "huber_delta": _r_real(gt=0.0),
+    "label_smoothing": _r_real(ge=0.0, lt=1.0), "binary": _r_bool, "loss_fn": _r_enum("mse", "mae", "huber"),
+}
+
+_CONFIG_SCHEMA = {
+    "run": {
+        "run_dir": _r_path, "mirror_dir": _r_opt(_r_path), "mirror_every": _r_int(ge=1), "epochs": _r_int(ge=1),
+        "batch_size": _r_int(ge=1), "seed": _r_int(), "verbose": _r_enum(0, 1, 2),
+        "train_mode": _r_any,       # فحص مخصّص: غير حسّاس لحالة الأحرف، ويُطبَّع إلى lower()
+        "on_existing": _r_enum("archive", "error"),
+        "warm_start": {"weights_path": _r_opt(_r_path), "epochs_done": _r_opt(_r_int(ge=0)), "lr_rewarmup_epochs": _r_int(ge=0)},
+        "strict_epoch_guard": _r_bool,
+    },
+    "targets": _r_any,              # فاحص الأهداف المخصّص (مفاتيح كل نوع مهمة تأتي من TASK_REGISTRY)
+    "loss": {
+        "use_uncertainty_weighting": _r_bool,
+        "uncertainty_weighting_exclude_task_types": _r_any,
+        "schedules": _r_any, "constraints": _r_any,
+    },
+    "optimizer": {
+        "name": _r_enum("adamw", "adam"), "lr_initial": _r_real(gt=0.0), "lr_min": _r_real(ge=0.0),
+        "lr_warmup_epochs": _r_int(ge=0),
+        "lr_schedule": {"type": _r_enum(*_LR_SCHEDULE_TYPES), "cycle_length": _r_int(ge=1), "cycle_mult": _r_real(ge=1.0),
+                        "total_epochs": _r_int(ge=1)},
+        "weight_decay": _r_real(ge=0.0), "weight_decay_exclude": _r_regex_list, "clip_norm": _r_opt(_r_real(gt=0.0)),
+        "use_ema": _r_bool, "ema_momentum": _r_real(ge=0.0, lt=1.0), "ema_warmup": _r_bool,
+        "ema_window_epochs": _r_opt(_r_real(gt=0.0)), "use_xla": _r_bool,
+    },
+    "callbacks": {
+        "early_stopping": {
+            "monitor": _r_str, "mode": _r_enum("min", "max"), "patience": _r_int(ge=1), "min_delta": _r_real(ge=0.0),
+            "smoothing": _r_enum("none", "window", "ema"), "smoothing_window": _r_int(ge=1),
+            "ema_beta": _r_real(ge=0.0, lt=1.0), "restore_best_weights": _r_bool,
+            "weights_snapshot": _r_enum("raw", "ema_weights"),
+        },
+        "task_weight_update_frequency": _r_int(ge=0), "metrics_log_every": _r_int(ge=1),
+        "snapshots": {"epochs": _r_int_list, "dir": _r_str},
+        "class_baselines": _r_any,  # يُضاف بعد البناء من val (workflow.make_training_config) ويمرّ بـ build_config ثانيةً (capacity/permutation)
+    },
+    "checkpoint": {"save_every": _r_int(ge=1), "max_to_keep": _r_int(ge=1), "save_best_weights": _r_bool},
+}
+
+
+def _suggest(name, known):
+    close = _difflib.get_close_matches(str(name), [str(k) for k in known], n=1, cutoff=0.6)
+    return f" — did you mean {close[0]!r}?" if close else ""
+
+
+def _check_schema(path, value, schema, errs):
+    if not isinstance(value, dict):
+        errs.append(f"{path}: must be a dict, got {type(value).__name__}")
+        return
+    for k, v in value.items():
+        if k not in schema:
+            errs.append(f"{path}: unknown key {k!r}{_suggest(k, schema)}; known keys: {sorted(schema)}")
+            continue
+        rule = schema[k]
+        if isinstance(rule, dict):
+            _check_schema(f"{path}.{k}", v, rule, errs)
+        else:
+            msg = rule(v)
+            if msg:
+                errs.append(f"{path}.{k}: {msg}")
+
+
+def _expected_metric_names(cfg):
+    """أسماء المقاييس التي يكتبها المدرّب في logs (قبل بادئة val_): تُشتق من الأهداف ومن TASK_REGISTRY، لا من قائمة ثانية."""
+    names = {"loss", "raw_loss"}
+    for t, tcfg in cfg["targets"].items():
+        if not isinstance(tcfg, dict):
+            continue                    # خطؤه مُبلَّغ في _check_targets
+        names.add(f"loss_{t}")
+        entry = TASK_REGISTRY.get(tcfg.get("task_type"))
+        if entry:
+            names.update(f"{t}_{k}" for k in entry["stat_keys"])
+        if tcfg.get("task_type") == "classification":
+            names.add("class_loss")
+    for c in cfg["loss"]["constraints"]:
+        if isinstance(c, dict) and isinstance(c.get("name"), str):
+            names.add(f"constraint_{c['name']}")
+    return names
+
+
+def _check_targets(cfg, errs):
+    targets = cfg["targets"]
+    if not isinstance(targets, dict):
+        errs.append(f"targets: must be a dict, got {type(targets).__name__}")
+        return
+    schedules = cfg["loss"]["schedules"] if isinstance(cfg["loss"]["schedules"], dict) else {}
+    for name, tcfg in targets.items():
+        p = f"targets[{name!r}]"
+        if not isinstance(tcfg, dict):
+            errs.append(f"{p}: must be a dict, got {type(tcfg).__name__}")
+            continue
+        ttype = tcfg.get("task_type")
+        entry = TASK_REGISTRY.get(ttype) if isinstance(ttype, str) else None
+        if "task_type" in tcfg and entry is None:
+            errs.append(f"{p}.task_type: unregistered task type {ttype!r}; registered: {sorted(TASK_REGISTRY)} "
+                        f"(register it with register_task_type first)")
+        known = set(_COMMON_TARGET_KEYS) | set(entry["config_keys"] if entry else ())
+        for k, v in tcfg.items():
+            if k not in known:
+                if entry is None:
+                    continue        # نوع غير مسجَّل: خطؤه الأساسي مذكور أعلاه؛ لا نكرّر
+                other = [t for t, e in TASK_REGISTRY.items() if k in e["config_keys"]]
+                hint = f" (it is a key of task type {other})" if other else ""
+                errs.append(f"{p}: unknown key {k!r} for task type {ttype!r}{hint}{_suggest(k, known)}; known keys: {sorted(known)}")
+                continue
+            rule = _TARGET_VALUE_RULES.get(k)
+            msg = rule(v) if rule else None
+            if k == "output_keys" and not v:
+                msg = f"must be non-empty, got {v!r}"
+            if msg:
+                errs.append(f"{p}.{k}: {msg}")
+        # المراجع: اسم متغيّر مجدول يجب أن يكون معرَّفاً في loss.schedules (وإلا كان المنظِّم يُطفأ بصمت — tasks.py)
+        for key, needed in (("lambda_reg_var", True), ("lambda_calib_var", bool(tcfg.get("use_calibration_loss")))):
+            if key in tcfg and isinstance(tcfg[key], str) and needed and tcfg[key] not in schedules:
+                errs.append(f"{p}.{key}: names the schedule {tcfg[key]!r}, which is not defined in loss.schedules "
+                            f"{sorted(schedules)}{_suggest(tcfg[key], schedules)}")
+
+
+def _check_loss(cfg, errs):
+    loss = cfg["loss"]
+    ex = loss["uncertainty_weighting_exclude_task_types"]
+    if not isinstance(ex, (list, tuple, set)):
+        errs.append(f"loss.uncertainty_weighting_exclude_task_types: must be a list of task type names, got {ex!r}")
+    else:
+        for t in ex:
+            if t not in TASK_REGISTRY:
+                errs.append(f"loss.uncertainty_weighting_exclude_task_types: unregistered task type {t!r}; "
+                            f"registered: {sorted(TASK_REGISTRY)}{_suggest(t, TASK_REGISTRY)}")
+    sched = loss["schedules"]
+    if not isinstance(sched, dict):
+        errs.append(f"loss.schedules: must be a dict of name -> schedule, got {type(sched).__name__}")
+        sched = {}
+    sched_schema = {"start": _r_real(), "end": _r_real(), "warmup_epochs": _r_int(ge=0), "schedule": _r_enum(*_SCHEDULE_NAMES)}
+    for pname, pcfg in sched.items():
+        p = f"loss.schedules[{pname!r}]"
+        if not isinstance(pname, str) or not pname:
+            errs.append(f"loss.schedules: schedule names must be non-empty str, got {pname!r}")
+        _check_schema(p, pcfg, sched_schema, errs)
+        if isinstance(pcfg, dict):
+            for req in ("start", "end"):
+                if req not in pcfg:
+                    errs.append(f"{p}: required key {req!r} is missing")
+    cons = loss["constraints"]
+    if not isinstance(cons, (list, tuple)):
+        errs.append(f"loss.constraints: must be a list of dicts, got {type(cons).__name__}")
+        return
+    seen = set()
+    for i, c in enumerate(cons):
+        p = f"loss.constraints[{i}]"
+        if not isinstance(c, dict):
+            errs.append(f"{p}: must be a dict, got {type(c).__name__}")
+            continue
+        for k in c:
+            if k not in ("name", "fn", "weight_var"):
+                errs.append(f"{p}: unknown key {k!r}{_suggest(k, ('name', 'fn', 'weight_var'))}; known keys: ['fn', 'name', 'weight_var']")
+        if not isinstance(c.get("name"), str) or not c.get("name"):
+            errs.append(f"{p}.name: must be a non-empty str, got {c.get('name')!r}")
+        elif c["name"] in seen:
+            errs.append(f"{p}.name: duplicate constraint name {c['name']!r}")
+        else:
+            seen.add(c["name"])
+        if not callable(c.get("fn")):
+            errs.append(f"{p}.fn: must be callable, got {c.get('fn')!r}")
+        wv = c.get("weight_var")
+        if wv is not None and wv not in sched:
+            errs.append(f"{p}.weight_var: names the schedule {wv!r}, which is not defined in loss.schedules "
+                        f"{sorted(sched)}{_suggest(wv, sched)}")
+
+
+def _check_callbacks(cfg, errs):
+    cb, es = cfg["callbacks"], cfg["callbacks"]["early_stopping"]
+    mon, mode = es["monitor"], es["mode"]
+    if isinstance(mon, str) and mon:
+        base = mon[4:] if mon.startswith("val_") else mon
+        known = _expected_metric_names(cfg)
+        if base not in known:
+            errs.append(f"callbacks.early_stopping.monitor: {mon!r} is not a metric this trainer logs; "
+                        f"use [val_]<one of {sorted(known)}>{_suggest(base, known)}")
+        elif mode in ("min", "max"):
+            lossy = base in ("loss", "raw_loss", "class_loss") or base.startswith(("loss_", "constraint_")) or base.endswith("_mae")
+            if lossy and mode != "min":
+                errs.append(f"callbacks.early_stopping.mode: monitor {mon!r} is an error/loss (smaller is better), mode must be 'min'")
+            if base.endswith("_accuracy") and mode != "max":
+                errs.append(f"callbacks.early_stopping.mode: monitor {mon!r} is an accuracy (larger is better), mode must be 'max'")
+    if es["weights_snapshot"] == "ema_weights" and cfg["optimizer"]["use_ema"] is False:
+        errs.append("callbacks.early_stopping.weights_snapshot: 'ema_weights' needs optimizer.use_ema=True "
+                    "(otherwise the raw weights are saved silently)")
+    if cb["task_weight_update_frequency"] and cfg["loss"]["use_uncertainty_weighting"]:
+        errs.append("callbacks.task_weight_update_frequency: > 0 has no effect while loss.use_uncertainty_weighting=True "
+                    "(the updater is only attached when it is off)")
+    cbl = cb.get("class_baselines")
+    if cbl is not None:
+        if not isinstance(cbl, dict):
+            errs.append(f"callbacks.class_baselines: must be a dict target -> baseline, got {type(cbl).__name__}")
+        else:
+            for t, b in cbl.items():
+                if t not in cfg["targets"]:
+                    errs.append(f"callbacks.class_baselines: {t!r} is not a target {sorted(cfg['targets'])}{_suggest(t, cfg['targets'])}")
+                elif _r_real(ge=0.0)(b):
+                    errs.append(f"callbacks.class_baselines[{t!r}]: {_r_real(ge=0.0)(b)}")
+
+
+def validate_config(cfg: dict) -> dict:
+    """المكان الوحيد الذي يُتحقَّق فيه من إعداد المدرّب (يستدعيه build_config على الإعداد بعد الدمج مع الافتراضي، فأي مفتاح
+    خارج TRAINER_DEFAULT_CONFIG/المخطط هو مفتاح المستخدم). يجمع كل المشاكل في ValueError واحد. يُرجع cfg نفسه (لا يعدّل
+    شيئاً إلا تطبيع run.train_mode إلى أحرف صغيرة كما كان build_config يفعل)."""
+    errs: List[str] = []
+    _check_schema("config", cfg, _CONFIG_SCHEMA, errs)
+    if errs and any(not isinstance(cfg.get(k), dict) for k in ("run", "loss", "optimizer", "callbacks", "checkpoint")):
+        raise ValueError("❌ invalid trainer config:\n  - " + "\n  - ".join(errs))
     if not cfg["targets"]:
         raise ValueError("❌ يجب تعريف هدف واحد على الأقل داخل config['targets']")
+    if not isinstance(cfg["targets"], dict):
+        errs.append(f"config.targets: must be a dict name -> target, got {type(cfg['targets']).__name__}")
+        raise ValueError("❌ invalid trainer config:\n  - " + "\n  - ".join(errs))
     for name, tcfg in cfg["targets"].items():
         for required in ("true_key", "task_type", "output_keys"):
-            if required not in tcfg:
+            if isinstance(tcfg, dict) and required not in tcfg:
                 raise ValueError(f"❌ الهدف '{name}': المفتاح المطلوب '{required}' غير موجود")
-
     run = cfg["run"]
     if str(run["train_mode"]).lower() not in VALID_TRAIN_MODES:
-        raise ValueError(f"❌ run.train_mode='{run['train_mode']}' غير صالح — اختر واحدًا من {VALID_TRAIN_MODES}")
-    run["train_mode"] = str(run["train_mode"]).lower()
-    if run["on_existing"] not in ("archive", "error"):
-        raise ValueError("❌ run.on_existing يجب أن يكون 'archive' أو 'error'")
-
-    es = cfg["callbacks"]["early_stopping"]
-    if es["smoothing"] not in ("none", "window", "ema"):
-        raise ValueError("❌ early_stopping.smoothing يجب أن يكون 'none' أو 'window' أو 'ema'")
-    if es["mode"] not in ("min", "max"):
-        raise ValueError("❌ early_stopping.mode يجب أن يكون 'min' أو 'max'")
-    if not 0.0 <= float(es["ema_beta"]) < 1.0:
-        raise ValueError("❌ early_stopping.ema_beta يجب أن يكون في [0, 1)")
+        errs.append(f"run.train_mode={run['train_mode']!r} غير صالح — اختر واحدًا من {VALID_TRAIN_MODES}")
+    else:
+        run["train_mode"] = str(run["train_mode"]).lower()
+        if run["train_mode"] == "warm_start":
+            ws = run["warm_start"]
+            if not ws.get("weights_path"):
+                errs.append("run.warm_start.weights_path: required when run.train_mode='warm_start'")
+            if ws.get("epochs_done") is None:
+                errs.append("run.warm_start.epochs_done: required when run.train_mode='warm_start' (not guessed: 0 would reset the penalty schedules)")
+    if isinstance(cfg["loss"], dict) and isinstance(cfg["callbacks"], dict) and isinstance(cfg["callbacks"].get("early_stopping"), dict):
+        _check_targets(cfg, errs)
+        _check_loss(cfg, errs)
+        _check_callbacks(cfg, errs)
+    if errs:
+        raise ValueError(f"❌ invalid trainer config ({len(errs)} problem(s)):\n  - " + "\n  - ".join(errs))
     return cfg
 
 
