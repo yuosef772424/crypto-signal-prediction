@@ -682,6 +682,7 @@
 - head_kinds: core/heads
 - head_name: core/heads
 - head_registry: model/heads
+- head_terms: workflow/training_config
 - head_types: core/heads, model/config
 - headkind: core/heads
 - heads: data/heads
@@ -1663,6 +1664,7 @@
 - windowscale: data/normalizers
 - winkler: stats/metrics
 - wiring: workflow/wiring_selftest
+- with_head_loss_terms: workflow/training_config
 - with_sample_index: trainer/training_diagnostics
 - within_day: workflow/permutation_control
 - workflow: workflow/__init__

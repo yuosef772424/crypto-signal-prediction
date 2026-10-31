@@ -9,6 +9,7 @@ from copy import deepcopy as _deepcopy
 
 from core.heads import HeadSet as _HeadSet
 from core.loss_plan import (DEFAULT_BALANCING as _DEFAULT_BALANCING, LOSS_BALANCERS as _LOSS_BALANCERS,
+                            check_head_loss_terms as _check_head_loss_terms,
                             check_loss_schedules as _check_loss_schedules, check_loss_weights as _check_loss_weights,
                             resolve_selection_metric as _resolve_selection_metric)
 from core.schema import (ENTRY_CLOSE_REGS as _ENTRY_CLOSE_REGS, NO_RELATIVE_BASES as _NO_RELATIVE_BASES, TARGET_COLUMNS as _TARGET_COLUMNS,
@@ -216,6 +217,11 @@ class LossSettings(_SettingsSection):
     #: would switch its term off silently); off = ``start == end == 0``. Initial values from trainer_framework's own example: adjust
     #: after watching ``val_*_nig_pen``.
     schedules: dict = _dc.field(default_factory=_default_schedules)
+    #: Per-head auxiliary loss terms ``{head name: {option: value}}`` (core.loss_plan.HEAD_LOSS_TERMS): ``huber_weight`` / ``huber_delta``
+    #: (Huber on mu next to the NIG loss) and ``ic_weight`` (-pearson(mu, y) over the batch; pooled across coins and times: batches carry
+    #: no timestamp key). {} = no term = the old loss exactly; an option left out keeps the trainer default (0.0 = off). An unknown head /
+    #: option, or a term the head's task type does not accept, raises.
+    head_terms: dict = _dc.field(default_factory=dict)
 
     def __post_init__(self):
         _settings_check(isinstance(self.balancing, str), "LossSettings.balancing must be a str (a registered balancer name)")
@@ -224,7 +230,8 @@ class LossSettings(_SettingsSection):
         except ValueError as e:
             raise ValueError(f"LossSettings.balancing: {e}") from None
         _settings_set(self, weights=_check_loss_weights(self.weights, _HeadSet.default(_TARGET_COLUMNS), "LossSettings.weights"),
-                      schedules=_check_loss_schedules(self.schedules, "LossSettings.schedules"))
+                      schedules=_check_loss_schedules(self.schedules, "LossSettings.schedules"),
+                      head_terms=_check_head_loss_terms(self.head_terms, _HeadSet.default(_TARGET_COLUMNS), "LossSettings.head_terms"))
 
 
 @_dc.dataclass(frozen=True)
@@ -304,6 +311,7 @@ class TrainSettings(_SettingsSection):
         registered selection metric of an existing head and its mode is the metric's. Raises ValueError. (Construction runs it against
         every default head; RunSettings against the heads of its class_only; make_training_config against the heads actually trained.)"""
         _check_loss_weights(self.loss.weights, heads, "TrainSettings.loss.weights")
+        _check_head_loss_terms(self.loss.head_terms, heads, "TrainSettings.loss.head_terms")
         try:
             _resolve_selection_metric(self.early_stopping_monitor, heads, self.early_stopping_mode)
         except ValueError as e:

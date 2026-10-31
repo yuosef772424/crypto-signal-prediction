@@ -11,7 +11,7 @@ from typing import Any, Callable, Dict, Iterable, Mapping, NamedTuple, Optional,
 from core.heads import HeadSet
 from core.registry import Contract, Registry
 
-__all__ = ["LOSS_BALANCERS", "SELECTION_METRICS", "SelectionChoice", "SCHEDULE_CURVES", "SUB_TERM_SCHEDULES", "DEFAULT_BALANCING",
+__all__ = ["LOSS_BALANCERS", "HEAD_LOSS_TERMS", "check_head_loss_terms", "SELECTION_METRICS", "SelectionChoice", "SCHEDULE_CURVES", "SUB_TERM_SCHEDULES", "DEFAULT_BALANCING",
            "DEFAULT_SELECTION_METRIC", "check_loss_weights", "check_loss_schedules", "resolve_selection_metric", "trainer_loss_section"]
 
 #: curve names of a scheduled loss sub-term (trainer/schedules.py `_progress_curve`; trainer/config.py validates against this tuple).
@@ -50,6 +50,78 @@ LOSS_BALANCERS.register("kendall", lambda heads: {"use_uncertainty_weighting": T
 
 def _finite_number(v):
     return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
+
+
+# ───────────────────────────── per-head auxiliary loss terms ─────────────────────────────
+def _check_head_loss_term(name, term, meta):
+    problems = []
+    if term != name:
+        problems.append(f"the registered object must be the term name {name!r}, got {term!r}")
+    if meta["kind"] not in ("per_sample", "batch"):
+        problems.append(f"kind must be 'per_sample' or 'batch', got {meta['kind']!r}")
+    opts = meta["options"]
+    if not isinstance(opts, dict) or not opts or not all(isinstance(k, str) and _finite_number(v) and v >= 0 for k, v in opts.items()):
+        problems.append(f"options must be a non-empty dict {{trainer target key: default >= 0}}, got {opts!r}")
+    elif meta["weight_key"] not in opts or opts[meta["weight_key"]] != 0.0:
+        problems.append(f"weight_key {meta['weight_key']!r} must be one of the options with default 0.0 (term OFF = the old behavior)")
+    if not isinstance(meta["task_types"], tuple) or not meta["task_types"]:
+        problems.append("task_types must be a non-empty tuple of trainer task types")
+    return problems
+
+
+#: auxiliary loss term name -> the same name; metadata = kind ("per_sample": added to every sample's loss before the weighted mean;
+#: "batch": one scalar over the whole batch), options ({trainer target key: default}, the weight key's default 0.0 = OFF = the old
+#: behavior exactly), weight_key, task_types (the trainer task types whose heads accept it), description. This is the VOCABULARY the
+#: plan (LossSettings.head_terms) validates against and the trainer config keys it writes; the code of a term lives in the trainer
+#: (trainer/tasks.py: huber inline in evidential_task_loss, batch terms in BATCH_LOSS_TERMS - it fails at load if one is missing).
+HEAD_LOSS_TERMS = Registry("head loss term", Contract(
+    "head loss term", required_meta=("kind", "options", "weight_key", "task_types", "description"), optional_meta=(),
+    validator=_check_head_loss_term))
+HEAD_LOSS_TERMS.register("huber", "huber", version=1, kind="per_sample", options={"huber_weight": 0.0, "huber_delta": 1.0},
+                         weight_key="huber_weight", task_types=("evidential",),
+                         description="Huber loss directly on mu, added to the NIG loss: mu gets a gradient that does not pass through "
+                                     "the uncertainty (the head cannot 'explain' its error by inflating beta)")
+HEAD_LOSS_TERMS.register("ic", "ic", version=1, kind="batch", options={"ic_weight": 0.0}, weight_key="ic_weight",
+                         task_types=("evidential", "regression"),
+                         description="-pearson(mu, y) over the (pooled) batch, differentiable, 0 for a constant batch: aligns the point "
+                                     "forecast with the information coefficient. Batches carry no timestamp key, so it is NOT "
+                                     "cross-sectional (per-timestamp) today")
+HEAD_LOSS_TERMS.register("var", "var", version=1, kind="batch", options={"var_weight": 0.0}, weight_key="var_weight",
+                         task_types=("evidential", "regression"),
+                         description="(std(mu) - std(y))^2 over the batch (weighted): the anti-shrink term against a 'cowardly' head that "
+                                     "predicts a near-constant mu to be safe; pairs with the ic term, which is scale-free")
+
+
+def check_head_loss_terms(terms: Any, heads: HeadSet, what: str = "loss.head_terms") -> Dict[str, Dict[str, float]]:
+    """Validate ``{head name: {trainer target key: value}}`` (the options of HEAD_LOSS_TERMS) against ``heads`` and return a plain
+    copy. An unknown head, an option that is no registered term's, an option of a term the head's task type does not accept, or a
+    non-finite / negative value raises (every problem listed)."""
+    if not isinstance(terms, Mapping):
+        raise ValueError(f"{what} must be a dict {{head name: {{option: value}}}}, got {type(terms).__name__}")
+    owner = {k: e for e in HEAD_LOSS_TERMS.entries() for k in e.meta["options"]}
+    problems, out = [], {}
+    for h, opts in terms.items():
+        if not isinstance(h, str) or h not in heads:
+            problems.append(f"unknown head {h!r}; known heads: {list(heads.names)}")
+            continue
+        if not isinstance(opts, Mapping):
+            problems.append(f"{h!r}: options must be a dict, got {type(opts).__name__}")
+            continue
+        got = {}
+        for k, v in opts.items():
+            if k not in owner:
+                problems.append(f"{h!r}: unknown option {k!r}; known: {sorted(owner)}")
+            elif heads[h].task_type not in owner[k].meta["task_types"]:
+                problems.append(f"{h!r}: option {k!r} (term {owner[k].name!r}) is for task type(s) {list(owner[k].meta['task_types'])}, "
+                                f"head is {heads[h].task_type!r}")
+            elif not _finite_number(v) or v < 0 or (k.endswith("_delta") and v <= 0):
+                problems.append(f"{h!r}: {k} must be a finite number {'> 0' if k.endswith('_delta') else '>= 0'}, got {v!r}")
+            else:
+                got[k] = float(v)
+        out[h] = got
+    if problems:
+        raise ValueError(f"{what}: " + "; ".join(problems))
+    return out
 
 
 def check_loss_weights(weights: Any, heads: HeadSet, what: str = "loss.weights") -> Dict[str, float]:

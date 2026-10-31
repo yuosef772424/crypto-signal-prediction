@@ -2,7 +2,7 @@
 PURPOSE:  TRAINER_DEFAULT_CONFIG (alias DEFAULT_CONFIG; the trainer's single source of truth), deep_update, build_config (merge + validate_config, the ONE place that validates), config_fingerprint, model_signature.
 TAGS:     TRAINER_DEFAULT_CONFIG, DEFAULT_CONFIG, build_config, validate_config, _CONFIG_SCHEMA, strict config, deep_update, config_fingerprint, model_signature, VALID_TRAIN_MODES, trainer
           config
-PITFALLS: build_config validates through validate_config (aggregated ValueError): an unknown key at any level (with a did-you-mean), a non-finite / negative / non-number loss_weight, an unregistered task_type, a key of another task type, a schedule name (lambda_*_var, constraint weight_var) not defined in loss.schedules, an early-stopping monitor the trainer never logs, a knob that would be silently ignored. Every key of TRAINER_DEFAULT_CONFIG must have a rule in _CONFIG_SCHEMA (tests/test_config_strictness.py fails otherwise); keys a task type reads are declared at register_task_type(config_keys=...), never as a second list here. A default value is never changed by validation (tests/golden_trainer_configs.json pins the configs and fingerprints). The fingerprint decides whether a saved run may resume. Code here must use TRAINER_DEFAULT_CONFIG, never the bare DEFAULT_CONFIG: data/defaults.py binds a different DEFAULT_CONFIG (the pipeline's ~100 keys) and the two meet in main.ipynb's namespace. Executed
+PITFALLS: build_config validates through validate_config (aggregated ValueError): an unknown key at any level (with a did-you-mean), a non-finite / negative / non-number loss_weight, an unregistered task_type, a key of another task type, a schedule name (lambda_*_var, constraint weight_var) not defined in loss.schedules, an early-stopping monitor the trainer never logs, a knob that would be silently ignored. Every key of TRAINER_DEFAULT_CONFIG must have a rule in _CONFIG_SCHEMA (tests/test_config_strictness.py fails otherwise); keys a task type reads are declared at register_task_type(config_keys=...), never as a second list here; the keys of the per-head auxiliary loss terms (ic_weight, var_weight, huber_*) come from core.loss_plan.HEAD_LOSS_TERMS (_head_term_keys), so TASK_REGISTRY content (tests/golden_registry_contents.json) is unchanged. A default value is never changed by validation (tests/golden_trainer_configs.json pins the configs and fingerprints). The fingerprint decides whether a saved run may resume. Code here must use TRAINER_DEFAULT_CONFIG, never the bare DEFAULT_CONFIG: data/defaults.py binds a different DEFAULT_CONFIG (the pipeline's ~100 keys) and the two meet in main.ipynb's namespace. Executed
           into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other
           modules resolve at call time.
 
@@ -30,7 +30,7 @@ import inspect as _inspect
 import math as _math
 import re as _re
 
-from core.loss_plan import SCHEDULE_CURVES as _SCHEDULE_CURVES
+from core.loss_plan import HEAD_LOSS_TERMS as _HEAD_LOSS_TERMS, SCHEDULE_CURVES as _SCHEDULE_CURVES
 from core.registry import Contract as _Contract, Registry as _Registry
 
 VALID_TRAIN_MODES = ("auto", "new", "resume", "warm_start")
@@ -339,6 +339,7 @@ _TARGET_VALUE_RULES = {
     "true_key": _r_str, "task_type": _r_str, "loss_weight": _r_real(ge=0.0),
     "flood_level": _r_opt(_r_real(ge=0.0)),
     "use_calibration_loss": _r_bool, "lambda_reg_var": _r_str, "lambda_calib_var": _r_str,
+    "ic_weight": _r_real(ge=0.0), "var_weight": _r_real(ge=0.0),
     "normalize_reg": _r_bool, "normalize_reg_stop_grad": _r_bool, "alpha_floor_straight_through": _r_bool,
     "beta_nll": _r_real(ge=0.0), "huber_weight": _r_real(ge=0.0), "huber_delta": _r_real(gt=0.0),
     "label_smoothing": _r_real(ge=0.0, lt=1.0), "binary": _r_bool, "loss_fn": _r_enum("mse", "mae", "huber"),
@@ -423,6 +424,12 @@ def _expected_metric_names(cfg):
     return names
 
 
+def _head_term_keys(task_type):
+    """Target keys of the auxiliary loss terms (core.loss_plan.HEAD_LOSS_TERMS) a head of ``task_type`` accepts: the term registry
+    is their one declaration (not a second list in register_task_type's config_keys)."""
+    return {k for e in _HEAD_LOSS_TERMS.entries() if task_type in e.meta["task_types"] for k in e.meta["options"]}
+
+
 def _check_targets(cfg, errs):
     targets = cfg["targets"]
     if not isinstance(targets, dict):
@@ -439,7 +446,7 @@ def _check_targets(cfg, errs):
         if "task_type" in tcfg and entry is None:
             errs.append(f"{p}.task_type: unregistered task type {ttype!r}; registered: {sorted(TASK_REGISTRY)} "
                         f"(register it with register_task_type first)")
-        known = set(_COMMON_TARGET_KEYS) | set(entry["config_keys"] if entry else ())
+        known = set(_COMMON_TARGET_KEYS) | set(entry["config_keys"] if entry else ()) | _head_term_keys(ttype)
         for k, v in tcfg.items():
             if k not in known:
                 if entry is None:

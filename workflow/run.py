@@ -318,7 +318,7 @@ def make_training_config(settings, plan, info, val, kit):
             # None = the trainer's default seed: the key is then absent (the config the trainer gets is the one it always got)
             **({"seed": tr.seed} if tr.seed is not None else {}),
         },
-        "targets": heads.target_configs(),
+        "targets": with_head_loss_terms(heads.target_configs(), tr.loss.head_terms, heads),
         # Kendall تبقى لرؤوس التصنيف فقط؛ رؤوس evidential (NLL قد تكون سالبة) تُستثنى افتراضياً في trainer_framework —
         # معها كانت الخسارة الكلية تنهار نحو -∞ (راجع ملاحظة القسم 4 هناك). الجدولان lambda_reg/lambda_calib قيمتاهما الابتدائيتان
         # من مثال trainer_framework نفسه — عدّلهما بعد مراقبة val_*_nig_pen. كلها من خطة الخسارة train.loss (core/loss_plan.py).

@@ -200,28 +200,28 @@
   - `def rr_trading_report(val_df, test_df, rr=2.0, stop_mode='nig', stop_k=1.0, cost_pct=0.08, min_trades=200, quantiles=(0.5, 0.7, 0.8, 0.9, 0.95), target='close', seed=0, verbose=True)` L220
   - `def selective_evaluation(model=None, val_split=None, test_split=None, model_tf=None, target_acc=0.65, rr=2.0, stop_mode='nig', min_n=200, val_df=None, test_df=None, verbose=True, price_targets=None)` L270
 
-### `workflow/settings.py` (494 lines)
+### `workflow/settings.py` (502 lines)
 - PURPOSE: RunSettings: every setting of a main run (dataset, target mode, model options, training, evaluation, panel model) in one strict, frozen object whose defaults are the values main.ipynb always held; main.ipynb, tools/evaluate_trained_model.p…
 - TAGS: runsettings, settings, projectsettings, datasettings, targetsettings, modelsettings, trainsettings, losssettings, loss plan, loss weights, balancing, selection metric, early_stopping_monitor, evalsettings, panelsettings, target_mode, entry_close_reg, anti_memorization, class_only, run_main_training, panel_presets, run_dir_for, strict config, frozen dataclass
 - PITFALLS: Defaults must stay equal to the notebook values the golden test records (tests/golden_run_settings.json): change one only as a new experiment (its checkpoints live in a folder named after the settings, see run_dir_for). Unknown field names raise (constructor: TypeError; RunSettings.from_dict / .updated and every section's .updated: ValueError listing the known names), values are validated at cons…
 - DEPENDS: core
 - USED BY: run
 - API:
-  - `class ProjectSettings(_SettingsSection)` L99
-  - `class DataSettings(_SettingsSection)` L109
-  - `class TargetSettings(_SettingsSection)` L144
-  - `class ModelSettings(_SettingsSection)` L174
-  - `class LossSettings(_SettingsSection)` L202
-  - `class TrainSettings(_SettingsSection)` L231
-    - `.check_against_heads(self, heads)` L302
-  - `class EvalSettings(_SettingsSection)` L314
-  - `class PanelSettings(_SettingsSection)` L357
-    - `.applied(self)` L427
-  - `class RunSettings` L434
-    - `.from_dict(cls, d)` L455
-    - `.updated(self, changes)` L462
-    - `.to_dict(self)` L470
-  - `def run_dir_for(settings, reg_target_scale, model_tfs)` L474
+  - `class ProjectSettings(_SettingsSection)` L100
+  - `class DataSettings(_SettingsSection)` L110
+  - `class TargetSettings(_SettingsSection)` L145
+  - `class ModelSettings(_SettingsSection)` L175
+  - `class LossSettings(_SettingsSection)` L203
+  - `class TrainSettings(_SettingsSection)` L238
+    - `.check_against_heads(self, heads)` L309
+  - `class EvalSettings(_SettingsSection)` L322
+  - `class PanelSettings(_SettingsSection)` L365
+    - `.applied(self)` L435
+  - `class RunSettings` L442
+    - `.from_dict(cls, d)` L463
+    - `.updated(self, changes)` L470
+    - `.to_dict(self)` L478
+  - `def run_dir_for(settings, reg_target_scale, model_tfs)` L482
 
 ### `workflow/splits.py` (62 lines)
 - PURPOSE: Helpers over train/val/test splits: model input (single or multi-timeframe), per-split stamps (reg scale, target mode, entry close definition).
@@ -235,15 +235,16 @@
   - `def target_mode_of(split_or_dict)` L53
   - `def entry_close_reg_of(split_or_dict)` L59
 
-### `workflow/training_config.py` (53 lines)
+### `workflow/training_config.py` (64 lines)
 - PURPOSE: Bridge from model heads to trainer_framework targets: build_target_configs (true_key vs output_keys, derived from core.heads.HeadSet) and the naive majority-class baseline for val_accuracy.
-- TAGS: build_target_configs, build_head_set, loss_weights, true_key, output_keys, label_smoothing, class_baselines, _naive_class_baseline, trainer targets
+- TAGS: build_target_configs, with_head_loss_terms, head_terms, build_head_set, loss_weights, true_key, output_keys, label_smoothing, class_baselines, _naive_class_baseline, trainer targets
 - PITFALLS: Pipeline labels are +1/-1 (batches._to_unit_label converts to {0,1} at feed time); the names come from core/heads.py HeadSet (the one place where data keys and model output keys are tied together). Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipyn…
 - DEPENDS: core
 - USED BY: run, wiring_selftest
 - API:
   - `def build_head_set(price_targets, label_smoothing=0.0, class_only=False, loss_weights=None)` L10
   - `def build_target_configs(price_targets, label_smoothing=0.0, class_only=False, loss_weights=None)` L21
+  - `def with_head_loss_terms(targets, head_terms, heads)` L40
 
 ### `workflow/verification.py` (177 lines)
 - PURPOSE: Section 7-d: one-call integrated verification (data integrity, naive baselines, confidence/trading, candle shape) with a single verdict table.
