@@ -8,6 +8,7 @@ import shutil
 import tempfile
 
 from core.heads import output_name as _output_name
+from stats.metrics import auc as stats_auc, spearman as stats_spearman
 
 
 def _split_asset_ids(split):
@@ -82,7 +83,8 @@ def _head_targets(y):
 
 
 def _skill(kind, yv, s):
-    return _auc(np.asarray(yv) > 0, s) if kind == "class" else _spearman(s, np.asarray(yv, dtype="float64"))
+    return (stats_auc(np.asarray(yv) > 0, s) if kind == "class"
+            else stats_spearman(s, np.asarray(yv, dtype="float64"), nan_policy="propagate", min_n=3))
 
 
 def _se_null(kind, yv):

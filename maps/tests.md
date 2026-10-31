@@ -929,7 +929,7 @@
   - `class TierOneTests(unittest.TestCase)` L143
     - (4 methods)
 
-### `tests/test_stats_migration.py` (202 lines)
+### `tests/test_stats_migration.py` (278 lines)
 - PURPOSE: Old-vs-new proof for the consumers migrated to stats/ (hardening audit C7, PR 10): each class pins the migrated consumer to a (from docstring)
 - DEPENDS: cross_asset, docs
 - API:
@@ -943,6 +943,11 @@
   - `class EvaluationTargetsMigration(unittest.TestCase)` L144
     - (1 methods)
   - `class EvaluationTrustMigration(unittest.TestCase)` L175
+    - (1 methods)
+  - `def auc_cases()` L229
+  - `def auc_cases_with_nan()` L242
+  - `def spearman_cases()` L249
+  - `class WorkflowCapacityMigration(unittest.TestCase)` L265
     - (1 methods)
 
 ### `tests/test_suspended_targets.py` (99 lines)

@@ -198,5 +198,81 @@ class EvaluationTrustMigration(unittest.TestCase):
                 same(self, new(p, y, n_bins), _legacy_ece_quantile(p, y, n_bins), f"n_bins={n_bins} p={p[:5]}")
 
 
+# ───────────────────────── legacy copies shared by the model / workflow AUC + Spearman consumers ─────────────────────────
+def _legacy_rank(a):
+    return pd.Series(np.asarray(a, dtype=np.float64)).rank().to_numpy()
+
+
+def _legacy_diag_auc(y, s):                       # model/diagnostics.py::_auc
+    y = np.asarray(y).astype(bool)
+    n1, n0 = int(y.sum()), int((~y).sum())
+    if not n1 or not n0:
+        return float("nan")
+    return float((_legacy_rank(s)[y].sum() - n1 * (n1 + 1) / 2) / (n1 * n0))
+
+
+def _legacy_diag_spearman(a, b):                  # model/diagnostics.py::_spearman
+    if len(a) < 3 or np.std(a) == 0 or np.std(b) == 0:
+        return float("nan")
+    return float(np.corrcoef(_legacy_rank(a), _legacy_rank(b))[0, 1])
+
+
+def _legacy_wf_auc(y, s):                         # workflow/generalization.py::_auc
+    from scipy.stats import rankdata
+    y = np.asarray(y, dtype=bool)
+    n1, n0 = int(y.sum()), int((~y).sum())
+    if not n1 or not n0:
+        return np.nan
+    return float((rankdata(s)[y].sum() - n1 * (n1 + 1) / 2) / (n1 * n0))
+
+
+def auc_cases():
+    """(y, s) pairs: random, tie-heavy, single-class, NaN-in-negatives, NaN-in-positives, constant."""
+    rng = np.random.default_rng(0)
+    out = []
+    for seed in range(10):
+        n = int(rng.integers(4, 300))
+        y = (rng.random(n) < 0.4).astype(int) if seed % 5 else np.ones(n, int)
+        s = rng.normal(size=n) if seed % 2 else rng.integers(0, 4, n).astype("float64")
+        out.append((y, s))
+    out.append((np.array([0, 1, 0, 1]), np.full(4, 0.3)))
+    return out
+
+
+def auc_cases_with_nan():
+    y = np.array([0, 0, 1, 1, 0, 1, 1, 0])
+    neg_nan = np.array([0.1, np.nan, 0.35, 0.8, 0.2, 0.6, 0.55, 0.3])
+    pos_nan = np.array([0.1, 0.4, np.nan, 0.8, 0.2, 0.6, 0.55, 0.3])
+    return [(y, neg_nan), (y, pos_nan)]
+
+
+def spearman_cases():
+    rng = np.random.default_rng(1)
+    out = []
+    for seed in range(10):
+        n = int(rng.integers(1, 200))
+        a = rng.integers(0, 5, n).astype("float64") if seed % 2 else rng.normal(size=n)
+        b = a + rng.integers(-1, 2, n)
+        out.append((a, b))
+    out.append((np.ones(20), np.arange(20.0)))
+    out.append((np.arange(20.0), np.ones(20)))
+    a = np.arange(20.0)
+    a[3] = np.nan
+    out.append((a, np.arange(20.0)[::-1].copy()))
+    return out
+
+
+class WorkflowCapacityMigration(unittest.TestCase):
+    def test_skill_is_bit_equal_to_the_old_auc_and_spearman(self):
+        import _nbload
+        ns = {"__name__": "audit_nb", "np": np, "pd": pd}
+        _nbload.workflow_package().load_into(ns, only=("capacity",))
+        skill = ns["_skill"]
+        for y, s in auc_cases() + auc_cases_with_nan():
+            same(self, skill("class", y, s), _legacy_wf_auc(y > 0, s))
+        for a, b in spearman_cases():
+            same(self, skill("reg", b, a), _legacy_diag_spearman(a, b))
+
+
 if __name__ == "__main__":
     unittest.main()
