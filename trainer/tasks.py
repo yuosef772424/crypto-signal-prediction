@@ -65,7 +65,7 @@ register_task_type("quantile", quantile_task_loss, ["pinball"])
   إحصاءات التدريب المحفوظة، حتى تبقى checkpoints ونماذج قديمة صالحة دون تغيير في معناها.
 """
 # @title 3) سجلّ دوال الخسارة (Loss Registry)
-TASK_REGISTRY: Dict[str, Dict[str, Any]] = {}
+# TASK_REGISTRY (the dict itself) is created in trainer/config.py, which loads first: build_config validates task_type against it.
 
 
 def register_task_type(name: str, fn: Callable, stat_keys: List[str], supports_sample_weight: bool = False):

@@ -27,6 +27,10 @@ PITFALLS: Unknown config keys raise in build_config; the fingerprint decides whe
 # @title 2) قاموس الإعدادات الافتراضي + دالة الدمج
 VALID_TRAIN_MODES = ("auto", "new", "resume", "warm_start")
 
+#: name -> {"fn", "stat_keys", "supports_sample_weight"}: filled by register_task_type (trainer/tasks.py). Created here, in the module that loads
+#: before tasks.py, because build_config must know the registered task types (a forward reference to tasks.py would be an implicit dependency).
+TASK_REGISTRY: Dict[str, Dict[str, Any]] = {}
+
 TRAINER_DEFAULT_CONFIG: Dict[str, Any] = {
     # ─────────────────────────────────────────────────────────────
     # إعدادات التشغيل العامة
