@@ -219,7 +219,7 @@ Documents:
 - `E-rel-001.md` — Experiment card — E-rel-001: absolute vs within-timestamp relative target on the current 4h model l…
 
 ## `docs/research/hardening/`
-- hardening/: root-cause audits of the codebase before a new experiment round | 0 scripts, 5 md, 0 data files (0 B)
+- hardening/: root-cause audits of the codebase before a new experiment round | 0 scripts, 5 md, 1 data files (2 KB)
 
 Documents:
 - `README.md` — hardening/: root-cause audits of the codebase before a new experiment round
@@ -227,6 +227,9 @@ Documents:
 - `external_research_prompts.md` — تعليمات بحث خارجي (لأداة البحث التي أنتجت `cryptoformer.zip`)
 - `proposal_cascaded_stages.md` — Proposal: cascaded / stacked training stages
 - `proposal_rolling_retrain.md` — Proposal: rolling-retrain study (does the market change enough to make the model random?)
+
+Data / other files (counts only):
+- `.`: txt×1 — 2 KB
 
 ## `docs/research/notes/`
 - External research takeaways (2026-10-20) | 0 scripts, 3 md, 0 data files (0 B)
