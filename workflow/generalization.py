@@ -9,6 +9,7 @@ from core.heads import label_key as _label_key, output_name as _output_name
 from core.schema import TARGET_COLUMNS as _TARGET_COLUMNS
 
 from core.schema import LAST_COLUMN_INDEX
+from stats.metrics import auc as stats_auc
 
 #: A class head whose val/test AUC beats the trivial range-position rule by no more than this carries no information beyond range mechanics (audit T4, F-0085).
 TRIVIAL_UPLIFT_MIN = 0.01
@@ -113,7 +114,7 @@ def _heads_eval(model, split_or_dict, max_n, seed, model_tf, batch_size=2048, pr
         if _output_name(t, "logits") in out and _label_key(t, "class") in y:
             yt = y[_label_key(t, "class")][idx] > 0
             p = np.asarray(out[_output_name(t, "logits")]).ravel()
-            res[(t, "class_auc")] = _auc(yt, p)
+            res[(t, "class_auc")] = stats_auc(yt, p)
             res[(t, "class_acc")] = float(np.mean((p >= 0.5) == yt))
         if _output_name(t, "mu") in out and _label_key(t, "reg") in y:
             df = pd.DataFrame({"y": y[_label_key(t, "reg")][idx], "s": np.asarray(out[_output_name(t, "mu")]).ravel(), "d": ts[idx]})
@@ -122,15 +123,6 @@ def _heads_eval(model, split_or_dict, max_n, seed, model_tf, batch_size=2048, pr
             res[(t, "reg_daily_ic")] = float(ic.mean()) if len(ic) else float(
                 df["y"].rank().corr(df["s"].rank()))
     return res
-
-
-def _auc(y, s):
-    from scipy.stats import rankdata
-    y = np.asarray(y, dtype=bool)
-    n1, n0 = int(y.sum()), int((~y).sum())
-    if not n1 or not n0:
-        return np.nan
-    return float((rankdata(s)[y].sum() - n1 * (n1 + 1) / 2) / (n1 * n0))
 
 
 def _linear_reference(train_split, eval_splits, model_tf, max_n, seed=0, price_targets=None):
@@ -159,7 +151,7 @@ def _linear_reference(train_split, eval_splits, model_tf, max_n, seed=0, price_t
             Xe = _x_of(sp, model_tf)
             ye = np.concatenate([np.asarray(s["y"][k]).ravel() for _, s in ps]) > 0
             j = _sample_rows(len(Xe), max_n, 1)
-            out[(t, name)] = _auc(ye[j], clf.predict_proba(sc.transform(np.nan_to_num(feats(Xe[j]))))[:, 1])
+            out[(t, name)] = stats_auc(ye[j], clf.predict_proba(sc.transform(np.nan_to_num(feats(Xe[j]))))[:, 1])
     return out
 
 
@@ -183,11 +175,11 @@ def trivial_range_baseline(last_candles, y_class, target, sign=None):
         p = np.where(rng > 0, (c - l) / rng, 0.5)
     y = np.asarray(y_class).ravel() > 0
     if sign is None:
-        raw = _auc(y, p)
+        raw = stats_auc(y, p)
         if not np.isfinite(raw):
             return float("nan"), 1
         return (raw, 1) if raw >= 0.5 else (1.0 - raw, -1)
-    return _auc(y, sign * p), int(sign)
+    return stats_auc(y, sign * p), int(sign)
 
 
 def _trivial_reference(train_split, eval_splits, max_n, price_targets=None):

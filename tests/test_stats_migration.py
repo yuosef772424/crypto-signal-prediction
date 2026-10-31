@@ -302,5 +302,33 @@ class ModelDiagnosticsMigration(unittest.TestCase):
             same(self, got["high_reg"], _legacy_diag_spearman(aa, bb))
 
 
+class WorkflowGeneralizationMigration(unittest.TestCase):
+    def test_trivial_range_baseline_auc_is_bit_equal_to_the_old_scipy_auc(self):
+        import _nbload
+        from core.schema import LAST_COLUMN_INDEX as LC
+        ns = {"__name__": "audit_nb", "np": np, "pd": pd}
+        _nbload.workflow_package().load_into(ns, only=("generalization",))
+        self.assertNotIn("_auc", ns)
+        rng = np.random.default_rng(5)
+        for seed in range(8):
+            n = int(rng.integers(5, 400))
+            lc = np.zeros((n, len(LC)))
+            lo = rng.integers(90, 100, n).astype("float64")                       # tie-heavy prices; some zero ranges
+            hi = lo + rng.integers(0, 4, n)
+            cl = np.minimum(hi, lo + rng.integers(0, 4, n))
+            lc[:, LC["last_low"]], lc[:, LC["last_high"]], lc[:, LC["last_close"]] = lo, hi, cl
+            y = np.where(rng.random(n) < 0.5, 1.0, -1.0) if seed else np.ones(n)
+            p = np.where(hi - lo > 0, (cl - lo) / np.where(hi - lo > 0, hi - lo, 1), 0.5)
+            for sign in (None, 1, -1):
+                got = ns["trivial_range_baseline"](lc, y, "high", sign)
+                if sign is None:
+                    raw = _legacy_wf_auc(y > 0, p)
+                    want = (float("nan"), 1) if not np.isfinite(raw) else ((raw, 1) if raw >= 0.5 else (1.0 - raw, -1))
+                else:
+                    want = (_legacy_wf_auc(y > 0, sign * p), sign)
+                same(self, got[0], want[0])
+                self.assertEqual(got[1], want[1])
+
+
 if __name__ == "__main__":
     unittest.main()

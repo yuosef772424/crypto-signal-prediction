@@ -81,17 +81,17 @@
   - `def model_health_report(model, train_split, val_split, recorder=None, model_tf=None, max_n=512, sections=None, sensitivity='grad_x_input', thresholds=None, capacity=None, with_capacity=True, verbose=True, feature_names=Non…` L51
   - `def model_layer_report(model, train_split, val_split, test_split=None, recorder=None, model_tf=None, max_train=2000, max_val=2000, max_eval=1500, n_rand=3, n_perm=30, ridge=10.0, seed=0, capacity=None, with_capacity=True,…` L78
 
-### `workflow/generalization.py` (280 lines)
+### `workflow/generalization.py` (272 lines)
 - PURPOSE: Section 7-g: normalization audit before training and generalization-gap report after it (anti-memorization PR #7).
 - TAGS: normalization_audit, generalization_gap_report, gap, linear reference, memorization
 - PITFALLS: trivial_range_baseline (opt-in, generalization_gap_report(trivial_baseline=True)): the sign of the range-position score is fixed on TRAIN and reused on val/test, never re-fit there. _auc here shadows model_v2's _auc of the same name (as in the old notebook): load this module after the model_v2 %run. Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own):…
-- DEPENDS: core
+- DEPENDS: core, stats
 - USES: retarget, splits
 - USED BY: run, wiring_selftest
 - API:
-  - `def normalization_audit(train_split, val_split=None, test_split=None, feature_names=None, model_tf=None, max_windows=20000, level_ratio_max=20.0, near_const_frac_max=0.2, extreme_max=50.0, shift_ks_max=0.25, verbose=True)` L31
-  - `def trivial_range_baseline(last_candles, y_class, target, sign=None)` L166
-  - `def generalization_gap_report(model, train_split, val_split, test_split, model_tf=None, max_n=20000, auc_gap_max=0.03, linear_reference=True, verbose=True, price_targets=None, trivial_baseline=False)` L217
+  - `def normalization_audit(train_split, val_split=None, test_split=None, feature_names=None, model_tf=None, max_windows=20000, level_ratio_max=20.0, near_const_frac_max=0.2, extreme_max=50.0, shift_ks_max=0.25, verbose=True)` L32
+  - `def trivial_range_baseline(last_candles, y_class, target, sign=None)` L158
+  - `def generalization_gap_report(model, train_split, val_split, test_split, model_tf=None, max_n=20000, auc_gap_max=0.03, linear_reference=True, verbose=True, price_targets=None, trivial_baseline=False)` L209
 
 ### `workflow/market_neutral.py` (321 lines)
 - PURPOSE: Section 7-f: market-neutral portfolio report (long_short, short_only, long_only, rank_weighted, rank_weighted_vol) with net-of-cost bootstrap and a last-step GBM baseline.

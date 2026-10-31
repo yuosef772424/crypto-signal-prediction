@@ -60,7 +60,6 @@
    "tools/natr_range.py": 3,
    "tools/paired_compare.py": 1,
    "workflow/candle_baseline.py": 1,
-   "workflow/generalization.py": 1,
    "workflow/market_neutral.py": 1,
    "workflow/selective_eval.py": 1
   },
