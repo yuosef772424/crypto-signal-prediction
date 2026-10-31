@@ -13,9 +13,9 @@
 - TAGS: nig_alpha_den_min, nig, alpha, uncertainty floor, constants
 - PITFALLS: NIG_ALPHA_DEN_MIN is used by model/nig_layers.py (training-time layer) and evaluation/targets.py (post-hoc decoding of the raw NIG outputs): the two MUST agree or the evaluated uncertainty differs from the trained one. Do not change the value without a new experiment card (it changes recorded uncertainty numbers when alpha is close to 1).
 
-### `core/heads.py` (419 lines)
+### `core/heads.py` (434 lines)
 - PURPOSE: The ONE declaration of "a head / a target / a loss weight" (tier 0, stdlib + core.registry): `HeadSpec` (name, target, target columns, head type, task type, role, loss, loss weight, label key, loss-facing output keys, ALL model output name…
-- TAGS: headset, headspec, headkind, head_kinds, register_head_kind, y_name, label_key, head_name, parse_head_name, parse_output_name, target_configs, from_target_configs, head_types, output_names, loss_weight, head vocabulary, output names, label key, role, confidence head, uncertainty head, cascaded stages, forecast input features, one component one interface, tier 0
+- TAGS: headset, headspec, headkind, head_kinds, register_head_kind, y_name, output_name, label_key, head_name, parse_head_name, parse_output_name, target_configs, from_target_configs, head_types, output_names, loss_weight, head vocabulary, output names, label key, role, confidence head, uncertainty head, cascaded stages, forecast input features, one component one interface, tier 0
 - PITFALLS: A head TYPE (what the model builds: nig_regression, binary_classification, ...) is a `HeadKind` registered in HEAD_KINDS with its output suffixes, trainer task type, role and fixed trainer options; a `HeadSpec` is one head of one target built ONLY by `HeadSpec.make(target, head_type, ...)` (direct construction re-derives every derived field and raises on a mismatch). `HeadSet.default(price_target…
 - API:
   - `def y_name(stem: str, suffix: str='') -> str` L41
@@ -42,7 +42,8 @@
     - `.with_loss_weights(self, weights: Mapping[str, float]) -> 'HeadSet'` L380
     - `.extended(self, *more: HeadSpec) -> 'HeadSet'` L389
   - `def parse_head_name(name: str) -> Tuple[str, str]` L394
-  - `def parse_output_name(key: str) -> Tuple[str, str]` L404
+  - `def output_name(target: str, role: str) -> str` L404
+  - `def parse_output_name(key: str) -> Tuple[str, str]` L419
 
 ### `core/loss_plan.py` (209 lines)
 - PURPOSE: The vocabulary of the loss plan and of model selection (tier 0, stdlib + core only): LOSS_BALANCERS (task-balancing methods by registered name), SELECTION_METRICS (the validation metrics a run may pick its best epoch by, each declaring whe…

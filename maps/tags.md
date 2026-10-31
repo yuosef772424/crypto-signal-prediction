@@ -1043,6 +1043,7 @@
 - output name literal: tools/check_patterns
 - output names: core/heads, data/heads
 - output_keys: workflow/training_config
+- output_name: core/heads
 - output_names: core/heads
 - overwrite keep: tools/drive_sync
 - own-kind reference trap: discovery/evaluation

@@ -1,6 +1,6 @@
 """
-PURPOSE:  The ONE declaration of "a head / a target / a loss weight" (tier 0, stdlib + core.registry): `HeadSpec` (name, target, target columns, head type, task type, role, loss, loss weight, label key, loss-facing output keys, ALL model output names, trainer options, version) and `HeadSet` (an ordered, validated tuple of HeadSpec: unique names / output names / label keys). The trainer `targets` section (`HeadSet.target_configs`), the model `head_types` (`HeadSet.head_types`), the model output names (`HeadSet.output_names`), the pipeline head names (data/heads.py) and the label keys are DERIVED VIEWS of one HeadSet; `y_<target>_*` names are built by ONE function (`y_name`) and parsed by ONE function (`parse_output_name`).
-TAGS:     HeadSet, HeadSpec, HeadKind, HEAD_KINDS, register_head_kind, y_name, label_key, head_name, parse_head_name, parse_output_name, target_configs, from_target_configs, head_types, output_names, loss_weight, head vocabulary, output names, label key, role, confidence head, uncertainty head, cascaded stages, forecast input features, one component one interface, tier 0
+PURPOSE:  The ONE declaration of "a head / a target / a loss weight" (tier 0, stdlib + core.registry): `HeadSpec` (name, target, target columns, head type, task type, role, loss, loss weight, label key, loss-facing output keys, ALL model output names, trainer options, version) and `HeadSet` (an ordered, validated tuple of HeadSpec: unique names / output names / label keys). The trainer `targets` section (`HeadSet.target_configs`), the model `head_types` (`HeadSet.head_types`), the model output names (`HeadSet.output_names`), the pipeline head names (data/heads.py) and the label keys are DERIVED VIEWS of one HeadSet; `y_<target>_*` names are built by ONE function (`y_name`; `output_name(target, role)` for a model output by role) and parsed by ONE function (`parse_output_name`).
+TAGS:     HeadSet, HeadSpec, HeadKind, HEAD_KINDS, register_head_kind, y_name, output_name, label_key, head_name, parse_head_name, parse_output_name, target_configs, from_target_configs, head_types, output_names, loss_weight, head vocabulary, output names, label key, role, confidence head, uncertainty head, cascaded stages, forecast input features, one component one interface, tier 0
 PITFALLS: A head TYPE (what the model builds: nig_regression, binary_classification, ...) is a `HeadKind` registered in HEAD_KINDS with its output suffixes, trainer task type, role and fixed trainer options; a `HeadSpec` is one head of one target built ONLY by `HeadSpec.make(target, head_type, ...)` (direct construction re-derives every derived field and raises on a mismatch). `HeadSet.default(price_targets, ...)` is today's head set (nig_regression + binary_classification per target; class_only = classification only): it must keep reproducing the old targets / head_types / output names exactly (tests/golden_head_vocabulary.json, tests/golden_trainer_configs.json). A loss weight equal to the trainer default (1.0, `TRAINER_DEFAULT_LOSS_WEIGHT`) is NOT written to the target config, so a default HeadSet builds the same config (and the same run fingerprint) as before; a non-default weight is written as `loss_weight`. `HeadSet.from_target_configs` accepts only configs a HeadSet would itself produce (anything else raises: a target config with extra keys is not a head set; two kinds with the same task type AND the same fixed options are ambiguous and raise, so give a new kind its own task type or a distinguishing fixed option). Consumers migrated so far: workflow/training_config.py (build_target_configs), workflow/run.py (plan_model head_types, make_training_config targets), model/builder.py and model/heads.py (output names; build_head_outputs raises when a head builder and its HeadKind disagree), model/config.py (MODEL_CONFIG head_types / price_targets defaults), data/heads.py (HEAD_KINDS / output_name / split_head_name / enabled_head_set). The model builder emits outputs in its own order (every nig head first, then the other heads per target): `HeadSet.output_names` is per head, so compare as a set / sorted when checking a built model. The key named `y_<t>_class_logits` carries a PROBABILITY (sigmoid / softmax), kept for checkpoint compatibility. Output suffixes of different kinds must not collide (a `parse_output_name` ambiguity is a registration error). Not yet migrated (PR 8): model/diagnostics.py, model/layer_report.py, workflow/selective_eval.py, evaluation/targets.py, tools/bracket_eval.py and the other literal consumers listed in tools/pattern_baseline.json (rule output-name-literal).
 
 HOW TO EXTEND (the point of this module): a new head is a new HeadSpec in a HeadSet, never an N-file edit. (1) A new head TYPE: register its model builder (model/heads.py HEAD_REGISTRY) and a `HeadKind` here with its output suffixes. (2) A confidence head: a kind with role "confidence" (and its own task type / loss) added to the default set with `HeadSet.default(...).extended(...)`. (3) "Forecast all ~40 input features" (docs/research/hardening/proposal_cascaded_stages.md): one HeadSpec per feature, `HeadSpec.make(feature_name, "feature_regression", columns=(feature_name,))`, i.e. a generated HeadSet; the builder, the trainer targets, the label keys and the output names then follow with no further edits. Neither is implemented here.
@@ -22,7 +22,7 @@ from core.registry import Contract, Registry
 
 __all__ = ["HeadKind", "HeadSpec", "HeadSet", "HEAD_KINDS", "register_head_kind", "ROLES", "OUTPUT_PREFIX",
            "TRAINER_DEFAULT_LOSS_WEIGHT", "DEFAULT_HEAD_TYPES", "CLASS_ONLY_HEAD_TYPES", "y_name", "label_key", "head_name",
-           "parse_head_name", "parse_output_name"]
+           "parse_head_name", "parse_output_name", "output_name"]
 
 #: what a head is for (evaluation / diagnostics read the role, never the name).
 ROLES = ("regression", "classification", "uncertainty", "confidence")
@@ -399,6 +399,21 @@ def parse_head_name(name: str) -> Tuple[str, str]:
             return name[:-len(suffix)], slot
     raise ValueError(f"unknown head name {name!r}: it does not end with one of "
                      f"{['_' + s for s in sorted({k.slot for k in HEAD_KINDS.values()})]}")
+
+
+def output_name(target: str, role: str) -> str:
+    """The model output of ``role`` for ``target``: ``output_name("high", "nu")`` -> ``"y_high_nu"``, ``output_name("low", "mu")`` ->
+    ``"y_low"``, ``output_name("close", "logits")`` -> ``"y_close_class_logits"`` (a probability, see PITFALLS). The inverse of
+    `parse_output_name`; an unknown role raises with the known ones, a role with two different suffixes in the registered kinds
+    raises (ambiguous). Consumers read outputs through this and never spell the key."""
+    suffixes: dict = {}
+    for kind in HEAD_KINDS.values():
+        for r, suffix in kind.outputs.items():
+            if suffixes.setdefault(r, suffix) != suffix:
+                raise ValueError(f"output role {r!r} has two suffixes ({suffixes[r]!r}, {suffix!r}) in the registered head kinds")
+    if role not in suffixes:
+        raise ValueError(f"unknown output role {role!r}; registered roles: {sorted(suffixes)}")
+    return y_name(target, suffixes[role])
 
 
 def parse_output_name(key: str) -> Tuple[str, str]:

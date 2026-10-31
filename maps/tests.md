@@ -442,7 +442,7 @@
   - `class HeadConsumersKeepTheirOutputs(unittest.TestCase)` L210
     - (7 methods)
 
-### `tests/test_head_vocabulary.py` (460 lines)
+### `tests/test_head_vocabulary.py` (472 lines)
 - PURPOSE: The head vocabulary (audit C1, PR 7): one declaration (core/heads.py HeadSet) is the source of the trainer `targets`, the model (from docstring)
 - DEPENDS: core, docs
 - API:
@@ -455,12 +455,12 @@
   - `def combo_key(price_targets, head_types)` L126
   - `def record()` L130
   - `class HeadSetUnits(unittest.TestCase)` L158
-    - (10 methods)
-  - `class ConsumersAreDerivedViews(unittest.TestCase)` L300
+    - (11 methods)
+  - `class ConsumersAreDerivedViews(unittest.TestCase)` L312
     - (7 methods)
-  - `class PipelineHeadsAreAView(unittest.TestCase)` L387
+  - `class PipelineHeadsAreAView(unittest.TestCase)` L399
     - (2 methods)
-  - `class ModelHeadsAgreeWithTheirKinds(unittest.TestCase)` L417
+  - `class ModelHeadsAgreeWithTheirKinds(unittest.TestCase)` L429
     - (4 methods)
 
 ### `tests/test_holdout_forward.py` (115 lines)

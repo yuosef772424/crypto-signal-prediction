@@ -283,6 +283,18 @@ class HeadSetUnits(unittest.TestCase):
         with self.assertRaises(ValueError):
             ch.parse_output_name("y_")
 
+    def test_output_name_is_the_inverse_of_parse_output_name(self):
+        ch = self.ch
+        self.assertEqual(ch.output_name("low", "mu"), "y_low")
+        self.assertEqual(ch.output_name("high", "nu"), "y_high_nu")
+        self.assertEqual(ch.output_name("close", "logits"), "y_close_class_logits")
+        for t in ("high", "low", "close"):
+            for spec in ch.HeadSet.default((t,)):
+                for role, key in zip(HEAD_ROLES_OF[spec.head_type], spec.output_names):
+                    self.assertEqual(ch.output_name(t, role), key)
+        with self.assertRaisesRegex(ValueError, "unknown output role"):
+            ch.output_name("high", "zz")
+
     def test_core_heads_imports_nothing_but_the_stdlib_and_core(self):
         import ast
         tree = ast.parse(open(os.path.join(ROOT, "core", "heads.py"), encoding="utf-8").read())
