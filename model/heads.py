@@ -3,7 +3,7 @@ PURPOSE:  HEAD_REGISTRY: pluggable output heads (register_head_type, build_head_
           classification heads).
 TAGS:     HEAD_REGISTRY, register_head_type, build_head_outputs, binary_classification, multiclass_classification,
           head types
-PITFALLS: An unregistered head type raises (no silent default); this is the single place to add a new output type.
+PITFALLS: An unregistered head type raises (no silent default); this is the single place to add a new output type. HEAD_REGISTRY is a core.registry Registry: registering a name twice raises DuplicateNameError (a notebook cell that re-registers must unregister first), the builder must accept (h, target, cfg), and writes are register_head_type only (HEAD_REGISTRY[name] = fn raises TypeError).
           Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from
           other modules resolve at call time.
 
@@ -20,13 +20,34 @@ PITFALLS: An unregistered head type raises (no silent default); this is the sing
 (القسم ٨)، لكن اسم الرأس ما زال يُقرأ من `head_types` مثل أي رأس آخر،
 فحذفه من `head_types` يُعطِّله بلا تعديل كود.
 """
-HEAD_REGISTRY = {}
+import inspect as _inspect
+
+from core.registry import Contract as _Contract, Registry as _Registry
 
 
-def register_head_type(name):
-    """مُزخرِف: يُسجِّل دالة بناء رأس تحت اسم يُستخدَم في MODEL_CONFIG['head_types']."""
+def _check_head_fn(name, fn, meta):
+    """Head contract, checked AT REGISTRATION: a callable taking (h, target, cfg) positionally (it returns {output_name: tensor};
+    that is only checkable by building, which `build_head_outputs` does)."""
+    if not callable(fn):
+        return [f"head builder must be callable, got {fn!r}"]
+    try:
+        _inspect.signature(fn).bind(None, None, None)
+    except TypeError:
+        return ["head builder must accept (h, target, cfg) positionally"]
+    except ValueError:
+        pass
+    return []
+
+
+#: name -> head builder (h, target, cfg) -> {output_name: tensor}. A core.registry Registry: a duplicate name raises, the contract above
+#: is checked at registration; reads keep the dict pattern (HEAD_REGISTRY[name], name in HEAD_REGISTRY, sorted(HEAD_REGISTRY)).
+HEAD_REGISTRY = _Registry("head", _Contract("head", optional_meta=(), validator=_check_head_fn))
+
+
+def register_head_type(name, version=1):
+    """مُزخرِف: يُسجِّل دالة بناء رأس تحت اسم يُستخدَم في MODEL_CONFIG['head_types']. اسم مسجَّل مرتين يرفع DuplicateNameError."""
     def deco(fn):
-        HEAD_REGISTRY[name] = fn
+        HEAD_REGISTRY.register(name, fn, version=version)
         return fn
     return deco
 

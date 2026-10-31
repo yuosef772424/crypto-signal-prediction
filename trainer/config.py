@@ -26,14 +26,57 @@ PITFALLS: build_config validates through validate_config (aggregated ValueError)
 """
 # @title 2) قاموس الإعدادات الافتراضي + دالة الدمج
 import difflib as _difflib
+import inspect as _inspect
 import math as _math
 import re as _re
 
+from core.registry import Contract as _Contract, Registry as _Registry
+
 VALID_TRAIN_MODES = ("auto", "new", "resume", "warm_start")
 
-#: name -> {"fn", "stat_keys", "supports_sample_weight"}: filled by register_task_type (trainer/tasks.py). Created here, in the module that loads
-#: before tasks.py, because build_config must know the registered task types (a forward reference to tasks.py would be an implicit dependency).
-TASK_REGISTRY: Dict[str, Dict[str, Any]] = {}
+def _check_task_entry(name, entry, meta):
+    """The task-type contract, checked AT REGISTRATION (register_task_type): a malformed registration fails here, not at trainer
+    build / training-step trace time. Returns the list of problems (empty = fine)."""
+    problems = []
+    fn = entry.get("fn") if isinstance(entry, dict) else None
+    if not callable(fn):
+        return [f"fn must be callable, got {fn!r}"]
+    try:
+        _inspect.signature(fn).bind(None, None, None, None)
+    except TypeError:
+        problems.append("fn must accept (y_true, outputs, target_cfg, scheduled_vars) positionally")
+    except ValueError:
+        pass                                    # a builtin without an introspectable signature: nothing to check
+    sk = meta["stat_keys"]
+    if not isinstance(sk, list) or not sk or not all(isinstance(k, str) and k.strip() for k in sk) or len(set(sk)) != len(sk):
+        problems.append(f"stat_keys must be a non-empty list of distinct non-empty strings, got {sk!r}")
+    ck = meta["config_keys"]
+    if not isinstance(ck, tuple) or not all(isinstance(k, str) and k.strip() for k in ck) or len(set(ck)) != len(ck):
+        problems.append(f"config_keys must be a tuple of distinct non-empty strings, got {ck!r}")
+    elif set(ck) & set(_COMMON_TARGET_KEYS):
+        problems.append(f"config_keys {sorted(set(ck) & set(_COMMON_TARGET_KEYS))} are common target keys (declared once, not per task type)")
+    if not isinstance(meta["supports_sample_weight"], bool):
+        problems.append(f"supports_sample_weight must be a bool, got {meta['supports_sample_weight']!r}")
+    elif meta["supports_sample_weight"]:
+        try:
+            _inspect.signature(fn).bind(None, None, None, None, sample_weight=None)
+        except TypeError:
+            problems.append("supports_sample_weight=True but fn does not accept a `sample_weight` keyword")
+        except ValueError:
+            pass
+    for k in ("stat_keys", "supports_sample_weight", "config_keys"):
+        if entry.get(k) != meta[k]:
+            problems.append(f"entry[{k!r}] differs from the registered metadata")
+    return problems
+
+
+#: name -> {"fn", "stat_keys", "supports_sample_weight", "config_keys"}: filled by register_task_type (trainer/tasks.py). A core.registry
+#: Registry (duplicate name raises, an unknown name raises with a did-you-mean, the contract above is checked at registration);
+#: reads keep the dict pattern (TASK_REGISTRY[name]["stat_keys"], name in TASK_REGISTRY, .get / .items / .values). Created here, in the
+#: module that loads before tasks.py, because build_config must know the registered task types (a forward reference to tasks.py
+#: would be an implicit dependency).
+TASK_REGISTRY = _Registry("task", _Contract(
+    "task", required_meta=("stat_keys", "supports_sample_weight", "config_keys"), optional_meta=(), validator=_check_task_entry))
 
 TRAINER_DEFAULT_CONFIG: Dict[str, Any] = {
     # ─────────────────────────────────────────────────────────────
@@ -368,7 +411,7 @@ def _expected_metric_names(cfg):
         if not isinstance(tcfg, dict):
             continue                    # خطؤه مُبلَّغ في _check_targets
         names.add(f"loss_{t}")
-        entry = TASK_REGISTRY.get(tcfg.get("task_type"))
+        entry = TASK_REGISTRY.get(tcfg.get("task_type"), None)
         if entry:
             names.update(f"{t}_{k}" for k in entry["stat_keys"])
         if tcfg.get("task_type") == "classification":
@@ -391,7 +434,7 @@ def _check_targets(cfg, errs):
             errs.append(f"{p}: must be a dict, got {type(tcfg).__name__}")
             continue
         ttype = tcfg.get("task_type")
-        entry = TASK_REGISTRY.get(ttype) if isinstance(ttype, str) else None
+        entry = TASK_REGISTRY.get(ttype, None) if isinstance(ttype, str) else None
         if "task_type" in tcfg and entry is None:
             errs.append(f"{p}.task_type: unregistered task type {ttype!r}; registered: {sorted(TASK_REGISTRY)} "
                         f"(register it with register_task_type first)")

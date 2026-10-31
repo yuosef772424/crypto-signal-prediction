@@ -37,7 +37,7 @@ class MaskTests(unittest.TestCase):
         try:
             np.testing.assert_array_equal(m(df, [{"fn": "adx_rising"}]), [False, False, True, False, True])
         finally:
-            ns["SAMPLE_FILTER_REGISTRY"].pop("adx_rising", None)
+            ns["SAMPLE_FILTER_REGISTRY"].unregister("adx_rising")
 
     def test_invalid_filters_raise(self):
         ns, df = r2._ns(), _frame()
@@ -54,7 +54,7 @@ class MaskTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 m(df, [{"fn": "short"}])
         finally:
-            ns["SAMPLE_FILTER_REGISTRY"].pop("short", None)
+            ns["SAMPLE_FILTER_REGISTRY"].unregister("short")
 
 
 class DatasetTests(unittest.TestCase):

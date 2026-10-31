@@ -1,7 +1,7 @@
 """
 PURPOSE:  Windows and targets for one asset (prepare_single_asset), LAST_COLUMNS/last_candles, sample filters, invert_reg_predictions and decode_price_window.
 TAGS:     windows, targets, prepare_single_asset, last_candles, LAST_COLUMNS, TS_COL, sample_filters, register_sample_filter, invert_reg_predictions, decode_price_window, entry_feature_table, reg_target_mode
-PITFALLS: LAST_COLUMNS, TS_COL, LAST_DTYPE and TARGET_COLUMNS are defined once in core/schema.py and only re-bound here. last_candles is float64 (ns timestamps lose ~12 s in float32). Sample filters must be causal. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+PITFALLS: LAST_COLUMNS, TS_COL, LAST_DTYPE and TARGET_COLUMNS are defined once in core/schema.py and only re-bound here. last_candles is float64 (ns timestamps lose ~12 s in float32). Sample filters must be causal. SAMPLE_FILTER_REGISTRY is a core.registry Registry: register_sample_filter twice with one name raises DuplicateNameError (unregister first when re-running a cell). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
 
 ## 11) بناء النوافذ والأهداف لأصل واحد (`windows.py` سابقاً)
 """
@@ -19,6 +19,7 @@ PITFALLS: LAST_COLUMNS, TS_COL, LAST_DTYPE and TARGET_COLUMNS are defined once i
 # أعمدة ``last_candles`` (LAST_COLUMNS) وفهرس الطابع الزمني (TS_COL) وdtype الصفيف (LAST_DTYPE: float64 لأن الطابع بالنانوثانية
 # ~1.7e18 يفقد ~12 ثانية في float32) وأعمدة أسعار الأهداف (TARGET_COLUMNS: تبقى في البيانات حتى لو استُبعدت من مدخلات النموذج)
 # مصدرها الوحيد core/schema.py؛ تُربط هنا بالاسم نفسه فيبقى نطاق خط الأنابيب (والدفاتر والاختبارات) يراها كما كانت.
+from core.registry import Contract as _Contract, Registry as _Registry
 from core.schema import LAST_COLUMNS, LAST_DTYPE, TARGET_COLUMNS, TS_COL
 
 
@@ -28,7 +29,19 @@ from core.schema import LAST_COLUMNS, LAST_DTYPE, TARGET_COLUMNS, TS_COL
 #: دوال شروط مسجّلة بالاسم لـ ``{"fn": "<الاسم>"}``: كل دالة تأخذ إطار الفريم الأساسي الخام (كل الأعمدة المحسوبة، قبل
 #: التطبيع) وتُرجع قناعاً منطقياً بطول صفوفه — True = الشمعة تصلح شمعة دخول. ⚠️ يجب أن تكون سببية: قيمة الصف t من الصفوف
 #: ≤ t فقط (لا ``shift(-1)``، لا ``rolling(center=True)``) — وإلا تسرّب المستقبل إلى اختيار العيّنات.
-SAMPLE_FILTER_REGISTRY: Dict[str, Callable[[pd.DataFrame], Any]] = {}
+def _check_sample_filter(name, fn, meta):
+    """Sample-filter contract, checked AT REGISTRATION: a callable taking the base-frame DataFrame (one positional argument)."""
+    import inspect
+    try:
+        inspect.signature(fn).bind(None)
+    except TypeError:
+        return ["filter function must accept one positional argument (the base-frame DataFrame)"]
+    except ValueError:
+        pass
+    return []
+
+
+SAMPLE_FILTER_REGISTRY = _Registry("sample_filter", _Contract("sample_filter", optional_meta=(), validator=_check_sample_filter))
 
 #: عمليات المقارنة في ``{"feature": ..., "op": ..., "value": ...}``.
 SAMPLE_FILTER_OPS: Dict[str, Callable[[np.ndarray, Any], np.ndarray]] = {
@@ -39,11 +52,12 @@ SAMPLE_FILTER_OPS: Dict[str, Callable[[np.ndarray, Any], np.ndarray]] = {
 }
 
 
-def register_sample_filter(name: str, fn: Callable[[pd.DataFrame], Any]) -> None:
-    """يسجّل دالة شرط تُستعمل في الإعداد بـ ``{"fn": name}`` (انظر :data:`SAMPLE_FILTER_REGISTRY`)."""
+def register_sample_filter(name: str, fn: Callable[[pd.DataFrame], Any], version: int = 1) -> None:
+    """يسجّل دالة شرط تُستعمل في الإعداد بـ ``{"fn": name}`` (انظر :data:`SAMPLE_FILTER_REGISTRY`).
+    اسم مسجَّل مسبقاً يرفع ``DuplicateNameError`` (كان يُستبدَل بصمت؛ لإعادة التسجيل في خلية تُعاد: ``SAMPLE_FILTER_REGISTRY.unregister(name)`` أولاً)."""
     if not callable(fn):
         raise TypeError(f"register_sample_filter: {name!r} ليست دالة")
-    SAMPLE_FILTER_REGISTRY[name] = fn
+    SAMPLE_FILTER_REGISTRY.register(name, fn, version=version)
 
 
 def _filter_entry_mask(df: pd.DataFrame, flt: dict) -> np.ndarray:
@@ -138,7 +152,7 @@ def _sample_filters_signature(filters: List[dict]) -> List[dict]:
     out = []
     for flt in filters:
         flt = dict(flt)
-        fn = SAMPLE_FILTER_REGISTRY.get(flt.get('fn')) if 'fn' in flt else None
+        fn = SAMPLE_FILTER_REGISTRY.get(flt.get('fn'), None) if 'fn' in flt else None
         if fn is not None:
             try:
                 flt['fn_source'] = hashlib.sha256(inspect.getsource(fn).encode('utf-8')).hexdigest()[:16]

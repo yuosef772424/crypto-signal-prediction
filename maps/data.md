@@ -234,67 +234,68 @@
   - `def describe_features(features: List[str]) -> Dict[str, List[str]]` L578
   - `def audit_normalization(windows: np.ndarray, features: List[str], verbose: bool=True, config: Optional[dict]=None) -> pd.DataFrame` L586
 
-### `data/normalizers.py` (485 lines)
+### `data/normalizers.py` (509 lines)
 - PURPOSE: ONE registered Normalizer interface behind every price normalization mode ('window_scale', 'logret_std', 'logret_sigma'; the legacy window-level 'pct_change' resolves to 'window_scale' via normalizer_for_mode): fit on train only -> a plain…
 - TAGS: normalizer, normalizers, get_normalizer, normalizer_for_mode, normalizer_for_data, windowscale, logretstd, logretsigma, fit, transform_inputs, normalize_targets, inverse_targets, state_from_config, price_norm_meta, fit_price_norm, denormalize_price_targets, normalize_price_targets, finish_price_norm, stamp_price_norm, trailing_close_sigma, price_norm_channels, normalization, تطبيع
-- PITFALLS: Add a normalizer = write a Normalizer subclass and put it in NORMALIZERS (nothing else to edit; its name is the value of CONFIG['price_norm_mode'] once PRICE_NORM_MODES in normalize.py lists it). fit sees TRAIN only; its state is a JSON-safe dict stored on every split (split['price_norm_meta']) and is the only thing the inverse/live path needs. 'window_scale' stores no state in datasets (default…
+- PITFALLS: Add a normalizer = write a Normalizer subclass and register_normalizer(instance) (NORMALIZERS is a core.registry Registry: a duplicate name raises, the .name must equal the registered name; nothing else to edit; its name is the value of CONFIG['price_norm_mode'] once PRICE_NORM_MODES in normalize.py lists it). fit sees TRAIN only; its state is a JSON-safe dict stored on every split (split['price_…
 - DEPENDS: core
 - USES: heads, normalize
 - USED BY: cross_sectional_norm, live, pipeline, split, windows
 - API:
-  - `def logret_vs_prev_close(x: np.ndarray, prev_close: np.ndarray) -> np.ndarray` L19
-  - `def trailing_close_sigma(close: np.ndarray, n: int=PRICE_NORM_SIGMA_N, floor: float=PRICE_NORM_SIGMA_FLOOR) -> np.ndarray` L28
-  - `def price_norm_channels(feature_order: List[str]) -> List[Tuple[str, int]]` L37
-  - `class Normalizer` L63
-    - `.check_config(self, config: dict, targets, tf_order, features) -> None` L76
-    - `.lookback_bars(self) -> int` L79
-    - `.window_context(self, raw_close: np.ndarray)` L83
-    - `.sample_valid(self, last_c, future_close, future_low_min, future_high_max) -> bool` L87
-    - `.raw_reg_target(self, future: float, last_c: float) -> Optional[float]` L90
-    - `.build_inputs(self, windows, features, centers, scales, scaler_type, config, *, tf, is_base, price_df, end_idxs, win_base, i_close_feat, context=None) -> np.ndarray` L94
-    - `.dataset_fields(self, config: dict, features: List[str], tf_order: List[str]) -> Dict` L100
-    - `.fit_at_split(self, data: Dict) -> bool` L104
-    - `.fit(self, train: Dict, *, feature_order: List[str], timeframes: List[str], clip: float=PRICE_NORM_CLIP) -> Dict` L108
-    - `.check_live_state(self, state: Optional[Dict]) -> None` L112
-    - `.prepare_live(self, dataset: Dict, state: Optional[Dict]) -> Dict` L115
-    - `.stamp_split(self, data: Dict, split: Dict, state: Optional[Dict]) -> Dict` L119
-    - `.stamp(self, data: Dict, split_or_assets: Dict, state: Optional[Dict]=None) -> Dict` L123
-    - `.transform_inputs(self, X: Dict, state: Dict) -> Dict` L128
-    - `.normalize_targets(self, y: Dict, state: Dict) -> Dict` L131
-    - `.state_from_config(self, config: dict, scale: Optional[float]=None) -> Dict` L134
-    - `.anchor_column(self, head: str) -> str` L138
-    - `.normalize_prices(self, price, state: Dict, last_close, head: str='high') -> np.ndarray` L142
-    - `.inverse_targets(self, pred, state: Dict, last_close, head: str='high', output: str='price', **kw) -> np.ndarray` L145
-  - `class WindowScale(Normalizer)` L152
-    - `.dataset_fields(self, config, features, tf_order)` L157
-    - `.state_from_config(self, config, scale=None)` L164
-    - `.anchor_column(self, head)` L168
-    - `.normalize_prices(self, price, state, last_close, head='high')` L174
-    - `.inverse_targets(self, pred, state, last_close, head='high', output='price', bases=None, **kw)` L178
-  - `class LogretStd(_LogretBase)` L295
-    - `.dataset_fields(self, config, features, tf_order)` L301
-    - `.fit_at_split(self, data)` L304
-    - `.fit(self, train, *, feature_order, timeframes, clip=PRICE_NORM_CLIP)` L307
-    - `.transform_inputs(self, X, state)` L335
-    - `.normalize_targets(self, y, state)` L351
-    - `.prepare_live(self, dataset, state)` L359
-    - `.stamp_split(self, data, split, state)` L366
-  - `class LogretSigma(_LogretBase)` L384
-    - `.lookback_bars(self)` L397
-    - `.window_context(self, raw_close)` L400
-    - `.dataset_fields(self, config, features, tf_order)` L403
-    - `.fit(self, train, *, feature_order, timeframes, clip=PRICE_NORM_CLIP)` L407
-    - `.prepare_live(self, dataset, state)` L415
-    - `.stamp_split(self, data, split, state)` L419
-  - `def get_normalizer(name: str) -> Normalizer` L427
-  - `def normalizer_for_mode(mode: str) -> Normalizer` L434
-  - `def normalizer_for_data(data: Dict) -> Normalizer` L439
-  - `def normalize_price_targets(price: np.ndarray, meta: Dict, last_close: np.ndarray, head: str='high') -> np.ndarray` L447
-  - `def denormalize_price_targets(pred: np.ndarray, meta: Dict, last_close: np.ndarray, head: str='high', output: str='price') -> np.ndarray` L452
-  - `def fit_price_norm(train: Dict, feature_order: List[str], timeframes: List[str], mode: str=PRICE_NORM_LOGRET_STD, clip: float=PRICE_NORM_CLIP) -> Dict` L463
-  - `def price_norm_unfitted(data: Dict) -> bool` L469
-  - `def stamp_price_norm(data: Dict, split_or_assets: Dict, meta: Optional[Dict]=None) -> Dict` L474
-  - `def finish_price_norm(data: Dict, train: Dict, val: Dict, test: Dict)` L479
+  - `def logret_vs_prev_close(x: np.ndarray, prev_close: np.ndarray) -> np.ndarray` L20
+  - `def trailing_close_sigma(close: np.ndarray, n: int=PRICE_NORM_SIGMA_N, floor: float=PRICE_NORM_SIGMA_FLOOR) -> np.ndarray` L29
+  - `def price_norm_channels(feature_order: List[str]) -> List[Tuple[str, int]]` L38
+  - `class Normalizer` L64
+    - `.check_config(self, config: dict, targets, tf_order, features) -> None` L77
+    - `.lookback_bars(self) -> int` L80
+    - `.window_context(self, raw_close: np.ndarray)` L84
+    - `.sample_valid(self, last_c, future_close, future_low_min, future_high_max) -> bool` L88
+    - `.raw_reg_target(self, future: float, last_c: float) -> Optional[float]` L91
+    - `.build_inputs(self, windows, features, centers, scales, scaler_type, config, *, tf, is_base, price_df, end_idxs, win_base, i_close_feat, context=None) -> np.ndarray` L95
+    - `.dataset_fields(self, config: dict, features: List[str], tf_order: List[str]) -> Dict` L101
+    - `.fit_at_split(self, data: Dict) -> bool` L105
+    - `.fit(self, train: Dict, *, feature_order: List[str], timeframes: List[str], clip: float=PRICE_NORM_CLIP) -> Dict` L109
+    - `.check_live_state(self, state: Optional[Dict]) -> None` L113
+    - `.prepare_live(self, dataset: Dict, state: Optional[Dict]) -> Dict` L116
+    - `.stamp_split(self, data: Dict, split: Dict, state: Optional[Dict]) -> Dict` L120
+    - `.stamp(self, data: Dict, split_or_assets: Dict, state: Optional[Dict]=None) -> Dict` L124
+    - `.transform_inputs(self, X: Dict, state: Dict) -> Dict` L129
+    - `.normalize_targets(self, y: Dict, state: Dict) -> Dict` L132
+    - `.state_from_config(self, config: dict, scale: Optional[float]=None) -> Dict` L135
+    - `.anchor_column(self, head: str) -> str` L139
+    - `.normalize_prices(self, price, state: Dict, last_close, head: str='high') -> np.ndarray` L143
+    - `.inverse_targets(self, pred, state: Dict, last_close, head: str='high', output: str='price', **kw) -> np.ndarray` L146
+  - `class WindowScale(Normalizer)` L153
+    - `.dataset_fields(self, config, features, tf_order)` L158
+    - `.state_from_config(self, config, scale=None)` L165
+    - `.anchor_column(self, head)` L169
+    - `.normalize_prices(self, price, state, last_close, head='high')` L175
+    - `.inverse_targets(self, pred, state, last_close, head='high', output='price', bases=None, **kw)` L179
+  - `class LogretStd(_LogretBase)` L296
+    - `.dataset_fields(self, config, features, tf_order)` L302
+    - `.fit_at_split(self, data)` L305
+    - `.fit(self, train, *, feature_order, timeframes, clip=PRICE_NORM_CLIP)` L308
+    - `.transform_inputs(self, X, state)` L336
+    - `.normalize_targets(self, y, state)` L352
+    - `.prepare_live(self, dataset, state)` L360
+    - `.stamp_split(self, data, split, state)` L367
+  - `class LogretSigma(_LogretBase)` L385
+    - `.lookback_bars(self)` L398
+    - `.window_context(self, raw_close)` L401
+    - `.dataset_fields(self, config, features, tf_order)` L404
+    - `.fit(self, train, *, feature_order, timeframes, clip=PRICE_NORM_CLIP)` L408
+    - `.prepare_live(self, dataset, state)` L416
+    - `.stamp_split(self, data, split, state)` L420
+  - `def register_normalizer(nz: Normalizer, version: int=1) -> Normalizer` L441
+  - `def get_normalizer(name: str) -> Normalizer` L451
+  - `def normalizer_for_mode(mode: str) -> Normalizer` L458
+  - `def normalizer_for_data(data: Dict) -> Normalizer` L463
+  - `def normalize_price_targets(price: np.ndarray, meta: Dict, last_close: np.ndarray, head: str='high') -> np.ndarray` L471
+  - `def denormalize_price_targets(pred: np.ndarray, meta: Dict, last_close: np.ndarray, head: str='high', output: str='price') -> np.ndarray` L476
+  - `def fit_price_norm(train: Dict, feature_order: List[str], timeframes: List[str], mode: str=PRICE_NORM_LOGRET_STD, clip: float=PRICE_NORM_CLIP) -> Dict` L487
+  - `def price_norm_unfitted(data: Dict) -> bool` L493
+  - `def stamp_price_norm(data: Dict, split_or_assets: Dict, meta: Optional[Dict]=None) -> Dict` L498
+  - `def finish_price_norm(data: Dict, train: Dict, val: Dict, test: Dict)` L503
 
 ### `data/parallel.py` (156 lines)
 - PURPOSE: Thread-parallel asset loading with preserved order: imap_ordered, load_assets, default_workers (capped by CPU and system RAM).
@@ -428,21 +429,21 @@
   - `def load_data_from_drive(project_name: Optional[str]=None, data_type: str='preprocessed_data', filename_base: str='preprocessing_output', filename: Optional[str]=None, config: Optional[dict]=None, fmt: str='auto', mmap: boo…` L239
   - `def load_preprocessed_data_from_drive(file_id: str, output_filename: str='preprocessing_output.pkl.gz', download_dir: str='.', quiet: bool=False, cleanup: bool=False) -> Any` L290
 
-### `data/windows.py` (513 lines)
+### `data/windows.py` (527 lines)
 - PURPOSE: Windows and targets for one asset (prepare_single_asset), LAST_COLUMNS/last_candles, sample filters, invert_reg_predictions and decode_price_window.
 - TAGS: windows, targets, prepare_single_asset, last_candles, last_columns, ts_col, sample_filters, register_sample_filter, invert_reg_predictions, decode_price_window, entry_feature_table, reg_target_mode
-- PITFALLS: LAST_COLUMNS, TS_COL, LAST_DTYPE and TARGET_COLUMNS are defined once in core/schema.py and only re-bound here. last_candles is float64 (ns timestamps lose ~12 s in float32). Sample filters must be causal. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- PITFALLS: LAST_COLUMNS, TS_COL, LAST_DTYPE and TARGET_COLUMNS are defined once in core/schema.py and only re-bound here. last_candles is float64 (ns timestamps lose ~12 s in float32). Sample filters must be causal. SAMPLE_FILTER_REGISTRY is a core.registry Registry: register_sample_filter twice with one name raises DuplicateNameError (unregister first when re-running a cell). Executed into the one shared p…
 - DEPENDS: core
 - USES: align, custom, heads, normalize, normalizers, runtime, sources*
 - USED BY: checkpoints, cross_sectional_norm, pipeline, presets, selftests, split, discovery/evaluation, discovery/phase3_tools, workflow/capacity, workflow/chicks_bridge +4
 - API:
-  - `def register_sample_filter(name: str, fn: Callable[[pd.DataFrame], Any]) -> None` L42
-  - `def sample_filter_mask(df: pd.DataFrame, filters: Optional[List[dict]]=None, config: Optional[dict]=None) -> np.ndarray` L86
-  - `def stale_bars_min_run(config: Optional[dict]=None, base_tf: Optional[str]=None) -> Optional[int]` L120
-  - `def prepare_single_asset(dfs: Dict[str, pd.DataFrame], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_horizon: Optional[int]=None, stride: Option…` L162
-  - `def invert_reg_predictions(preds: np.ndarray, head: str, last_candles: Optional[np.ndarray]=None, bases: Optional[np.ndarray]=None, config: Optional[dict]=None, scale: Optional[float]=None, price_norm_meta: Optional[dict]=Non…` L405
-  - `def decode_price_window(data: Dict, column: str='close', tf: Optional[str]=None, anchor: Optional[np.ndarray]=None, feature_order: Optional[List[str]]=None, mode: Optional[str]=None) -> np.ndarray` L456
-  - `def entry_feature_table(data: Dict, columns: List[str], load_asset_fn: Optional[Callable]=None, config: Optional[dict]=None) -> pd.DataFrame` L487
+  - `def register_sample_filter(name: str, fn: Callable[[pd.DataFrame], Any], version: int=1) -> None` L55
+  - `def sample_filter_mask(df: pd.DataFrame, filters: Optional[List[dict]]=None, config: Optional[dict]=None) -> np.ndarray` L100
+  - `def stale_bars_min_run(config: Optional[dict]=None, base_tf: Optional[str]=None) -> Optional[int]` L134
+  - `def prepare_single_asset(dfs: Dict[str, pd.DataFrame], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_horizon: Optional[int]=None, stride: Option…` L176
+  - `def invert_reg_predictions(preds: np.ndarray, head: str, last_candles: Optional[np.ndarray]=None, bases: Optional[np.ndarray]=None, config: Optional[dict]=None, scale: Optional[float]=None, price_norm_meta: Optional[dict]=Non…` L419
+  - `def decode_price_window(data: Dict, column: str='close', tf: Optional[str]=None, anchor: Optional[np.ndarray]=None, feature_order: Optional[List[str]]=None, mode: Optional[str]=None) -> np.ndarray` L470
+  - `def entry_feature_table(data: Dict, columns: List[str], load_asset_fn: Optional[Callable]=None, config: Optional[dict]=None) -> pd.DataFrame` L501
 
 Data / other files (counts only):
 - `crypto_data/`: csv×1 — 289 B

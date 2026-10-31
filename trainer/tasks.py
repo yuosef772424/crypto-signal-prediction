@@ -65,20 +65,27 @@ register_task_type("quantile", quantile_task_loss, ["pinball"])
   إحصاءات التدريب المحفوظة، حتى تبقى checkpoints ونماذج قديمة صالحة دون تغيير في معناها.
 """
 # @title 3) سجلّ دوال الخسارة (Loss Registry)
-# TASK_REGISTRY (the dict itself) is created in trainer/config.py, which loads first: build_config validates task_type against it.
+from core.registry import ContractError as _ContractError
+
+# TASK_REGISTRY (a core.registry Registry with the task contract) is created in trainer/config.py, which loads first: build_config validates task_type against it.
 
 
 def register_task_type(name: str, fn: Callable, stat_keys: List[str], supports_sample_weight: bool = False,
-                       config_keys: Tuple[str, ...] = ()):
+                       config_keys: Tuple[str, ...] = (), version: int = 1):
     """سجّل نوع مهمة جديد.
     fn: (y_true, outputs, target_cfg, scheduled_vars) -> (loss, stats_dict)
     إن أعلنتَ supports_sample_weight=True فيجب أن تقبل fn وسيطًا إضافيًا sample_weight=None
     (وإلا فإعطاء sample_weight لهدف من هذا النوع يرفع خطأً صريحًا بدل أن يُتجاهل بصمت).
     config_keys: مفاتيح قاموس الهدف (غير المشتركة بين كل الأنواع) التي تقرؤها fn عبر target_cfg؛ build_config يرفض أي مفتاح
-    هدف غير مُعلَن هنا ولا في المشترك (true_key, task_type, output_keys, loss_weight, flood_level) — مصدر واحد لا قائمة ثانية."""
-    TASK_REGISTRY[name] = {"fn": fn, "stat_keys": list(stat_keys),
-                           "supports_sample_weight": bool(supports_sample_weight),
-                           "config_keys": tuple(config_keys)}
+    هدف غير مُعلَن هنا ولا في المشترك (true_key, task_type, output_keys, loss_weight, flood_level) — مصدر واحد لا قائمة ثانية.
+    التسجيل عبر core.registry: اسم مسجَّل مرتين يرفع DuplicateNameError، وعقد النوع (TASK_REGISTRY في config.py) يُفحص هنا لا وقت التدريب."""
+    for label, seq in (("stat_keys", stat_keys), ("config_keys", config_keys)):
+        if isinstance(seq, (str, bytes)):           # list("mae") would silently become ['m', 'a', 'e']
+            raise _ContractError(f"task {name!r}: {label} must be a list/tuple of names, not the string {seq!r}")
+    entry = {"fn": fn, "stat_keys": list(stat_keys), "supports_sample_weight": supports_sample_weight,
+             "config_keys": tuple(config_keys)}
+    TASK_REGISTRY.register(name, entry, version=version, stat_keys=entry["stat_keys"],
+                           supports_sample_weight=supports_sample_weight, config_keys=entry["config_keys"])
 
 
 # ───────────────────────────── مساعدات الأوزان ─────────────────────────────
