@@ -285,5 +285,22 @@ class ModelLayerReportMigration(unittest.TestCase):
             same(self, metric("reg", b, a), _legacy_diag_spearman(a, b))
 
 
+class ModelDiagnosticsMigration(unittest.TestCase):
+    def test_perm_metric_is_bit_equal_to_the_old_private_auc_and_spearman(self):
+        import _nbload
+        ns = _nbload.load_model()
+        self.assertNotIn("_auc", ns)
+        self.assertNotIn("_spearman", ns)
+        perm = ns["_perm_metric"]
+        for (y, s), (a, b) in zip(auc_cases() + auc_cases_with_nan(), spearman_cases() + spearman_cases()):
+            n = min(len(y), len(a))
+            yy, ss, aa, bb = y[:n], s[:n], a[:n], b[:n]
+            ys = {"y_high_class": yy * 2 - 1, "y_high_reg": bb}
+            out = {"c": ss, "r": aa}
+            got = perm(out, ys, {"high_class": "c", "high_reg": "r"})
+            same(self, got["high_class"], _legacy_diag_auc(yy > 0, ss))
+            same(self, got["high_reg"], _legacy_diag_spearman(aa, bb))
+
+
 if __name__ == "__main__":
     unittest.main()

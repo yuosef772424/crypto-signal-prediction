@@ -56,7 +56,6 @@
   "metric-def-outside-stats": {
    "cross_asset/report.py": 3,
    "cross_asset/train.py": 2,
-   "model/diagnostics.py": 2,
    "signal_eval/core.py": 1,
    "tools/natr_range.py": 3,
    "tools/paired_compare.py": 1,

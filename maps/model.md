@@ -57,16 +57,16 @@
     - `.compute_output_shape(self, input_shape)` L45
     - `.get_config(self)` L48
 
-### `model/diagnostics.py` (714 lines)
+### `model/diagnostics.py` (699 lines)
 - PURPOSE: On-demand model diagnostics: diagnose_model, model_health_verdicts, print_verdicts (+ DIAG_SECTIONS, HEALTH_THRESHOLDS).
 - TAGS: diagnose_model, model_health_verdicts, print_verdicts, diag_sections, health_thresholds, model health, activations, attention
 - PITFALLS: Runs nothing at load; only on explicit call. Verdict thresholds live in HEALTH_THRESHOLDS. Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
-- DEPENDS: core
+- DEPENDS: core, stats
 - USED BY: layer_report, workflow/capacity, workflow/diagnostics
 - API:
-  - `def diagnose_model(model, X, y=None, sections=DIAG_SECTIONS, max_n=512, batch_size=256, seed=0, feature_names=None, sensitivity='grad_x_input', top_k=10, floor_tol=0.1, verbose=False)` L341
-  - `def model_health_verdicts(rep, recorder_stats=None, thresholds=None)` L576
-  - `def print_verdicts(v, title='🩺 تقرير صحّة النموذج')` L708
+  - `def diagnose_model(model, X, y=None, sections=DIAG_SECTIONS, max_n=512, batch_size=256, seed=0, feature_names=None, sensitivity='grad_x_input', top_k=10, floor_tol=0.1, verbose=False)` L325
+  - `def model_health_verdicts(rep, recorder_stats=None, thresholds=None)` L561
+  - `def print_verdicts(v, title='🩺 تقرير صحّة النموذج')` L693
 
 ### `model/heads.py` (103 lines)
 - PURPOSE: HEAD_REGISTRY: pluggable output heads (register_head_type, build_head_outputs, binary/multiclass classification heads).

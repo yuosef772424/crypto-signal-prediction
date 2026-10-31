@@ -39,6 +39,8 @@ import pandas as pd
 from core.heads import (OUTPUT_PREFIX as _OUTPUT_PREFIX, label_key as _label_key, output_name as _output_name,
                         parse_output_name as _parse_output_name)
 
+from stats.metrics import auc as stats_auc, spearman as stats_spearman
+
 DIAG_SECTIONS = ("heads", "nig", "classification", "activations", "attention", "sensitivity", "samples")
 _SKIP_TAP_TYPES = {"InputLayer", "Dropout", "SpatialDropout1D", "GaussianNoise", "Flatten", "Reshape", "Lambda"}
 _STAGE_RULES = (  # (بادئة اسم الطبقة، مرحلة) — ترتيب الأولوية
@@ -96,24 +98,6 @@ def _targets_of(out):
         elif role == "mu" and _output_name(t, "nu") in out:
             ts.append(t)
     return sorted(set(ts))
-
-
-def _rank(a):
-    return pd.Series(np.asarray(a, dtype=np.float64)).rank().to_numpy()
-
-
-def _auc(y, s):
-    y = np.asarray(y).astype(bool)
-    n1, n0 = int(y.sum()), int((~y).sum())
-    if not n1 or not n0:
-        return float("nan")
-    return float((_rank(s)[y].sum() - n1 * (n1 + 1) / 2) / (n1 * n0))
-
-
-def _spearman(a, b):
-    if len(a) < 3 or np.std(a) == 0 or np.std(b) == 0:
-        return float("nan")
-    return float(np.corrcoef(_rank(a), _rank(b))[0, 1])
 
 
 def _label_bool(y, t):
@@ -415,7 +399,7 @@ def _diag_heads(out, ys):
         mu_t, role = _parsed_output(k)
         if ys is not None and role == "mu" and _label_key(mu_t, "reg") in ys:
             yt = np.asarray(ys[_label_key(mu_t, "reg")], dtype=np.float64).reshape(-1)
-            r["corr_with_target"] = _spearman(a[:, 0], yt)
+            r["corr_with_target"] = stats_spearman(a[:, 0], yt, nan_policy="propagate", min_n=3)
             r["std_ratio_to_target"] = float(f.std() / (yt.std() + 1e-12)) if f.size else np.nan
         rows.append(r)
     return pd.DataFrame(rows)
@@ -444,7 +428,7 @@ def _diag_nig(model, out, ys, targets, tol):
             yt = np.asarray(ys[_label_key(t, "reg")], dtype=np.float64).reshape(-1)
             err = np.abs(yt - out[_output_name(t, "mu")].reshape(-1))
             tot = np.sqrt(ale ** 2 + epi ** 2)
-            r.update(unc_err_spearman=_spearman(err, tot), coverage_1sigma=float(np.mean(err <= tot)),
+            r.update(unc_err_spearman=stats_spearman(err, tot, nan_policy="propagate", min_n=3), coverage_1sigma=float(np.mean(err <= tot)),
                      aleatoric_over_target_std=float(np.median(ale) / (yt.std() + 1e-12)))
         rows.append(r)
     return pd.DataFrame(rows)
@@ -475,7 +459,7 @@ def _diag_classification(out, ys, targets, bins=10):
                         ece += m.mean() * abs(acc[m].mean() - conf[m].mean())
                 r.update(label_pos_share=float(lab.mean()), share_gap=float(abs(pred.mean() - lab.mean())),
                          accuracy=float(acc.mean()), majority_baseline=float(max(lab.mean(), 1 - lab.mean())),
-                         auc=_auc(lab, q), ece=float(ece), brier=float(np.mean((q - lab) ** 2)))
+                         auc=stats_auc(lab, q, nan_policy="legacy_rank_skipna"), ece=float(ece), brier=float(np.mean((q - lab) ** 2)))
         else:
             pred = p.argmax(-1)
             share = np.bincount(pred, minlength=p.shape[-1]) / len(pred)
@@ -533,9 +517,10 @@ def _perm_metric(out, ys, obj):
     for h, key in obj.items():
         t = h.rsplit("_", 1)[0]
         if h.endswith("_class") and _label_key(t, "class") in ys:
-            res[h] = _auc(_label_bool(ys, t), out[key].reshape(-1))
+            res[h] = stats_auc(_label_bool(ys, t), out[key].reshape(-1), nan_policy="legacy_rank_skipna")
         elif h.endswith("_reg") and _label_key(t, "reg") in ys:
-            res[h] = _spearman(out[key].reshape(-1), np.asarray(ys[_label_key(t, "reg")], dtype=np.float64).reshape(-1))
+            res[h] = stats_spearman(out[key].reshape(-1), np.asarray(ys[_label_key(t, "reg")], dtype=np.float64).reshape(-1),
+                                    nan_policy="propagate", min_n=3)
         else:
             res[h] = float("nan")
     return res

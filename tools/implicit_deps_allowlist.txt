@@ -99,4 +99,3 @@ notebook discovery/survey.py CATEGORY_HYPOTHESES
 notebook discovery/survey.py DUMMY_DF
 dup DEFAULT_CONFIG : data/defaults.py, trainer/config.py
 dup SMALL_ARRAY_BYTES : data/disk_backed.py, data/selftests.py
-dup _auc : model/diagnostics.py, workflow/generalization.py
