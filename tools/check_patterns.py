@@ -28,7 +28,7 @@ ROOT = Path(__file__).resolve().parent.parent
 BASELINE_PATH = "tools/pattern_baseline.json"
 BASELINE_VERSION = 1
 
-CODE_PACKAGES = ("core", "cross_asset", "tools", "data", "model", "trainer", "evaluation", "signal_eval", "workflow",
+CODE_PACKAGES = ("core", "stats", "cross_asset", "tools", "data", "model", "trainer", "evaluation", "signal_eval", "workflow",
                  "discovery")
 SKIP_DIRS = {".git", "__pycache__", ".ipynb_checkpoints", ".claude"}
 _ALL_CODE = tuple(f"{p}/**/*.py" for p in CODE_PACKAGES) + tuple(f"{p}/*.py" for p in CODE_PACKAGES)

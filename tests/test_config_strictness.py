@@ -39,7 +39,7 @@ import numpy as np  # noqa: E402
 import _nbload  # noqa: E402
 
 GOLDEN_PATH = os.path.join(ROOT, "tests", "golden_trainer_configs.json")
-CODE_PACKAGES = ("core", "cross_asset", "tools", "data", "model", "trainer", "evaluation", "signal_eval", "workflow", "discovery")
+CODE_PACKAGES = ("core", "stats", "cross_asset", "tools", "data", "model", "trainer", "evaluation", "signal_eval", "workflow", "discovery")
 
 #: PIPELINE_DEFAULT_CONFIG keys that no code package reads (quoted-string scan below). The audit listed 19 (+ target_loss_weights,
 #: which IS read: data/heads.py); the scan also finds model_name, use_decomposition and top_k, whose names occur in the code only as

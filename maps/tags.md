@@ -95,6 +95,7 @@
 - atr stop: edge_discovery/24_pullback_maker, indicator_strategy/engine, tools/trade_engine
 - attention: model/diagnostics, model/transformer
 - attentionpool: model/readout
+- auc: stats/__init__, stats/metrics
 - auc vs p&l: edge_discovery/18_h13_pr7_signal
 - audit: tools/stale_bars_colab_job
 - audit_normalization: data/normalize
@@ -102,6 +103,7 @@
 - availability flags: data/funding_oi
 - availability mask: tools/intraday_features
 - available_features: data/features
+- average rank: stats/metrics
 - axis evaluation: discovery/evaluation
 - backtest: edge_discovery/tsbt
 - balancing: workflow/settings
@@ -452,7 +454,7 @@
 - early stopping: cross_asset/train, trainer/best_tracker
 - early stopping monitor: core/loss_plan
 - early_stopping_monitor: workflow/settings
-- ece: evaluation/trust_calibration
+- ece: evaluation/trust_calibration, stats/__init__, stats/metrics
 - edge vs uncertainty: evaluation/trade_selection
 - edge_data: edge_discovery/lib
 - edit notebook: tools/nb_cells
@@ -519,6 +521,7 @@
 - exec_module: evaluation/_loader, signal_eval/_loader
 - execution lag: edge_discovery/17_h07_break
 - exit grid: strategy_discovery/robustness
+- expected calibration error: stats/metrics
 - experiment card: tools/experiment_registry
 - experiment registry: signal_eval/__init__, signal_eval/registry
 - exploration: natr_range/run_natr_calibrate, natr_range/run_natr_range, natr_range/run_natr_rolling
@@ -667,6 +670,7 @@
 - hac: tools/paired_compare
 - har-rv: h07_volsizing/01_volsizing
 - hardening: tools/check_patterns
+- hardening c7: stats/__init__
 - has_saved_state: trainer/checkpoints
 - hash ribbon: edge_discovery/20_onchain
 - hdbscan: discovery/phase3_tools
@@ -732,7 +736,7 @@
 - indicators: data/features, discovery/survey
 - infer_feature_columns: data/features
 - inference: data/live, trainer/ensemble
-- information coefficient: signal_eval/core
+- information coefficient: signal_eval/core, stats/metrics
 - inject: tools/nb_cells
 - input fingerprint: tools/data_manifest
 - input normalisation: model/input_norm
@@ -897,6 +901,7 @@
 - maker limit: edge_discovery/24_pullback_maker
 - manifest: tools/colab_runner, tools/colab_smoke
 - manifest ingest: tools/build_lock
+- mann-whitney: stats/metrics
 - map: tools/build_map
 - mark-to-market drawdown: hedge_recovery/sim
 - market adjusted: edge_discovery/events
@@ -920,7 +925,7 @@
 - memorization: workflow/generalization
 - memory growth: trainer/perf
 - metric definition: tools/check_patterns
-- metrics: cross_asset/report, evaluation/metrics, trainer/metrics
+- metrics: cross_asset/report, evaluation/metrics, stats/__init__, stats/metrics, trainer/metrics
 - metrics_new: edge_discovery/12_listing, edge_discovery/data_tools/sweep
 - metricslogger: trainer/metrics
 - min-max: norm_probe/run_norm_probe
@@ -975,6 +980,7 @@
 - n_display: evaluation/unified
 - n_eff: tools/paired_compare
 - naive baseline: evaluation/integrity
+- nan policy: stats/__init__, stats/metrics
 - natr: data/cross_sectional_features, tools/natr_range
 - natr range forecast: natr_range/run_natr_calibrate, natr_range/run_natr_confirm, natr_range/run_natr_confirm_forward, natr_range/run_natr_range, natr_range/run_natr_rolling
 - natr regime exit: hedge_recovery/sim
@@ -1091,6 +1097,7 @@
 - pav: evaluation/calibrators
 - pct_change: data/normalize
 - pct_change_overrides: data/presets
+- pearson: stats/__init__, stats/metrics
 - per-asset predict loop: tools/check_patterns
 - per-coin consistency: indicator_strategy/screen
 - per-coin events: edge_discovery/events
@@ -1112,8 +1119,8 @@
 - phase2_data: data/defaults, data/phase2
 - pick_threshold: workflow/selective_eval
 - pin bar: edge_discovery/22_chart_rules
-- pinball: natr_range/run_natr_range
-- pinball loss: tools/natr_range
+- pinball: natr_range/run_natr_range, stats/__init__
+- pinball loss: stats/metrics, tools/natr_range
 - pipeline: data/pipeline
 - pipeline package: data/_loader
 - pipeline_default_config: data/defaults
@@ -1191,7 +1198,7 @@
 - range_fade csv: edge_discovery/21_range_fade
 - rank: data/cross_sectional_norm
 - rank correlation: edge_discovery/02_fmb
-- rank ic: edge_discovery/01_screen, workflow/market_neutral
+- rank ic: edge_discovery/01_screen, stats/metrics, workflow/market_neutral
 - rank residual: data/cross_sectional_features
 - rank_ic: edge_discovery/lib
 - rank_weighted: workflow/market_neutral
@@ -1392,6 +1399,7 @@
 - significance: strategy_discovery/significance
 - simulate_equity_curve: evaluation/tearsheet
 - simulate_rr_trades: workflow/selective_eval
+- single owner: stats/__init__, stats/metrics
 - single source: core/__init__
 - single touch: edge_discovery/14_holdout
 - size vs direction: edge_discovery/29_path_envelope
@@ -1409,7 +1417,7 @@
 - softmax: evaluation/decode
 - source github/drive: tools/data_manifest_colab_cell, tools/fetch_history_colab_cell
 - sources: data/sources
-- spearman: signal_eval/core
+- spearman: signal_eval/core, stats/__init__, stats/metrics
 - speirsy11: tools/fetch_crypto_dataset
 - spill: data/disk_backed
 - split: data/split
@@ -1438,7 +1446,7 @@
 - state_from_config: data/normalizers
 - static: core/loss_plan
 - stationary bootstrap: tools/paired_compare
-- stats: edge_discovery/tsbt
+- stats: edge_discovery/tsbt, stats/__init__
 - stats_mode: model/input_norm
 - std_ic: signal_eval/windows
 - stop loss: edge_discovery/13_listing_stops, tools/bracket_eval
@@ -1517,7 +1525,9 @@
 - tf.data: workflow/batches
 - tf.keras.model subclass: trainer/trainer
 - threads: data/parallel
+- tie policy: stats/__init__, stats/metrics
 - tier 0: core/__init__, core/heads, core/loss_plan, core/registry, core/roles, core/seeds
+- tier 1: stats/__init__
 - time of day: strategy_discovery/seasonality15m
 - time seal: natr_range/run_natr_confirm_forward, tools/holdout_guard
 - time-series screen: edge_discovery/08_ts_screen
@@ -1631,6 +1641,8 @@
 - weights: tools/evaluate_trained_model
 - wick capture: edge_discovery/31_wick_capture
 - williams: tools/indicator_reverse
+- wilson: stats/__init__
+- wilson interval: stats/metrics
 - wilson_ci: evaluation/targets
 - wilson_interval: workflow/selective_eval
 - win rate: edge_discovery/events

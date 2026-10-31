@@ -18,7 +18,7 @@ sys.path.insert(0, str(ROOT / "docs" / "research" / "audit"))
 import _nbload  # noqa: E402
 from core import constants, schema  # noqa: E402
 
-CODE_DIRS = ("core", "cross_asset", "tools", "data", "model", "trainer", "evaluation", "signal_eval", "workflow", "discovery")
+CODE_DIRS = ("core", "stats", "cross_asset", "tools", "data", "model", "trainer", "evaluation", "signal_eval", "workflow", "discovery")
 CORE_NAMES = {"LAST_COLUMNS", "LAST_COLUMN_INDEX", "TS_COL", "LAST_DTYPE", "TARGET_COLUMNS", "TARGET_MODES",
               "NO_RELATIVE_BASES", "ENTRY_CLOSE_REGS", "NIG_ALPHA_DEN_MIN"}
 

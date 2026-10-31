@@ -82,8 +82,8 @@
   - `def disk_state() -> dict[str, str]` L511
   - `def main(argv: list[str] | None=None) -> int` L521
 
-### `tools/check_deps.py` (356 lines)
-- PURPOSE: Enforce the import direction of PHILOSOPHY.md section 2 with `ast` (modules are never imported): code packages must not import research/docs/tests, `core/` (tier 0) imports nothing from the repo, and a research study must not import anothe…
+### `tools/check_deps.py` (358 lines)
+- PURPOSE: Enforce the import direction of PHILOSOPHY.md section 2 with `ast` (modules are never imported): code packages must not import research/docs/tests, `core/` (tier 0) imports nothing from the repo, `stats/` (tier 1, pure metrics) imports onl…
 - TAGS: dependencies, imports, import direction, zones, architecture, lint, ci, sys.path, implicit dependencies, duplicate definitions, allowlist, اتجاه الاعتماد
 - PITFALLS: Also hosts the shared repo helpers (Repo, zone_of, file_imports, classify) that tools/build_map.py reuses for DEPENDS. Bare imports (`import lib`) are resolved by a repo-wide module-name index, so only unambiguous names (one zone) are classified. Existing violations are never fixed here: they go in ALLOWLIST below, with a reason. The implicit-dependency allowlist and the pattern baseline may only…
 - API:
@@ -97,12 +97,12 @@
   - `def dotted_name(node: ast.AST) -> str` L158
   - `def notebook_cells(path: Path) -> tuple[list[tuple[int, str, ast.AST]], list[str], int, int, int]` L188
   - `def violation_for(own: str, target: str | None) -> str | None` L218
-  - `def check_file(repo: Repo, rel: str) -> list[tuple[int, str, str, str]]` L231
-  - `def check_notebook(repo: Repo, rel: str) -> list[tuple[str, int, str, str, str]]` L271
-  - `def implicit_deps_problems(root: Path) -> tuple[list[str], int]` L286
-  - `def pattern_problems(root: Path) -> tuple[list[str], int]` L296
-  - `def run(repo: Repo) -> tuple[list[str], int, int, int, int]` L306
-  - `def main(argv: list[str] | None=None) -> int` L343
+  - `def check_file(repo: Repo, rel: str) -> list[tuple[int, str, str, str]]` L233
+  - `def check_notebook(repo: Repo, rel: str) -> list[tuple[str, int, str, str, str]]` L273
+  - `def implicit_deps_problems(root: Path) -> tuple[list[str], int]` L288
+  - `def pattern_problems(root: Path) -> tuple[list[str], int]` L298
+  - `def run(repo: Repo) -> tuple[list[str], int, int, int, int]` L308
+  - `def main(argv: list[str] | None=None) -> int` L345
 
 ### `tools/check_patterns.py` (550 lines)
 - PURPOSE: Generic pattern RATCHET (hardening audit C8): each rule = (name, matcher, file globs, exclusions); the per-rule per-file match counts of TODAY are frozen in tools/pattern_baseline.json, a count above the baseline fails (a new instance of a…
