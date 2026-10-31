@@ -1,7 +1,7 @@
 """
 PURPOSE:  Time-based train/val/test split with an embargo gap: global_time (default) or per_asset, holdout, leak-free and rolling splits.
-TAGS:     split, split_data, embargo, holdout, split_dates, global_time, per_asset, rolling_splits, build_leak_free_split, compute_global_cutoff
-PITFALLS: per_asset leaks when coins' histories differ in length; global_time is the default. The embargo is a time gap covering the largest window plus the horizon. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+TAGS:     split, split_data, embargo, holdout, split_dates, global_time, per_asset, rolling_splits, build_leak_free_split, compute_global_cutoff, split_role, stamp_split_roles
+PITFALLS: Every split is stamped with its role (additive key `split_role`: train/val/test, holdout for split_holdout; core/roles.py; `test` as {asset: split} is stamped per member); there is no `calibration` split yet (val is still selection AND calibration). per_asset leaks when coins' histories differ in length; global_time is the default. The embargo is a time gap covering the largest window plus the horizon. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
 
 ## 16) التقسيم الزمني train/val/test (`split.py` سابقاً)
 """
@@ -47,6 +47,16 @@ Y_PREFIX = 'y_'
 
 #: أوضاع التقسيم المدعومة.
 SPLIT_MODES = ('global_time', 'per_asset')
+
+from core import roles as _split_roles   # أدوار الأقسام (core/roles.py: train/calibration/val/test/holdout)
+
+
+def stamp_split_roles(train: dict, val: dict, test: dict):
+    """يختم كل قسم بدوره (مفتاح ``split_role`` مضاف فقط؛ المصفوفات لا تُنسخ ولا تُمسّ): train→'train'، val→'val'، test→'test'
+    (قاموس عملات: يُختم كل عضو لا الحاوية). المستهلك ذو الحالة المتعلَّمة (معاير…) يفحص الدور قبل الملاءمة (core.roles.require_role).
+    لا قسم ``calibration`` بعد: ``val`` ما زال المعايرة والاختيار معاً (بند التدقيق C6)."""
+    return (_split_roles.stamp_role(train, _split_roles.TRAIN), _split_roles.stamp_role(val, _split_roles.VAL),
+            _split_roles.stamp_role(test, _split_roles.TEST))
 
 
 def embargo_candles(data: Dict, config: Optional[dict] = None) -> int:
@@ -587,7 +597,7 @@ def split_data(
             else:
                 for asset_split in test.values():
                     add_y_prefix(asset_split)
-        return finish_price_norm(data, train, val, test)     # logret_*: تقييس على train وحده؛ غيره: بلا مساس
+        return stamp_split_roles(*finish_price_norm(data, train, val, test))   # logret_*: تقييس على train وحده؛ غيره: بلا مساس
 
     timeframes: List[str] = data['timeframes']
     targets: List[str] = data['targets']
@@ -663,7 +673,7 @@ def split_data(
             for asset_split in test.values():
                 add_y_prefix(asset_split)
 
-    return finish_price_norm(data, train, val, test)
+    return stamp_split_roles(*finish_price_norm(data, train, val, test))
 
 
 def split_holdout(data: Dict,
@@ -695,9 +705,10 @@ def split_holdout(data: Dict,
         if prefix_y:
             for sp in out.values():
                 add_y_prefix(sp)
-        return stamp_price_norm(data, out, price_norm_meta)
+        return _split_roles.stamp_role(stamp_price_norm(data, out, price_norm_meta), _split_roles.HOLDOUT)
     out = _take(data, mask, timeframes, targets)
-    return stamp_price_norm(data, add_y_prefix(out) if prefix_y else out, price_norm_meta)
+    return _split_roles.stamp_role(stamp_price_norm(data, add_y_prefix(out) if prefix_y else out, price_norm_meta),
+                                   _split_roles.HOLDOUT)
 
 
 def build_leak_free_split(data: Dict,
@@ -894,6 +905,7 @@ def rolling_splits(data: Dict, test_span=None, val_span=None,
                 for asset_split in test.values():
                     add_y_prefix(asset_split)
         train, val, test = finish_price_norm(data, train, val, test)   # لكل نافذة إحصاءات train نافذتها وحدها
+        train, val, test = stamp_split_roles(train, val, test)
 
         if verbose:
             print(f"🔁 نافذة {i}/{len(schedule)}: "

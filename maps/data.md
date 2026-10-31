@@ -393,28 +393,30 @@
   - `def resample_timeframes(df: pd.DataFrame, target_tfs: Optional[List[str]]=None, base_tf: Optional[str]=None, with_features: bool=True, config: Optional[dict]=None) -> Dict[str, pd.DataFrame]` L262
   - `def make_resample_fn(config: Optional[dict]=None)` L298
 
-### `data/split.py` (904 lines)
+### `data/split.py` (916 lines)
 - PURPOSE: Time-based train/val/test split with an embargo gap: global_time (default) or per_asset, holdout, leak-free and rolling splits.
-- TAGS: split, split_data, embargo, holdout, split_dates, global_time, per_asset, rolling_splits, build_leak_free_split, compute_global_cutoff
-- PITFALLS: per_asset leaks when coins' histories differ in length; global_time is the default. The embargo is a time gap covering the largest window plus the horizon. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- TAGS: split, split_data, embargo, holdout, split_dates, global_time, per_asset, rolling_splits, build_leak_free_split, compute_global_cutoff, split_role, stamp_split_roles
+- PITFALLS: Every split is stamped with its role (additive key `split_role`: train/val/test, holdout for split_holdout; core/roles.py; `test` as {asset: split} is stamped per member); there is no `calibration` split yet (val is still selection AND calibration). per_asset leaks when coins' histories differ in length; global_time is the default. The embargo is a time gap covering the largest window plus the ho…
+- DEPENDS: core
 - USES: disk_backed, normalizers, runtime, windows
 - USED BY: presets, selftests, workflow/market_neutral
 - API:
-  - `def embargo_candles(data: Dict, config: Optional[dict]=None) -> int` L52
-  - `def embargo_size(data: Dict, config: Optional[dict]=None) -> int` L80
-  - `def embargo_duration(data: Dict, config: Optional[dict]=None) -> pd.Timedelta` L92
-  - `def resolve_holdout_start(config: Optional[dict]=None) -> Optional[pd.Timestamp]` L99
-  - `def sample_timestamps(split_or_data: Dict) -> pd.DatetimeIndex` L125
-  - `def add_y_prefix(split: dict) -> dict` L179
-  - `def strip_y_prefix(y: dict) -> dict` L190
-  - `def compute_global_cutoff(data: Dict, pct: float) -> pd.Timestamp` L330
-  - `def extract_test_dates(test: Dict) -> pd.DatetimeIndex` L368
-  - `def resolve_split_dates(data: Dict, train_pct: float, val_pct: float, config: Optional[dict]=None, cutoff_method: Optional[str]=None) -> Tuple[pd.Timestamp, pd.Timestamp]` L381
-  - `def split_data(data: Dict, train_pct: Optional[float]=None, val_pct: Optional[float]=None, keep_asset_test_separate: Optional[bool]=None, prefix_y: bool=True, mode: Optional[str]=None, config: Optional[dict]=None)…` L545
-  - `def split_holdout(data: Dict, keep_asset_test_separate: Optional[bool]=None, prefix_y: bool=True, config: Optional[dict]=None, price_norm_meta: Optional[dict]=None)` L669
-  - `def build_leak_free_split(data: Dict, train_pct: Optional[float]=None, val_pct: Optional[float]=None, keep_asset_test_separate: Optional[bool]=None, config: Optional[dict]=None) -> Tuple[dict, dict, dict]` L703
-  - `def rolling_split_schedule(data: Dict, test_span=None, val_span=None, train_span=_UNSET, initial_train_span=_UNSET, step=None, max_windows: Optional[int]=None, config: Optional[dict]=None) -> List[Dict[str, pd.Timestamp]]` L738
-  - `def rolling_splits(data: Dict, test_span=None, val_span=None, train_span=_UNSET, initial_train_span=_UNSET, step=None, max_windows: Optional[int]=None, keep_asset_test_separate: Optional[bool]=None, prefix_y: bool=Tru…` L831
+  - `def stamp_split_roles(train: dict, val: dict, test: dict)` L54
+  - `def embargo_candles(data: Dict, config: Optional[dict]=None) -> int` L62
+  - `def embargo_size(data: Dict, config: Optional[dict]=None) -> int` L90
+  - `def embargo_duration(data: Dict, config: Optional[dict]=None) -> pd.Timedelta` L102
+  - `def resolve_holdout_start(config: Optional[dict]=None) -> Optional[pd.Timestamp]` L109
+  - `def sample_timestamps(split_or_data: Dict) -> pd.DatetimeIndex` L135
+  - `def add_y_prefix(split: dict) -> dict` L189
+  - `def strip_y_prefix(y: dict) -> dict` L200
+  - `def compute_global_cutoff(data: Dict, pct: float) -> pd.Timestamp` L340
+  - `def extract_test_dates(test: Dict) -> pd.DatetimeIndex` L378
+  - `def resolve_split_dates(data: Dict, train_pct: float, val_pct: float, config: Optional[dict]=None, cutoff_method: Optional[str]=None) -> Tuple[pd.Timestamp, pd.Timestamp]` L391
+  - `def split_data(data: Dict, train_pct: Optional[float]=None, val_pct: Optional[float]=None, keep_asset_test_separate: Optional[bool]=None, prefix_y: bool=True, mode: Optional[str]=None, config: Optional[dict]=None)…` L555
+  - `def split_holdout(data: Dict, keep_asset_test_separate: Optional[bool]=None, prefix_y: bool=True, config: Optional[dict]=None, price_norm_meta: Optional[dict]=None)` L679
+  - `def build_leak_free_split(data: Dict, train_pct: Optional[float]=None, val_pct: Optional[float]=None, keep_asset_test_separate: Optional[bool]=None, config: Optional[dict]=None) -> Tuple[dict, dict, dict]` L714
+  - `def rolling_split_schedule(data: Dict, test_span=None, val_span=None, train_span=_UNSET, initial_train_span=_UNSET, step=None, max_windows: Optional[int]=None, config: Optional[dict]=None) -> List[Dict[str, pd.Timestamp]]` L749
+  - `def rolling_splits(data: Dict, test_span=None, val_span=None, train_span=_UNSET, initial_train_span=_UNSET, step=None, max_windows: Optional[int]=None, keep_asset_test_separate: Optional[bool]=None, prefix_y: bool=Tru…` L842
 
 ### `data/storage.py` (326 lines)
 - PURPOSE: Save/load the prepared dataset to/from mounted Drive: pkl.gz or npy_dir (memmap) formats, latest + timestamped copies.

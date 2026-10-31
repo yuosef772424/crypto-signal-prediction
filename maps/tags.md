@@ -178,7 +178,9 @@
 - buy and hold benchmark: edge_discovery/16_h07_oos
 - calibration: tools/natr_range
 - calibration report: natr_range/run_natr_range
+- calibration role: core/roles
 - calibration_report: evaluation/trust_calibration
+- calibrator role check: core/roles
 - callback: trainer/snapshot
 - callbacks: trainer/metrics
 - candidate: discovery/__init__
@@ -548,6 +550,7 @@
 - finish_price_norm: data/normalizers
 - finite checks: workflow/verification
 - fit: data/normalizers
+- fit on the wrong data: core/roles
 - fit_confidence_calibrators: evaluation/calibrators
 - fit_price_norm: data/normalizers
 - fix-gaps: tools/fetch_history_vision_colab
@@ -674,6 +677,7 @@
 - holdout: data/split, edge_discovery/14_holdout, natr_range/run_natr_confirm, tools/holdout_guard
 - holdout flag: edge_discovery/13_listing_stops
 - holdout lock: tools/touched_ledger
+- holdout sealed: core/roles
 - holdout_start: data/defaults
 - homoscedastic uncertainty: trainer/task_weighting
 - hour of day: edge_discovery/06_seasonality, strategy_discovery/seasonality15m
@@ -774,6 +778,7 @@
 - leaderboard: discovery/scanner
 - leakage: tests/test_no_lookahead
 - leakage check: workflow/permutation_control
+- leakage control: core/roles
 - learning curve: gate_features/run_gate001
 - learning_curve: workflow/capacity
 - ledger: tools/experiment_registry, tools/h07_forward, tools/touched_ledger
@@ -1202,6 +1207,7 @@
 - reproducibility: core/seeds
 - reproduction check: tools/colab_runner
 - require_phase2_data: data/phase2
+- require_role: core/roles
 - resample_timeframes: data/sources
 - research data: tools/fetch_crypto_dataset
 - research protocol: tools/experiment_registry
@@ -1231,6 +1237,10 @@
 - rmsnorm: model/transformer
 - robustness: edge_discovery/15_h07_robust, strategy_discovery/robustness, strategy_discovery/survivor_checks
 - robustness_agg: discovery/survey
+- role stamp: core/roles
+- role_of: core/roles
+- roleerror: core/roles
+- roles: core/roles
 - rolling recalibration: natr_range/run_natr_confirm_forward, natr_range/run_natr_rolling
 - rolling_splits: data/split, signal_eval/integration
 - rotation portfolio: strategy_discovery/rotation
@@ -1365,12 +1375,14 @@
 - split: data/split
 - split conformal: natr_range/run_natr_calibrate
 - split order: workflow/verification
+- split role: core/roles
 - split stamps: workflow/splits
 - split-dates: tools/evaluate_trained_model
 - split['y']: signal_eval/integration
 - split_asset_names: workflow/market_neutral
 - split_data: data/__init__, data/split
 - split_dates: data/defaults, data/split
+- split_role: data/split
 - spot: tools/fetch_crypto_dataset
 - squeeze breakout: strategy_discovery/grid
 - stablecoin: edge_discovery/20_onchain
@@ -1379,6 +1391,8 @@
 - stale bars: natr_range/run_natr_calibrate, tools/stale_bars_audit, tools/stale_bars_colab_job, tools/trim_dead_tails
 - stale_bars: tools/stale_bars_audit
 - stamp_price_norm: data/normalizers
+- stamp_role: core/roles
+- stamp_split_roles: data/split
 - standardization: norm_probe/run_norm_probe
 - state_entries: trainer/checkpoints
 - state_from_config: data/normalizers
@@ -1459,7 +1473,7 @@
 - tf.data: workflow/batches
 - tf.keras.model subclass: trainer/trainer
 - threads: data/parallel
-- tier 0: core/__init__, core/registry, core/seeds
+- tier 0: core/__init__, core/registry, core/roles, core/seeds
 - time of day: strategy_discovery/seasonality15m
 - time seal: natr_range/run_natr_confirm_forward, tools/holdout_guard
 - time-series screen: edge_discovery/08_ts_screen
