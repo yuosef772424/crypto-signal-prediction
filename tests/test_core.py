@@ -54,6 +54,8 @@ class TierZeroTests(unittest.TestCase):
                 mods = ([a.name for a in node.names] if isinstance(node, ast.Import)
                         else [node.module or ""] if isinstance(node, ast.ImportFrom) and node.level == 0 else [])
                 for m in mods:
+                    if m.split(".")[0] == "core":       # core modules may import each other (tier 0 stays closed)
+                        continue
                     self.assertIn(m.split(".")[0], stdlib, f"{f.name} imports {m}")
 
     def test_importing_core_has_no_side_effects_and_loads_no_repo_package(self):

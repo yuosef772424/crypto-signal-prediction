@@ -239,7 +239,7 @@
   - `class DeadKeys(unittest.TestCase)` L575
     - (2 methods)
 
-### `tests/test_core.py` (90 lines)
+### `tests/test_core.py` (92 lines)
 - PURPOSE: core/ (Tier 0): the values are frozen to the literals the packages used before S3, the package imports nothing from the repo (from docstring)
 - DEPENDS: core, tools
 - API:
