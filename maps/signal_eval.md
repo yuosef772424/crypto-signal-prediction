@@ -30,15 +30,16 @@
 - TAGS: imports, shared namespace, typing, from __future__ annotations
 - PITFALLS: Loaded first: later modules use np/pd/Optional/Dict/... without importing them (except those that re-import). Executed into the one shared signal_eval namespace by signal_eval/_loader.py (never imported on its own): names from other modules resolve at call time.
 
-### `signal_eval/core.py` (164 lines)
+### `signal_eval/core.py` (162 lines)
 - PURPOSE: The three independent measurement tools of phase 0: compute_ic (Spearman/Pearson IC), decile_spread and permutation_baseline - pure functions on arrays, no dependence on the dataset shape.
 - TAGS: compute_ic, decile_spread, permutation_baseline, information coefficient, ic, spearman, decile, permutation test, null distribution, p_value, seed
 - PITFALLS: Independent of rolling_splits/dataset shapes by design (tested on synthetic data only). permutation_baseline needs a seed for a reproducible registry entry. Executed into the one shared signal_eval namespace by signal_eval/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: stats
 - USED BY: selftests, windows
 - API:
-  - `def compute_ic(predictions: np.ndarray, actuals: np.ndarray, method: str='spearman', min_samples: int=10) -> float` L18
-  - `def decile_spread(predictions: np.ndarray, actuals: np.ndarray, n_deciles: int=10, min_per_decile: int=5) -> Dict[str, Any]` L69
-  - `def permutation_baseline(predictions: np.ndarray, actuals: np.ndarray, n_shuffles: int=1000, method: str='spearman', seed: Optional[int]=None) -> Dict[str, Any]` L129
+  - `def compute_ic(predictions: np.ndarray, actuals: np.ndarray, method: str='spearman', min_samples: int=10) -> float` L21
+  - `def decile_spread(predictions: np.ndarray, actuals: np.ndarray, n_deciles: int=10, min_per_decile: int=5) -> Dict[str, Any]` L67
+  - `def permutation_baseline(predictions: np.ndarray, actuals: np.ndarray, n_shuffles: int=1000, method: str='spearman', seed: Optional[int]=None) -> Dict[str, Any]` L127
 
 ### `signal_eval/integration.py` (190 lines)
 - PURPOSE: The only layer that assumes the shape of rolling_splits/build_dataset output: concat_splits, extract_actuals, extract_feature_last_diff, momentum_predict_fn, evaluate_hypothesis_over_rolling_windows.

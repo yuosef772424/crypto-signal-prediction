@@ -330,5 +330,58 @@ class WorkflowGeneralizationMigration(unittest.TestCase):
                 self.assertEqual(got[1], want[1])
 
 
+# ───────────────────────── signal_eval/core.py (compute_ic) ─────────────────────────
+def _legacy_compute_ic(predictions, actuals, method="spearman", min_samples=10):
+    predictions = np.asarray(predictions, dtype="float64")
+    actuals = np.asarray(actuals, dtype="float64")
+    if predictions.shape != actuals.shape:
+        raise ValueError(f"shape {predictions.shape} != {actuals.shape}")
+    if method not in ("spearman", "pearson"):
+        raise ValueError(f"method {method!r}")
+    mask = np.isfinite(predictions) & np.isfinite(actuals)
+    n = int(mask.sum())
+    if n < min_samples:
+        raise ValueError(f"{n} < {min_samples}")
+    p, a = predictions[mask], actuals[mask]
+    if np.std(p) < 1e-12 or np.std(a) < 1e-12:
+        return 0.0
+    if method == "spearman":
+        p = pd.Series(p).rank().to_numpy()
+        a = pd.Series(a).rank().to_numpy()
+    corr = np.corrcoef(p, a)[0, 1]
+    return float(corr) if np.isfinite(corr) else 0.0
+
+
+class SignalEvalCoreMigration(unittest.TestCase):
+    def test_compute_ic_is_bit_equal_to_the_old_definition(self):
+        import signal_eval
+        ns = {"__name__": "audit_nb", "np": np, "pd": pd}
+        signal_eval.exec_module("common", ns)
+        signal_eval.exec_module("core", ns)
+        new = ns["compute_ic"]
+        rng = np.random.default_rng(7)
+        cases = []
+        for seed in range(30):
+            n = int(rng.integers(1, 120))
+            a = rng.integers(0, 4, n).astype("float64") if seed % 2 else rng.normal(size=n)
+            b = a + rng.normal(size=n) * (seed % 3)
+            if seed % 4 == 1:
+                a[rng.random(n) < 0.15] = np.nan
+            if seed % 5 == 2:
+                b[rng.random(n) < 0.1] = np.inf
+            cases.append((a, b))
+        cases += [(np.ones(30), np.arange(30.0)), (np.arange(30.0), np.arange(30.0) * 1e-14), (np.arange(30.0) * 1e-14, np.arange(30.0))]
+        for a, b in cases:
+            for method in ("spearman", "pearson"):
+                for min_samples in (0, 1, 10):
+                    try:
+                        want = _legacy_compute_ic(a, b, method, min_samples)
+                    except ValueError:
+                        with self.assertRaises(ValueError):
+                            new(a, b, method, min_samples)
+                        continue
+                    same(self, new(a, b, method, min_samples), want, f"{method} min={min_samples}")
+
+
 if __name__ == "__main__":
     unittest.main()
