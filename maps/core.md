@@ -21,29 +21,32 @@
   - `def logret_forward(price, mean: float, std: float, anchor, log)` L8
   - `def logret_inverse(pred, mean: float, std: float, anchor, exp, output: str='price')` L14
 
-### `core/registry.py` (187 lines)
+### `core/registry.py` (215 lines)
 - PURPOSE: The ONE generic registry primitive (tier 0, stdlib only): `Registry(kind, contract)` registers objects by name with a declared contract (name, version, kind-specific required metadata, optional validator run AT REGISTRATION), raises on a d…
 - TAGS: registry, contract, register, contract check at registration, fail early, duplicate name, unknown name, did you mean, one component one interface, plugin, tier 0
-- PITFALLS: Nothing in the repo uses it yet: the existing registries (TASK_REGISTRY, HEAD_REGISTRY, NORMALIZERS, sample filters, signal_eval hypotheses) migrate in a separate `refactor` PR that proves identical contents. There is NO overwrite flag: registering a name twice raises, so a module that registers at import time must not be re-executed in the same process (use `unregister` in tests, or build a fres…
+- PITFALLS: Read access is the dict protocol (`REG[name]`, `name in REG`, `REG.get(name, default)`, iteration, `keys/values/items` over the registered OBJECTS; `entries()` for the full records) so a plain dict can be replaced by a Registry without touching its readers; writes are NOT: `REG[name] = x` and `del REG[name]` raise TypeError (register / unregister are the only mutations). Nothing in the repo uses…
 - API:
   - `class RegistryError(Exception)` L20
   - `class DuplicateNameError(RegistryError, ValueError)` L24
   - `class UnknownNameError(RegistryError, KeyError, ValueError)` L28
   - `class ContractError(RegistryError, ValueError)` L35
-  - `class Contract` L44
-    - `.check(self, name: str, obj: Any, version: Any, meta: Mapping[str, Any]) -> None` L67
-  - `class Entry` L95
-  - `class Registry` L103
-    - `.__init__(self, kind: str, contract: Optional[Contract]=None)` L106
-    - `.register(self, name: str, obj: Any, *, version: Any, **meta: Any) -> Any` L116
-    - `.decorator(self, name: str, *, version: Any, **meta: Any) -> Callable[[Any], Any]` L127
-    - `.unregister(self, name: str) -> Entry` L133
-    - `.entry(self, name: str) -> Entry` L147
-    - `.get(self, name: str) -> Any` L151
-    - `.names(self) -> Tuple[str, ...]` L155
-    - `.items(self) -> list[tuple[str, Entry]]` L168
-    - `.describe(self) -> list[dict[str, Any]]` L172
-    - `.check_all(self) -> list[str]` L176
+  - `class Contract` L46
+    - `.check(self, name: str, obj: Any, version: Any, meta: Mapping[str, Any]) -> None` L69
+  - `class Entry` L97
+  - `class Registry` L105
+    - `.__init__(self, kind: str, contract: Optional[Contract]=None)` L108
+    - `.register(self, name: str, obj: Any, *, version: Any, **meta: Any) -> Any` L118
+    - `.decorator(self, name: str, *, version: Any, **meta: Any) -> Callable[[Any], Any]` L129
+    - `.unregister(self, name: str) -> Entry` L135
+    - `.entry(self, name: str) -> Entry` L149
+    - `.get(self, name: Any, default: Any=_MISSING) -> Any` L153
+    - `.names(self) -> Tuple[str, ...]` L171
+    - `.keys(self) -> list[str]` L184
+    - `.values(self) -> list[Any]` L187
+    - `.items(self) -> list[tuple[str, Any]]` L191
+    - `.entries(self) -> list[Entry]` L195
+    - `.describe(self) -> list[dict[str, Any]]` L200
+    - `.check_all(self) -> list[str]` L204
 
 ### `core/schema.py` (47 lines)
 - PURPOSE: The data schema names shared by data, workflow, discovery, cross_asset and tools: the last_candles column order (LAST_COLUMNS, TS_COL, LAST_COLUMN_INDEX), its dtype, the price target columns and the target-mode names.

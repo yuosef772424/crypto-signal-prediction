@@ -228,7 +228,7 @@
   - `class TierZeroTests(unittest.TestCase)` L49
     - (4 methods)
 
-### `tests/test_core_registry.py` (181 lines)
+### `tests/test_core_registry.py` (232 lines)
 - PURPOSE: core/registry.py: the generic Registry primitive (tier 0). Duplicate names raise, unknown names raise with the known (from docstring)
 - DEPENDS: core
 - API:
@@ -236,7 +236,9 @@
     - (6 methods)
   - `class ContractTests(unittest.TestCase)` L90
     - (9 methods)
-  - `class TierZeroTests(unittest.TestCase)` L167
+  - `class MappingProtocolTests(unittest.TestCase)` L167
+    - (4 methods)
+  - `class TierZeroTests(unittest.TestCase)` L218
     - (1 methods)
 
 ### `tests/test_core_single_source.py` (149 lines)
