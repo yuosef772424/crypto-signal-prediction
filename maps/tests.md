@@ -470,19 +470,19 @@
   - `class ConfigOverrides(unittest.TestCase)` L16
     - (9 methods)
 
-### `tests/test_model_diagnostics.py` (641 lines)
+### `tests/test_model_diagnostics.py` (644 lines)
 - PURPOSE: أدوات تشخيص النموذج (اختيارية، معطَّلة افتراضياً) على بيانات تركيبية صغيرة بلا Drive: python -m pytest tests/test_model_diagnostics.py -q (from docstring)
 - DEPENDS: docs
 - API:
-  - `class DiagnoseModelTests(unittest.TestCase)` L142
+  - `class DiagnoseModelTests(unittest.TestCase)` L143
     - (7 methods)
-  - `class TrainingDiagnosticsTests(unittest.TestCase)` L225
+  - `class TrainingDiagnosticsTests(unittest.TestCase)` L226
     - (6 methods)
-  - `class LayerEvidenceTests(unittest.TestCase)` L326
+  - `class LayerEvidenceTests(unittest.TestCase)` L327
     - (5 methods)
-  - `class MainWrapperTests(unittest.TestCase)` L411
+  - `class MainWrapperTests(unittest.TestCase)` L412
     - (5 methods)
-  - `class CapacityToolsTests(unittest.TestCase)` L500
+  - `class CapacityToolsTests(unittest.TestCase)` L502
     - (8 methods)
 
 ### `tests/test_model_trainer_packages.py` (162 lines)
@@ -496,7 +496,7 @@
   - `class TrainerNamespaceTests(unittest.TestCase)` L127
     - (5 methods)
 
-### `tests/test_multi_tf.py` (590 lines)
+### `tests/test_multi_tf.py` (592 lines)
 - PURPOSE: فريمان (1h أساسي + سياق 4h) عبر خط الأنابيب والنموذج واللوحة: python -m unittest tests.test_multi_tf -v (from docstring)
 - DEPENDS: cross_asset, docs
 - API:
@@ -505,7 +505,7 @@
     - (8 methods)
   - `class MultiTFModelTests(unittest.TestCase)` L326
     - (6 methods)
-  - `class PanelMultiTFTests(unittest.TestCase)` L453
+  - `class PanelMultiTFTests(unittest.TestCase)` L455
     - (4 methods)
 
 ### `tests/test_natr_calibrate.py` (281 lines)

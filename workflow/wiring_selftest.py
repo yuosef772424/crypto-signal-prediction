@@ -48,6 +48,9 @@ def run_wiring_selftest(kit, verbose=True):
         "run": {"run_dir": "/tmp/_wiring_selftest_run", "epochs": 1, "batch_size": 32,
                 "verbose": 0, "train_mode": "new"},
         "targets": build_target_configs(("high", "low", "close")),
+        # build_target_configs names the lambda_reg / lambda_calib schedules: declare them (constant 0 = the regularizer and the
+        # confidence calibration stay off, exactly what a missing schedule used to mean silently - the self-test checks wiring, not loss)
+        "loss": {"schedules": {"lambda_reg": {"start": 0.0, "end": 0.0}, "lambda_calib": {"start": 0.0, "end": 0.0}}},
     })
     fake_train_ds = tf.data.Dataset.from_tensor_slices(
         (fake_train[f"X_{tf_name}"], _y_for_targets(fake_train, fake_config))
@@ -165,6 +168,9 @@ def run_wiring_selftest(kit, verbose=True):
         "run": {"run_dir": "/tmp/_wiring_selftest_run_2tf", "epochs": 1, "batch_size": 32,
                 "verbose": 0, "train_mode": "new"},
         "targets": build_target_configs(("high", "low", "close")),
+        # build_target_configs names the lambda_reg / lambda_calib schedules: declare them (constant 0 = the regularizer and the
+        # confidence calibration stay off, exactly what a missing schedule used to mean silently - the self-test checks wiring, not loss)
+        "loss": {"schedules": {"lambda_reg": {"start": 0.0, "end": 0.0}, "lambda_calib": {"start": 0.0, "end": 0.0}}},
     })
     two_ds = make_shuffled_dataset(model_x(fake_train, two), _y_for_targets(fake_train, two_config), 32)
     two_val = (tf.data.Dataset.from_tensor_slices((model_x(fake_val, two), _y_for_targets(fake_val, two_config)))
