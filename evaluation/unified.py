@@ -28,6 +28,7 @@ def predict_with_evaluation_v4(
     show_stages: Optional[bool] = None,
     show_verification: Optional[bool] = None,
     asset: Optional[str] = None,
+    raw_preds: Optional[Dict[str, np.ndarray]] = None,
 ) -> Dict[str, Dict[str, np.ndarray]]:
     """
     التنبؤ + فك التشفير المرن + التحقق + التقييم — الإصدار v4.2
@@ -41,6 +42,8 @@ def predict_with_evaluation_v4(
     timestamps / timestamp_col: تاريخ كل عينة (مصفوفة أوقات، أو رقم عمود داخل last_candles).
     show_stages / show_verification: افتراضياً = verbose (تُغلق من test_all_assets_v4
                   ليظهر ملخص التحقق مرة واحدة فقط).
+    raw_preds:    مخرج predict_batch_v4 الخام لهذه العينات نفسها إن حُسب سلفاً (شريحة الأصل من التنبؤ المدمج
+                  predict_pooled_raw): تُتخطّى المرحلة 1 فلا يُستدعى النموذج هنا. الافتراضي None = كما كان (تنبؤ على X_inputs).
     """
     n_samples = X_inputs[0].shape[0]
     if n_samples < min_samples:
@@ -52,8 +55,9 @@ def predict_with_evaluation_v4(
 
     if show_stages:
         print(f"\n🔮 Predicting & Evaluating v4 (مرن: مستمر + فئوي) — الأهداف: {[s.name for s in target_specs]}")
-        print("   Stage 1: Batch Predictions...")
-    raw_preds = predict_batch_v4(model, X_inputs, target_specs, batch_size, show_stages)
+        print("   Stage 1: Batch Predictions..." if raw_preds is None else "   Stage 1: (مخرج خام مُسبق الحساب)")
+    if raw_preds is None:
+        raw_preds = predict_batch_v4(model, X_inputs, target_specs, batch_size, show_stages)
 
     if show_stages:
         print("   Stage 2: Decoding (Flexible)...")

@@ -1,0 +1,1392 @@
+{
+ "example": {
+  "fingerprint": "8d8c9fa4ecac0ce8",
+  "sha": "f3a11e070bdc79e5e74d5876773f70440cd516dbc2580cceb7c2f96a776df45f"
+ },
+ "fixtures": {
+  "fixture_00": {
+   "fingerprint": "b583ef9df2183711",
+   "sha": "1440ba84a1683e2eea2ed1cc9e9ed2d309b754d64a24463f747e66ce0c8d7aff",
+   "user": {
+    "optimizer": {
+     "lr_initial": 0.01
+    },
+    "run": {
+     "batch_size": 32,
+     "epochs": 1,
+     "run_dir": "/tmp/golden_fixture_run",
+     "train_mode": "new",
+     "verbose": 0
+    },
+    "targets": {
+     "high_class": {
+      "binary": true,
+      "label_smoothing": 0.0,
+      "output_keys": {
+       "logits": "y_high_class_logits"
+      },
+      "task_type": "classification",
+      "true_key": "y_high_class"
+     },
+     "high_reg": {
+      "lambda_calib_var": "lambda_calib",
+      "lambda_reg_var": "lambda_reg",
+      "output_keys": {
+       "alpha": "y_high_alpha",
+       "beta": "y_high_beta",
+       "confidence": "y_high_confidence",
+       "mu": "y_high",
+       "nu": "y_high_nu"
+      },
+      "task_type": "evidential",
+      "true_key": "y_high_reg",
+      "use_calibration_loss": true
+     }
+    }
+   }
+  },
+  "fixture_01": {
+   "fingerprint": "b89f7a0e32a1ddbf",
+   "sha": "14f1e55da9213ae21a40c767217c3738645fdc6444fe48ceb0744e8ef4234dfd",
+   "user": {
+    "optimizer": {
+     "lr_initial": 0.003
+    },
+    "run": {
+     "batch_size": 32,
+     "epochs": 3,
+     "run_dir": "/tmp/golden_fixture_run",
+     "seed": 7,
+     "train_mode": "new",
+     "verbose": 0
+    },
+    "targets": {
+     "high_class": {
+      "binary": true,
+      "label_smoothing": 0.0,
+      "output_keys": {
+       "logits": "y_high_class_logits"
+      },
+      "task_type": "classification",
+      "true_key": "y_high_class"
+     },
+     "high_reg": {
+      "lambda_calib_var": "lambda_calib",
+      "lambda_reg_var": "lambda_reg",
+      "output_keys": {
+       "alpha": "y_high_alpha",
+       "beta": "y_high_beta",
+       "confidence": "y_high_confidence",
+       "mu": "y_high",
+       "nu": "y_high_nu"
+      },
+      "task_type": "evidential",
+      "true_key": "y_high_reg",
+      "use_calibration_loss": true
+     },
+     "low_class": {
+      "binary": true,
+      "label_smoothing": 0.0,
+      "output_keys": {
+       "logits": "y_low_class_logits"
+      },
+      "task_type": "classification",
+      "true_key": "y_low_class"
+     },
+     "low_reg": {
+      "lambda_calib_var": "lambda_calib",
+      "lambda_reg_var": "lambda_reg",
+      "output_keys": {
+       "alpha": "y_low_alpha",
+       "beta": "y_low_beta",
+       "confidence": "y_low_confidence",
+       "mu": "y_low",
+       "nu": "y_low_nu"
+      },
+      "task_type": "evidential",
+      "true_key": "y_low_reg",
+      "use_calibration_loss": true
+     }
+    }
+   }
+  },
+  "fixture_02": {
+   "fingerprint": "b046b1428acf975e",
+   "sha": "43edca00cec87c060559ee6c110911f1a6f750f0239b3619a670b45c90e20c4a",
+   "user": {
+    "callbacks": {
+     "early_stopping": {
+      "ema_beta": 0.7,
+      "min_delta": 0.0001,
+      "mode": "min",
+      "monitor": "val_loss",
+      "patience": 1000000,
+      "restore_best_weights": false,
+      "smoothing": "window",
+      "smoothing_window": 3,
+      "weights_snapshot": "raw"
+     },
+     "metrics_log_every": 5,
+     "snapshots": {
+      "dir": "snapshots",
+      "epochs": []
+     },
+     "task_weight_update_frequency": 0
+    },
+    "checkpoint": {
+     "max_to_keep": 3,
+     "save_best_weights": true,
+     "save_every": 1
+    },
+    "loss": {
+     "constraints": [],
+     "schedules": {},
+     "uncertainty_weighting_exclude_task_types": [
+      "evidential"
+     ],
+     "use_uncertainty_weighting": true
+    },
+    "optimizer": {
+     "clip_norm": 1.0,
+     "ema_momentum": 0.999,
+     "ema_warmup": false,
+     "ema_window_epochs": null,
+     "lr_initial": 0.01,
+     "lr_min": 5e-07,
+     "lr_schedule": {
+      "cycle_length": 10,
+      "cycle_mult": 1.5,
+      "type": "cosine_restarts"
+     },
+     "lr_warmup_epochs": 3,
+     "name": "adamw",
+     "use_ema": true,
+     "use_xla": false,
+     "weight_decay": 0.0001,
+     "weight_decay_exclude": [
+      "(^|/)(bias|gamma|beta|scale|pos_emb|rel_bias)(:\\d+)?$",
+      "(^|/)log_var_"
+     ]
+    },
+    "run": {
+     "batch_size": 32,
+     "epochs": 5,
+     "mirror_dir": null,
+     "mirror_every": 1,
+     "on_existing": "archive",
+     "run_dir": "/tmp/golden_fixture_run",
+     "seed": 0,
+     "strict_epoch_guard": true,
+     "train_mode": "new",
+     "verbose": 0,
+     "warm_start": {
+      "epochs_done": null,
+      "lr_rewarmup_epochs": 0,
+      "weights_path": null
+     }
+    },
+    "targets": {
+     "high_class": {
+      "binary": true,
+      "label_smoothing": 0.0,
+      "output_keys": {
+       "logits": "y_high_class_logits"
+      },
+      "task_type": "classification",
+      "true_key": "y_high_class"
+     },
+     "high_reg": {
+      "lambda_calib_var": "lambda_calib",
+      "lambda_reg_var": "lambda_reg",
+      "output_keys": {
+       "alpha": "y_high_alpha",
+       "beta": "y_high_beta",
+       "confidence": "y_high_confidence",
+       "mu": "y_high",
+       "nu": "y_high_nu"
+      },
+      "task_type": "evidential",
+      "true_key": "y_high_reg",
+      "use_calibration_loss": true
+     }
+    }
+   }
+  },
+  "fixture_03": {
+   "fingerprint": "b046b1428acf975e",
+   "sha": "4b34e0d409ab81b3060419459587811e2f006ba479cc031b5407821358730b91",
+   "user": {
+    "callbacks": {
+     "early_stopping": {
+      "ema_beta": 0.7,
+      "min_delta": 0.0001,
+      "mode": "min",
+      "monitor": "val_loss",
+      "patience": 1000000,
+      "restore_best_weights": false,
+      "smoothing": "window",
+      "smoothing_window": 3,
+      "weights_snapshot": "raw"
+     },
+     "metrics_log_every": 5,
+     "snapshots": {
+      "dir": "snapshots",
+      "epochs": []
+     },
+     "task_weight_update_frequency": 0
+    },
+    "checkpoint": {
+     "max_to_keep": 3,
+     "save_best_weights": true,
+     "save_every": 1
+    },
+    "loss": {
+     "constraints": [],
+     "schedules": {},
+     "uncertainty_weighting_exclude_task_types": [
+      "evidential"
+     ],
+     "use_uncertainty_weighting": true
+    },
+    "optimizer": {
+     "clip_norm": 1.0,
+     "ema_momentum": 0.999,
+     "ema_warmup": false,
+     "ema_window_epochs": null,
+     "lr_initial": 0.01,
+     "lr_min": 5e-07,
+     "lr_schedule": {
+      "cycle_length": 10,
+      "cycle_mult": 1.5,
+      "type": "cosine_restarts"
+     },
+     "lr_warmup_epochs": 3,
+     "name": "adamw",
+     "use_ema": true,
+     "use_xla": false,
+     "weight_decay": 0.0001,
+     "weight_decay_exclude": [
+      "(^|/)(bias|gamma|beta|scale|pos_emb|rel_bias)(:\\d+)?$",
+      "(^|/)log_var_"
+     ]
+    },
+    "run": {
+     "batch_size": 32,
+     "epochs": 4,
+     "mirror_dir": null,
+     "mirror_every": 1,
+     "on_existing": "archive",
+     "run_dir": "/tmp/golden_fixture_run",
+     "seed": 0,
+     "strict_epoch_guard": true,
+     "train_mode": "new",
+     "verbose": 0,
+     "warm_start": {
+      "epochs_done": null,
+      "lr_rewarmup_epochs": 0,
+      "weights_path": null
+     }
+    },
+    "targets": {
+     "high_class": {
+      "binary": true,
+      "label_smoothing": 0.0,
+      "output_keys": {
+       "logits": "y_high_class_logits"
+      },
+      "task_type": "classification",
+      "true_key": "y_high_class"
+     },
+     "high_reg": {
+      "lambda_calib_var": "lambda_calib",
+      "lambda_reg_var": "lambda_reg",
+      "output_keys": {
+       "alpha": "y_high_alpha",
+       "beta": "y_high_beta",
+       "confidence": "y_high_confidence",
+       "mu": "y_high",
+       "nu": "y_high_nu"
+      },
+      "task_type": "evidential",
+      "true_key": "y_high_reg",
+      "use_calibration_loss": true
+     }
+    }
+   }
+  },
+  "fixture_04": {
+   "fingerprint": "4749db168fcf20e2",
+   "sha": "506c10a8c03873518683319769d9bf7ff1ab11dc542ed8fe2179918361399aae",
+   "user": {
+    "callbacks": {
+     "early_stopping": {
+      "mode": "min",
+      "monitor": "val_raw_loss",
+      "weights_snapshot": "ema_weights"
+     }
+    },
+    "loss": {
+     "schedules": {
+      "lambda_calib": {
+       "end": 0.1,
+       "schedule": "cosine",
+       "start": 0.0,
+       "warmup_epochs": 5
+      },
+      "lambda_reg": {
+       "end": 0.05,
+       "schedule": "linear",
+       "start": 0.0,
+       "warmup_epochs": 5
+      }
+     },
+     "use_uncertainty_weighting": true
+    },
+    "optimizer": {
+     "ema_warmup": true,
+     "ema_window_epochs": 1.0,
+     "lr_initial": 0.0003,
+     "weight_decay": 0.05
+    },
+    "run": {
+     "batch_size": 32,
+     "epochs": 1,
+     "run_dir": "/tmp/golden_fixture_run",
+     "train_mode": "auto"
+    },
+    "targets": {
+     "high_class": {
+      "binary": true,
+      "label_smoothing": 0.1,
+      "output_keys": {
+       "logits": "y_high_class_logits"
+      },
+      "task_type": "classification",
+      "true_key": "y_high_class"
+     },
+     "high_reg": {
+      "lambda_calib_var": "lambda_calib",
+      "lambda_reg_var": "lambda_reg",
+      "output_keys": {
+       "alpha": "y_high_alpha",
+       "beta": "y_high_beta",
+       "confidence": "y_high_confidence",
+       "mu": "y_high",
+       "nu": "y_high_nu"
+      },
+      "task_type": "evidential",
+      "true_key": "y_high_reg",
+      "use_calibration_loss": true
+     },
+     "low_class": {
+      "binary": true,
+      "label_smoothing": 0.1,
+      "output_keys": {
+       "logits": "y_low_class_logits"
+      },
+      "task_type": "classification",
+      "true_key": "y_low_class"
+     },
+     "low_reg": {
+      "lambda_calib_var": "lambda_calib",
+      "lambda_reg_var": "lambda_reg",
+      "output_keys": {
+       "alpha": "y_low_alpha",
+       "beta": "y_low_beta",
+       "confidence": "y_low_confidence",
+       "mu": "y_low",
+       "nu": "y_low_nu"
+      },
+      "task_type": "evidential",
+      "true_key": "y_low_reg",
+      "use_calibration_loss": true
+     }
+    }
+   }
+  },
+  "fixture_05": {
+   "fingerprint": "b5a9a07adb673b57",
+   "sha": "77903a4422891c3ba9754946b1592fe736189536141b118589daca02972b00d6",
+   "user": {
+    "run": {
+     "batch_size": 32,
+     "epochs": 1,
+     "run_dir": "/tmp/golden_fixture_run",
+     "train_mode": "new",
+     "verbose": 0
+    },
+    "targets": {
+     "close_class": {
+      "binary": true,
+      "label_smoothing": 0.0,
+      "output_keys": {
+       "logits": "y_close_class_logits"
+      },
+      "task_type": "classification",
+      "true_key": "y_close_class"
+     },
+     "close_reg": {
+      "lambda_calib_var": "lambda_calib",
+      "lambda_reg_var": "lambda_reg",
+      "output_keys": {
+       "alpha": "y_close_alpha",
+       "beta": "y_close_beta",
+       "confidence": "y_close_confidence",
+       "mu": "y_close",
+       "nu": "y_close_nu"
+      },
+      "task_type": "evidential",
+      "true_key": "y_close_reg",
+      "use_calibration_loss": true
+     },
+     "high_class": {
+      "binary": true,
+      "label_smoothing": 0.0,
+      "output_keys": {
+       "logits": "y_high_class_logits"
+      },
+      "task_type": "classification",
+      "true_key": "y_high_class"
+     },
+     "high_reg": {
+      "lambda_calib_var": "lambda_calib",
+      "lambda_reg_var": "lambda_reg",
+      "output_keys": {
+       "alpha": "y_high_alpha",
+       "beta": "y_high_beta",
+       "confidence": "y_high_confidence",
+       "mu": "y_high",
+       "nu": "y_high_nu"
+      },
+      "task_type": "evidential",
+      "true_key": "y_high_reg",
+      "use_calibration_loss": true
+     },
+     "low_class": {
+      "binary": true,
+      "label_smoothing": 0.0,
+      "output_keys": {
+       "logits": "y_low_class_logits"
+      },
+      "task_type": "classification",
+      "true_key": "y_low_class"
+     },
+     "low_reg": {
+      "lambda_calib_var": "lambda_calib",
+      "lambda_reg_var": "lambda_reg",
+      "output_keys": {
+       "alpha": "y_low_alpha",
+       "beta": "y_low_beta",
+       "confidence": "y_low_confidence",
+       "mu": "y_low",
+       "nu": "y_low_nu"
+      },
+      "task_type": "evidential",
+      "true_key": "y_low_reg",
+      "use_calibration_loss": true
+     }
+    }
+   }
+  },
+  "fixture_06": {
+   "fingerprint": "cc9628e62d072801",
+   "sha": "7ae6b4396be0482f8fdadd35fcff1b63ecebf42ce7e8239c85793ff54ea02036",
+   "user": {
+    "targets": {
+     "t": {
+      "output_keys": [
+       "p"
+      ],
+      "task_type": "regression",
+      "true_key": "y_t"
+     }
+    }
+   }
+  },
+  "fixture_07": {
+   "fingerprint": "2acc748e3d63e618",
+   "sha": "87b935b9328c895900a3e0741ffa3952e7c3e4476ae0a1db8962ec1c3a6c5ec1",
+   "user": {
+    "callbacks": {
+     "early_stopping": {
+      "patience": 100
+     },
+     "metrics_log_every": 1
+    },
+    "loss": {
+     "schedules": {
+      "lambda_calib": {
+       "end": 0.1,
+       "schedule": "cosine",
+       "start": 0.0,
+       "warmup_epochs": 2
+      },
+      "lambda_reg": {
+       "end": 0.05,
+       "schedule": "linear",
+       "start": 0.0,
+       "warmup_epochs": 2
+      }
+     },
+     "use_uncertainty_weighting": true
+    },
+    "optimizer": {
+     "lr_initial": 0.001,
+     "lr_schedule": {
+      "type": "constant"
+     },
+     "lr_warmup_epochs": 0
+    },
+    "run": {
+     "batch_size": 32,
+     "epochs": 4,
+     "run_dir": "/tmp/golden_fixture_run",
+     "verbose": 1
+    },
+    "targets": {
+     "a": {
+      "lambda_calib_var": "lambda_calib",
+      "lambda_reg_var": "lambda_reg",
+      "output_keys": {
+       "alpha": "y_a_alpha",
+       "beta": "y_a_beta",
+       "confidence": "y_a_confidence",
+       "mu": "y_a",
+       "nu": "y_a_nu"
+      },
+      "task_type": "evidential",
+      "true_key": "y_a",
+      "use_calibration_loss": true
+     },
+     "b": {
+      "binary": true,
+      "output_keys": {
+       "logits": "y_b_logits"
+      },
+      "task_type": "classification",
+      "true_key": "y_b"
+     }
+    }
+   }
+  },
+  "fixture_08": {
+   "fingerprint": "c3ecd0d85dd24ab6",
+   "sha": "8a030e617a3e5ba434080d3f817ee0f1d4a6727379226a74c3c20a8b448c71c6",
+   "user": {
+    "optimizer": {
+     "lr_initial": 0.01
+    },
+    "run": {
+     "batch_size": 32,
+     "epochs": 30,
+     "run_dir": "/tmp/golden_fixture_run",
+     "seed": 7,
+     "train_mode": "new",
+     "verbose": 0
+    },
+    "targets": {
+     "high_class": {
+      "binary": true,
+      "label_smoothing": 0.0,
+      "output_keys": {
+       "logits": "y_high_class_logits"
+      },
+      "task_type": "classification",
+      "true_key": "y_high_class"
+     },
+     "high_reg": {
+      "lambda_calib_var": "lambda_calib",
+      "lambda_reg_var": "lambda_reg",
+      "output_keys": {
+       "alpha": "y_high_alpha",
+       "beta": "y_high_beta",
+       "confidence": "y_high_confidence",
+       "mu": "y_high",
+       "nu": "y_high_nu"
+      },
+      "task_type": "evidential",
+      "true_key": "y_high_reg",
+      "use_calibration_loss": true
+     },
+     "low_class": {
+      "binary": true,
+      "label_smoothing": 0.0,
+      "output_keys": {
+       "logits": "y_low_class_logits"
+      },
+      "task_type": "classification",
+      "true_key": "y_low_class"
+     },
+     "low_reg": {
+      "lambda_calib_var": "lambda_calib",
+      "lambda_reg_var": "lambda_reg",
+      "output_keys": {
+       "alpha": "y_low_alpha",
+       "beta": "y_low_beta",
+       "confidence": "y_low_confidence",
+       "mu": "y_low",
+       "nu": "y_low_nu"
+      },
+      "task_type": "evidential",
+      "true_key": "y_low_reg",
+      "use_calibration_loss": true
+     }
+    }
+   }
+  },
+  "fixture_09": {
+   "fingerprint": "74c2ea622d3f49da",
+   "sha": "d34030e7acf1e1f812006c3ccf176827ba6200cf0a7a3ca48695d86423ae6d9d",
+   "user": {
+    "run": {
+     "batch_size": 8,
+     "epochs": 1,
+     "run_dir": "/tmp/golden_fixture_run",
+     "train_mode": "new",
+     "verbose": 0
+    },
+    "targets": {
+     "high_class": {
+      "binary": true,
+      "label_smoothing": 0.1,
+      "output_keys": {
+       "logits": "y_high_class_logits"
+      },
+      "task_type": "classification",
+      "true_key": "y_high_class"
+     },
+     "high_reg": {
+      "lambda_calib_var": "lambda_calib",
+      "lambda_reg_var": "lambda_reg",
+      "output_keys": {
+       "alpha": "y_high_alpha",
+       "beta": "y_high_beta",
+       "confidence": "y_high_confidence",
+       "mu": "y_high",
+       "nu": "y_high_nu"
+      },
+      "task_type": "evidential",
+      "true_key": "y_high_reg",
+      "use_calibration_loss": true
+     },
+     "low_class": {
+      "binary": true,
+      "label_smoothing": 0.1,
+      "output_keys": {
+       "logits": "y_low_class_logits"
+      },
+      "task_type": "classification",
+      "true_key": "y_low_class"
+     },
+     "low_reg": {
+      "lambda_calib_var": "lambda_calib",
+      "lambda_reg_var": "lambda_reg",
+      "output_keys": {
+       "alpha": "y_low_alpha",
+       "beta": "y_low_beta",
+       "confidence": "y_low_confidence",
+       "mu": "y_low",
+       "nu": "y_low_nu"
+      },
+      "task_type": "evidential",
+      "true_key": "y_low_reg",
+      "use_calibration_loss": true
+     }
+    }
+   }
+  },
+  "fixture_10": {
+   "fingerprint": "c944a2c4685b5198",
+   "sha": "e1302ab7e60b9a58311c99b06dec964c2e64eecc8ffe95ec806c215f45a8fa87",
+   "user": {
+    "callbacks": {
+     "early_stopping": {
+      "mode": "min",
+      "monitor": "val_raw_loss",
+      "weights_snapshot": "ema_weights"
+     }
+    },
+    "loss": {
+     "schedules": {
+      "lambda_calib": {
+       "end": 0.1,
+       "schedule": "cosine",
+       "start": 0.0,
+       "warmup_epochs": 5
+      },
+      "lambda_reg": {
+       "end": 0.05,
+       "schedule": "linear",
+       "start": 0.0,
+       "warmup_epochs": 5
+      }
+     },
+     "use_uncertainty_weighting": true
+    },
+    "optimizer": {
+     "ema_warmup": true,
+     "ema_window_epochs": 1.0,
+     "lr_initial": 0.0003,
+     "weight_decay": 0.05
+    },
+    "run": {
+     "batch_size": 64,
+     "epochs": 60,
+     "run_dir": "/tmp/golden_fixture_run",
+     "train_mode": "auto"
+    },
+    "targets": {
+     "close_class": {
+      "binary": true,
+      "label_smoothing": 0.1,
+      "output_keys": {
+       "logits": "y_close_class_logits"
+      },
+      "task_type": "classification",
+      "true_key": "y_close_class"
+     },
+     "close_reg": {
+      "lambda_calib_var": "lambda_calib",
+      "lambda_reg_var": "lambda_reg",
+      "output_keys": {
+       "alpha": "y_close_alpha",
+       "beta": "y_close_beta",
+       "confidence": "y_close_confidence",
+       "mu": "y_close",
+       "nu": "y_close_nu"
+      },
+      "task_type": "evidential",
+      "true_key": "y_close_reg",
+      "use_calibration_loss": true
+     },
+     "high_class": {
+      "binary": true,
+      "label_smoothing": 0.1,
+      "output_keys": {
+       "logits": "y_high_class_logits"
+      },
+      "task_type": "classification",
+      "true_key": "y_high_class"
+     },
+     "high_reg": {
+      "lambda_calib_var": "lambda_calib",
+      "lambda_reg_var": "lambda_reg",
+      "output_keys": {
+       "alpha": "y_high_alpha",
+       "beta": "y_high_beta",
+       "confidence": "y_high_confidence",
+       "mu": "y_high",
+       "nu": "y_high_nu"
+      },
+      "task_type": "evidential",
+      "true_key": "y_high_reg",
+      "use_calibration_loss": true
+     },
+     "low_class": {
+      "binary": true,
+      "label_smoothing": 0.1,
+      "output_keys": {
+       "logits": "y_low_class_logits"
+      },
+      "task_type": "classification",
+      "true_key": "y_low_class"
+     },
+     "low_reg": {
+      "lambda_calib_var": "lambda_calib",
+      "lambda_reg_var": "lambda_reg",
+      "output_keys": {
+       "alpha": "y_low_alpha",
+       "beta": "y_low_beta",
+       "confidence": "y_low_confidence",
+       "mu": "y_low",
+       "nu": "y_low_nu"
+      },
+      "task_type": "evidential",
+      "true_key": "y_low_reg",
+      "use_calibration_loss": true
+     }
+    }
+   }
+  },
+  "fixture_11": {
+   "fingerprint": "c3ecd0d85dd24ab6",
+   "sha": "f4995f4a0a91118116400a5e0c8d27f5191b10857fd1df6beb7a75ede11d3a8d",
+   "user": {
+    "optimizer": {
+     "lr_initial": 0.01
+    },
+    "run": {
+     "batch_size": 32,
+     "epochs": 1,
+     "run_dir": "/tmp/golden_fixture_run",
+     "train_mode": "new",
+     "verbose": 0
+    },
+    "targets": {
+     "high_class": {
+      "binary": true,
+      "label_smoothing": 0.0,
+      "output_keys": {
+       "logits": "y_high_class_logits"
+      },
+      "task_type": "classification",
+      "true_key": "y_high_class"
+     },
+     "high_reg": {
+      "lambda_calib_var": "lambda_calib",
+      "lambda_reg_var": "lambda_reg",
+      "output_keys": {
+       "alpha": "y_high_alpha",
+       "beta": "y_high_beta",
+       "confidence": "y_high_confidence",
+       "mu": "y_high",
+       "nu": "y_high_nu"
+      },
+      "task_type": "evidential",
+      "true_key": "y_high_reg",
+      "use_calibration_loss": true
+     },
+     "low_class": {
+      "binary": true,
+      "label_smoothing": 0.0,
+      "output_keys": {
+       "logits": "y_low_class_logits"
+      },
+      "task_type": "classification",
+      "true_key": "y_low_class"
+     },
+     "low_reg": {
+      "lambda_calib_var": "lambda_calib",
+      "lambda_reg_var": "lambda_reg",
+      "output_keys": {
+       "alpha": "y_low_alpha",
+       "beta": "y_low_beta",
+       "confidence": "y_low_confidence",
+       "mu": "y_low",
+       "nu": "y_low_nu"
+      },
+      "task_type": "evidential",
+      "true_key": "y_low_reg",
+      "use_calibration_loss": true
+     }
+    }
+   }
+  }
+ },
+ "meta": {
+  "note": "Recorded from trainer.build_config BEFORE validate_config existed. fixtures = user configs the repo's tests / self-tests / tools pass to build_config (run_dir normalised); runsettings = make_training_config variants; example = trainer/example.py real_config. sha = sha256 of the canonical merged config, fingerprint = config_fingerprint. Never re-record on code that validates.",
+  "recorded_from_commit": "a248537"
+ },
+ "runsettings": {
+  "capacity_patch/runsettings/am_off": {
+   "fingerprint": "259f01d84bbc25ad",
+   "sha": "152a3f8f8914a850691f859153336e3123d9670cf076a951d5f644debb3d1ee7",
+   "user_sha": "152a3f8f8914a850691f859153336e3123d9670cf076a951d5f644debb3d1ee7"
+  },
+  "capacity_patch/runsettings/anti_memorization_trainer_override": {
+   "fingerprint": "a968b8041ab6b4e1",
+   "sha": "6157e6f5c56ecdcaaf0f569d7460b61575e0551d9f612ce199a46426e3793c25",
+   "user_sha": "6157e6f5c56ecdcaaf0f569d7460b61575e0551d9f612ce199a46426e3793c25"
+  },
+  "capacity_patch/runsettings/class_only": {
+   "fingerprint": "cb82aad7058c4693",
+   "sha": "eee89041129a0327585ab8a072eb14034a00ed339d09ab6ca6c769479c59b006",
+   "user_sha": "eee89041129a0327585ab8a072eb14034a00ed339d09ab6ca6c769479c59b006"
+  },
+  "capacity_patch/runsettings/class_only_am_off": {
+   "fingerprint": "04425b02645e8ae0",
+   "sha": "ed46e182ee0e25239cf894431361c1ee70a198717639c6fda6bcc8d72144bea7",
+   "user_sha": "ed46e182ee0e25239cf894431361c1ee70a198717639c6fda6bcc8d72144bea7"
+  },
+  "capacity_patch/runsettings/config_overrides": {
+   "fingerprint": "30b5adda4c3bff4a",
+   "sha": "777998b50c821970ff2661afe9ee453fc83b7932536eb191934612272bd13719",
+   "user_sha": "777998b50c821970ff2661afe9ee453fc83b7932536eb191934612272bd13719"
+  },
+  "capacity_patch/runsettings/default": {
+   "fingerprint": "30b5adda4c3bff4a",
+   "sha": "777998b50c821970ff2661afe9ee453fc83b7932536eb191934612272bd13719",
+   "user_sha": "777998b50c821970ff2661afe9ee453fc83b7932536eb191934612272bd13719"
+  },
+  "capacity_patch/runsettings/default_close_only": {
+   "fingerprint": "e30531640fad1c07",
+   "sha": "348c14f710e6b50132f1cb29f38ef5524d7313644c20f30b8c2dcce889701de8",
+   "user_sha": "348c14f710e6b50132f1cb29f38ef5524d7313644c20f30b8c2dcce889701de8"
+  },
+  "capacity_patch/runsettings/default_three_targets": {
+   "fingerprint": "69d694394e7fc04f",
+   "sha": "f5ab339a91f4280c4a11e9fb42f8adc71f3203515c862b3e25f405fdf9e34f3a",
+   "user_sha": "f5ab339a91f4280c4a11e9fb42f8adc71f3203515c862b3e25f405fdf9e34f3a"
+  },
+  "capacity_patch/runsettings/label_smoothing_03": {
+   "fingerprint": "e2b9c277905c83c5",
+   "sha": "88198f3a9c718807cb5e7f94d2f85f0d5597f1cad89add399ff9ec2472dccd41",
+   "user_sha": "88198f3a9c718807cb5e7f94d2f85f0d5597f1cad89add399ff9ec2472dccd41"
+  },
+  "capacity_patch/runsettings/label_smoothing_zero": {
+   "fingerprint": "0502418f9c3b3e22",
+   "sha": "d2bf8a66c5a64bf67d90543f5ff033af13bcac5301f2ee3758c837b3d7f8d529",
+   "user_sha": "d2bf8a66c5a64bf67d90543f5ff033af13bcac5301f2ee3758c837b3d7f8d529"
+  },
+  "capacity_patch/runsettings/lambda_schedules": {
+   "fingerprint": "4e1b3fe0ed9919e5",
+   "sha": "e302d9d8191e2e6e1dbc4e1465cf049ecdaaed6e6608256af5c7625898a33099",
+   "user_sha": "e302d9d8191e2e6e1dbc4e1465cf049ecdaaed6e6608256af5c7625898a33099"
+  },
+  "capacity_patch/runsettings/monitor_accuracy_max": {
+   "fingerprint": "aa93acdb8d762391",
+   "sha": "ecfa32952726862979d45ebee535f1828b7303a8c45580343ccec33005c13bdd",
+   "user_sha": "ecfa32952726862979d45ebee535f1828b7303a8c45580343ccec33005c13bdd"
+  },
+  "capacity_patch/runsettings/monitor_class_loss": {
+   "fingerprint": "318d639a37251d89",
+   "sha": "1718254737d1cb7a1ea5d44c222b51e27c1f98cb230a05f8cfc9163d3f98db7a",
+   "user_sha": "1718254737d1cb7a1ea5d44c222b51e27c1f98cb230a05f8cfc9163d3f98db7a"
+  },
+  "capacity_patch/runsettings/monitor_val_loss": {
+   "fingerprint": "cfb5443d785d2244",
+   "sha": "25852714df64e6ed887a1dcb23ef855b11f03bcee4c1cc7d7c139e79e2a9b3aa",
+   "user_sha": "25852714df64e6ed887a1dcb23ef855b11f03bcee4c1cc7d7c139e79e2a9b3aa"
+  },
+  "capacity_patch/runsettings/no_kendall": {
+   "fingerprint": "3015b80a3a246812",
+   "sha": "7ee3e52500a7b62381fdfc32cbe368f2baffcf6d51dc8547e788e847c547fd6f",
+   "user_sha": "7ee3e52500a7b62381fdfc32cbe368f2baffcf6d51dc8547e788e847c547fd6f"
+  },
+  "capacity_patch/runsettings/no_kendall_am_off": {
+   "fingerprint": "90ade83709f49944",
+   "sha": "7ceeb3934c697c9ea7511f90973048d0031754e1942114869704f2bcec0469b7",
+   "user_sha": "7ceeb3934c697c9ea7511f90973048d0031754e1942114869704f2bcec0469b7"
+  },
+  "capacity_patch/runsettings/patience": {
+   "fingerprint": "30b5adda4c3bff4a",
+   "sha": "777998b50c821970ff2661afe9ee453fc83b7932536eb191934612272bd13719",
+   "user_sha": "777998b50c821970ff2661afe9ee453fc83b7932536eb191934612272bd13719"
+  },
+  "capacity_patch/runsettings/run_dir_other": {
+   "fingerprint": "30b5adda4c3bff4a",
+   "sha": "777998b50c821970ff2661afe9ee453fc83b7932536eb191934612272bd13719",
+   "user_sha": "777998b50c821970ff2661afe9ee453fc83b7932536eb191934612272bd13719"
+  },
+  "capacity_patch/runsettings/suspended_targets": {
+   "fingerprint": "69d694394e7fc04f",
+   "sha": "f5ab339a91f4280c4a11e9fb42f8adc71f3203515c862b3e25f405fdf9e34f3a",
+   "user_sha": "f5ab339a91f4280c4a11e9fb42f8adc71f3203515c862b3e25f405fdf9e34f3a"
+  },
+  "capacity_patch/runsettings/target_entry_range": {
+   "fingerprint": "69d694394e7fc04f",
+   "sha": "f5ab339a91f4280c4a11e9fb42f8adc71f3203515c862b3e25f405fdf9e34f3a",
+   "user_sha": "f5ab339a91f4280c4a11e9fb42f8adc71f3203515c862b3e25f405fdf9e34f3a"
+  },
+  "capacity_patch/runsettings/target_entry_range_abs": {
+   "fingerprint": "69d694394e7fc04f",
+   "sha": "f5ab339a91f4280c4a11e9fb42f8adc71f3203515c862b3e25f405fdf9e34f3a",
+   "user_sha": "f5ab339a91f4280c4a11e9fb42f8adc71f3203515c862b3e25f405fdf9e34f3a"
+  },
+  "capacity_patch/runsettings/target_magnitude_two_tf": {
+   "fingerprint": "30b5adda4c3bff4a",
+   "sha": "777998b50c821970ff2661afe9ee453fc83b7932536eb191934612272bd13719",
+   "user_sha": "777998b50c821970ff2661afe9ee453fc83b7932536eb191934612272bd13719"
+  },
+  "capacity_patch/runsettings/target_relative": {
+   "fingerprint": "30b5adda4c3bff4a",
+   "sha": "777998b50c821970ff2661afe9ee453fc83b7932536eb191934612272bd13719",
+   "user_sha": "777998b50c821970ff2661afe9ee453fc83b7932536eb191934612272bd13719"
+  },
+  "capacity_patch/runsettings/target_return": {
+   "fingerprint": "30b5adda4c3bff4a",
+   "sha": "777998b50c821970ff2661afe9ee453fc83b7932536eb191934612272bd13719",
+   "user_sha": "777998b50c821970ff2661afe9ee453fc83b7932536eb191934612272bd13719"
+  },
+  "capacity_patch/runsettings/three_timeframes": {
+   "fingerprint": "30b5adda4c3bff4a",
+   "sha": "777998b50c821970ff2661afe9ee453fc83b7932536eb191934612272bd13719",
+   "user_sha": "777998b50c821970ff2661afe9ee453fc83b7932536eb191934612272bd13719"
+  },
+  "capacity_patch/runsettings/train_new": {
+   "fingerprint": "30b5adda4c3bff4a",
+   "sha": "a6bf9a379869d7c2905f925293bef662ed4b28861c5ff85350f741d929b3bfdb",
+   "user_sha": "a6bf9a379869d7c2905f925293bef662ed4b28861c5ff85350f741d929b3bfdb"
+  },
+  "capacity_patch/runsettings/train_resume": {
+   "fingerprint": "30b5adda4c3bff4a",
+   "sha": "777998b50c821970ff2661afe9ee453fc83b7932536eb191934612272bd13719",
+   "user_sha": "777998b50c821970ff2661afe9ee453fc83b7932536eb191934612272bd13719"
+  },
+  "capacity_patch/runsettings/two_timeframes": {
+   "fingerprint": "30b5adda4c3bff4a",
+   "sha": "777998b50c821970ff2661afe9ee453fc83b7932536eb191934612272bd13719",
+   "user_sha": "777998b50c821970ff2661afe9ee453fc83b7932536eb191934612272bd13719"
+  },
+  "capacity_patch/scenario/default_1tf": {
+   "fingerprint": "30b5adda4c3bff4a",
+   "sha": "777998b50c821970ff2661afe9ee453fc83b7932536eb191934612272bd13719",
+   "user_sha": "777998b50c821970ff2661afe9ee453fc83b7932536eb191934612272bd13719"
+  },
+  "capacity_patch/scenario/entry_range_abs_two_tf": {
+   "fingerprint": "30b5adda4c3bff4a",
+   "sha": "777998b50c821970ff2661afe9ee453fc83b7932536eb191934612272bd13719",
+   "user_sha": "777998b50c821970ff2661afe9ee453fc83b7932536eb191934612272bd13719"
+  },
+  "capacity_patch/scenario/entry_range_pos_class_only": {
+   "fingerprint": "cb82aad7058c4693",
+   "sha": "eee89041129a0327585ab8a072eb14034a00ed339d09ab6ca6c769479c59b006",
+   "user_sha": "eee89041129a0327585ab8a072eb14034a00ed339d09ab6ca6c769479c59b006"
+  },
+  "capacity_patch/scenario/magnitude_two_tf": {
+   "fingerprint": "30b5adda4c3bff4a",
+   "sha": "777998b50c821970ff2661afe9ee453fc83b7932536eb191934612272bd13719",
+   "user_sha": "777998b50c821970ff2661afe9ee453fc83b7932536eb191934612272bd13719"
+  },
+  "capacity_patch/scenario/relative_group_am_off": {
+   "fingerprint": "259f01d84bbc25ad",
+   "sha": "152a3f8f8914a850691f859153336e3123d9670cf076a951d5f644debb3d1ee7",
+   "user_sha": "152a3f8f8914a850691f859153336e3123d9670cf076a951d5f644debb3d1ee7"
+  },
+  "capacity_patch/scenario/return_trained_holdout": {
+   "fingerprint": "30b5adda4c3bff4a",
+   "sha": "a6bf9a379869d7c2905f925293bef662ed4b28861c5ff85350f741d929b3bfdb",
+   "user_sha": "a6bf9a379869d7c2905f925293bef662ed4b28861c5ff85350f741d929b3bfdb"
+  },
+  "rebuild/runsettings/am_off": {
+   "fingerprint": "c061175ca00021a1",
+   "sha": "e267dc788a3dc1d2785a9400aec7ec9cdd29c52d2c2f225457723d3eb240f50d",
+   "user_sha": "e267dc788a3dc1d2785a9400aec7ec9cdd29c52d2c2f225457723d3eb240f50d"
+  },
+  "rebuild/runsettings/anti_memorization_trainer_override": {
+   "fingerprint": "73e94ff8ef8a53dd",
+   "sha": "535114a9558e2cec9089e11af1ced1ad51a6dd95abde9ef1754d8a7bf1b208d4",
+   "user_sha": "535114a9558e2cec9089e11af1ced1ad51a6dd95abde9ef1754d8a7bf1b208d4"
+  },
+  "rebuild/runsettings/class_only": {
+   "fingerprint": "7b1354bb90490cac",
+   "sha": "30a3196008232dfa1ecf3421b47aab4fb59307106e30b1f2ad697ff720e410f8",
+   "user_sha": "30a3196008232dfa1ecf3421b47aab4fb59307106e30b1f2ad697ff720e410f8"
+  },
+  "rebuild/runsettings/class_only_am_off": {
+   "fingerprint": "0391d6b650f1e8d6",
+   "sha": "0d3177afe9ea3e2ae502774dc9effd8a0a9707031d29a28fea5b7710f6783d1a",
+   "user_sha": "0d3177afe9ea3e2ae502774dc9effd8a0a9707031d29a28fea5b7710f6783d1a"
+  },
+  "rebuild/runsettings/config_overrides": {
+   "fingerprint": "2307529a17aca00d",
+   "sha": "453ab95133c25f09aa36deabd1535ac085a4b318b1b9b9659d2963289bb6489f",
+   "user_sha": "453ab95133c25f09aa36deabd1535ac085a4b318b1b9b9659d2963289bb6489f"
+  },
+  "rebuild/runsettings/default": {
+   "fingerprint": "3b71607ac0325981",
+   "sha": "b26d19ad212cbf051f23ead7110b9ef1710145ff57e3190bc28b00fb7cef3dc6",
+   "user_sha": "b26d19ad212cbf051f23ead7110b9ef1710145ff57e3190bc28b00fb7cef3dc6"
+  },
+  "rebuild/runsettings/default_close_only": {
+   "fingerprint": "80cd301268b824b7",
+   "sha": "7251c5998a832bb1ef09f4cb727844f1a39e31481cb0dcd3a96007e8d11f38ce",
+   "user_sha": "7251c5998a832bb1ef09f4cb727844f1a39e31481cb0dcd3a96007e8d11f38ce"
+  },
+  "rebuild/runsettings/default_three_targets": {
+   "fingerprint": "f9045ed29a392311",
+   "sha": "24b2fcd1d8138257ae3f57e2b5cf265dca8e23654786a2142573c8363b23953a",
+   "user_sha": "24b2fcd1d8138257ae3f57e2b5cf265dca8e23654786a2142573c8363b23953a"
+  },
+  "rebuild/runsettings/label_smoothing_03": {
+   "fingerprint": "9348471b710fef47",
+   "sha": "2fcc974baac8f8ec78be3dc9671ec4f6f929085ee150c2c7bf87010cdc94b5c6",
+   "user_sha": "2fcc974baac8f8ec78be3dc9671ec4f6f929085ee150c2c7bf87010cdc94b5c6"
+  },
+  "rebuild/runsettings/label_smoothing_zero": {
+   "fingerprint": "8d82861d02a1b21b",
+   "sha": "2d648a840c7533b215fe55feeaabbdcbddc1243f4a46f82e0169928d603ad3d0",
+   "user_sha": "2d648a840c7533b215fe55feeaabbdcbddc1243f4a46f82e0169928d603ad3d0"
+  },
+  "rebuild/runsettings/lambda_schedules": {
+   "fingerprint": "2720919045cdb85b",
+   "sha": "e029d449f672662c033fa14016cc792d35745d8f9b3797d4d8085aab40030f27",
+   "user_sha": "e029d449f672662c033fa14016cc792d35745d8f9b3797d4d8085aab40030f27"
+  },
+  "rebuild/runsettings/monitor_accuracy_max": {
+   "fingerprint": "502215d70d0b60a4",
+   "sha": "a841bf8dca6ad095a066f4dcc370a2055625df882869fca332cc1066170ce563",
+   "user_sha": "a841bf8dca6ad095a066f4dcc370a2055625df882869fca332cc1066170ce563"
+  },
+  "rebuild/runsettings/monitor_class_loss": {
+   "fingerprint": "1076144659503b0b",
+   "sha": "feb775dfedd11c2eac8d74f5356b60d958486848f1e93441ba75041b4eea81a8",
+   "user_sha": "feb775dfedd11c2eac8d74f5356b60d958486848f1e93441ba75041b4eea81a8"
+  },
+  "rebuild/runsettings/monitor_val_loss": {
+   "fingerprint": "4e9aa1cbea1922de",
+   "sha": "94a1b0391eb445a910668189dab92338face2745e2d6078a4d1a34e083f95956",
+   "user_sha": "94a1b0391eb445a910668189dab92338face2745e2d6078a4d1a34e083f95956"
+  },
+  "rebuild/runsettings/no_kendall": {
+   "fingerprint": "302e914a54d19327",
+   "sha": "bc342ec6480289196e013edab620dc5f55276e3b624b8e8decbfbff6255757d2",
+   "user_sha": "bc342ec6480289196e013edab620dc5f55276e3b624b8e8decbfbff6255757d2"
+  },
+  "rebuild/runsettings/no_kendall_am_off": {
+   "fingerprint": "6413fd8f1ca33426",
+   "sha": "3b3c87bb5f9e2ad6b95ae869a6e8a59f23a02a49a5b7bbf7230fb6e7436afbb6",
+   "user_sha": "3b3c87bb5f9e2ad6b95ae869a6e8a59f23a02a49a5b7bbf7230fb6e7436afbb6"
+  },
+  "rebuild/runsettings/patience": {
+   "fingerprint": "3b71607ac0325981",
+   "sha": "b26d19ad212cbf051f23ead7110b9ef1710145ff57e3190bc28b00fb7cef3dc6",
+   "user_sha": "b26d19ad212cbf051f23ead7110b9ef1710145ff57e3190bc28b00fb7cef3dc6"
+  },
+  "rebuild/runsettings/run_dir_other": {
+   "fingerprint": "678d60820860cfcd",
+   "sha": "800822cf5f192464423b5be7807594cd313f58e7c7514267ca80bd202ff14a52",
+   "user_sha": "800822cf5f192464423b5be7807594cd313f58e7c7514267ca80bd202ff14a52"
+  },
+  "rebuild/runsettings/suspended_targets": {
+   "fingerprint": "d7fa015b08e3efe6",
+   "sha": "a5703078f27efd7ac4425881e6bc396a144eb27674c347f5d8eb319dc5ae74b5",
+   "user_sha": "a5703078f27efd7ac4425881e6bc396a144eb27674c347f5d8eb319dc5ae74b5"
+  },
+  "rebuild/runsettings/target_entry_range": {
+   "fingerprint": "300b5ee692c56419",
+   "sha": "5e38fe96fb9ce1eae2adc1996fb12709e1e74026ac52bb0ed1dc0dd5f96ec374",
+   "user_sha": "5e38fe96fb9ce1eae2adc1996fb12709e1e74026ac52bb0ed1dc0dd5f96ec374"
+  },
+  "rebuild/runsettings/target_entry_range_abs": {
+   "fingerprint": "7e2ca4c16e397bc3",
+   "sha": "71e87cee8ae334844027fcde12c6fac44bf6986ee6c5da99ea850deb2d60e44c",
+   "user_sha": "71e87cee8ae334844027fcde12c6fac44bf6986ee6c5da99ea850deb2d60e44c"
+  },
+  "rebuild/runsettings/target_magnitude_two_tf": {
+   "fingerprint": "030f77174ce5df44",
+   "sha": "1ea9b4efe320b15640448514de46f39daae21ec887db9b7a1deef0258e7de2f9",
+   "user_sha": "1ea9b4efe320b15640448514de46f39daae21ec887db9b7a1deef0258e7de2f9"
+  },
+  "rebuild/runsettings/target_relative": {
+   "fingerprint": "feb6ae6fb41a6fe4",
+   "sha": "f28a4055f336006cc33dac26de7907da29041adb0103bac49a01f1038c6e49a3",
+   "user_sha": "f28a4055f336006cc33dac26de7907da29041adb0103bac49a01f1038c6e49a3"
+  },
+  "rebuild/runsettings/target_return": {
+   "fingerprint": "fa092f66eede8c28",
+   "sha": "e51b07cdfda51d14c979975f86fb80469ab600afa5068752012579a659c38849",
+   "user_sha": "e51b07cdfda51d14c979975f86fb80469ab600afa5068752012579a659c38849"
+  },
+  "rebuild/runsettings/three_timeframes": {
+   "fingerprint": "455c382160a19f65",
+   "sha": "12d605ac85c92cbe6613ecb6419522f825735865f941bbd2e106c267d12fac17",
+   "user_sha": "12d605ac85c92cbe6613ecb6419522f825735865f941bbd2e106c267d12fac17"
+  },
+  "rebuild/runsettings/train_new": {
+   "fingerprint": "3b71607ac0325981",
+   "sha": "b9739ac9c706b03aac9d1ca0995ac5648bc6a53eaf134d6856fd7299b5fc6bed",
+   "user_sha": "b9739ac9c706b03aac9d1ca0995ac5648bc6a53eaf134d6856fd7299b5fc6bed"
+  },
+  "rebuild/runsettings/train_resume": {
+   "fingerprint": "3b71607ac0325981",
+   "sha": "3e98d790e5f6dcb22546d84ce8fe49d890326b3f6ca9bcc51378ec7df8c611ad",
+   "user_sha": "3e98d790e5f6dcb22546d84ce8fe49d890326b3f6ca9bcc51378ec7df8c611ad"
+  },
+  "rebuild/runsettings/two_timeframes": {
+   "fingerprint": "ebd175deadecf141",
+   "sha": "2363e1987ce2bcb4313dd4e9ba6cad3ed1b86e336ed2a3093113c9fe7bd67c10",
+   "user_sha": "2363e1987ce2bcb4313dd4e9ba6cad3ed1b86e336ed2a3093113c9fe7bd67c10"
+  },
+  "rebuild/scenario/default_1tf": {
+   "fingerprint": "843481dca92a3633",
+   "sha": "7b39822528f870263168b6c58c3e525c31a34c72f5f2cfe4984be45ad6cb69ec",
+   "user_sha": "7b39822528f870263168b6c58c3e525c31a34c72f5f2cfe4984be45ad6cb69ec"
+  },
+  "rebuild/scenario/entry_range_abs_two_tf": {
+   "fingerprint": "53bb288cf4da1fa7",
+   "sha": "1837f2a0836103117e650a01a84923d0a6fb842eff211c64a1ab5d58d3187de9",
+   "user_sha": "1837f2a0836103117e650a01a84923d0a6fb842eff211c64a1ab5d58d3187de9"
+  },
+  "rebuild/scenario/entry_range_pos_class_only": {
+   "fingerprint": "40789644c2e3f3c7",
+   "sha": "b8c7f145f2430a8369d740cafb947c6ff82906fcec643b13b484987fca951b64",
+   "user_sha": "b8c7f145f2430a8369d740cafb947c6ff82906fcec643b13b484987fca951b64"
+  },
+  "rebuild/scenario/magnitude_two_tf": {
+   "fingerprint": "6d990b75cffd7933",
+   "sha": "5954606e308d72d9c258398d54571f3d377a05fb22cfac71f8dcbcf78356fe30",
+   "user_sha": "5954606e308d72d9c258398d54571f3d377a05fb22cfac71f8dcbcf78356fe30"
+  },
+  "rebuild/scenario/relative_group_am_off": {
+   "fingerprint": "ff30cdf781bf70c9",
+   "sha": "ec938bc80fc3d6de3179c61549772413bb37bf21a239e107c9bdde9d5ad59594",
+   "user_sha": "ec938bc80fc3d6de3179c61549772413bb37bf21a239e107c9bdde9d5ad59594"
+  },
+  "rebuild/scenario/return_trained_holdout": {
+   "fingerprint": "c3026823717c0fce",
+   "sha": "1008d2e80ec7f5dd061ec15c7995bf536dbd1d56eb5d2d9ad6d68dd60628a5db",
+   "user_sha": "1008d2e80ec7f5dd061ec15c7995bf536dbd1d56eb5d2d9ad6d68dd60628a5db"
+  },
+  "runsettings/am_off": {
+   "fingerprint": "f76d640be2e7887d",
+   "sha": "92e6984579a2f525aa14dfb8bb875bbd24050f201fe2a8297fa21a248d716db9",
+   "user_sha": "e458af8d178ece1ba3000f129fe64c57cdadbb9878d3d63fcb36b934f67cb1b9"
+  },
+  "runsettings/anti_memorization_trainer_override": {
+   "fingerprint": "6a472601fff8c07c",
+   "sha": "60f4b0e50f3a70e09b9a09459d96fd548e87e48bf4f933d8446f40f0b7078b0e",
+   "user_sha": "cf7ffa4b9f2b9af27d16e91868a5d5d58275b93f181c3373371b01cd5abbb81e"
+  },
+  "runsettings/class_only": {
+   "fingerprint": "56be8336bea19f63",
+   "sha": "2869c449c236bd92cab6775125d2730b040c4c672f66d90061d4df8f5d771a1f",
+   "user_sha": "d6298f612125d2353b2981183d3602f10bea8e38a43465047dcf8bbd54f3423f"
+  },
+  "runsettings/class_only_am_off": {
+   "fingerprint": "451828132ee09b67",
+   "sha": "a02450aac58f8b80930698a65f8438caf8460566ec111b55484e0d7f0b80a1b8",
+   "user_sha": "e26ad91aa65d1e1d96948299180ed4037852fc3406af2f12aaca09c27b44c4ed"
+  },
+  "runsettings/config_overrides": {
+   "fingerprint": "6ee4c397ba12e2f9",
+   "sha": "93b5f222bacc530625f4400dda6ba2c893944f05c18da01e4ceee67ff6224350",
+   "user_sha": "9a40a383ea1dbaac0989e30f2483d14a382438a525aa0dd2d705375824bfc170"
+  },
+  "runsettings/default": {
+   "fingerprint": "4eadd2c11df6ec51",
+   "sha": "bf575373f3183ff534d9a274184742d11afdb003f27adb0ffab8cd0e503b834d",
+   "user_sha": "f40467f668680692247590b234a153e9eba67c079b02ea7165a6d1dbfde5f482"
+  },
+  "runsettings/default_close_only": {
+   "fingerprint": "759e9400218a044c",
+   "sha": "c026c057ae4804ff1fd495d7c22d46a57411fa59792dad8258be5d7c50c833ef",
+   "user_sha": "cf30dae6fc744c19aaebd0f6c93c6f96eefaad275aec986f8070920b5f985275"
+  },
+  "runsettings/default_three_targets": {
+   "fingerprint": "c826b88de57ec284",
+   "sha": "5f8317a1be6bdd2d9032f0de2c28ea695b77d77ef1121b0d9c0a226e4137f478",
+   "user_sha": "5416b8913ddf0c9199da639deab8cdd9fe41e49cddaef97bcb242ac0d575d4f2"
+  },
+  "runsettings/label_smoothing_03": {
+   "fingerprint": "1dce863a9e791f00",
+   "sha": "8d9b5339fb0163cb6a6213cbf0688fb1a4ff5709b439397febe0790f1aca6ed7",
+   "user_sha": "be4d397eb2a9524470a4650dd63833428fcdfd2425a9f3ad1f32cbbe4a01f6f1"
+  },
+  "runsettings/label_smoothing_zero": {
+   "fingerprint": "32750437fe31a8fa",
+   "sha": "55aff6dfbf8fc752f3f45efb57e2416a8a0a3bd13256a3dac9f1797ce824ecaf",
+   "user_sha": "7ba0978b884f06595f014fdebc3fc4ea073ba2db211af1338eb6ddb18ac72343"
+  },
+  "runsettings/lambda_schedules": {
+   "fingerprint": "84c047e06c517b8b",
+   "sha": "e4336d32de2c96a157517b385c13e556fcbad123a62c3251169f76446037b069",
+   "user_sha": "9e7dafd39aa7052462c53add643bfb815b0819d4f3b1351ebd792bb0d768b124"
+  },
+  "runsettings/monitor_accuracy_max": {
+   "fingerprint": "ef75b0bb8c6e6009",
+   "sha": "99a2635db80cd7611353d4a9c2168598dafa72ca2326acfa50d14bb6af45286a",
+   "user_sha": "bf147794fd65d4820d2226bd5f217f7d44db12b40de28b05a8294d900e527428"
+  },
+  "runsettings/monitor_class_loss": {
+   "fingerprint": "deccdea872963b16",
+   "sha": "e8de336cfc1fd2f04e52d9dcf788f20ba637927e003471da6c1ca86119ef5575",
+   "user_sha": "5cb58c28025b8a50420595807173f68f2fcee7372973d5c6c81760d49c5b4aab"
+  },
+  "runsettings/monitor_val_loss": {
+   "fingerprint": "b824e1aed5400273",
+   "sha": "9644b461babd99ff7ada5f557b4b438ad17ae167c7d8c24ea75570196782fc4b",
+   "user_sha": "2e84c6c3ff6632787eb9e8896e547edb81488ca2eca59f65e0e8b174059e4263"
+  },
+  "runsettings/no_kendall": {
+   "fingerprint": "9a1ce60067a30565",
+   "sha": "6a362551ce2d8911b1e9493047729bf26585b558fe9d517fd431be8fdb7256db",
+   "user_sha": "e5feb8f6dd6c058a9dac35b2cd607fffd1ad253b64bd0ceff41849d83c775775"
+  },
+  "runsettings/no_kendall_am_off": {
+   "fingerprint": "525ae76897154e54",
+   "sha": "2b48852a7803b0edb3e5fc716b7443d5e7328ffda56b8eeff423b85115a07207",
+   "user_sha": "ccfd254509ba0ca4a902d11e5bda4ebe8e213d2228008a235f0f1f12c80e16a5"
+  },
+  "runsettings/patience": {
+   "fingerprint": "4eadd2c11df6ec51",
+   "sha": "bf575373f3183ff534d9a274184742d11afdb003f27adb0ffab8cd0e503b834d",
+   "user_sha": "f40467f668680692247590b234a153e9eba67c079b02ea7165a6d1dbfde5f482"
+  },
+  "runsettings/run_dir_other": {
+   "fingerprint": "f41eb767fa615dcc",
+   "sha": "a99e41d4af444b1dd69b534dbcccc14d452ec03a57bbc61dfe0fbb3e833bd03d",
+   "user_sha": "a3aa1a83be275fa82c0100a23dd4fea1c74896641150371f85eb5049fdb4c116"
+  },
+  "runsettings/suspended_targets": {
+   "fingerprint": "ea083ffd034bd5a0",
+   "sha": "3d678ef66f0ed4133e76c0d48b114e8008d16015cec96bdc0539015e47260313",
+   "user_sha": "75cc546a3e8922c821f4a1398c91e696c25e60db5d58ed0bf2f2aee3a58b35e3"
+  },
+  "runsettings/target_entry_range": {
+   "fingerprint": "8d3ceacc8c0a69f2",
+   "sha": "a21613e78914111c36545ab17334414d6d1e3976e32279762facac31874cf104",
+   "user_sha": "1ba9c04a9beaff24125172a51b9a39dba7dfe1a57efeef52391fb4f193660d2b"
+  },
+  "runsettings/target_entry_range_abs": {
+   "fingerprint": "459ea711d0ab633e",
+   "sha": "1263e0c2463841f47cd7c9913ea90310e16e59933ee973d9cf7437faaf088580",
+   "user_sha": "72dce6a131e38922f0937f2a1deeb89a2d922970c5afe8459ea4c976ecbdf57c"
+  },
+  "runsettings/target_magnitude_two_tf": {
+   "fingerprint": "d55d227e2e51c2c7",
+   "sha": "9818a3f1f3e3b35cb36703a30153342aa96421c5f4c0db36c597fe2b198fe0f9",
+   "user_sha": "b47e093970fff75d889bce295ce1086b5b7c32a48ab6b1c5ed7710fec0e75474"
+  },
+  "runsettings/target_relative": {
+   "fingerprint": "30d8d717a1764e30",
+   "sha": "245299aaba01e0d5b31deef01553a4475b7274f6aababd61f3c6b54eff21ba4d",
+   "user_sha": "d6b45bcb39d97a9c6c96b09c4297995b1517f850f0c8ee8d7c97176b5849eaec"
+  },
+  "runsettings/target_return": {
+   "fingerprint": "6f7f787d51300100",
+   "sha": "ace2f02971c642fb3acada3b2ca7488da3e6f8b582ed3b168b8f28d1d1ba9535",
+   "user_sha": "2932cd94cd612938c29dd3c9f7956eaffce730400b7b119efdbd6296fbbf3785"
+  },
+  "runsettings/three_timeframes": {
+   "fingerprint": "4c055a02c53e0e8b",
+   "sha": "3d5f10fec434b7dd86557a2c20de4d14132751f7053565095333962340844f5d",
+   "user_sha": "c1c2274352c7a0f1ecb9ef99111cf47c35cf474aada273772153910ff69e52d5"
+  },
+  "runsettings/train_new": {
+   "fingerprint": "4eadd2c11df6ec51",
+   "sha": "af563420ca41f2d9ba383892e326ef4b0799260d4a145b78159319a1354f838a",
+   "user_sha": "b11890d85bd72355fbffae865b8487756cc3cab2a5c14ef7bf819610bff3a124"
+  },
+  "runsettings/train_resume": {
+   "fingerprint": "4eadd2c11df6ec51",
+   "sha": "ac9cc28eff2ac397be04f808dd5ad5143d177ab10d5441ef1c233eafd5065fdf",
+   "user_sha": "0ee386840ebb22df7418742b503c495fbfceb4d2cf7f9f3ac71ce7a7314913fb"
+  },
+  "runsettings/two_timeframes": {
+   "fingerprint": "f269d96a04829ef0",
+   "sha": "c50335c44edc8e06acee4c69ab49bb049f0fcce79940ddee08a02f4c34b00621",
+   "user_sha": "4ea4630c22712f23000090e95b243244f859ab355a341edbc030a68367954efb"
+  },
+  "scenario/default_1tf": {
+   "fingerprint": "9ec81c7247b45652",
+   "sha": "738bd15f8e9566f70c75b282f883dad5b881f0d5684522bb4baeddc5ff2844f0",
+   "user_sha": "9560e4d2181c3bbc89c34ff77e6fd0f06856735e436befcb282bc5b97b64e26d"
+  },
+  "scenario/entry_range_abs_two_tf": {
+   "fingerprint": "92f12c32f28f2713",
+   "sha": "27a511f4d45e4a67a647c90818997dbdd85d306b544456250f1cf02f4e712c9f",
+   "user_sha": "05a5632900c64532a581f25d707f468990b36f79b48f31f682346998e79f4418"
+  },
+  "scenario/entry_range_pos_class_only": {
+   "fingerprint": "7ef2d67bf11d850f",
+   "sha": "abcfd3e8ceb11ab3af07ce22fba3f144e5b50b05599e48adf4aab7aa33f69db2",
+   "user_sha": "3a11c3370d8e3ced35ee8612bbefb223b3c540ba553fce1d31158f4544ea10da"
+  },
+  "scenario/magnitude_two_tf": {
+   "fingerprint": "f1d4e5bae18f4d74",
+   "sha": "eb986e663f6067fab9c432f4d0ee131023c643ea5e0de36cf5578694cae34f0d",
+   "user_sha": "9dce5609f15eb34538c20f9defcc98154c8d44d82238fb42cbdc501a7db7a4a9"
+  },
+  "scenario/relative_group_am_off": {
+   "fingerprint": "a7005ef6005dcabf",
+   "sha": "cc9eed194ca22b5dac33e0ed5b8c60783aa6f40ae8c524d57aab6d626f19c81c",
+   "user_sha": "2618d428a81d1dfb9c71cc3d3140f39364b47915195ddc11b537d45ad6b0c824"
+  },
+  "scenario/return_trained_holdout": {
+   "fingerprint": "340b0836772a4465",
+   "sha": "9c51353dbc3dc884c1f7e1d852bad554b1212e5fca6722859f6a31300b82c4cd",
+   "user_sha": "506cfa28ffa0525691e08ddc757aac73acefecca211c0d0086bb4259aba16339"
+  }
+ }
+}

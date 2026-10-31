@@ -175,18 +175,32 @@ def test_all_assets_v4(
         print(f"🧪 اختبار {n_assets} عملة (v4.2) — يُعرض آخر {n_display} عينة لكل هدف")
         print("=" * 100)
 
-    for idx, (asset_name, test_data) in enumerate(test_dict.items(), 1):
+    # ── استدعاء نموذج واحد لكل العملات (evaluation/pooled.py) ثم تقسيم الخام لكل عملة؛ فكّ التشفير والتحقق والتقييم
+    #    لكل عملة كما كانت (numpy فقط). العملات التي صفوفها < min_eff تُتخطّى قبل الدمج.
+    kept = []
+    for asset_name, test_data in test_dict.items():
         n_samples = len(test_data['base_params'])
         if n_samples < min_eff:
             skipped_assets.append((asset_name, n_samples))
+        else:
+            kept.append(asset_name)
+
+    raw_by_asset: Dict = {}
+    if kept:
+        _first = test_dict[kept[0]]
+        specs = _resolve_for_model(target_specs, model, tuple(_first[f'X_{tf_name}'] for tf_name in timeframes))
+        if verbose:
+            print(f"🎯 الأهداف المُقيَّمة: {[s.name for s in specs]}")
+        pooled_x, bounds = pool_x(test_dict, timeframes, names=kept)
+        raw_pooled, specs = predict_pooled_raw(model, pooled_x, timeframes, specs, batch_size)
+        raw_by_asset = {b['name']: r for b, r in slice_by_asset(raw_pooled, bounds)}
+        del pooled_x, raw_pooled
+
+    for idx, (asset_name, test_data) in enumerate(test_dict.items(), 1):
+        if asset_name not in raw_by_asset:
             continue
-
+        n_samples = len(test_data['base_params'])
         X_inputs = tuple([test_data[f'X_{tf_name}'] for tf_name in timeframes])
-        if specs is None:
-            specs = _resolve_for_model(target_specs, model, X_inputs)
-            if verbose:
-                print(f"🎯 الأهداف المُقيَّمة: {[s.name for s in specs]}")
-
         base_params = test_data['base_params']
         last_candles = test_data.get('last_candles')
         y_true = {f'y_{s.name}': test_data['y'][s.name] for s in specs if s.name in test_data['y']}
@@ -207,6 +221,7 @@ def test_all_assets_v4(
                 batch_size=batch_size,
                 direction_tolerance=range_frac,
                 run_verification=run_verification,
+                raw_preds=raw_by_asset[asset_name],
             )
 
             verification = asset_results.pop('_verification', None)

@@ -25,9 +25,10 @@ import tensorflow as tf  # noqa: E402
 
 # ── real functions from main.ipynb's code (now the workflow/ package; extracted by name, not copied) ──
 src = "\n".join(open(os.path.join(ROOT, "workflow", f"{m}.py"), encoding="utf-8").read()
-                for m in ("splits", "batches", "selective_eval", "pooling"))
+                for m in ("splits", "batches", "selective_eval"))
+src += "\n" + open(os.path.join(ROOT, "evaluation", "pooled.py"), encoding="utf-8").read()   # pool_test_dict moved here (audit PR 2)
 want = {"_required", "_tfs_of", "model_x", "make_shuffled_dataset", "_to_float32_inputs", "_concat_splits", "_pool_by_asset",
-        "pool_test_dict", "_split_members"}
+        "pool_test_dict", "_split_members", "_timeframes_of", "_tail_slices", "pool_x"}
 fs = [n for n in ast.parse(src).body if isinstance(n, ast.FunctionDef) and n.name in want]
 assert {f.name for f in fs} == want, want - {f.name for f in fs}
 ns = {"np": np, "pd": pd, "tf": tf}

@@ -13,6 +13,8 @@ from copy import deepcopy as _deepcopy
 
 import numpy as np
 
+from core.seeds import seed_everything
+
 #: The reports run_reports knows, in the order the evaluation tool runs them by default.
 REPORTS = ("gap", "verification", "market_neutral", "candle", "chicks", "signals")
 
@@ -306,6 +308,8 @@ def make_training_config(settings, plan, info, val, kit):
             "epochs": tr.epochs,
             "batch_size": tr.batch_size,
             "train_mode": tr.train_mode,
+            # None = the trainer's default seed: the key is then absent (the config the trainer gets is the one it always got)
+            **({"seed": tr.seed} if tr.seed is not None else {}),
         },
         "targets": {k: v for k, v in build_target_configs(
                         list(plan.price_targets),
@@ -344,7 +348,10 @@ def make_training_config(settings, plan, info, val, kit):
 def make_datasets(main_config, train, val, info):
     """القسم ٥: ``(train_ds, val_ds, sample_batch)`` — دفعات خلط كامل للتدريب، وبالترتيب لـ val."""
     tfs = list(info.model_tfs)
-    train_ds = make_shuffled_dataset(model_x(train, tfs), _y_for(train, main_config), main_config["run"]["batch_size"])
+    # البذرة قبل بناء مجموعة التدريب: shuffle بُنيت قبل ضبط البذرة العامة لا يمكن إعادة إنتاج ترتيبها (التدقيق C3). نفس البذرة ⇒ نفس ترتيب الدفعات.
+    seed = main_config["run"]["seed"]
+    seed_everything(seed, framework_seed_fn=tf.keras.utils.set_random_seed)
+    train_ds = make_shuffled_dataset(model_x(train, tfs), _y_for(train, main_config), main_config["run"]["batch_size"], seed=seed)
     val_ds = make_eval_dataset(model_x(val, tfs), _y_for(val, main_config), main_config["run"]["batch_size"])
     sample_batch = next(iter(train_ds))
     return train_ds, val_ds, sample_batch

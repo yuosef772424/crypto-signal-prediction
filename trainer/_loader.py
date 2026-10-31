@@ -31,6 +31,7 @@ MODULES = (
     "snapshot",
     "training_diagnostics",
     "checkpoints",
+    "identity",
     "epoch_callbacks",
     "system",
     "smoke_test",

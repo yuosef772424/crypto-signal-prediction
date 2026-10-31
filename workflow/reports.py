@@ -3,6 +3,9 @@ PURPOSE:  Section 7 reports on the trained model: latest trading report, real-pr
 TAGS:     latest_trading_report, real_price_predictions, classification_accuracy_report, invert_reg_predictions
 PITFALLS: model, test / test_dict, eval_target_specs, price_targets and model_tf are explicit arguments (RunResult / ChicksInputs / ModelPlan / DatasetInfo of workflow/run.py): no notebook global is read. Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted from main.ipynb cell 23 (section 7).
 """
+import evaluation as _evaluation   # explicit: classification_accuracy_report pools through evaluation/pooled.py + evaluation/predict.py
+
+
 def latest_trading_report(model, test_dict, eval_target_specs, model_tf, n_display=5):
     """تقرير 'آخر N عيّنات' لكل أصل — للتداول الحيّ، يعمل بلا أهداف حقيقية.
     test_dict وeval_target_specs من ChicksInputs (prepare_chicks)؛ model_tf من DatasetInfo."""
@@ -59,12 +62,14 @@ def classification_accuracy_report(model, test, price_targets, model_tf):
     المستخدَمة في التدريب (القسم ٥) قبل المقارنة."""
     from sklearn.metrics import accuracy_score, roc_auc_score
     rows = []
-    for asset, split in test.items():
-        x = model_x(split, model_tf)
-        out = model(x, training=False)
+    # استدعاء نموذج واحد لكل الأصول (evaluation/pooled.py + model_outputs_batched) ثم تقسيم المخرجات حسب الأصل
+    X_pooled, bounds = _evaluation.pool_x(test, _tfs_of(model_tf))
+    out = _evaluation.model_outputs_batched(model, model_x(X_pooled, model_tf))
+    for b in bounds:
+        asset, split = b["name"], test[b["name"]]
         for t in price_targets:
             y_true = _to_unit_label(np.asarray(split["y"][f"y_{t}_class"]).ravel())
-            y_prob = out[f"y_{t}_class_logits"].numpy().ravel()
+            y_prob = out[f"y_{t}_class_logits"][b["start"]:b["end"]].ravel()
             y_pred = (y_prob >= 0.5).astype("float32")
             auc = roc_auc_score(y_true, y_prob) if len(set(y_true.tolist())) > 1 else float("nan")
             rows.append({"asset": asset, "target": t, "n": len(y_true),

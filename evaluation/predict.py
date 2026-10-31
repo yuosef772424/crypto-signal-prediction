@@ -9,6 +9,24 @@ PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loade
 # المرحلة 1: التنبؤ على الدفعات (مرن لأي عدد/نوع أهداف)
 # ─────────────────────────────────────────────────────────────────────────────
 
+def _iter_model_batches(model, X, batch_size: int = 256):
+    """المكان الوحيد الذي يستدعي النموذج على دفعات ثابتة الحجم: يُنتج (دفعة_مدخلات، مخرجات_النموذج). كل مسار تقييم
+    (predict_batch_v4 وmodel_outputs_batched) يمرّ منه، فعدد استدعاءات النموذج = ceil(N / batch_size) أينما كان."""
+    ds = tf.data.Dataset.from_tensor_slices((X,)).batch(batch_size)
+    for (b_x,) in ds:
+        yield b_x, model(b_x, training=False)
+
+
+def model_outputs_batched(model, X, batch_size: int = 256) -> Dict[str, np.ndarray]:
+    """كل مخرجات النموذج (كل المفاتيح كما هي، بلا فك ولا اختيار أهداف) على دفعات ثابتة، مجمّعة في numpy.
+    X: مصفوفة أو tuple أو dict كما يقبلها النموذج. لتقارير تحتاج مخرجاً غير رؤوس الأهداف (مثل logits التصنيف)."""
+    parts: Dict[str, list] = {}
+    for _, out in _iter_model_batches(model, X, batch_size):
+        for k, v in out.items():
+            parts.setdefault(k, []).append(np.asarray(v))
+    return {k: np.concatenate(v, axis=0) for k, v in parts.items()}
+
+
 def predict_batch_v4(
     model,
     X_inputs: Tuple[np.ndarray, ...],
@@ -36,7 +54,6 @@ def predict_batch_v4(
     """
     target_specs = resolve_targets(target_specs)   # نصوص/جزئية مقبولة؛ غير المطلوب يُتجاهل
     n_samples = X_inputs[0].shape[0]
-    ds = tf.data.Dataset.from_tensor_slices((X_inputs,)).batch(batch_size)
 
     keys = []
     for spec in target_specs:
@@ -47,8 +64,7 @@ def predict_batch_v4(
     preds = {k: [] for k in keys}
     prog = tf.keras.utils.Progbar(n_samples // batch_size + 1) if verbose else None
 
-    for i, (b_x,) in enumerate(ds):
-        out = model(b_x, training=False)
+    for i, (b_x, out) in enumerate(_iter_model_batches(model, X_inputs, batch_size)):
 
         for spec in target_specs:
             key = f'y_{spec.name}'

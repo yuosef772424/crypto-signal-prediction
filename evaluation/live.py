@@ -63,16 +63,16 @@ def predict_latest_v4(
     yt = None if not y_true else {kk: np.asarray(v)[sl] for kk, v in y_true.items()}
 
     raw = predict_batch_v4(model, X_last, specs, batch_size)
-    decoded = decode_predictions_v4(raw, specs, bp, lc)
-    if yt:
-        decoded = evaluate_predictions_v4(decoded, specs, yt, bp)
-
-    table = build_latest_table(decoded, specs, n_display=k, timestamps=ts_last, asset=asset)
+    table = latest_table_from_raw(raw, specs, bp, lc, yt, k, ts_last, asset)
 
     if verbose:
-        title = f"\n🔴 آخر {k} عينة" + (f" — {asset}" if asset else "") + " (الأحدث في الأسفل):"
-        print_latest_table(table, title=title, legend=legend)
+        _print_latest_asset_table(table, k, asset, legend)
     return table
+
+
+def _print_latest_asset_table(table, k, asset, legend):
+    title = f"\n🔴 آخر {k} عينة" + (f" — {asset}" if asset else "") + " (الأحدث في الأسفل):"
+    print_latest_table(table, title=title, legend=legend)
 
 
 def predict_latest_all_assets(
@@ -95,19 +95,43 @@ def predict_latest_all_assets(
     frames = []
     specs = None
 
+    # أصول بلا عينات تُبلَّغ كما كانت (خطأ مطبوع) وتُستثنى؛ باقي الأصول: استدعاء نموذج واحد على آخر k_i صف من كل منها
+    # (evaluation/pooled.py)، ثم الفكّ/التقييم/الجدول لكل أصل من شريحته (numpy فقط).
+    names = []
     for asset_name, test_data in test_dict.items():
+        if len(test_data[f'X_{timeframes[0]}']) == 0:
+            print(f"   ❌ {asset_name}: لا توجد عينات.")
+        else:
+            names.append(asset_name)
+
+    raw_by_asset, ks = {}, {}
+    if names:
+        first = test_dict[names[0]]
+        specs = _resolve_for_model(target_specs, model, tuple(np.asarray(first[f'X_{tf}']) for tf in timeframes))
+        ks = {a: int(min(max(k, 1), len(test_dict[a][f'X_{timeframes[0]}']))) for a in names}
+        pooled_x, bounds = pool_x(test_dict, timeframes, names=names, n_per_asset=ks)   # آخر ks[a] صف من كل أصل
+        raw_pooled, specs = predict_pooled_raw(model, pooled_x, timeframes, specs, batch_size)
+        raw_by_asset = {b['name']: r for b, r in slice_by_asset(raw_pooled, bounds)}
+
+    for asset_name in names:
+        test_data = test_dict[asset_name]
         try:
-            X_inputs = tuple(test_data[f'X_{tf_name}'] for tf_name in timeframes)
-            if specs is None:
-                specs = _resolve_for_model(target_specs, model, X_inputs)
+            n_total = len(test_data[f'X_{timeframes[0]}'])
+            ka = ks[asset_name]
+            sl = slice(n_total - ka, n_total)
             ts = _find_timestamps(test_data, timestamp_key, timestamp_col)
-            y_true = {f'y_{s.name}': test_data['y'][s.name]
-                      for s in specs if 'y' in test_data and s.name in test_data['y']} or None
-            frames.append(predict_latest_v4(
-                model, X_inputs, test_data['base_params'], test_data.get('last_candles'),
-                specs, n_display=k, timestamps=ts, y_true=y_true, batch_size=batch_size,
-                asset=asset_name, verbose=(verbose and not latest_only), legend=False,
-            ))
+            y_all = {f'y_{s.name}': test_data['y'][s.name]
+                     for s in specs if 'y' in test_data and s.name in test_data['y']} or None
+            ts_last = _align_timestamps(_extract_timestamps(ts, test_data.get('last_candles'), None), n_total, ka)
+            lc, bp = test_data.get('last_candles'), test_data.get('base_params')
+            frame = latest_table_from_raw(
+                raw_by_asset[asset_name], specs, None if bp is None else np.asarray(bp)[sl],
+                None if lc is None else np.asarray(lc)[sl],
+                None if not y_all else {kk: np.asarray(v)[sl] for kk, v in y_all.items()},
+                ka, ts_last, asset_name)
+            if verbose and not latest_only:
+                _print_latest_asset_table(frame, ka, asset_name, False)
+            frames.append(frame)
         except Exception as e:
             print(f"   ❌ {asset_name}: {e}")
 

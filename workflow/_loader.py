@@ -27,7 +27,6 @@ MODULES = (
     "batches",
     "chicks_bridge",
     "reports",
-    "pooling",
     "selective_eval",
     "candle_baseline",
     "verification",

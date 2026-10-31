@@ -155,12 +155,12 @@ Documents:
 - API:
   - `def probe(ns, label, offsets, extra_T=())` L26
 
-### `docs/research/audit/r3_00c_gather_alignment.py` (113 lines)
+### `docs/research/audit/r3_00c_gather_alignment.py` (114 lines)
 - PURPOSE: R3-00c (clean check): the 1h and 4h arrays are gathered with the SAME sample indices everywhere, and float16 X is upcast (from docstring)
 - DEPENDS: cross_asset
 - API:
-  - `def split(off, n)` L37
-  - `def chk(b)` L75
+  - `def split(off, n)` L38
+  - `def chk(b)` L76
 
 ### `docs/research/audit/r3_00d_single_tf_unchanged.py` (100 lines)
 - PURPOSE: R3-00d (clean check): single-timeframe (and legacy 2-timeframe) pipeline output is byte-identical to the commit before the (from docstring)
@@ -217,6 +217,19 @@ Documents:
 - `E-norm-001.md` — Experiment card — E-norm-001: train NIG-TimeNet with price_norm_mode=logret_std vs window_scale
 - `E-norm-002.md` — Experiment card — E-norm-002: logret_std inputs without the model's per-window InstanceNorm
 - `E-rel-001.md` — Experiment card — E-rel-001: absolute vs within-timestamp relative target on the current 4h model l…
+
+## `docs/research/hardening/`
+- hardening/: root-cause audits of the codebase before a new experiment round | 0 scripts, 5 md, 1 data files (2 KB)
+
+Documents:
+- `README.md` — hardening/: root-cause audits of the codebase before a new experiment round
+- `audit_2026-10-31.md` — Hardening audit, 2026-10-31 (auditor: root-cause classes of fragility)
+- `external_research_prompts.md` — تعليمات بحث خارجي (لأداة البحث التي أنتجت `cryptoformer.zip`)
+- `proposal_cascaded_stages.md` — Proposal: cascaded / stacked training stages
+- `proposal_rolling_retrain.md` — Proposal: rolling-retrain study (does the market change enough to make the model random?)
+
+Data / other files (counts only):
+- `.`: txt×1 — 2 KB
 
 ## `docs/research/notes/`
 - External research takeaways (2026-10-20) | 0 scripts, 3 md, 0 data files (0 B)

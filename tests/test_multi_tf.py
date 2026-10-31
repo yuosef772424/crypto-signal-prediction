@@ -427,6 +427,8 @@ class MultiTFModelTests(unittest.TestCase):
         cfg = tn["build_config"]({
             "run": {"run_dir": tempfile.mkdtemp(), "epochs": 1, "batch_size": 8, "verbose": 0, "train_mode": "new"},
             "targets": tn["build_target_configs"](("high", "low"), label_smoothing=0.1),
+            # the schedules build_target_configs names, declared as constant 0 (regularizer / calibration off, as before)
+            "loss": {"schedules": {"lambda_reg": {"start": 0.0, "end": 0.0}, "lambda_calib": {"start": 0.0, "end": 0.0}}},
         })
         model_cfg = _cfg(mv, d_model=16, num_layers=1, head_hidden=16, class_head_hidden=8)
         builder = lambda: self.build({"1h": 16, "4h": 8}, 10, config=model_cfg)  # noqa: E731

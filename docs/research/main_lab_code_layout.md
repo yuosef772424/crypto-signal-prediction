@@ -46,7 +46,7 @@
 | `ANTI_MEMORIZATION`، `CLASS_ONLY` | `settings.model.anti_memorization` / `.class_only` |
 | (جديد) | `settings.model.config_overrides` — تجاوزات معمارية إضافية فوق `ANTI_MEMORIZATION_CONFIG`؛ مفاتيح مجهولة أو `price_targets`/`head_types`/`enforce_order` = خطأ؛ تغيّر اسم المجلد |
 | (جديد) | `settings.target.suspended_targets` — `None` = القاعدة القديمة (close معلّق خارج entry_range)؛ `()` = تدريب كل الأهداف (close أيضاً)؛ tuple = تعليق هذه فقط؛ اسم مجهول أو تعليق الكل = خطأ؛ غير `None` يغيّر اسم المجلد (`_susp-none` / `_susp-<أسماء>`) |
-| `RUN_MAIN_TRAINING`، `run_dir`، `epochs`، `batch_size`، `train_mode`، جداول `lambda_*`، `ANTI_MEMORIZATION_TRAINER` | `settings.train.*` |
+| `RUN_MAIN_TRAINING`، `run_dir`، `epochs`، `batch_size`، `train_mode`، `seed` (جديد: لم يكن في الدفتر، الافتراضي 42)، جداول `lambda_*`، `ANTI_MEMORIZATION_TRAINER` | `settings.train.*` |
 | `CALIBRATE_CONFIDENCE`، `CALIBRATION_METHOD` | `settings.evaluation.calibrate_confidence` / `.calibration_method` |
 | (جديد) | `settings.evaluation.trivial_baseline` — `False` (الافتراضي) = تقرير فجوة التعميم كما كان؛ `True` يضيف لكل رأس تصنيف `trivial_auc_{val,test}` (AUC قاعدة موقع الإغلاق داخل مدى الشمعة الأخيرة، إشارتها مثبّتة على train) و`uplift_vs_trivial_{val,test}` وحكم «لا معلومة بعد ميكانيكا المدى» حين uplift ≤ `TRIVIAL_UPLIFT_MIN` (0.01)؛ غير `bool` = خطأ |
 | `PANEL_MODE`، `PANEL_*`، `PANEL_PRESET`/`PANEL_PRESETS` | `settings.panel.enabled`، `settings.panel.*`، `.preset` / `PANEL_PRESETS` |
@@ -71,7 +71,7 @@
 | 17 | ٥ التدريب | `workflow/batches.py` | `make_shuffled_dataset`، `make_eval_dataset`، `_y_for`، `_to_unit_label` |
 | 19، 20 | ٦ chicks | `workflow/chicks_bridge.py` | `build_chicks_test_dict`، `entry_range_target_spec` (كانت `_entry_range_spec` متداخلة في الخلية 20) |
 | 23 | ٧ تقارير | `workflow/reports.py` | `latest_trading_report`، `real_price_predictions`، `classification_accuracy_report` |
-| 24 | ٧ دمج الأصول | `workflow/pooling.py` | `pool_test_dict`، `predict_pooled_batch_by_asset` |
+| 24 | ٧ دمج الأصول | `evaluation/pooled.py` (كانت `workflow/pooling.py`، رُفعت إلى evaluation لتستعملها كل مواقع التقييم) | `pool_test_dict`، `predict_pooled_batch_by_asset` (+ `pool_x`، `predict_pooled_raw`، `slice_by_asset`، `latest_table_from_raw`) |
 | 26 | ٧-ب | `workflow/selective_eval.py` | `collect_signals`، `selective_direction_report`، `rr_trading_report` |
 | 28 | ٧-ج | `workflow/candle_baseline.py` | `candle_baseline_report` |
 | 30 | ٧-د | `workflow/verification.py` | `run_full_verification` |

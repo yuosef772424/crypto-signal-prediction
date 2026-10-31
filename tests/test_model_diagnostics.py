@@ -104,7 +104,8 @@ def _train(diag_factory=None, n=1024, epochs=30, lr=3e-3, flip=None, seed=7, shu
     x, y = _data(n, 0, flip)
     cfg = ns["build_config"]({"run": {"run_dir": tempfile.mkdtemp(), "epochs": epochs, "batch_size": BS, "verbose": 0,
                                       "train_mode": "new", "seed": seed},
-                              "optimizer": {"lr_initial": lr}, "targets": ns["build_target_configs"](("high", "low"))})
+                              "optimizer": {"lr_initial": lr}, "targets": ns["build_target_configs"](("high", "low")),
+                              "loss": {"schedules": {"lambda_reg": {"start": 0.0, "end": 0.0}, "lambda_calib": {"start": 0.0, "end": 0.0}}}})
     mcfg = _model_cfg(ns)
     builder = lambda: ns["build_model_fn"](T_LEN, N_FEAT, config=mcfg)  # noqa: E731
     yi = ns["with_sample_index"](y)
@@ -419,7 +420,8 @@ class MainWrapperTests(unittest.TestCase):
         _extract_defs("batches", {"make_shuffled_dataset", "_to_unit_label", "make_eval_dataset", "_to_float32_inputs"}, ns)
         ns["main_config"] = ns["build_config"]({"run": {"run_dir": tempfile.mkdtemp(), "epochs": 1, "batch_size": BS, "verbose": 0,
                                                         "train_mode": "new"},
-                                                "optimizer": {"lr_initial": 1e-2}, "targets": ns["build_target_configs"](("high", "low"))})
+                                                "optimizer": {"lr_initial": 1e-2}, "targets": ns["build_target_configs"](("high", "low")),
+                                                "loss": {"schedules": {"lambda_reg": {"start": 0.0, "end": 0.0}, "lambda_calib": {"start": 0.0, "end": 0.0}}}})
         ns["_y_for"] = lambda sp, config=None: dict(sp["y"])
         _module_into("diagnostics", ns)
         _module_into("capacity", ns)
@@ -512,7 +514,8 @@ class CapacityToolsTests(unittest.TestCase):
     def _cfg(self):
         ns = self.ns
         return ns["build_config"]({"run": {"run_dir": tempfile.mkdtemp(), "epochs": 1, "batch_size": BS, "verbose": 0, "train_mode": "new"},
-                                   "optimizer": {"lr_initial": 1e-2}, "targets": ns["build_target_configs"](("high",))})
+                                   "optimizer": {"lr_initial": 1e-2}, "targets": ns["build_target_configs"](("high",)),
+                                   "loss": {"schedules": {"lambda_reg": {"start": 0.0, "end": 0.0}, "lambda_calib": {"start": 0.0, "end": 0.0}}}})
 
     def test_effective_sample_size_discounts_correlated_assets(self):
         ess = self.ns["effective_sample_size"]
