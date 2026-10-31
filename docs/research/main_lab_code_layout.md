@@ -71,7 +71,7 @@
 | 17 | ٥ التدريب | `workflow/batches.py` | `make_shuffled_dataset`، `make_eval_dataset`، `_y_for`، `_to_unit_label` |
 | 19، 20 | ٦ chicks | `workflow/chicks_bridge.py` | `build_chicks_test_dict`، `entry_range_target_spec` (كانت `_entry_range_spec` متداخلة في الخلية 20) |
 | 23 | ٧ تقارير | `workflow/reports.py` | `latest_trading_report`، `real_price_predictions`، `classification_accuracy_report` |
-| 24 | ٧ دمج الأصول | `workflow/pooling.py` | `pool_test_dict`، `predict_pooled_batch_by_asset` |
+| 24 | ٧ دمج الأصول | `evaluation/pooled.py` (كانت `workflow/pooling.py`، رُفعت إلى evaluation لتستعملها كل مواقع التقييم) | `pool_test_dict`، `predict_pooled_batch_by_asset` (+ `pool_x`، `predict_pooled_raw`، `slice_by_asset`، `latest_table_from_raw`) |
 | 26 | ٧-ب | `workflow/selective_eval.py` | `collect_signals`، `selective_direction_report`، `rr_trading_report` |
 | 28 | ٧-ج | `workflow/candle_baseline.py` | `candle_baseline_report` |
 | 30 | ٧-د | `workflow/verification.py` | `run_full_verification` |

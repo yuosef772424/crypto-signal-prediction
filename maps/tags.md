@@ -21,7 +21,7 @@
 - _merge_spilled: data/disk_backed
 - _naive_class_baseline: workflow/training_config
 - _notebook_code: discovery/axis_loader
-- _pool_by_asset: workflow/pooling
+- _pool_by_asset: evaluation/pooled
 - _required: workflow/splits
 - _resolve_train_mode: trainer/system
 - _rsi_vol_adjusted: discovery/hypothesis_predictors
@@ -84,7 +84,7 @@
 - architecture: tools/check_deps
 - archive_state: trainer/checkpoints
 - assembly: workflow/__init__
-- asset_bounds: data/pipeline, workflow/pooling
+- asset_bounds: data/pipeline, evaluation/pooled
 - asset_registry: tools/fetch_history_csv_concurrent, tools/fetch_history_vision_colab
 - ast: discovery/axis_loader, tools/build_map, tools/check_patterns
 - asym_score: cross_asset/train
@@ -110,6 +110,7 @@
 - baseline signals: workflow/panel_bridge
 - batch runner: discovery/batch_runner
 - batch shape: cross_asset/data
+- batched evaluation: evaluation/pooled
 - batched predict: evaluation/predict
 - batches: workflow/batches
 - batching: cross_asset/data
@@ -750,6 +751,7 @@
 - late binding: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, trainer/_loader … (+1)
 - latest samples: evaluation/latest_table
 - latest_only: evaluation/live
+- latest_table_from_raw: evaluation/pooled
 - latest_trading_report: workflow/reports
 - layer probe: workflow/diagnostics
 - layer_compare_report: model/layer_report
@@ -983,6 +985,7 @@
 - on-chain: edge_discovery/20_onchain
 - one click: tools/colab_runner
 - one component one interface: core/registry
+- one model call: evaluation/pooled
 - one-shot: indicator_strategy/test_final
 - only shrinks: tools/check_patterns
 - open interest: data/binance_client, data/funding_oi, tools/fetch_history_csv_concurrent, tools/fetch_history_vision_colab
@@ -1047,7 +1050,7 @@
 - per_asset_ci_table: evaluation/all_assets
 - per_head: evaluation/patterns
 - per_window: signal_eval/windows
-- performance: trainer/perf
+- performance: evaluation/pooled, trainer/perf
 - permutation control: workflow/permutation_control
 - permutation test: evaluation/io_patterns, signal_eval/core
 - permutation_baseline: signal_eval/core
@@ -1072,9 +1075,10 @@
 - plot_equity_curve: evaluation/plots
 - plot_pattern_validation: evaluation/io_patterns
 - plugin: core/registry
-- pool_test_dict: workflow/pooling
+- pool_test_dict: evaluation/pooled
+- pool_x: evaluation/pooled
 - pooled z*y: edge_discovery/08_ts_screen
-- pooling: model/readout
+- pooling: evaluation/pooled, model/readout
 - portfolio: workflow/market_neutral
 - position sizing: h07_volsizing/01_volsizing
 - positional embedding: model/patches
@@ -1086,7 +1090,8 @@
 - predict_fn: discovery/predictors
 - predict_latest_all_assets: evaluation/live
 - predict_latest_v4: evaluation/live
-- predict_pooled_batch_by_asset: workflow/pooling
+- predict_pooled_batch_by_asset: evaluation/pooled
+- predict_pooled_raw: evaluation/pooled
 - predict_with_evaluation_v3: evaluation/unified
 - predict_with_evaluation_v4: evaluation/__init__, evaluation/unified
 - predicted high low: edge_discovery/31_wick_capture, edge_discovery/32_breakout_stops, tools/bracket_eval
@@ -1320,6 +1325,7 @@
 - skew: edge_discovery/04_screen_mean
 - skip_labels: data/pipeline
 - sl_room: tools/bracket_eval
+- slice_by_asset: evaluation/pooled
 - slippage: edge_discovery/32_breakout_stops
 - small_array_bytes: data/disk_backed
 - smart-minus-retail: edge_discovery/features

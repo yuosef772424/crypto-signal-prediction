@@ -58,7 +58,7 @@
    "workflow/reports.py": 1,
    "workflow/retarget.py": 2,
    "workflow/selective_eval.py": 1,
-   "workflow/wiring_selftest.py": 11
+   "workflow/wiring_selftest.py": 9
   },
   "metric-def-outside-stats": {
    "cross_asset/report.py": 3,
@@ -94,9 +94,7 @@
    "workflow/wiring_selftest.py": 1
   },
   "per-asset-model-call-loop": {
-   "evaluation/all_assets.py": 1,
-   "evaluation/live.py": 1,
-   "workflow/reports.py": 1
+   "evaluation/all_assets.py": 1
   },
   "seed-literal": {
    "cross_asset/data.py": 1,

@@ -133,30 +133,14 @@ def run_wiring_selftest(kit, verbose=True):
         if k.endswith("_reg"):   # الأهداف الوهمية هنا: الانحدار متّسق مع الأسعار، التصنيف عشوائي عمداً
             assert np.allclose(r_tr["y"][k], v, atol=1e-6), k
 
-    # الدفعة المدمجة (predict_pooled_batch_by_asset): يجب أن تُعطي نتائج مطابقة عملياً
-    # لاستدعاء منفصل لكل أصل (predict_latest_all_assets) رغم أنها تستدعي predict_batch_v4
-    # مرّة واحدة فقط لكل الأصول معاً بدل استدعاء منفصل لكل أصل — التحقّق هنا رقمي
-    # (تطابق القيم)؛ استدعاء النموذج مرّة واحدة فقط خاصية بنيوية واضحة من كود الدالة نفسها.
-    # تسامح (rtol/atol) بدل التطابق الحتمي: تركيب الدفعة يُغيّر ترتيب عمليات الجمع
-    # العائم (matmul/reduction) فيُنتج فروقاً دقيقة (~1e-5 على قيم بمئات) لا علاقة
-    # لها بصحّة الحساب — النموذج لا يحوي BatchNorm فهو مستقلّ عن تركيب الدفعة رياضياً.
-    pooled, y_true_pooled = pool_test_dict(fake_test_dict, tf_name)
-    assert [b["name"] for b in pooled["asset_bounds"]] == list(fake_test_dict.keys())
-    pooled_table = predict_pooled_batch_by_asset(
-        fake_model, pooled, tf_name, target_specs=eval_specs,
-        n_display=1000, y_true_pooled=y_true_pooled, verbose=False)
-    separate_table = predict_latest_all_assets(
+    # الدفعة المدمجة: صار تنبؤ كل الأصول استدعاء نموذج واحداً (evaluation/pooled.py) في predict_latest_all_assets نفسها؛
+    # تكافؤه مع الاستدعاء لكل أصل وعدد استدعاءات النموذج يُثبتهما tests/test_evaluation_predict_calls.py (لا مسارَين هنا للمقارنة).
+    all_tab = predict_latest_all_assets(
         fake_model, fake_test_dict, timeframes=[tf_name], target_specs=eval_specs,
         n_display=1000, verbose=False)
-    for asset in fake_test_dict:
-        for t in ("high", "low", "close"):
-            a = pooled_table.query("asset == @asset and target == @t")["pred"].to_numpy()
-            b = separate_table.query("asset == @asset and target == @t")["pred"].to_numpy()
-            assert a.shape == b.shape and np.allclose(a, b, rtol=1e-3, atol=1e-2, equal_nan=True), (
-                f"الدفعة المدمجة تختلف عن الحلقة اليدوية لـ{asset}/{t}")
+    assert list(dict.fromkeys(all_tab["asset"])) == list(fake_test_dict.keys()), "ترتيب/مجموعة الأصول في الجدول"
     if verbose:
-        print("  ✅ predict_pooled_batch_by_asset: نتائج مطابقة (بحدود دقّة float32) لاستدعاء منفصل لكل أصل، "
-              "باستدعاء نموذج واحد فقط للأصلين معاً بدل استدعاء لكل أصل")
+        print("  ✅ predict_latest_all_assets: جدول بكل الأصول بترتيبها (استدعاء نموذج واحد فقط لكل الأصول معاً)")
 
     # مسار التصنيف المنفصل (classification_accuracy_report) بنفس المنطق، على البيانات الوهمية —
     # بترميز +1.0/-1.0 المُحوَّل عبر _to_unit_label، تماماً كما في classification_accuracy_report الفعلية
@@ -195,19 +179,11 @@ def run_wiring_selftest(kit, verbose=True):
                                 target_specs=eval_specs, make_plots=False, verbose=False,
                                 out_dir="/tmp/_wiring_selftest_analysis_2tf")
     assert "per_asset_results" in two_res and len(two_res["per_asset_results"]) == 2
-    two_pooled, two_y = pool_test_dict(fake_test_dict, two)
-    two_tab = predict_pooled_batch_by_asset(two_model, two_pooled, two, target_specs=eval_specs,
-                                            n_display=1000, y_true_pooled=two_y, verbose=False)
-    two_sep = predict_latest_all_assets(two_model, fake_test_dict, timeframes=two, target_specs=eval_specs,
+    two_tab = predict_latest_all_assets(two_model, fake_test_dict, timeframes=two, target_specs=eval_specs,
                                         n_display=1000, verbose=False)
-    for asset in fake_test_dict:
-        for t in ("high", "low", "close"):
-            a = two_tab.query("asset == @asset and target == @t")["pred"].to_numpy()
-            b = two_sep.query("asset == @asset and target == @t")["pred"].to_numpy()
-            assert a.shape == b.shape and np.allclose(a, b, rtol=1e-3, atol=1e-2, equal_nan=True), (
-                f"متعدّد الفريمات: الدفعة المدمجة تختلف عن الحلقة اليدوية لـ{asset}/{t}")
+    assert list(dict.fromkeys(two_tab["asset"])) == list(fake_test_dict.keys()), "متعدّد الفريمات: ترتيب/مجموعة الأصول"
     if verbose:
-        print("  ✅ متعدّد الفريمات (فريمان): تدريب حقبة بتغذية القاموس، chicks، الدفعة المدمجة، والإشارات")
+        print("  ✅ متعدّد الفريمات (فريمان): تدريب حقبة بتغذية القاموس، chicks، الجدول المدمج، والإشارات")
 
     # نموذج اللوحة عبر العملات (القسم ٧-ح): تجميع الأيام، القناع، الخسائر، تدريب قصير، استئناف وتصدير —
     # بالمُرمِّز الحقيقي (build_model_fn بإعداد مقاومة الحفظ). يُتخطّى إن لم تكن الحزمة بجانب الدفاتر.

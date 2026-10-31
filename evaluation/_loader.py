@@ -13,7 +13,7 @@ REPO_ROOT = PACKAGE_DIR.parent
 
 #: Load order = the order of the cells these modules were extracted from (chicks_v4_5_input_output_patterns.ipynb).
 MODULES = (
-    "targets", "outputs", "predict", "decode", "verify", "metrics", "latest_table", "unified", "all_assets", "live",
+    "targets", "outputs", "predict", "decode", "verify", "metrics", "latest_table", "unified", "pooled", "all_assets", "live",
     "flat", "trust_calibration", "output_conditioned", "patterns", "tearsheet", "plots", "integrity", "full_analysis",
     "legacy_uncertainty", "legacy_assets", "trade_selection", "io_patterns",
 )

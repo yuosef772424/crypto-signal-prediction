@@ -43,13 +43,6 @@ cross workflow/market_neutral.py sample_timestamps -> data/split.py
 cross workflow/permutation_control.py TRAINER_REGISTRY -> trainer/checkpoints.py
 cross workflow/permutation_control.py build_config -> trainer/config.py
 cross workflow/permutation_control.py build_training_system -> trainer/system.py
-cross workflow/pooling.py _extract_timestamps -> evaluation/latest_table.py
-cross workflow/pooling.py _resolve_for_model -> evaluation/targets.py
-cross workflow/pooling.py build_latest_table -> evaluation/latest_table.py
-cross workflow/pooling.py decode_predictions_v4 -> evaluation/decode.py
-cross workflow/pooling.py evaluate_predictions_v4 -> evaluation/metrics.py
-cross workflow/pooling.py predict_batch_v4 -> evaluation/predict.py
-cross workflow/pooling.py print_latest_table -> evaluation/latest_table.py
 cross workflow/reports.py CONFIG -> data/runtime.py
 cross workflow/reports.py LAST_COLUMNS -> data/windows.py
 cross workflow/reports.py invert_reg_predictions -> data/windows.py

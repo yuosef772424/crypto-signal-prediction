@@ -155,12 +155,12 @@ Documents:
 - API:
   - `def probe(ns, label, offsets, extra_T=())` L26
 
-### `docs/research/audit/r3_00c_gather_alignment.py` (113 lines)
+### `docs/research/audit/r3_00c_gather_alignment.py` (114 lines)
 - PURPOSE: R3-00c (clean check): the 1h and 4h arrays are gathered with the SAME sample indices everywhere, and float16 X is upcast (from docstring)
 - DEPENDS: cross_asset
 - API:
-  - `def split(off, n)` L37
-  - `def chk(b)` L75
+  - `def split(off, n)` L38
+  - `def chk(b)` L76
 
 ### `docs/research/audit/r3_00d_single_tf_unchanged.py` (100 lines)
 - PURPOSE: R3-00d (clean check): single-timeframe (and legacy 2-timeframe) pipeline output is byte-identical to the commit before the (from docstring)

@@ -20,7 +20,6 @@ Modules (load order) and the old main.ipynb cell each was extracted from (settin
   batches             cell 17 (section 5)
   chicks_bridge       cell 19 (section 6)
   reports             cell 23 (section 7)
-  pooling             cell 24 (section 7)
   selective_eval      cell 26 (section 7-b)
   candle_baseline     cell 28 (section 7-c)
   verification        cell 30 (section 7-d)
