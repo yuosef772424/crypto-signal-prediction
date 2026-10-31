@@ -513,30 +513,31 @@
 - API:
   - `def main(argv=None)` L52
 
-### `tools/paired_compare.py` (434 lines)
+### `tools/paired_compare.py` (442 lines)
 - PURPOSE: Paired comparison of two model arms PER TIMESTAMP (card T2): one loss per (timestamp, arm) averaged over the coins of that timestamp, the paired differential d_t = loss_a - loss_b on the timestamps both arms have, a block bootstrap over WH…
 - TAGS: paired comparison, loss differential, newey-west, hac, block bootstrap, stationary bootstrap, moving block bootstrap, design effect, effective sample size, n_eff, per-timestamp loss, autocorrelation, t2, compare models
 - PITFALLS: The unit is the TIMESTAMP: coin-time rows are never resampled or counted as independent (coins are averaged inside a timestamp first). d_t = loss_a - loss_b, so NEGATIVE mean = arm A is better. "Contiguous block" means adjacent in the sorted aligned timestamp list (after dropping timestamps one arm lacks), not adjacent in wall-clock time: with a stride > 1 the blocks are blocks of samples. Non-fi…
+- DEPENDS: stats
 - API:
-  - `class PerTimestampLosses` L37
-  - `class PairedDifferential` L45
-  - `class BootstrapResult` L55
-  - `class NeweyWestResult` L69
-  - `class DesignEffect` L79
-  - `class CompareResult` L91
-  - `def nw_default_lag(T)` L125
-  - `def andrews_lag(x)` L132
-  - `def resolve_lags(x, lags)` L144
-  - `def resolve_block_len(x, block_len)` L155
-  - `def per_timestamp_loss(df, *, ts_col, y_col=None, pred_cols=None, loss_cols=None, loss)` L168
-  - `def paired_differential(loss_a, loss_b, *, min_overlap)` L210
-  - `def block_bootstrap_mean(d, *, block_len, n_boot, seed, kind, ci_level=0.95)` L254
-  - `def newey_west_mean(d, *, lags)` L283
-  - `def temporal_design_effect(x, *, lags, clamp)` L297
-  - `def design_effect_by_target(df, targets, *, ts_col, lags, clamp, series, min_assets=None)` L334
-  - `def compare_arms(df, targets, *, ts_col, loss, lags, block_len, n_boot, seed, kind, min_overlap, clamp, ci_level=0.95)` L355
-  - `def format_report(result)` L394
-  - `def main(argv=None)` L407
+  - `class PerTimestampLosses` L44
+  - `class PairedDifferential` L52
+  - `class BootstrapResult` L62
+  - `class NeweyWestResult` L76
+  - `class DesignEffect` L86
+  - `class CompareResult` L98
+  - `def nw_default_lag(T)` L132
+  - `def andrews_lag(x)` L139
+  - `def resolve_lags(x, lags)` L151
+  - `def resolve_block_len(x, block_len)` L162
+  - `def per_timestamp_loss(df, *, ts_col, y_col=None, pred_cols=None, loss_cols=None, loss)` L175
+  - `def paired_differential(loss_a, loss_b, *, min_overlap)` L217
+  - `def block_bootstrap_mean(d, *, block_len, n_boot, seed, kind, ci_level=0.95)` L261
+  - `def newey_west_mean(d, *, lags)` L290
+  - `def temporal_design_effect(x, *, lags, clamp)` L304
+  - `def design_effect_by_target(df, targets, *, ts_col, lags, clamp, series, min_assets=None)` L342
+  - `def compare_arms(df, targets, *, ts_col, loss, lags, block_len, n_boot, seed, kind, min_overlap, clamp, ci_level=0.95)` L363
+  - `def format_report(result)` L402
+  - `def main(argv=None)` L415
 
 ### `tools/run_self_tests.py` (47 lines)
 - PURPOSE: The ONE entry point that runs the self-tests of the shared-namespace packages (data, model, trainer, evaluation) in a notebook namespace: `run_self_tests(globals())`. Loading a package (`<pkg>.load_into`) only defines; this runs the tests.

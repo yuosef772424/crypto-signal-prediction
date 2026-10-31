@@ -383,5 +383,34 @@ class SignalEvalCoreMigration(unittest.TestCase):
                     same(self, new(a, b, method, min_samples), want, f"{method} min={min_samples}")
 
 
+# ───────────────────────── tools/paired_compare.py (_ic_series) ─────────────────────────
+def _legacy_ic_series(df, ts_col, y_col, pred_col, min_assets):
+    sub = df[[ts_col, y_col, pred_col]].copy()
+    sub = sub[np.isfinite(sub[y_col].to_numpy(dtype="float64")) & np.isfinite(sub[pred_col].to_numpy(dtype="float64"))]
+    sub["_ry"] = sub.groupby(ts_col)[y_col].rank()
+    sub["_rp"] = sub.groupby(ts_col)[pred_col].rank()
+    out = {}
+    for t, g in sub.groupby(ts_col, sort=True):
+        if len(g) < min_assets:
+            continue
+        a, b = g["_ry"].to_numpy(), g["_rp"].to_numpy()
+        if a.std() == 0 or b.std() == 0:
+            continue
+        out[t] = float(np.corrcoef(a, b)[0, 1])
+    return pd.Series(out, dtype="float64")
+
+
+class PairedCompareMigration(unittest.TestCase):
+    def test_ic_series_is_bit_equal_to_the_old_definition(self):
+        import paired_compare as pc
+        for seed in range(8):
+            d = panel_frame(seed, nan_frac=0.1)
+            d.loc[d.index[::17], "target"] = np.inf
+            for min_assets in (3, 8, 25):
+                got = pc._ic_series(d, "timestamp", "target", "score", min_assets)
+                want = _legacy_ic_series(d, "timestamp", "target", "score", min_assets)
+                pd.testing.assert_series_equal(got, want, check_exact=True)
+
+
 if __name__ == "__main__":
     unittest.main()
