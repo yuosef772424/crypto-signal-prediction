@@ -11,7 +11,7 @@ from typing import Any, Callable, Dict, Iterable, Mapping, NamedTuple, Optional,
 from core.heads import HeadSet
 from core.registry import Contract, Registry
 
-__all__ = ["LOSS_BALANCERS", "HEAD_LOSS_TERMS", "check_head_loss_terms", "check_report_heads", "SELECTION_METRICS", "SelectionChoice", "SCHEDULE_CURVES", "SUB_TERM_SCHEDULES", "DEFAULT_BALANCING",
+__all__ = ["LOSS_BALANCERS", "HEAD_LOSS_TERMS", "check_head_loss_terms", "check_report_heads", "SAMPLE_WEIGHTINGS", "check_sample_weighting", "SELECTION_METRICS", "SelectionChoice", "SCHEDULE_CURVES", "SUB_TERM_SCHEDULES", "DEFAULT_BALANCING",
            "DEFAULT_SELECTION_METRIC", "check_loss_weights", "check_loss_schedules", "resolve_selection_metric", "trainer_loss_section"]
 
 #: curve names of a scheduled loss sub-term (trainer/schedules.py `_progress_curve`; trainer/config.py validates against this tuple).
@@ -122,6 +122,57 @@ def check_head_loss_terms(terms: Any, heads: HeadSet, what: str = "loss.head_ter
     if problems:
         raise ValueError(f"{what}: " + "; ".join(problems))
     return out
+
+
+# ───────────────────────────── training sample weights ─────────────────────────────
+def _abs_target_clip(abs_y, *, clip, where, lo, hi, dead_zone):
+    """w = clip(|y|, lo, hi), and w = lo inside the dead zone |y| < dead_zone (noise-sized moves down-weighted, never dropped).
+    Array-agnostic: the caller passes ``clip`` / ``where`` (numpy.clip / numpy.where) and float64 |y|."""
+    return where(abs_y < dead_zone, lo, clip(abs_y, lo, hi))
+
+
+def _check_sample_weighting(name, fn, meta):
+    problems = []
+    if not callable(fn):
+        problems.append(f"must be a callable (abs_y, *, clip, where, **params) -> weights, got {type(fn).__name__}")
+    p = meta["params"]
+    if not isinstance(p, dict) or not all(isinstance(k, str) and _finite_number(v) for k, v in p.items()):
+        problems.append(f"params must be a dict of finite numbers, got {p!r}")
+    for k in ("target_modes", "task_types"):
+        if not isinstance(meta[k], tuple) or not meta[k]:
+            problems.append(f"{k} must be a non-empty tuple")
+    return problems
+
+
+#: training sample-weighting method name -> ``fn(abs_y, *, clip, where, **params)``: a pointwise function of each training sample's OWN
+#: regression label (no learned state, nothing fitted on val/test), applied to the training loss only (the validation loss and every
+#: selection metric stay unweighted). params are part of the registered definition (another setting = another registered name);
+#: target_modes = the target-mode bases whose labels are in the units the params assume (volnorm: |y| in window-volatility units).
+#: The trainer applies weights through its existing sample_weight path (tasks with supports_sample_weight), per head by label key.
+SAMPLE_WEIGHTINGS = Registry("sample weighting", Contract(
+    "sample weighting", required_meta=("params", "target_modes", "task_types", "description"), optional_meta=(),
+    validator=_check_sample_weighting))
+SAMPLE_WEIGHTINGS.register("abs_target_clip", _abs_target_clip, version=1, params={"lo": 0.2, "hi": 2.0, "dead_zone": 0.3},
+                           target_modes=("volnorm",), task_types=("evidential", "regression"),
+                           description="w = clip(|z|, 0.2, 2) with w = 0.2 for |z| < 0.3: large moves weigh up to 10x a noise move")
+
+
+def check_sample_weighting(name: Any, target_mode: Optional[str], what: str = "loss.sample_weighting") -> Optional[str]:
+    """None, or a registered SAMPLE_WEIGHTINGS name whose target_modes contain the base of ``target_mode`` (``"volnorm+relative"``
+    -> ``"volnorm"``); anything else raises ValueError."""
+    if name is None:
+        return None
+    if not isinstance(name, str):
+        raise ValueError(f"{what} must be None or a registered name, got {name!r}")
+    try:
+        meta = SAMPLE_WEIGHTINGS.entry(name).meta
+    except ValueError as e:
+        raise ValueError(f"{what}: {e}") from None
+    base = (target_mode or "").partition("+")[0]
+    if base not in meta["target_modes"]:
+        raise ValueError(f"{what} {name!r} assumes labels of target mode(s) {list(meta['target_modes'])} (its thresholds are in those "
+                         f"units); target_mode is {target_mode!r}")
+    return name
 
 
 def check_report_heads(names: Any, heads: HeadSet, stat: str = "ic", what: str = "loss.report_ic") -> Tuple[str, ...]:

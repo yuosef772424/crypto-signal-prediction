@@ -1343,8 +1343,10 @@
 - safe load: discovery/axis_loader
 - salt: tools/build_lock
 - sample size guard: strategy_discovery/oos, strategy_discovery/survivor_checks
+- sample weights: workflow/training_config
 - sample_filters: data/windows
 - sample_idx_key: trainer/training_diagnostics
+- sample_weights_for: workflow/training_config
 - sar: tools/gate_features
 - save load: model/selftests
 - save_config: data/runtime

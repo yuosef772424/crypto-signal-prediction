@@ -27,19 +27,25 @@ def _y_for(split, config=None):
     return y
 
 
-def make_shuffled_dataset(X, y_dict, batch_size, seed=None, shuffle=True):
+def make_shuffled_dataset(X, y_dict, batch_size, seed=None, shuffle=True, sample_weight=None):
     """خلط **كامل** كل حقبة عبر فهارس لا عبر البيانات نفسها.
 
     split_data يُخرج العيّنات مرتّبة عملةً عملة ثم زمنياً، و`shuffle(4096)` السابق يخلط محلياً فقط:
     قيس على 300 عملة × 1060 عيّنة — ~13 عملة فقط في كل دفعة، والحقبة تمرّ على العملات بالترتيب (أول
     10% من الحقبة ≈ العملة رقم 15، آخر 10% ≈ رقم 284)، فينتهي كل تحقق بعد تدريب شبه حصري على آخر
     عشرات العملات. خلط الفهارس (أعداد صحيحة، بضعة ميجابايت) يعطي ~58 عملة لكل دفعة بتوزيع منتظم،
-    دون نسخ X (~1.8 جيجا) داخل مخزن الخلط."""
+    دون نسخ X (~1.8 جيجا) داخل مخزن الخلط.
+
+    sample_weight: None (الافتراضي = العناصر (x, y) كما كانت) أو {مفتاح تسمية: أوزان بطول n} ← العناصر (x, y, sample_weight) بنفس
+    فهارس الدفعة (يقرؤها GenericTrainer بمفتاح التسمية؛ workflow.training_config.sample_weights_for)."""
     x_keys = list(X) if isinstance(X, dict) else None      # X قاموس {فريم: مصفوفة} لنموذج متعدّد الفريمات
     x_arrays = [X[k] for k in x_keys] if x_keys else [X]
     n, keys = len(x_arrays[0]), list(y_dict)
-    arrays = x_arrays + [y_dict[k] for k in keys]
-    n_x = len(x_arrays)
+    w_keys = list(sample_weight) if sample_weight is not None else []
+    arrays = x_arrays + [y_dict[k] for k in keys] + [sample_weight[k] for k in w_keys]
+    n_x, n_y = len(x_arrays), len(keys)
+    if any(len(a) != n for a in arrays):
+        raise ValueError(f"make_shuffled_dataset: every array needs {n} rows, got {[len(a) for a in arrays]}")
 
     def _gather(idx):
         idx = np.sort(idx)                     # ترتيب داخل الدفعة لا يغيّر التدرّج ويُسرّع القراءة
@@ -49,7 +55,11 @@ def make_shuffled_dataset(X, y_dict, batch_size, seed=None, shuffle=True):
     def _map(idx):
         outs = tf.numpy_function(_gather, [idx], [tf.float32] * len(arrays))
         outs = [tf.ensure_shape(o, (batch_size,) + tuple(a.shape[1:])) for o, a in zip(outs, arrays)]
-        return (dict(zip(x_keys, outs[:n_x])) if x_keys else outs[0]), dict(zip(keys, outs[n_x:]))
+        x = dict(zip(x_keys, outs[:n_x])) if x_keys else outs[0]
+        y = dict(zip(keys, outs[n_x:n_x + n_y]))
+        if w_keys:
+            return x, y, dict(zip(w_keys, outs[n_x + n_y:]))
+        return x, y
 
     ds = tf.data.Dataset.range(n)
     if shuffle:

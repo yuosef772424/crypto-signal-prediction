@@ -45,18 +45,19 @@
   - `def output_name(target: str, role: str) -> str` L404
   - `def parse_output_name(key: str) -> Tuple[str, str]` L419
 
-### `core/loss_plan.py` (306 lines)
+### `core/loss_plan.py` (357 lines)
 - PURPOSE: The vocabulary of the loss plan and of model selection (tier 0, stdlib + core only): LOSS_BALANCERS (task-balancing methods by registered name), SELECTION_METRICS (the validation metrics a run may pick its best epoch by, each declaring whe…
 - TAGS: loss_balancers, selection_metrics, selectionchoice, resolve_selection_metric, check_loss_weights, check_loss_schedules, trainer_loss_section, schedule_curves, sub_term_schedules, loss plan, loss weights, task balancing, kendall, static, selection metric, val_raw_loss, objective independent, early stopping monitor, one component one interface, tier 0
 - PITFALLS: A loss weight reaches the trainer ONLY through `RunSettings.train.loss` (workflow/settings.py LossSettings) -> `HeadSet.with_loss_weights` -> `targets[head].loss_weight`; a balancing method is a REGISTERED name whose entry says which trainer `loss` keys it sets (today "static" = fixed weights, "kendall" = learned homoscedastic weights on the classification heads; the default is "kendall" = what `…
 - API:
   - `def check_head_loss_terms(terms: Any, heads: HeadSet, what: str='loss.head_terms') -> Dict[str, Dict[str, float]]` L95
-  - `def check_report_heads(names: Any, heads: HeadSet, stat: str='ic', what: str='loss.report_ic') -> Tuple[str, ...]` L127
-  - `def check_loss_weights(weights: Any, heads: HeadSet, what: str='loss.weights') -> Dict[str, float]` L146
-  - `def check_loss_schedules(schedules: Any, what: str='loss.schedules') -> Dict[str, Dict[str, Any]]` L162
-  - `def trainer_loss_section(balancing: str, schedules: Mapping[str, Mapping[str, Any]], heads: Optional[HeadSet]=None) -> dict` L202
-  - `class SelectionChoice(NamedTuple)` L262
-  - `def resolve_selection_metric(monitor: str, heads: HeadSet, mode: Optional[str]=None) -> SelectionChoice` L271
+  - `def check_sample_weighting(name: Any, target_mode: Optional[str], what: str='loss.sample_weighting') -> Optional[str]` L160
+  - `def check_report_heads(names: Any, heads: HeadSet, stat: str='ic', what: str='loss.report_ic') -> Tuple[str, ...]` L178
+  - `def check_loss_weights(weights: Any, heads: HeadSet, what: str='loss.weights') -> Dict[str, float]` L197
+  - `def check_loss_schedules(schedules: Any, what: str='loss.schedules') -> Dict[str, Dict[str, Any]]` L213
+  - `def trainer_loss_section(balancing: str, schedules: Mapping[str, Mapping[str, Any]], heads: Optional[HeadSet]=None) -> dict` L253
+  - `class SelectionChoice(NamedTuple)` L313
+  - `def resolve_selection_metric(monitor: str, heads: HeadSet, mode: Optional[str]=None) -> SelectionChoice` L322
 
 ### `core/price_norm.py` (20 lines)
 - PURPOSE: The ONE pair of formulas that maps a future price to the standardized log-return target space of price_norm_mode 'logret_*' and back: z = (log(price / anchor) - mean) / std. Used by data.normalizers (pipeline) and evaluation.decode (model…

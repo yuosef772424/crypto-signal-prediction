@@ -10,6 +10,7 @@ from copy import deepcopy as _deepcopy
 from core.heads import HeadSet as _HeadSet
 from core.loss_plan import (DEFAULT_BALANCING as _DEFAULT_BALANCING, LOSS_BALANCERS as _LOSS_BALANCERS,
                             check_head_loss_terms as _check_head_loss_terms, check_report_heads as _check_report_heads,
+                            check_sample_weighting as _check_sample_weighting, SAMPLE_WEIGHTINGS as _SAMPLE_WEIGHTINGS,
                             check_loss_schedules as _check_loss_schedules, check_loss_weights as _check_loss_weights,
                             resolve_selection_metric as _resolve_selection_metric)
 from core.schema import (ENTRY_CLOSE_REGS as _ENTRY_CLOSE_REGS, NO_RELATIVE_BASES as _NO_RELATIVE_BASES, TARGET_COLUMNS as _TARGET_COLUMNS,
@@ -235,9 +236,17 @@ class LossSettings(_SettingsSection):
     #: Heads whose val IC (``val_<head>_ic``, Pearson over the full val set, stats.metrics) is logged although it is not the selection monitor (the
     #: monitor's own head is always logged). () = nothing extra is logged = the old logs.
     report_ic: tuple = ()
+    #: Training sample weights of the regression heads, a registered name of core.loss_plan.SAMPLE_WEIGHTINGS ("abs_target_clip":
+    #: w = clip(|z|, 0.2, 2), 0.2 inside |z| < 0.3; needs target_mode "volnorm"), computed from each TRAIN sample's own label and applied
+    #: to the training loss only (val loss and selection metrics unweighted). None = no weights = the old batches. Not None changes the
+    #: run folder name (run_dir_for: "_sw-<name>").
+    sample_weighting: _t.Optional[str] = None
 
     def __post_init__(self):
         _settings_check(isinstance(self.balancing, str), "LossSettings.balancing must be a str (a registered balancer name)")
+        _settings_check(self.sample_weighting is None or (isinstance(self.sample_weighting, str) and self.sample_weighting in _SAMPLE_WEIGHTINGS),
+                        f"LossSettings.sample_weighting {self.sample_weighting!r} unknown; registered: {list(_SAMPLE_WEIGHTINGS.names())} "
+                        f"or None")
         try:
             _LOSS_BALANCERS.get(self.balancing)
         except ValueError as e:
@@ -474,6 +483,7 @@ class RunSettings:
                 raise TypeError(f"RunSettings.{name} must be a {cls.__name__}, got {type(getattr(self, name)).__name__}")
         # head-dependent checks that need two sections: the plan's head names / the selection metric against the heads class_only builds
         self.train.check_against_heads(_HeadSet.default(_TARGET_COLUMNS, class_only=self.model.class_only))
+        _check_sample_weighting(self.train.loss.sample_weighting, self.target.target_mode, "TrainSettings.loss.sample_weighting")
 
     @classmethod
     def from_dict(cls, d):
@@ -505,6 +515,8 @@ def run_dir_for(settings, reg_target_scale, model_tfs):
             + (f"_{settings.target.entry_close_reg}" if tm == "entry_range" else "")
             # قصّ آخر للهدف = هدف آخر: مجلد آخر؛ None (قصّ الوضع الافتراضي) لا يضيف شيئاً
             + (f"_clip{settings.target.clip:g}" if settings.target.clip is not None else "")
+            # أوزان عيّنات التدريب = هدف تدريب آخر (لا تظهر في بصمة إعداد المدرّب): مجلد آخر؛ None لا يضيف شيئاً
+            + (f"_sw-{settings.train.loss.sample_weighting}" if settings.train.loss.sample_weighting is not None else "")
             # هدف بمقياس آخر (reg_target_scale من البيانات) = مجلد آخر: لا يُستأنف نموذج دُرِّب على عوائد خام
             + (f"_s{reg_target_scale:g}" if reg_target_scale != 1.0 else "")
             + ("_am" if settings.model.anti_memorization else "")

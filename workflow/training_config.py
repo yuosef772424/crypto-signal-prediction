@@ -1,11 +1,11 @@
 """
 PURPOSE:  Bridge from model heads to trainer_framework targets: build_target_configs (true_key vs output_keys, derived from core.heads.HeadSet) and the naive majority-class baseline for val_accuracy.
-TAGS:     build_target_configs, with_head_loss_terms, head_terms, report_ic, build_head_set, loss_weights, true_key, output_keys, label_smoothing, class_baselines, _naive_class_baseline, trainer targets
+TAGS:     build_target_configs, with_head_loss_terms, head_terms, report_ic, sample_weights_for, sample weights, build_head_set, loss_weights, true_key, output_keys, label_smoothing, class_baselines, _naive_class_baseline, trainer targets
 PITFALLS: Pipeline labels are +1/-1 (batches._to_unit_label converts to {0,1} at feed time); the names come from core/heads.py HeadSet (the one place where data keys and model output keys are tied together). Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cells 15 and 17 (section 5).
 """
 from core.heads import HeadSet as _HeadSet
-from core.loss_plan import (check_head_loss_terms as _check_head_loss_terms, check_loss_weights as _check_loss_weights,
-                            check_report_heads as _check_report_heads)
+from core.loss_plan import (SAMPLE_WEIGHTINGS as _SAMPLE_WEIGHTINGS, check_head_loss_terms as _check_head_loss_terms,
+                            check_loss_weights as _check_loss_weights, check_report_heads as _check_report_heads)
 
 
 def build_head_set(price_targets, label_smoothing=0.0, class_only=False, loss_weights=None):
@@ -54,6 +54,24 @@ def with_head_loss_terms(targets, head_terms, report_ic, heads):
 
 
 import numpy as np
+
+
+def sample_weights_for(split, main_config, name):
+    """``{label key: float32 weights}`` of the regression heads of ``main_config`` (the task types of SAMPLE_WEIGHTINGS[name]) from
+    ``split``'s OWN labels (call it with the TRAIN split only: the weights enter the training loss, never validation or selection).
+    The trainer looks a head's weights up by its label key (GenericTrainer._weight_for_target); heads without an entry are unweighted."""
+    fn = _SAMPLE_WEIGHTINGS.get(name)
+    meta = _SAMPLE_WEIGHTINGS.entry(name).meta
+    out = {}
+    for cfg in main_config["targets"].values():
+        if cfg["task_type"] in meta["task_types"]:
+            y = np.asarray(split["y"][cfg["true_key"]], dtype="float64")
+            w = np.asarray(fn(np.abs(y), clip=np.clip, where=np.where, **meta["params"]), dtype="float64")
+            if w.shape != y.shape or not np.all(np.isfinite(w)) or np.any(w < 0):
+                raise ValueError(f"sample weighting {name!r} gave invalid weights for {cfg['true_key']!r} (shape {w.shape} vs {y.shape}, "
+                                 f"finite and >= 0 required)")
+            out[cfg["true_key"]] = w.astype("float32")
+    return out
 
 
 def _naive_class_baseline(split, cfg):

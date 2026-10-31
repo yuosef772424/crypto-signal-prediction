@@ -343,13 +343,16 @@ def make_training_config(settings, plan, info, val, kit):
     return main_config
 
 
-def make_datasets(main_config, train, val, info):
-    """القسم ٥: ``(train_ds, val_ds, sample_batch)`` — دفعات خلط كامل للتدريب، وبالترتيب لـ val."""
+def make_datasets(main_config, train, val, info, *, settings):
+    """القسم ٥: ``(train_ds, val_ds, sample_batch)`` — دفعات خلط كامل للتدريب، وبالترتيب لـ val. ``settings.train.loss.sample_weighting``
+    (None = لا أوزان = الدفعات القديمة) يضيف أوزان عيّنات من تسميات train وحدها لدفعات التدريب فقط؛ val تبقى بلا أوزان."""
     tfs = list(info.model_tfs)
     # البذرة قبل بناء مجموعة التدريب: shuffle بُنيت قبل ضبط البذرة العامة لا يمكن إعادة إنتاج ترتيبها (التدقيق C3). نفس البذرة ⇒ نفس ترتيب الدفعات.
     seed = main_config["run"]["seed"]
     seed_everything(seed, framework_seed_fn=tf.keras.utils.set_random_seed)
-    train_ds = make_shuffled_dataset(model_x(train, tfs), _y_for(train, main_config), main_config["run"]["batch_size"], seed=seed)
+    sw_name = settings.train.loss.sample_weighting
+    train_ds = make_shuffled_dataset(model_x(train, tfs), _y_for(train, main_config), main_config["run"]["batch_size"], seed=seed,
+                                     sample_weight=sample_weights_for(train, main_config, sw_name) if sw_name is not None else None)
     val_ds = make_eval_dataset(model_x(val, tfs), _y_for(val, main_config), main_config["run"]["batch_size"])
     sample_batch = next(iter(train_ds))
     return train_ds, val_ds, sample_batch
@@ -569,7 +572,7 @@ def run_main(settings, kit, dataset=None, summary=True):
     plan = plan_model(settings, dataset, info, kit)
     model_builder, model = build_model(plan, kit, summary=summary)
     main_config = make_training_config(settings, plan, info, val, kit)
-    train_ds, val_ds, sample_batch = make_datasets(main_config, train, val, info)
+    train_ds, val_ds, sample_batch = make_datasets(main_config, train, val, info, settings=settings)
     model, trainer, callbacks, history = train_model(settings, kit, model=model, model_builder=model_builder, main_config=main_config,
                                                      train_ds=train_ds, val_ds=val_ds, sample_batch=sample_batch)
     chicks = prepare_chicks(settings, plan, info, test, kit)
