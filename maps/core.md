@@ -50,9 +50,9 @@
 - TAGS: last_columns, ts_col, last_column_index, last_dtype, target_columns, target_modes, no_relative_bases, entry_close_regs, last_candles, schema, column order
 - PITFALLS: LAST_COLUMNS is the physical column order of every saved dataset's last_candles array: reordering or inserting breaks existing datasets, checkpoints and every positional index, so only APPEND (and then update the "(N, 7)" docs). It is a tuple (immutable); `.index(name)` is the way to get a position. LAST_COLUMN_INDEX is a read-only name -> index mapping (cross_asset's old LC dict). TARGET_MODES l…
 
-### `core/seeds.py` (31 lines)
+### `core/seeds.py` (28 lines)
 - PURPOSE: The ONE `seed_everything(seed)`: seeds python `random`, numpy and TensorFlow/Keras from a single integer (the run's `TrainSettings.seed` -> `config["run"]["seed"]`); every other place gets its seed from there instead of a literal.
 - TAGS: seed, seed_everything, set_random_seed, reproducibility, batch order, run identity, tier 0
-- PITFALLS: numpy and TensorFlow are imported INSIDE the function (core stays stdlib-only, no import-time work); a package that is not installed is skipped. Call it BEFORE building the training dataset: a tf.data shuffle created before the global seed is set is not reproducible (audit 2026-10-31, C3). Calling it again later (build_training_system does, before the model is built) re-seeds the global state, so…
+- PITFALLS: core imports no third-party package (tier 0): the framework seeder is injected by the caller (`framework_seed_fn=tf.keras.utils.set_random_seed`, required keyword, no default). Call it BEFORE building the training dataset: a tf.data shuffle created before the global seed is set is not reproducible (audit 2026-10-31, C3). Calling it again later (build_training_system does, before the model is buil…
 - API:
-  - `def seed_everything(seed: int) -> int` L15
+  - `def seed_everything(seed: int, *, framework_seed_fn: Callable[[int], object]) -> int` L16

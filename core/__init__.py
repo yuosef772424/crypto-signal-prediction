@@ -7,5 +7,5 @@ Modules:
   schema     last_candles columns and indexes, target price columns, target-mode names
   constants  numeric constants shared by model and evaluation (NIG alpha floor)
   registry   generic Registry/Contract primitive: register by name with a declared contract, duplicate/unknown names raise
-  seeds      seed_everything(seed): the one place python/numpy/TF are seeded (TF imported lazily inside the function)
+  seeds      seed_everything(seed): the one place python/numpy/TF are seeded (framework seeder injected by the caller; core stays stdlib-only)
 """

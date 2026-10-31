@@ -85,7 +85,7 @@ def _train(cfg, epochs, seed_batches=True):
     ns = _ns()
     X, y = _data()
     if seed_batches:
-        seed_everything(cfg["run"]["seed"])      # what workflow.run.make_datasets does before building the dataset
+        seed_everything(cfg["run"]["seed"], framework_seed_fn=tf.keras.utils.set_random_seed)      # what workflow.run.make_datasets does before building the dataset
     ds = ns["make_shuffled_dataset"](X, y, 32, seed=cfg["run"]["seed"] if seed_batches else None)
     tf.keras.backend.clear_session()
     ns["TRAINER_REGISTRY"].pop(cfg["run"]["run_dir"], None)
@@ -289,7 +289,7 @@ class SeedIsASetting(_Tmp):
             return np.concatenate([b[1]["y"].numpy().ravel() for b in ds.take(4)])
 
         def new_order():
-            seed_everything(42)
+            seed_everything(42, framework_seed_fn=tf.keras.utils.set_random_seed)
             ds = ns["make_shuffled_dataset"](X, y, 32, seed=42)
             return np.concatenate([b[1]["y"].numpy().ravel() for b in ds.take(4)])
 

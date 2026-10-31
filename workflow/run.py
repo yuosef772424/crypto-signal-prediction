@@ -350,7 +350,7 @@ def make_datasets(main_config, train, val, info):
     tfs = list(info.model_tfs)
     # البذرة قبل بناء مجموعة التدريب: shuffle بُنيت قبل ضبط البذرة العامة لا يمكن إعادة إنتاج ترتيبها (التدقيق C3). نفس البذرة ⇒ نفس ترتيب الدفعات.
     seed = main_config["run"]["seed"]
-    seed_everything(seed)
+    seed_everything(seed, framework_seed_fn=tf.keras.utils.set_random_seed)
     train_ds = make_shuffled_dataset(model_x(train, tfs), _y_for(train, main_config), main_config["run"]["batch_size"], seed=seed)
     val_ds = make_eval_dataset(model_x(val, tfs), _y_for(val, main_config), main_config["run"]["batch_size"])
     sample_batch = next(iter(train_ds))

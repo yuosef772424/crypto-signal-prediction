@@ -202,7 +202,7 @@ def build_training_system(
     if not is_resuming:
         write_run_identity(run_dir, identity)   # بعد أرشفة الحالة السابقة (identity.json ضمن STATE_ENTRIES)
 
-    seed_everything(run["seed"])   # يُعاد هنا قبل بناء النموذج: أوزانه الابتدائية تتبع البذرة وحدها (مجموعة البيانات بُنيت قبلها)
+    seed_everything(run["seed"], framework_seed_fn=tf.keras.utils.set_random_seed)   # يُعاد هنا قبل بناء النموذج: أوزانه الابتدائية تتبع البذرة وحدها (مجموعة البيانات بُنيت قبلها)
 
     base_model = model_builder_fn()
     if train_mode == "warm_start":
