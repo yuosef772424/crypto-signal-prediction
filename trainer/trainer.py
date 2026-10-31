@@ -83,6 +83,18 @@ class GenericTrainer(tf.keras.Model):
             for key in TASK_REGISTRY[task_type]["stat_keys"]:
                 self._stat_trackers[f"{t}_{key}"] = tf.keras.metrics.Mean(name=f"{t}_{key}")
 
+        # إحصاءات مجموعة التحقق الكاملة (stream_stats، مثل ic = بيرسون stats.metrics على كل val): متتبّع فقط للهدف الذي طلبها
+        # (track_<اسم>) أو سمّاها monitor الإيقاف المبكر — بغير ذلك لا متتبّع ولا مفتاح جديد في logs (السلوك القديم). تُحدَّث في
+        # test_step فقط، ولا تظهر في logs التدريب (train_step يستبعدها) فيظهر val_<هدف>_<اسم> وحده.
+        monitor = self.config["callbacks"]["early_stopping"]["monitor"]
+        self._stream_inputs: Dict[str, Callable] = {}
+        for t, tcfg in self.config["targets"].items():
+            for sname, (tracker_cls, inputs_fn) in TASK_REGISTRY[tcfg["task_type"]]["stream_fns"].items():
+                key = f"{t}_{sname}"
+                if (f"track_{sname}" in tcfg and tcfg[f"track_{sname}"]) or monitor in (key, f"val_{key}"):
+                    self._stat_trackers[key] = tracker_cls(name=key)
+                    self._stream_inputs[key] = inputs_fn
+
         self._constraint_trackers = {
             c["name"]: tf.keras.metrics.Mean(name=f"constraint_{c['name']}")
             for c in self.constraints_cfg
@@ -114,7 +126,7 @@ class GenericTrainer(tf.keras.Model):
         outputs = self.model(x, training=training)
 
         per_target_losses = {}
-        per_stat_values: Dict[str, tf.Tensor] = {}
+        per_stat_values: Dict[str, Any] = {}
 
         for t, tcfg in self.config["targets"].items():
             y_true_t = y[tcfg["true_key"]]
@@ -140,6 +152,11 @@ class GenericTrainer(tf.keras.Model):
             per_target_losses[t] = raw_loss * w
             for k, v in stats.items():
                 per_stat_values[f"{t}_{k}"] = tf.cast(v, tf.float32)
+            for sname in TASK_REGISTRY[tcfg["task_type"]]["stream_stats"]:
+                key = f"{t}_{sname}"
+                if key in self._stream_inputs and not training:   # (x, y, sample_weight) for the val-set tracker, see _update_trackers
+                    x_s, y_s = self._stream_inputs[key](y_true_t, outputs, tcfg)
+                    per_stat_values[key] = (x_s, y_s, w_t)
 
         # القيود المنطقية لا تُرجَّح بـ sample_weight (دالتها تأخذ outputs فقط)
         per_constraint_values = {}
@@ -174,7 +191,10 @@ class GenericTrainer(tf.keras.Model):
             self._target_loss_trackers[t].update_state(v)
         for k, v in per_stat_values.items():
             if k in self._stat_trackers:
-                self._stat_trackers[k].update_state(v)
+                if isinstance(v, tuple):            # an epoch-level (stream) stat: update_state(x, y, sample_weight)
+                    self._stat_trackers[k].update_state(v[0], v[1], sample_weight=v[2])
+                else:
+                    self._stat_trackers[k].update_state(v)
         for name, v in per_constraint_values.items():
             self._constraint_trackers[name].update_state(v)
 
@@ -190,7 +210,7 @@ class GenericTrainer(tf.keras.Model):
         self.optimizer.apply_gradients(zip(grads, train_vars))
 
         self._update_trackers(total_loss, raw_loss, per_target, stats, constraints)
-        return {m.name: m.result() for m in self.metrics}
+        return {m.name: m.result() for m in self.metrics if m.name not in self._stream_inputs}   # val-set stats: test_step only
 
     def test_step(self, data):
         x, y, sample_weight = tf.keras.utils.unpack_x_y_sample_weight(data)

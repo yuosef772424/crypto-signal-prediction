@@ -9,7 +9,7 @@ from copy import deepcopy as _deepcopy
 
 from core.heads import HeadSet as _HeadSet
 from core.loss_plan import (DEFAULT_BALANCING as _DEFAULT_BALANCING, LOSS_BALANCERS as _LOSS_BALANCERS,
-                            check_head_loss_terms as _check_head_loss_terms,
+                            check_head_loss_terms as _check_head_loss_terms, check_report_heads as _check_report_heads,
                             check_loss_schedules as _check_loss_schedules, check_loss_weights as _check_loss_weights,
                             resolve_selection_metric as _resolve_selection_metric)
 from core.schema import (ENTRY_CLOSE_REGS as _ENTRY_CLOSE_REGS, NO_RELATIVE_BASES as _NO_RELATIVE_BASES, TARGET_COLUMNS as _TARGET_COLUMNS,
@@ -222,6 +222,9 @@ class LossSettings(_SettingsSection):
     #: no timestamp key). {} = no term = the old loss exactly; an option left out keeps the trainer default (0.0 = off). An unknown head /
     #: option, or a term the head's task type does not accept, raises.
     head_terms: dict = _dc.field(default_factory=dict)
+    #: Heads whose val IC (``val_<head>_ic``, Pearson over the full val set, stats.metrics) is logged although it is not the selection monitor (the
+    #: monitor's own head is always logged). () = nothing extra is logged = the old logs.
+    report_ic: tuple = ()
 
     def __post_init__(self):
         _settings_check(isinstance(self.balancing, str), "LossSettings.balancing must be a str (a registered balancer name)")
@@ -231,7 +234,8 @@ class LossSettings(_SettingsSection):
             raise ValueError(f"LossSettings.balancing: {e}") from None
         _settings_set(self, weights=_check_loss_weights(self.weights, _HeadSet.default(_TARGET_COLUMNS), "LossSettings.weights"),
                       schedules=_check_loss_schedules(self.schedules, "LossSettings.schedules"),
-                      head_terms=_check_head_loss_terms(self.head_terms, _HeadSet.default(_TARGET_COLUMNS), "LossSettings.head_terms"))
+                      head_terms=_check_head_loss_terms(self.head_terms, _HeadSet.default(_TARGET_COLUMNS), "LossSettings.head_terms"),
+                      report_ic=_check_report_heads(self.report_ic, _HeadSet.default(_TARGET_COLUMNS), "ic", "LossSettings.report_ic"))
 
 
 @_dc.dataclass(frozen=True)
@@ -262,7 +266,8 @@ class TrainSettings(_SettingsSection):
     #: Early stopping / best-model monitor = the SELECTION METRIC, a registered name of core.loss_plan.SELECTION_METRICS: ``val_raw_loss``
     #: (default: task losses with their weights + penalties = the training objective, so a weight or lambda change also changes which
     #: epoch is "best"), ``val_loss``, ``val_class_loss``, or an objective-independent per-head metric ``val_<head>_accuracy`` /
-    #: ``val_<head>_mae`` / ``val_<head>_nig_base`` (needs the matching early_stopping_mode).
+    #: ``val_<head>_mae`` / ``val_<head>_nig_base`` / ``val_<head>_ic`` (val-set Pearson of a regression head, mode "max") (needs the
+    #: matching early_stopping_mode).
     early_stopping_monitor: str = "val_raw_loss"
     early_stopping_mode: str = "min"
     #: Merged over the trainer settings when ModelSettings.anti_memorization is on (PR #7, docs/research/anti_memorization_pr7.md §10-c).
@@ -312,6 +317,7 @@ class TrainSettings(_SettingsSection):
         every default head; RunSettings against the heads of its class_only; make_training_config against the heads actually trained.)"""
         _check_loss_weights(self.loss.weights, heads, "TrainSettings.loss.weights")
         _check_head_loss_terms(self.loss.head_terms, heads, "TrainSettings.loss.head_terms")
+        _check_report_heads(self.loss.report_ic, heads, "ic", "TrainSettings.loss.report_ic")
         try:
             _resolve_selection_metric(self.early_stopping_monitor, heads, self.early_stopping_mode)
         except ValueError as e:

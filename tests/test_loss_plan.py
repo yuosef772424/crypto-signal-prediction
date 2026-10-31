@@ -106,12 +106,12 @@ class Vocabulary(unittest.TestCase):
         self.assertIn("kendall", str(cm.exception))
 
     def test_selection_metrics_default_and_independence_flags(self):
-        self.assertEqual(SELECTION_METRICS.names(), ("raw_loss", "loss", "class_loss", "accuracy", "mae", "nig_base"))
+        self.assertEqual(SELECTION_METRICS.names(), ("raw_loss", "loss", "class_loss", "accuracy", "mae", "nig_base", "ic"))
         self.assertEqual(SELECTION_METRICS.check_all(), [])
         meta = {e.name: e.meta for e in SELECTION_METRICS.entries()}
         for objective in ("raw_loss", "loss", "class_loss"):
             self.assertFalse(meta[objective]["objective_independent"], objective)
-        for free in ("accuracy", "mae", "nig_base"):
+        for free in ("accuracy", "mae", "nig_base", "ic"):
             self.assertTrue(meta[free]["objective_independent"], free)
         self.assertEqual((meta["accuracy"]["mode"], meta["mae"]["mode"], meta["nig_base"]["mode"], meta["raw_loss"]["mode"]),
                          ("max", "min", "min", "min"))
@@ -301,6 +301,14 @@ class OneRoute(unittest.TestCase):
                 self.assertEqual(n["_expected_metric_names"](cfg) >= {monitor[4:]}, True, monitor)
 
 
+def _tracked(targets):
+    """targets with the val-set IC tracker on every regression head (track_ic), so val_<head>_ic is logged too."""
+    for cfg in targets.values():
+        if cfg["task_type"] in SELECTION_METRICS.entry("ic").meta["task_types"]:
+            cfg["track_ic"] = True
+    return targets
+
+
 class ObjectiveIndependence(unittest.TestCase):
     """Real GenericTrainer step: a loss weight / lambda moves raw_loss, never the registered objective-independent metrics."""
 
@@ -337,7 +345,7 @@ class ObjectiveIndependence(unittest.TestCase):
         sched = {"lambda_reg": {"start": lambda_reg_end, "end": lambda_reg_end, "warmup_epochs": 0, "schedule": "linear"},
                  "lambda_calib": {"start": 0.0, "end": 0.0, "warmup_epochs": 0, "schedule": "linear"}}
         cfg = n["build_config"]({"run": {"run_dir": "/tmp/loss_plan_unused", "epochs": 1, "batch_size": 64, "verbose": 0},
-                                 "targets": heads.target_configs(), "loss": trainer_loss_section(balancing, sched, heads)})
+                                 "targets": _tracked(heads.target_configs()), "loss": trainer_loss_section(balancing, sched, heads)})
         trainer = n["GenericTrainer"](self.model, cfg)
         trainer.scheduled_vars["lambda_reg"].assign(lambda_reg_end)
         res = trainer.test_step((self.x, self.y))
@@ -348,7 +356,7 @@ class ObjectiveIndependence(unittest.TestCase):
         for label, other in (("weights", self.metrics({"high_class": 4.0, "high_reg": 0.25})),
                              ("lambda", self.metrics({}, lambda_reg_end=0.5))):
             self.assertNotEqual(base["raw_loss"], other["raw_loss"], label)
-            for stat in ("high_class_accuracy", "high_reg_mae", "high_reg_nig_base"):
+            for stat in ("high_class_accuracy", "high_reg_mae", "high_reg_nig_base", "high_reg_ic"):
                 self.assertEqual(base[stat], other[stat], f"{label}: {stat} must not depend on the objective")
         keys = set(base)
         for e in SELECTION_METRICS.entries():

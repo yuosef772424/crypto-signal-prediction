@@ -1,7 +1,7 @@
 """
 PURPOSE:  The vocabulary of the loss plan and of model selection (tier 0, stdlib + core only): LOSS_BALANCERS (task-balancing methods by registered name), SELECTION_METRICS (the validation metrics a run may pick its best epoch by, each declaring whether it depends on the training objective), the pure checks workflow/settings.py runs at construction (check_loss_weights, check_loss_schedules, resolve_selection_metric) and the trainer `loss` section a plan produces (trainer_loss_section).
 TAGS:     LOSS_BALANCERS, SELECTION_METRICS, SelectionChoice, resolve_selection_metric, check_loss_weights, check_loss_schedules, trainer_loss_section, SCHEDULE_CURVES, SUB_TERM_SCHEDULES, loss plan, loss weights, task balancing, kendall, static, selection metric, val_raw_loss, objective independent, early stopping monitor, one component one interface, tier 0
-PITFALLS: A loss weight reaches the trainer ONLY through `RunSettings.train.loss` (workflow/settings.py LossSettings) -> `HeadSet.with_loss_weights` -> `targets[head].loss_weight`; a balancing method is a REGISTERED name whose entry says which trainer `loss` keys it sets (today "static" = fixed weights, "kendall" = learned homoscedastic weights on the classification heads; the default is "kendall" = what `use_uncertainty_weighting=True` always did). TaskWeightUpdater (callbacks.task_weight_update_frequency) is NOT a registered balancer yet, and GradNorm-style methods are not implemented: a new method is a new `LOSS_BALANCERS.register(...)` (unknown names raise) plus the trainer code it needs, never an edit spread over the modules. Under "kendall" a static weight on a classification head is partly absorbed by the learned log-variance (the trainer applies Kendall on weight*loss), so use "static" to compare weights cleanly. A selection metric name is `val_<stat>` (global: raw_loss, loss, class_loss) or `val_<head>_<stat>` (per head: accuracy, mae, nig_base); the stats are the ones the trainer already logs (trainer/tasks.py stat_keys, trainer/trainer.py trackers). `val_raw_loss` (the default) is the weighted sum of the task losses plus penalties, i.e. the training objective: changing a loss weight or a lambda changes which epoch is best, which `objective_independent=False` says out loud; accuracy / mae / nig_base are computed from outputs and labels only, so they do not move with loss_weight or lambda schedules (tests/test_loss_plan.py proves it on a real trainer step). Choosing a metric whose `mode` differs from the monitor's mode raises (min/max is part of the definition). trainer/config.py validate_config still checks the final monitor against the metrics the trainer logs. SCHEDULE_CURVES is the one list of curve names (trainer/config.py imports it). Nothing here imports TensorFlow.
+PITFALLS: A loss weight reaches the trainer ONLY through `RunSettings.train.loss` (workflow/settings.py LossSettings) -> `HeadSet.with_loss_weights` -> `targets[head].loss_weight`; a balancing method is a REGISTERED name whose entry says which trainer `loss` keys it sets (today "static" = fixed weights, "kendall" = learned homoscedastic weights on the classification heads; the default is "kendall" = what `use_uncertainty_weighting=True` always did). TaskWeightUpdater (callbacks.task_weight_update_frequency) is NOT a registered balancer yet, and GradNorm-style methods are not implemented: a new method is a new `LOSS_BALANCERS.register(...)` (unknown names raise) plus the trainer code it needs, never an edit spread over the modules. Under "kendall" a static weight on a classification head is partly absorbed by the learned log-variance (the trainer applies Kendall on weight*loss), so use "static" to compare weights cleanly. A selection metric name is `val_<stat>` (global: raw_loss, loss, class_loss) or `val_<head>_<stat>` (per head: accuracy, mae, nig_base, ic); the stats are the ones the trainer already logs (trainer/tasks.py stat_keys, trainer/trainer.py trackers). `val_raw_loss` (the default) is the weighted sum of the task losses plus penalties, i.e. the training objective: changing a loss weight or a lambda changes which epoch is best, which `objective_independent=False` says out loud; accuracy / mae / nig_base / ic are computed from outputs and labels only (ic = stats.metrics.pearson over the whole val set, logged only when it is the monitor or the head has track_ic / LossSettings.report_ic), so they do not move with loss_weight or lambda schedules (tests/test_loss_plan.py proves it on a real trainer step). Choosing a metric whose `mode` differs from the monitor's mode raises (min/max is part of the definition). trainer/config.py validate_config still checks the final monitor against the metrics the trainer logs. SCHEDULE_CURVES is the one list of curve names (trainer/config.py imports it). Nothing here imports TensorFlow.
 """
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from typing import Any, Callable, Dict, Iterable, Mapping, NamedTuple, Optional,
 from core.heads import HeadSet
 from core.registry import Contract, Registry
 
-__all__ = ["LOSS_BALANCERS", "HEAD_LOSS_TERMS", "check_head_loss_terms", "SELECTION_METRICS", "SelectionChoice", "SCHEDULE_CURVES", "SUB_TERM_SCHEDULES", "DEFAULT_BALANCING",
+__all__ = ["LOSS_BALANCERS", "HEAD_LOSS_TERMS", "check_head_loss_terms", "check_report_heads", "SELECTION_METRICS", "SelectionChoice", "SCHEDULE_CURVES", "SUB_TERM_SCHEDULES", "DEFAULT_BALANCING",
            "DEFAULT_SELECTION_METRIC", "check_loss_weights", "check_loss_schedules", "resolve_selection_metric", "trainer_loss_section"]
 
 #: curve names of a scheduled loss sub-term (trainer/schedules.py `_progress_curve`; trainer/config.py validates against this tuple).
@@ -124,6 +124,25 @@ def check_head_loss_terms(terms: Any, heads: HeadSet, what: str = "loss.head_ter
     return out
 
 
+def check_report_heads(names: Any, heads: HeadSet, stat: str = "ic", what: str = "loss.report_ic") -> Tuple[str, ...]:
+    """Validate the heads whose epoch-level selection-metric ``stat`` (SELECTION_METRICS, per-head, e.g. ``ic``) is logged although
+    it is not the monitor: a list/tuple of head names that exist and whose task type the metric supports. Returns a tuple (order kept)."""
+    if isinstance(names, (str, bytes)) or not isinstance(names, (list, tuple)):
+        raise ValueError(f"{what} must be a list/tuple of head names, got {type(names).__name__}")
+    types = SELECTION_METRICS.entry(stat).meta["task_types"]
+    problems = []
+    for h in names:
+        if not isinstance(h, str) or h not in heads:
+            problems.append(f"unknown head {h!r}; known heads: {list(heads.names)}")
+        elif heads[h].task_type not in types:
+            problems.append(f"{h!r}: {stat!r} is defined for task type(s) {list(types)}, head is {heads[h].task_type!r}")
+    if len(set(names)) != len(names):
+        problems.append(f"duplicate head(s) in {list(names)}")
+    if problems:
+        raise ValueError(f"{what}: " + "; ".join(problems))
+    return tuple(names)
+
+
 def check_loss_weights(weights: Any, heads: HeadSet, what: str = "loss.weights") -> Dict[str, float]:
     """Validate ``{head name: weight}`` against ``heads`` (unknown head raises with the known names; a weight must be a finite
     number >= 0) and return a plain ``{name: float}`` copy."""
@@ -232,6 +251,12 @@ _register_metric("mae", scope="head", mode="min", objective_independent=True, ta
 _register_metric("nig_base", scope="head", mode="min", objective_independent=True, task_types=("evidential",),
                  description="val Student-t negative log-likelihood of one evidential head (before the lambda penalties and the "
                              "loss weight)")
+
+
+_register_metric("ic", scope="head", mode="max", objective_independent=True, task_types=("evidential", "regression"),
+                 description="val Pearson correlation (stats.metrics.pearson, degenerate = 0.0) between one regression head's point "
+                             "prediction (mu) and its label over the FULL validation set (collected per batch, not a mean of batch "
+                             "correlations); no loss weight and no sample weight enters it; not computed on training batches")
 
 
 class SelectionChoice(NamedTuple):

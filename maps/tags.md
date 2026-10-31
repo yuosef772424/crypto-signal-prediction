@@ -1252,6 +1252,7 @@
 - reliability curve: evaluation/trust_calibration
 - reopen conditions: tools/experiment_registry
 - repo_root: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, trainer/_loader … (+1)
+- report_ic: workflow/training_config
 - representation collapse: norm_probe/run_norm_probe
 - representation information: edge_discovery/27_repr_info
 - reproducibility: core/seeds

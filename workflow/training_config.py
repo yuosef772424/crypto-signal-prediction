@@ -1,10 +1,11 @@
 """
 PURPOSE:  Bridge from model heads to trainer_framework targets: build_target_configs (true_key vs output_keys, derived from core.heads.HeadSet) and the naive majority-class baseline for val_accuracy.
-TAGS:     build_target_configs, with_head_loss_terms, head_terms, build_head_set, loss_weights, true_key, output_keys, label_smoothing, class_baselines, _naive_class_baseline, trainer targets
+TAGS:     build_target_configs, with_head_loss_terms, head_terms, report_ic, build_head_set, loss_weights, true_key, output_keys, label_smoothing, class_baselines, _naive_class_baseline, trainer targets
 PITFALLS: Pipeline labels are +1/-1 (batches._to_unit_label converts to {0,1} at feed time); the names come from core/heads.py HeadSet (the one place where data keys and model output keys are tied together). Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cells 15 and 17 (section 5).
 """
 from core.heads import HeadSet as _HeadSet
-from core.loss_plan import check_head_loss_terms as _check_head_loss_terms, check_loss_weights as _check_loss_weights
+from core.loss_plan import (check_head_loss_terms as _check_head_loss_terms, check_loss_weights as _check_loss_weights,
+                            check_report_heads as _check_report_heads)
 
 
 def build_head_set(price_targets, label_smoothing=0.0, class_only=False, loss_weights=None):
@@ -37,14 +38,18 @@ def build_target_configs(price_targets, label_smoothing=0.0, class_only=False, l
     return build_head_set(price_targets, label_smoothing, class_only, loss_weights).target_configs()
 
 
-def with_head_loss_terms(targets, head_terms, heads):
+def with_head_loss_terms(targets, head_terms, report_ic, heads):
     """``targets`` (HeadSet.target_configs()) plus the per-head auxiliary loss terms of the plan (``train.loss.head_terms``,
-    ``{head: {huber_weight|huber_delta|ic_weight: value}}``). Empty (the default) = ``targets`` unchanged, so the config and its fingerprint are the old ones. Returns a new dict; an unknown
+    ``{head: {huber_weight|huber_delta|ic_weight: value}}``) and ``track_ic: True`` for the heads of ``train.loss.report_ic``.
+    Both empty (the default) = ``targets`` unchanged, so the config and its fingerprint are the old ones. Returns a new dict; an unknown
     head, an option the head's task type does not accept or a bad value raises (core.loss_plan.check_head_loss_terms / check_report_heads)."""
     terms = _check_head_loss_terms(head_terms, heads, "loss terms of the plan (train.loss.head_terms)")
+    reported = _check_report_heads(report_ic, heads, "ic", "train.loss.report_ic")
     out = {h: dict(cfg) for h, cfg in targets.items()}
     for h, opts in terms.items():
         out[h].update(opts)
+    for h in reported:
+        out[h]["track_ic"] = True
     return out
 
 

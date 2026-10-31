@@ -65,6 +65,16 @@ def _check_task_entry(name, entry, meta):
             problems.append("supports_sample_weight=True but fn does not accept a `sample_weight` keyword")
         except ValueError:
             pass
+    ss = meta["stream_stats"]
+    if not isinstance(ss, tuple) or not all(isinstance(k, str) and k.strip() for k in ss) or len(set(ss)) != len(ss):
+        problems.append(f"stream_stats must be a tuple of distinct non-empty strings, got {ss!r}")
+    else:
+        if set(ss) & set(meta["stat_keys"]):
+            problems.append(f"stream_stats {sorted(set(ss) & set(meta['stat_keys']))} are also stat_keys (a name has one owner)")
+        sf = entry.get("stream_fns")
+        if (not isinstance(sf, dict) or sorted(sf) != sorted(ss)
+                or not all(isinstance(v, tuple) and len(v) == 2 and all(callable(f) for f in v) for v in sf.values())):
+            problems.append("stream_fns must be a {name: (tracker class, inputs fn)} dict with exactly the stream_stats names")
     for k in ("stat_keys", "supports_sample_weight", "config_keys"):
         if entry.get(k) != meta[k]:
             problems.append(f"entry[{k!r}] differs from the registered metadata")
@@ -77,7 +87,8 @@ def _check_task_entry(name, entry, meta):
 #: module that loads before tasks.py, because build_config must know the registered task types (a forward reference to tasks.py
 #: would be an implicit dependency).
 TASK_REGISTRY = _Registry("task", _Contract(
-    "task", required_meta=("stat_keys", "supports_sample_weight", "config_keys"), optional_meta=(), validator=_check_task_entry))
+    "task", required_meta=("stat_keys", "supports_sample_weight", "config_keys", "stream_stats"), optional_meta=(),
+    validator=_check_task_entry))
 
 TRAINER_DEFAULT_CONFIG: Dict[str, Any] = {
     # ─────────────────────────────────────────────────────────────
@@ -339,7 +350,7 @@ _TARGET_VALUE_RULES = {
     "true_key": _r_str, "task_type": _r_str, "loss_weight": _r_real(ge=0.0),
     "flood_level": _r_opt(_r_real(ge=0.0)),
     "use_calibration_loss": _r_bool, "lambda_reg_var": _r_str, "lambda_calib_var": _r_str,
-    "ic_weight": _r_real(ge=0.0), "var_weight": _r_real(ge=0.0),
+    "ic_weight": _r_real(ge=0.0), "var_weight": _r_real(ge=0.0), "track_ic": _r_bool,
     "normalize_reg": _r_bool, "normalize_reg_stop_grad": _r_bool, "alpha_floor_straight_through": _r_bool,
     "beta_nll": _r_real(ge=0.0), "huber_weight": _r_real(ge=0.0), "huber_delta": _r_real(gt=0.0),
     "label_smoothing": _r_real(ge=0.0, lt=1.0), "binary": _r_bool, "loss_fn": _r_enum("mse", "mae", "huber"),
@@ -416,6 +427,7 @@ def _expected_metric_names(cfg):
         entry = TASK_REGISTRY.get(tcfg.get("task_type"), None)
         if entry:
             names.update(f"{t}_{k}" for k in entry["stat_keys"])
+            names.update(f"{t}_{k}" for k in entry["stream_stats"])   # whole-epoch stats (val_<head>_ic): tracked when asked for
         if tcfg.get("task_type") == "classification":
             names.add("class_loss")
     for c in cfg["loss"]["constraints"]:
@@ -446,7 +458,8 @@ def _check_targets(cfg, errs):
         if "task_type" in tcfg and entry is None:
             errs.append(f"{p}.task_type: unregistered task type {ttype!r}; registered: {sorted(TASK_REGISTRY)} "
                         f"(register it with register_task_type first)")
-        known = set(_COMMON_TARGET_KEYS) | set(entry["config_keys"] if entry else ()) | _head_term_keys(ttype)
+        known = (set(_COMMON_TARGET_KEYS) | set(entry["config_keys"] if entry else ()) | _head_term_keys(ttype)
+                 | {f"track_{s}" for s in (entry["stream_stats"] if entry else ())})
         for k, v in tcfg.items():
             if k not in known:
                 if entry is None:
@@ -532,6 +545,13 @@ def _check_callbacks(cfg, errs):
             lossy = base in ("loss", "raw_loss", "class_loss") or base.startswith(("loss_", "constraint_")) or base.endswith("_mae")
             if lossy and mode != "min":
                 errs.append(f"callbacks.early_stopping.mode: monitor {mon!r} is an error/loss (smaller is better), mode must be 'min'")
+            stream = {f"{t}_{k}" for t, tc in cfg["targets"].items() if isinstance(tc, dict)
+                      for k in (TASK_REGISTRY[tc["task_type"]]["stream_stats"] if tc.get("task_type") in TASK_REGISTRY else ())}
+            if base in stream and not mon.startswith("val_"):
+                errs.append(f"callbacks.early_stopping.monitor: {mon!r} is a validation-set statistic (not logged on training "
+                            f"batches); use 'val_{base}'")
+            if base.endswith("_ic") and mode != "max":
+                errs.append(f"callbacks.early_stopping.mode: monitor {mon!r} is a correlation (larger is better), mode must be 'max'")
             if base.endswith("_accuracy") and mode != "max":
                 errs.append(f"callbacks.early_stopping.mode: monitor {mon!r} is an accuracy (larger is better), mode must be 'max'")
     if es["weights_snapshot"] == "ema_weights" and cfg["optimizer"]["use_ema"] is False:
