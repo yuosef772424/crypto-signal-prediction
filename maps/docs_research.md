@@ -219,10 +219,11 @@ Documents:
 - `E-rel-001.md` — Experiment card — E-rel-001: absolute vs within-timestamp relative target on the current 4h model l…
 
 ## `docs/research/hardening/`
-- hardening/: root-cause audits of the codebase before a new experiment round | 0 scripts, 6 md, 1 data files (2 KB)
+- hardening/: root-cause audits of the codebase before a new experiment round | 0 scripts, 7 md, 1 data files (2 KB)
 
 Documents:
 - `README.md` — hardening/: root-cause audits of the codebase before a new experiment round
+- `STATUS.md` — Hardening — STATUS (handoff for a fresh session)
 - `audit_2026-10-31.md` — Hardening audit, 2026-10-31 (auditor: root-cause classes of fragility)
 - `external_decay_audit.md` — Audit of external "model staleness / rolling retrain" experiment (Perplexity, repo /home/user/crypt…
 - `external_research_prompts.md` — تعليمات بحث خارجي (لأداة البحث التي أنتجت `cryptoformer.zip`)
