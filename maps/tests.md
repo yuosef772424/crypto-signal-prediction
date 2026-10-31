@@ -916,9 +916,9 @@
   - `class MinRunHoursJobTests(unittest.TestCase)` L283
     - (2 methods)
 
-### `tests/test_stats_metrics.py` (190 lines)
+### `tests/test_stats_metrics.py` (356 lines)
 - PURPOSE: stats/ (Tier 1): one implementation per metric with an explicit tie/NaN policy (hardening audit C7, PR 10). (from docstring)
-- DEPENDS: stats, tools
+- DEPENDS: core, stats, tools
 - API:
   - `class CorrelationTests(unittest.TestCase)` L34
     - (6 methods)
@@ -926,7 +926,13 @@
     - (3 methods)
   - `class IntervalAndLossTests(unittest.TestCase)` L113
     - (3 methods)
-  - `class TierOneTests(unittest.TestCase)` L143
+  - `class QuantileAndIntervalTests(unittest.TestCase)` L143
+    - (2 methods)
+  - `class TradingMetricTests(unittest.TestCase)` L184
+    - (3 methods)
+  - `class EvaluateHeadsTests(unittest.TestCase)` L224
+    - (7 methods)
+  - `class TierOneTests(unittest.TestCase)` L309
     - (4 methods)
 
 ### `tests/test_stats_migration.py` (510 lines)

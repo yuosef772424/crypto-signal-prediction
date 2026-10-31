@@ -388,6 +388,7 @@
 - did you mean: core/registry
 - dip buying: edge_discovery/09_market_flush
 - direction accuracy: evaluation/metrics
+- direction_target: core/schema
 - directional_bias: evaluation/integrity
 - disc val: edge_discovery/13_listing_stops
 - disc val hold dates: edge_discovery/lib
@@ -498,6 +499,7 @@
 - evalsettings: workflow/settings
 - evaluate trained model: tools/evaluate_trained_model
 - evaluate_candidate: discovery/__init__, discovery/evaluation
+- evaluate_heads: stats/metrics
 - evaluate_hypothesis_over_rolling_windows: signal_eval/integration
 - evaluate_k_coins: cross_asset/experiment
 - evaluate_predictions: evaluation/metrics
@@ -747,6 +749,7 @@
 - instancenorm: model/input_norm
 - integrity checks: cross_asset/data
 - interrupt: trainer/smoke_test
+- interval coverage: stats/metrics
 - intraday: strategy_discovery/intraday_macd
 - intraday efficiency: data/funding_oi
 - intraday features: tools/intraday_features
@@ -987,6 +990,7 @@
 - navigation: tools/build_map
 - near duplicates: norm_probe/run_norm_probe
 - negative results: tools/experiment_registry
+- net sharpe: stats/metrics
 - new listings: edge_discovery/12_listing
 - newey-west: tools/paired_compare
 - nig: core/constants
@@ -1101,6 +1105,7 @@
 - per-asset predict loop: tools/check_patterns
 - per-coin consistency: indicator_strategy/screen
 - per-coin events: edge_discovery/events
+- per-head policy: stats/metrics
 - per-layer probe: model/layer_report
 - per-sample loss: trainer/training_diagnostics
 - per-timestamp loss: tools/paired_compare
@@ -1169,7 +1174,7 @@
 - print_trade_selection: evaluation/trade_selection
 - print_verdicts: model/diagnostics
 - process_windows: data/normalize
-- profit factor: indicator_strategy/screen
+- profit factor: indicator_strategy/screen, stats/metrics
 - profit target: hedge_recovery/sim2
 - projectsettings: workflow/settings
 - provenance: tools/touched_ledger
@@ -1181,7 +1186,10 @@
 - push results: tools/colab_runner
 - px proxy: edge_discovery/data_tools/build_panel
 - qlike: h07_volsizing/01_volsizing
+- qss: stats/metrics
+- quantile coverage: stats/metrics
 - quantile regression: edge_discovery/31_wick_capture, tools/natr_range
+- quantile skill score: stats/metrics
 - quarterly consistency: edge_discovery/01_screen
 - quintile spread: edge_discovery/04_screen_mean
 - quintiles: edge_discovery/03_quintiles
@@ -1196,6 +1204,7 @@
 - range fade: edge_discovery/21_range_fade
 - range forecast: tools/natr_range
 - range_fade csv: edge_discovery/21_range_fade
+- range_targets: core/schema
 - rank: data/cross_sectional_norm
 - rank correlation: edge_discovery/02_fmb
 - rank ic: edge_discovery/01_screen, stats/metrics, workflow/market_neutral
@@ -1525,6 +1534,7 @@
 - tf.data: workflow/batches
 - tf.keras.model subclass: trainer/trainer
 - threads: data/parallel
+- threshold trades: stats/metrics
 - tie policy: stats/__init__, stats/metrics
 - tier 0: core/__init__, core/heads, core/loss_plan, core/registry, core/roles, core/seeds
 - tier 1: stats/__init__
@@ -1588,7 +1598,7 @@
 - tsmom30: edge_discovery/16_h07_oos, h07_volsizing/01_volsizing, tools/h07_forward
 - tt_pos: edge_discovery/features
 - turnover: edge_discovery/03_quintiles, edge_discovery/18_h13_pr7_signal
-- turnover cost: edge_discovery/tsbt, strategy_discovery/rotation
+- turnover cost: edge_discovery/tsbt, strategy_discovery/rotation, stats/metrics
 - two-level holdout: tools/build_lock
 - typevar: data/common
 - typing: data/common, signal_eval/common
@@ -1651,6 +1661,7 @@
 - windows: data/windows
 - windows aggregation: signal_eval/windows
 - windowscale: data/normalizers
+- winkler: stats/metrics
 - wiring: workflow/wiring_selftest
 - with_sample_index: trainer/training_diagnostics
 - within_day: workflow/permutation_control

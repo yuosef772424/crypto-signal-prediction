@@ -1,14 +1,18 @@
 """
 PURPOSE:  The ONE implementation of each metric: pearson / spearman (rank-IC) / partial_spearman, auc, wilson_interval, pinball_loss / mean_pinball, ece_quantile, each with an explicit tie/NaN policy chosen by a keyword (no hidden default per call site).
-TAGS:     metrics, spearman, pearson, rank ic, information coefficient, auc, mann-whitney, wilson interval, pinball loss, ece, expected calibration error, tie policy, nan policy, average rank, single owner
-PITFALLS: Ties get AVERAGE ranks everywhere (pandas `rank()` == scipy `rankdata`). NaN policy is a keyword, never implied: correlations take nan_policy in {"drop_nonfinite" (default: drop pairs with NaN or +-inf), "drop" (drop pairs with NaN only; the pandas `Series.corr` behaviour), "propagate" (any NaN -> NaN)}; auc takes {"propagate" (default), "drop", "legacy_rank_skipna" (reproduces model/diagnostics: NaN scores get NaN ranks that the positive-class rank sum then skips or poisons)}. A degenerate input (too few valid pairs, zero variance, non-finite result) returns `degenerate` (default NaN; signal_eval uses 0.0 = "no signal"); `var_tol` > 0 widens "zero variance" from exactly 0 to std < var_tol. Wilson is clipped to [0, 1] by default (`clip=False` reproduces the unclipped selective_eval form). Inputs are plain arrays: grouping (per day / per month / per coin) stays in the caller, which calls these per group. Pure numpy/pandas; stats imports at most `core`.
+TAGS:     metrics, evaluate_heads, per-head policy, qss, quantile skill score, quantile coverage, interval coverage, winkler, profit factor, net sharpe, turnover cost, threshold trades, spearman, pearson, rank ic, information coefficient, auc, mann-whitney, wilson interval, pinball loss, ece, expected calibration error, tie policy, nan policy, average rank, single owner
+PITFALLS: Ties get AVERAGE ranks everywhere (pandas `rank()` == scipy `rankdata`). NaN policy is a keyword, never implied: correlations take nan_policy in {"drop_nonfinite" (default: drop pairs with NaN or +-inf), "drop" (drop pairs with NaN only; the pandas `Series.corr` behaviour), "propagate" (any NaN -> NaN)}; auc takes {"propagate" (default), "drop", "legacy_rank_skipna" (reproduces model/diagnostics: NaN scores get NaN ranks that the positive-class rank sum then skips or poisons)}. A degenerate input (too few valid pairs, zero variance, non-finite result) returns `degenerate` (default NaN; signal_eval uses 0.0 = "no signal"); `var_tol` > 0 widens "zero variance" from exactly 0 to std < var_tol. Wilson is clipped to [0, 1] by default (`clip=False` reproduces the unclipped selective_eval form). Inputs are plain arrays: grouping (per day / per month / per coin) stays in the caller, which calls these per group. Pure numpy/pandas; stats imports at most `core`. Quantile / interval / trading metrics (qss, quantile_coverage, interval_coverage, winkler_score, threshold_trades, profit_factor, net_sharpe) drop non-finite rows and return NaN when nothing is left; `evaluate_heads` applies the owner's per-head policy (2026-10-31): direction metrics ONLY for core.schema.DIRECTION_TARGET (close), every regression head gets rank-IC + MAE/RMSE + skill vs the zero (no-change) prediction, intervals always report coverage TOGETHER with mean width (coverage alone is gamed by wide intervals). Trading helpers take a threshold, they never optimise one. Head roles come from core.heads (HeadSpec.role / ROLES), never from name literals.
 """
 from __future__ import annotations
 
 import numpy as np
 import pandas as pd
 
-__all__ = ["NAN_POLICIES", "AUC_NAN_POLICIES", "rank_average", "pearson", "spearman", "partial_spearman", "auc",
+from core.heads import ROLES
+from core.schema import DIRECTION_TARGET, RANGE_TARGETS
+
+__all__ = ["qss", "quantile_coverage", "interval_coverage", "mean_interval_width", "winkler_score", "threshold_trades",
+           "profit_factor", "win_loss_ratio", "net_sharpe", "evaluate_heads", "NAN_POLICIES", "AUC_NAN_POLICIES", "rank_average", "pearson", "spearman", "partial_spearman", "auc",
            "wilson_interval", "pinball_loss", "mean_pinball", "ece_quantile"]
 
 NAN_POLICIES = ("drop_nonfinite", "drop", "propagate")
@@ -144,3 +148,185 @@ def ece_quantile(p, y, n_bins: int = 10) -> float:
         bins = pd.cut(p, bins=n_bins)
     g = pd.DataFrame({"p": p, "y": y, "b": bins}).groupby("b", observed=True)
     return float(sum(len(x) / len(p) * abs(x["p"].mean() - x["y"].mean()) for _, x in g))
+
+
+# ───────────────────────────── quantile / interval metrics (additive) ─────────────────────────────
+def _finite_pairs(*arrays):
+    arrs = [_float_1d(a) for a in arrays]
+    n = {len(a) for a in arrs}
+    if len(n) != 1:
+        raise ValueError(f"lengths differ: {sorted(n)}")
+    ok = np.ones(len(arrs[0]), bool)
+    for a in arrs:
+        ok &= np.isfinite(a)
+    return [a[ok] for a in arrs]
+
+
+def quantile_coverage(y, q) -> float:
+    """Share of rows with y <= q (the empirical coverage of a predicted quantile; ideally tau). Non-finite rows dropped; none -> NaN."""
+    y, q = _finite_pairs(y, q)
+    return float(np.mean(y <= q)) if len(y) else float("nan")
+
+
+def qss(y, q, taus, baseline=None) -> float:
+    """Quantile skill score = 1 - mean pinball(model) / mean pinball(baseline). `q`: (n, len(taus)) predicted quantiles; `baseline`: the
+    reference (n, len(taus)) matrix, default = the constant empirical quantiles of y (the unconditional forecast). 1 = perfect, 0 = no
+    better than the baseline, < 0 = worse. Rows with a non-finite y or q are dropped; a zero baseline loss -> NaN."""
+    y = _float_1d(y)
+    q = np.asarray(q, dtype="float64")
+    taus = tuple(taus)
+    if q.ndim != 2 or q.shape != (len(y), len(taus)):
+        raise ValueError(f"q must be (n, len(taus)) = ({len(y)}, {len(taus)}), got {q.shape}")
+    ok = np.isfinite(y) & np.isfinite(q).all(axis=1)
+    if baseline is not None:
+        baseline = np.asarray(baseline, dtype="float64")
+        if baseline.shape != q.shape:
+            raise ValueError(f"baseline shape {baseline.shape} != q shape {q.shape}")
+        ok &= np.isfinite(baseline).all(axis=1)
+    y, q = y[ok], q[ok]
+    if len(y) == 0:
+        return float("nan")
+    base = np.tile(np.quantile(y, taus), (len(y), 1)) if baseline is None else baseline[ok]
+    den = mean_pinball(y, base, taus)
+    return float(1.0 - mean_pinball(y, q, taus) / den) if den > 0 else float("nan")
+
+
+def interval_coverage(y, lo, hi) -> float:
+    """Share of rows with lo <= y <= hi (a crossed interval, lo > hi, covers nothing). Non-finite rows dropped; none -> NaN."""
+    y, lo, hi = _finite_pairs(y, lo, hi)
+    return float(np.mean((y >= lo) & (y <= hi))) if len(y) else float("nan")
+
+
+def mean_interval_width(lo, hi) -> float:
+    """Mean of hi - lo over the finite rows (report it with the coverage: a wide interval covers anything). None -> NaN."""
+    lo, hi = _finite_pairs(lo, hi)
+    return float(np.mean(hi - lo)) if len(lo) else float("nan")
+
+
+def winkler_score(y, lo, hi, alpha: float) -> float:
+    """Mean Winkler (interval) score of a (1 - alpha) interval: width + (2 / alpha) * distance outside the interval (lower = better;
+    it punishes both width and misses, so it cannot be gamed by either). 0 < alpha < 1. Non-finite rows dropped; none -> NaN."""
+    if not 0.0 < alpha < 1.0:
+        raise ValueError(f"alpha must be in (0, 1), got {alpha!r}")
+    y, lo, hi = _finite_pairs(y, lo, hi)
+    if not len(y):
+        return float("nan")
+    return float(np.mean((hi - lo) + (2.0 / alpha) * (np.maximum(lo - y, 0.0) + np.maximum(y - hi, 0.0))))
+
+
+# ───────────────────────────── trading metrics (additive; no threshold optimisation here) ─────────────────────────────
+def threshold_trades(pred, ret, threshold: float, round_trip_cost: float = 0.0) -> np.ndarray:
+    """Per-trade NET returns of the rule "trade only when |pred| > threshold, side = sign(pred), hold one period": side * ret - cost.
+    `round_trip_cost` is a fraction of notional paid once per trade (entry + exit), in the units of `ret`. Rows with a non-finite pred
+    or ret are not traded. `threshold` is given, never searched (choosing it on the same data is a separate, validated step)."""
+    if threshold < 0 or round_trip_cost < 0:
+        raise ValueError("threshold and round_trip_cost must be >= 0")
+    pred, ret = _finite_pairs(pred, ret)
+    take = np.abs(pred) > threshold
+    return np.sign(pred[take]) * ret[take] - float(round_trip_cost)
+
+
+def profit_factor(net) -> float:
+    """Sum of winning trades / |sum of losing trades| (inf when there are wins and no loss; NaN when there is neither a win nor a loss)."""
+    net = _float_1d(net)
+    net = net[np.isfinite(net)]
+    gains, losses = net[net > 0].sum(), -net[net < 0].sum()
+    if losses > 0:
+        return float(gains / losses)
+    return float("inf") if gains > 0 else float("nan")
+
+
+def win_loss_ratio(net) -> float:
+    """Average winning trade / |average losing trade| (NaN when there is no win or no loss)."""
+    net = _float_1d(net)
+    net = net[np.isfinite(net)]
+    wins, losses = net[net > 0], net[net < 0]
+    if not len(wins) or not len(losses):
+        return float("nan")
+    return float(wins.mean() / -losses.mean())
+
+
+def net_sharpe(ret, position, cost_per_turnover: float = 0.0, periods_per_year: float | None = None) -> float:
+    """Sharpe of the NET per-period return position * ret - cost_per_turnover * |position change| (the first position is bought from 0, so
+    its entry is charged). mean / std(ddof=1), times sqrt(periods_per_year) when given. Fewer than 3 finite periods or zero std -> NaN."""
+    ret, pos = _float_1d(ret), _float_1d(position)
+    if ret.shape != pos.shape:
+        raise ValueError(f"shapes differ: {ret.shape} != {pos.shape}")
+    net = pos * ret - cost_per_turnover * np.abs(np.diff(pos, prepend=0.0))
+    net = net[np.isfinite(net)]
+    if len(net) < 3 or np.std(net, ddof=1) == 0:
+        return float("nan")
+    ann = np.sqrt(periods_per_year) if periods_per_year else 1.0
+    return float(net.mean() / net.std(ddof=1) * ann)
+
+
+# ───────────────────────────── per-head evaluation policy (owner decision 2026-10-31) ─────────────────────────────
+def _regression_row(p, y) -> dict:
+    p, y = _finite_pairs(p, y)
+    n = int(len(y))
+    if n == 0:
+        return {"n": 0, "rank_ic": float("nan"), "mae": float("nan"), "rmse": float("nan"), "mae_naive": float("nan"),
+                "rmse_naive": float("nan"), "mae_skill": float("nan"), "rmse_skill": float("nan")}
+    mae, rmse = float(np.mean(np.abs(y - p))), float(np.sqrt(np.mean((y - p) ** 2)))
+    mae0, rmse0 = float(np.mean(np.abs(y))), float(np.sqrt(np.mean(y ** 2)))      # naive = predict 0 (no change)
+    return {"n": n, "rank_ic": spearman(p, y), "mae": mae, "rmse": rmse, "mae_naive": mae0, "rmse_naive": rmse0,
+            "mae_skill": float(1.0 - mae / mae0) if mae0 > 0 else float("nan"),
+            "rmse_skill": float(1.0 - rmse / rmse0) if rmse0 > 0 else float("nan")}
+
+
+def _direction_row(p, y, score) -> dict:
+    p, y, score = _finite_pairs(p, y, score)
+    moved = y != 0                                    # a zero return has no direction
+    p, y, score = p[moved], y[moved], score[moved]
+    if not len(y):
+        return {"n_direction": 0, "hit_rate": float("nan"), "direction_auc": float("nan")}
+    return {"n_direction": int(len(y)), "hit_rate": float(np.mean(np.sign(p) == np.sign(y))),
+            "direction_auc": auc(y > 0, score)}
+
+
+def evaluate_heads(preds, targets, heads, *, direction_target: str = DIRECTION_TARGET, direction_scores=None,
+                   intervals=None) -> dict:
+    """Apply the per-head evaluation policy. `preds` / `targets`: {target: array} of point predictions (mu) and realised values in the
+    same units; `heads`: a core.heads HeadSet (or any iterable of HeadSpec; only `.target` and `.role` are read, role in core.heads.ROLES).
+    Every target with a "regression" head gets: n, rank_ic, mae, rmse and the skill vs the NAIVE ZERO prediction (mae_skill = 1 - MAE_model /
+    MAE_naive, naive = predicting 0, i.e. no change; rmse_skill likewise). Direction metrics (hit_rate = share of sign(pred) == sign(true) on
+    rows with a non-zero true value; direction_auc = AUC of the score for true > 0) are computed ONLY for `direction_target` (core.schema.
+    DIRECTION_TARGET = close) and only when it has a regression head; high / low never get them. `direction_scores`: optional
+    {target: score} (e.g. the classification head's p_up) used for direction_auc instead of the point prediction.
+    `intervals`: {name: {"target": t, "low": array, "high": array, "alpha": optional nominal miss rate}}; when None and the heads include
+    core.schema.RANGE_TARGETS (low, high) and the direction target is available, one interval "range" = [pred low, pred high] vs the true
+    direction target is evaluated. Each interval reports coverage AND mean_width (never coverage alone), crossed_share (low > high) and,
+    given alpha, the Winkler score. Returns {"heads": {target: {...}}, "intervals": {name: {...}}}."""
+    hs = getattr(heads, "heads", heads)
+    reg_targets = []
+    for h in hs:
+        if h.role not in ROLES:
+            raise ValueError(f"head {getattr(h, 'name', h)!r}: role {h.role!r} not in core.heads.ROLES {ROLES}")
+        if h.role == "regression" and h.target not in reg_targets:
+            reg_targets.append(h.target)
+    if not reg_targets:
+        raise ValueError("evaluate_heads: the head set has no regression head")
+    for t in reg_targets:
+        if t not in preds or t not in targets:
+            raise KeyError(f"evaluate_heads: head target {t!r} needs both preds and targets")
+    scores = dict(direction_scores or {})
+    out = {"heads": {}, "intervals": {}}
+    for t in reg_targets:
+        row = _regression_row(preds[t], targets[t])
+        if t == direction_target:
+            row.update(_direction_row(preds[t], targets[t], scores.get(t, preds[t])))
+        out["heads"][t] = row
+    if intervals is None:
+        lo_t, hi_t = RANGE_TARGETS
+        intervals = ({"range": {"target": direction_target, "low": preds[lo_t], "high": preds[hi_t]}}
+                     if lo_t in reg_targets and hi_t in reg_targets and direction_target in targets else {})
+    for name, spec in intervals.items():
+        y, lo, hi = targets[spec["target"]], spec["low"], spec["high"]
+        lo_f, hi_f = _finite_pairs(lo, hi)
+        row = {"target": spec["target"], "coverage": interval_coverage(y, lo, hi), "mean_width": mean_interval_width(lo, hi),
+               "crossed_share": float(np.mean(lo_f > hi_f)) if len(lo_f) else float("nan")}
+        if spec.get("alpha") is not None:
+            row["alpha"] = float(spec["alpha"])
+            row["winkler"] = winkler_score(y, lo, hi, spec["alpha"])
+        out["intervals"][name] = row
+    return out

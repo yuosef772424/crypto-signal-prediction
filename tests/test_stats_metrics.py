@@ -140,6 +140,172 @@ class IntervalAndLossTests(unittest.TestCase):
         self.assertAlmostEqual(sm.ece_quantile(np.full(10, 0.7), np.r_[np.ones(5), np.zeros(5)]), 0.2, places=12)
 
 
+class QuantileAndIntervalTests(unittest.TestCase):
+    def test_quantile_coverage_and_qss(self):
+        rng = np.random.default_rng(0)
+        y = rng.normal(size=4000)
+        taus = (0.1, 0.5, 0.9)
+        ideal = np.tile(np.quantile(y, taus), (len(y), 1))
+        for i, t in enumerate(taus):
+            self.assertAlmostEqual(sm.quantile_coverage(y, ideal[:, i]), t, places=2)
+        self.assertAlmostEqual(sm.qss(y, ideal, taus), 0.0, places=12)               # the baseline itself has zero skill
+        sharp = np.c_[y - 0.01, y, y + 0.01]
+        self.assertGreater(sm.qss(y, sharp, taus), 0.95)
+        self.assertLess(sm.qss(y, ideal + 5.0, taus), 0.0)
+        # explicit baseline; NaN rows dropped; shape errors raise
+        y2, q2 = y.copy(), ideal.copy()
+        y2[0], q2[1, 0] = np.nan, np.nan
+        self.assertAlmostEqual(sm.qss(y2, q2, taus, baseline=ideal), 0.0, places=2)
+        with self.assertRaises(ValueError):
+            sm.qss(y, ideal[:, :2], taus)
+        self.assertTrue(math.isnan(sm.qss([np.nan], [[1.0, 2.0, 3.0]], taus)))
+        self.assertTrue(math.isnan(sm.quantile_coverage([], [])))
+
+    def test_interval_coverage_width_and_winkler_cannot_be_gamed(self):
+        y = np.array([0.0, 1.0, 2.0, 3.0, np.nan])
+        lo, hi = np.array([-1.0, 0.0, 3.0, 4.0, 0.0]), np.array([1.0, 2.0, 1.0, 5.0, 1.0])     # 3rd row crossed, 4th misses
+        self.assertEqual(sm.interval_coverage(y, lo, hi), 0.5)
+        self.assertEqual(sm.mean_interval_width(lo, hi), np.mean(hi - lo))
+        # widening the interval raises coverage but not the Winkler score once it is wide enough
+        rng = np.random.default_rng(1)
+        yy = rng.normal(size=2000)
+        tight = sm.winkler_score(yy, np.full(2000, -1.645), np.full(2000, 1.645), 0.1)
+        wide = sm.winkler_score(yy, np.full(2000, -50.0), np.full(2000, 50.0), 0.1)
+        self.assertGreater(sm.interval_coverage(yy, np.full(2000, -50.0), np.full(2000, 50.0)), 0.999)
+        self.assertLess(tight, wide)
+        self.assertAlmostEqual(sm.winkler_score([0.0], [-1.0], [1.0], 0.1), 2.0)           # inside: just the width
+        self.assertAlmostEqual(sm.winkler_score([2.0], [-1.0], [1.0], 0.1), 2.0 + 20.0 * 1.0)
+        with self.assertRaises(ValueError):
+            sm.winkler_score(y, lo, hi, 1.5)
+        with self.assertRaises(ValueError):
+            sm.interval_coverage([1.0, 2.0], [0.0], [3.0])
+
+
+class TradingMetricTests(unittest.TestCase):
+    def test_threshold_trades_only_trades_above_the_threshold_and_charges_the_round_trip(self):
+        pred = np.array([0.5, -0.5, 0.05, -0.05, np.nan, 0.5])
+        ret = np.array([0.02, -0.03, 0.10, 0.10, 0.10, np.nan])
+        net = sm.threshold_trades(pred, ret, 0.1, round_trip_cost=0.001)
+        np.testing.assert_allclose(net, [0.02 - 0.001, 0.03 - 0.001])                       # long wins, short wins; small preds / NaN rows skipped
+        self.assertEqual(len(sm.threshold_trades(pred, ret, 10.0)), 0)
+        np.testing.assert_allclose(sm.threshold_trades(pred, ret, 0.0)[:2], [0.02, 0.03])
+        with self.assertRaises(ValueError):
+            sm.threshold_trades(pred, ret, -0.1)
+
+    def test_profit_factor_and_win_loss_ratio(self):
+        net = np.array([0.03, 0.01, -0.02, np.nan, -0.02])
+        self.assertAlmostEqual(sm.profit_factor(net), 0.04 / 0.04)
+        self.assertAlmostEqual(sm.win_loss_ratio(net), 0.02 / 0.02)
+        self.assertAlmostEqual(sm.profit_factor([0.06, -0.02]), 3.0)
+        self.assertAlmostEqual(sm.win_loss_ratio([0.06, 0.02, -0.02]), 2.0)
+        self.assertEqual(sm.profit_factor([0.01, 0.02]), float("inf"))
+        self.assertTrue(math.isnan(sm.profit_factor([])))
+        self.assertTrue(math.isnan(sm.profit_factor([0.0, 0.0])))
+        self.assertTrue(math.isnan(sm.win_loss_ratio([0.01, 0.02])))
+        self.assertEqual(sm.profit_factor([-0.01]), 0.0)
+
+    def test_net_sharpe_charges_turnover(self):
+        rng = np.random.default_rng(2)
+        ret = rng.normal(0.001, 0.01, 500)
+        pos = np.sign(rng.normal(size=500))                                                 # flips often: high turnover
+        gross = sm.net_sharpe(ret, pos)
+        self.assertAlmostEqual(gross, float(np.mean(pos * ret) / np.std(pos * ret, ddof=1)), places=12)
+        self.assertLess(sm.net_sharpe(ret, pos, cost_per_turnover=0.002), gross)
+        flat = np.ones(500)                                                                 # buy once: the entry is the only charge
+        net = flat * ret - np.r_[0.01, np.zeros(499)]
+        self.assertAlmostEqual(sm.net_sharpe(ret, flat, cost_per_turnover=0.01), float(net.mean() / net.std(ddof=1)), places=12)
+        self.assertAlmostEqual(sm.net_sharpe(ret, flat, periods_per_year=252), sm.net_sharpe(ret, flat) * math.sqrt(252), places=12)
+        self.assertTrue(math.isnan(sm.net_sharpe([0.1, 0.2], [1, 1])))
+        self.assertTrue(math.isnan(sm.net_sharpe(np.zeros(10), np.zeros(10))))
+        with self.assertRaises(ValueError):
+            sm.net_sharpe(ret, pos[:3])
+
+
+class EvaluateHeadsTests(unittest.TestCase):
+    def setUp(self):
+        from core.heads import HeadSet
+        self.heads = HeadSet.default(("high", "low", "close"))
+        rng = np.random.default_rng(5)
+        n = 600
+        self.n = n
+        close = rng.normal(0, 0.02, n)
+        self.targets = {"close": close, "high": np.abs(close) + 0.01 + np.abs(rng.normal(0, 0.005, n)),
+                        "low": -np.abs(close) - 0.01 - np.abs(rng.normal(0, 0.005, n))}
+        self.preds = {"close": 0.5 * close + rng.normal(0, 0.01, n),
+                      "high": self.targets["high"] + rng.normal(0, 0.004, n),
+                      "low": self.targets["low"] + rng.normal(0, 0.004, n)}
+
+    def test_direction_metrics_exist_only_for_close(self):
+        r = sm.evaluate_heads(self.preds, self.targets, self.heads)
+        self.assertEqual(sorted(r["heads"]), ["close", "high", "low"])
+        for t in ("high", "low"):
+            self.assertFalse({"hit_rate", "direction_auc", "n_direction"} & set(r["heads"][t]), t)
+        c = r["heads"]["close"]
+        y, p = self.targets["close"], self.preds["close"]
+        self.assertEqual(c["hit_rate"], float(np.mean(np.sign(p) == np.sign(y))))
+        self.assertEqual(c["direction_auc"], sm.auc(y > 0, p))
+        self.assertGreater(c["direction_auc"], 0.6)
+
+    def test_regression_metrics_and_naive_zero_skill(self):
+        r = sm.evaluate_heads(self.preds, self.targets, self.heads)
+        for t in ("high", "low", "close"):
+            y, p = self.targets[t], self.preds[t]
+            h = r["heads"][t]
+            self.assertEqual(h["n"], self.n)
+            self.assertAlmostEqual(h["mae"], float(np.mean(np.abs(y - p))), places=14)
+            self.assertAlmostEqual(h["rmse"], float(np.sqrt(np.mean((y - p) ** 2))), places=14)
+            self.assertAlmostEqual(h["mae_naive"], float(np.mean(np.abs(y))), places=14)            # naive = predict 0
+            self.assertAlmostEqual(h["mae_skill"], 1.0 - h["mae"] / h["mae_naive"], places=14)
+            self.assertAlmostEqual(h["rank_ic"], sm.spearman(p, y), places=14)
+        self.assertGreater(r["heads"]["high"]["mae_skill"], 0.5)
+        zero = sm.evaluate_heads({**self.preds, "close": np.zeros(self.n)}, self.targets, self.heads)
+        self.assertEqual(zero["heads"]["close"]["mae_skill"], 0.0)                                  # predicting 0 has no skill by definition
+        self.assertTrue(math.isnan(zero["heads"]["close"]["rank_ic"]))
+
+    def test_range_interval_reports_coverage_with_width(self):
+        r = sm.evaluate_heads(self.preds, self.targets, self.heads)
+        iv = r["intervals"]["range"]
+        lo, hi, y = self.preds["low"], self.preds["high"], self.targets["close"]
+        self.assertEqual(iv["coverage"], float(np.mean((y >= lo) & (y <= hi))))
+        self.assertEqual(iv["mean_width"], float(np.mean(hi - lo)))
+        self.assertEqual(iv["crossed_share"], 0.0)
+        self.assertNotIn("winkler", iv)
+        wide = sm.evaluate_heads({**self.preds, "low": self.preds["low"] - 1.0, "high": self.preds["high"] + 1.0}, self.targets, self.heads)
+        self.assertGreaterEqual(wide["intervals"]["range"]["coverage"], iv["coverage"])
+        self.assertGreater(wide["intervals"]["range"]["mean_width"], iv["mean_width"] + 1.9)       # the gamed coverage shows in the width
+
+    def test_explicit_intervals_alpha_and_direction_scores(self):
+        n = self.n
+        q = {"nig": {"target": "close", "low": self.preds["close"] - 0.03, "high": self.preds["close"] + 0.03, "alpha": 0.1}}
+        score = np.linspace(0, 1, n)
+        r = sm.evaluate_heads(self.preds, self.targets, self.heads, intervals=q, direction_scores={"close": score})
+        self.assertEqual(list(r["intervals"]), ["nig"])
+        self.assertIn("winkler", r["intervals"]["nig"])
+        self.assertEqual(r["intervals"]["nig"]["winkler"], sm.winkler_score(self.targets["close"], q["nig"]["low"], q["nig"]["high"], 0.1))
+        self.assertEqual(r["heads"]["close"]["direction_auc"], sm.auc(self.targets["close"] > 0, score))
+
+    def test_roles_come_from_head_specs_and_unknown_inputs_raise(self):
+        from core.heads import HeadSet
+        only_close = HeadSet.default(("close",))
+        r = sm.evaluate_heads({"close": self.preds["close"]}, {"close": self.targets["close"]}, only_close)
+        self.assertEqual(list(r["heads"]), ["close"])
+        self.assertEqual(r["intervals"], {})                                                       # no low/high heads: no interval
+        class_only = HeadSet.default(("close",), class_only=True)                                  # no regression head at all
+        with self.assertRaises(ValueError):
+            sm.evaluate_heads({}, {}, class_only)
+        with self.assertRaises(KeyError):
+            sm.evaluate_heads({"close": self.preds["close"]}, {"close": self.targets["close"]}, self.heads)
+        r2 = sm.evaluate_heads(self.preds, self.targets, list(self.heads.heads))                    # any iterable of HeadSpec
+        self.assertEqual(r2["heads"]["high"], r["heads"].get("high", r2["heads"]["high"]))
+
+    def test_nan_rows_are_dropped_not_propagated(self):
+        p = {k: v.copy() for k, v in self.preds.items()}
+        p["close"][::7] = np.nan
+        r = sm.evaluate_heads(p, self.targets, self.heads)
+        self.assertEqual(r["heads"]["close"]["n"], int(np.isfinite(p["close"]).sum()))
+        self.assertTrue(np.isfinite(r["heads"]["close"]["rank_ic"]))
+
+
 class TierOneTests(unittest.TestCase):
     def test_stats_imports_only_core_and_numeric_libraries(self):
         allowed = {"numpy", "pandas", "scipy", "core", "__future__"}

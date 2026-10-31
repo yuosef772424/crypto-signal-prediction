@@ -1,6 +1,6 @@
 """
 PURPOSE:  The data schema names shared by data, workflow, discovery, cross_asset and tools: the last_candles column order (LAST_COLUMNS, TS_COL, LAST_COLUMN_INDEX), its dtype, the price target columns and the target-mode names.
-TAGS:     LAST_COLUMNS, TS_COL, LAST_COLUMN_INDEX, LAST_DTYPE, TARGET_COLUMNS, TARGET_MODES, NO_RELATIVE_BASES, ENTRY_CLOSE_REGS, last_candles, schema, column order
+TAGS:     LAST_COLUMNS, TS_COL, LAST_COLUMN_INDEX, LAST_DTYPE, TARGET_COLUMNS, DIRECTION_TARGET, RANGE_TARGETS, TARGET_MODES, NO_RELATIVE_BASES, ENTRY_CLOSE_REGS, last_candles, schema, column order
 PITFALLS: LAST_COLUMNS is the physical column order of every saved dataset's last_candles array: reordering or inserting breaks existing datasets, checkpoints and every positional index, so only APPEND (and then update the "(N, 7)" docs). It is a tuple (immutable); `.index(name)` is the way to get a position. LAST_COLUMN_INDEX is a read-only name -> index mapping (cross_asset's old LC dict). TARGET_MODES lists the base modes of workflow.retarget_splits; "+relative" may be appended to every base not in NO_RELATIVE_BASES, and the alias "relative" means "return+relative".
 """
 from types import MappingProxyType
@@ -24,6 +24,11 @@ LAST_DTYPE = 'float64'
 #: أعمدة الأسعار اللازمة لحساب الأهداف — تُبقى في البيانات دائماً حتى لو
 #: استُبعدت من مدخلات النموذج عبر ``exclude_from_features``.
 TARGET_COLUMNS = ('high', 'low', 'close')
+
+#: سياسة التقييم لكل رأس (قرار المالك 2026-10-31): مقاييس الاتجاه (hit rate، AUC للإشارة) تُحسب للهدف DIRECTION_TARGET فقط، لا لـ high/low.
+DIRECTION_TARGET = 'close'
+#: أهداف المدى المتوقَّع: (الحدّ الأدنى، الحدّ الأعلى) — تغطية الفاصل [low_pred, high_pred] تُقاس على DIRECTION_TARGET.
+RANGE_TARGETS = ('low', 'high')
 
 #: أوضاع الهدف الأساسية في ``retarget_splits`` (+ اختيارياً "+relative"؛ و"relative" وحدها = "return+relative").
 TARGET_MODES = ("return", "return_close", "scaled", "magnitude", "volnorm", "entry_range")

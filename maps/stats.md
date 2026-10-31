@@ -8,17 +8,28 @@
 - TAGS: stats, tier 1, metrics, single owner, spearman, pearson, auc, wilson, pinball, ece, tie policy, nan policy, hardening c7
 - PITFALLS: stats may import ONLY `core` (tools/check_deps.py enforces it) and third-party numeric libraries (numpy, pandas, scipy); it must never import data/model/trainer/evaluation/workflow, so every package, tool or runner can `from stats.metrics import ...`. No import-time work. The repo root must be on sys.path (every runner notebook does it before importing its package). A metric changes only through…
 
-### `stats/metrics.py` (146 lines)
+### `stats/metrics.py` (332 lines)
 - PURPOSE: The ONE implementation of each metric: pearson / spearman (rank-IC) / partial_spearman, auc, wilson_interval, pinball_loss / mean_pinball, ece_quantile, each with an explicit tie/NaN policy chosen by a keyword (no hidden default per call s…
-- TAGS: metrics, spearman, pearson, rank ic, information coefficient, auc, mann-whitney, wilson interval, pinball loss, ece, expected calibration error, tie policy, nan policy, average rank, single owner
+- TAGS: metrics, evaluate_heads, per-head policy, qss, quantile skill score, quantile coverage, interval coverage, winkler, profit factor, net sharpe, turnover cost, threshold trades, spearman, pearson, rank ic, information coefficient, auc, mann-whitney, wilson interval, pinball loss, ece, expected calibration error, tie policy, nan policy, average rank, single owner
 - PITFALLS: Ties get AVERAGE ranks everywhere (pandas `rank()` == scipy `rankdata`). NaN policy is a keyword, never implied: correlations take nan_policy in {"drop_nonfinite" (default: drop pairs with NaN or +-inf), "drop" (drop pairs with NaN only; the pandas `Series.corr` behaviour), "propagate" (any NaN -> NaN)}; auc takes {"propagate" (default), "drop", "legacy_rank_skipna" (reproduces model/diagnostics:…
+- DEPENDS: core
 - API:
-  - `def rank_average(a) -> np.ndarray` L22
-  - `def pearson(a, b, *, nan_policy: str='drop_nonfinite', min_n: int=3, var_tol: float=0.0, degenerate: float=float('nan')) -> float` L61
-  - `def spearman(a, b, *, nan_policy: str='drop_nonfinite', min_n: int=3, var_tol: float=0.0, degenerate: float=float('nan')) -> float` L68
-  - `def partial_spearman(a, b, control) -> float` L75
-  - `def auc(y, score, *, nan_policy: str='propagate') -> float` L84
-  - `def wilson_interval(k, n, z: float=1.96, *, clip: bool=True) -> tuple[float, float]` L106
-  - `def pinball_loss(y, q, tau) -> np.ndarray` L121
-  - `def mean_pinball(y, q, taus) -> float` L127
-  - `def ece_quantile(p, y, n_bins: int=10) -> float` L132
+  - `def rank_average(a) -> np.ndarray` L26
+  - `def pearson(a, b, *, nan_policy: str='drop_nonfinite', min_n: int=3, var_tol: float=0.0, degenerate: float=float('nan')) -> float` L65
+  - `def spearman(a, b, *, nan_policy: str='drop_nonfinite', min_n: int=3, var_tol: float=0.0, degenerate: float=float('nan')) -> float` L72
+  - `def partial_spearman(a, b, control) -> float` L79
+  - `def auc(y, score, *, nan_policy: str='propagate') -> float` L88
+  - `def wilson_interval(k, n, z: float=1.96, *, clip: bool=True) -> tuple[float, float]` L110
+  - `def pinball_loss(y, q, tau) -> np.ndarray` L125
+  - `def mean_pinball(y, q, taus) -> float` L131
+  - `def ece_quantile(p, y, n_bins: int=10) -> float` L136
+  - `def quantile_coverage(y, q) -> float` L165
+  - `def qss(y, q, taus, baseline=None) -> float` L171
+  - `def interval_coverage(y, lo, hi) -> float` L194
+  - `def mean_interval_width(lo, hi) -> float` L200
+  - `def winkler_score(y, lo, hi, alpha: float) -> float` L206
+  - `def threshold_trades(pred, ret, threshold: float, round_trip_cost: float=0.0) -> np.ndarray` L218
+  - `def profit_factor(net) -> float` L229
+  - `def win_loss_ratio(net) -> float` L239
+  - `def net_sharpe(ret, position, cost_per_turnover: float=0.0, periods_per_year: float | None=None) -> float` L249
+  - `def evaluate_heads(preds, targets, heads, *, direction_target: str=DIRECTION_TARGET, direction_scores=None, intervals=None) -> dict` L287
