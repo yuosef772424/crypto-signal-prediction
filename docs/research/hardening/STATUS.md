@@ -21,6 +21,10 @@ Last full local suite: 963 passed (before PR4); CI green on batch 1 head and on 
 3. PR12 `label_end` on samples + `SplitPlan` over data/split.py; a real CALIBRATION split carved with embargo (today `calibration_source="calibration"` raises NotImplementedError); purity test; remove/rebuild `trainer/kfold.py` (ignores `embargo`) (C6).
 4. PR13 `TargetCodec` registry (C4; shrinks target-mode-branch). PR14 optional seams (sampler, callbacks).
 5. config-get-default (140) is untouched: candidate for a PR after PR12.
+Owner metric policy (2026-10-31, sent to the PR10 builder): direction/sign accuracy is computed ONLY for the close head (if present);
+high/low (and close) are judged by rank-IC + closeness to truth (MAE/RMSE + skill score vs a naive no-change baseline) + interval
+coverage (share of true targets inside the predicted [low, high] / quantile interval, reported with mean width, Winkler score).
+Backlog (owner, later): chart view of the trades of the `yuosef772424/bot` project.
 Small known items: Pandas4Warning `'d'` in `data/split.py:89`, `data/sources.py:291`, `data/align.py` (use `'D'`); STATUS pending cards T3/T5 touch loss/target code (land before PR13 or rebase).
 
 ## Open questions / critiques
@@ -31,7 +35,7 @@ Small known items: Pandas4Warning `'d'` in `data/split.py:89`, `data/sources.py:
 ## External research (Perplexity)
 - Prompts: `external_research_prompts.md` (+ `external_excluded_symbols.txt`, 183 sealed coins; data must end 2026-09-30).
 - Prompt 1 results (repo `yuosef772424/crypto-decay`, commit 5614cfa) audited in `external_decay_audit.md`: sealed coins NOT excluded (126/183 present), its sealed period used before selection, "sign-flip profits" = static long basket (stablecoins + majors), dollar-neutral negative; monthly retrain IC +0.013 real but ~0 net; staleness not shown (expanding beats train-once, sliding does not). No experiment card justified.
-- OWNER DECISION PENDING: record this external use of sealed coins as a touch in `docs/research/plan/lock/holdout.json` (via the lock procedure, `docs/research/plan/lock/README.md`). Do not base any decision on these results meanwhile.
+- OWNER DECISION 2026-10-31: do NOT record anything in `holdout.json` for now. Still: do not base any decision on these results.
 - Next prompts must demand visible exclusion code + a hard-fail check printing the excluded count.
 
 ## Working rules agreed with the owner
