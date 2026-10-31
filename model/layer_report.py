@@ -17,6 +17,8 @@ cmp_  = layer_compare_report(model, X_te, y_te)             # صائب مقاب�
 cmp_["table"]; cmp_["features"]; print("\n".join(cmp_["verdict"]))
 ```
 """
+from stats.metrics import auc as stats_auc, spearman as stats_spearman
+
 # ═══════════════════════════════════════════════════════════════════════════
 # 🧅 تقرير الطبقات — أين تظهر المعلومة وأين تضيع، وأيّ طبقة تفرّق بين التنبؤ الصائب والخاطئ؟
 # ═══════════════════════════════════════════════════════════════════════════
@@ -77,7 +79,8 @@ def _head_specs(model, y):
 
 
 def _metric(kind, y, s):
-    return _auc(y > 0, s) if kind == "class" else _spearman(s, y)
+    return (stats_auc(y > 0, s, nan_policy="legacy_rank_skipna") if kind == "class"
+            else stats_spearman(s, y, nan_policy="propagate", min_n=3))
 
 
 def layer_probe_report(model, X_train, y_train, X_val, y_val, max_train=2000, max_val=2000, ridge=10.0, n_null=5,
@@ -206,7 +209,7 @@ def _group_stats(Zs, good, folds):
         if ga.all() or (~ga).all() or gb.all() or (~gb).all():
             continue
         wv = Zs[a][ga].mean(0) - Zs[a][~ga].mean(0)
-        aucs.append(_auc(gb, Zs[b] @ wv))
+        aucs.append(stats_auc(gb, Zs[b] @ wv, nan_policy="legacy_rank_skipna"))
     return d, (float(np.mean(aucs)) if aucs else float("nan"))
 
 

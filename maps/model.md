@@ -99,18 +99,18 @@
     - `.compute_output_shape(self, input_shape)` L85
     - `.get_config(self)` L88
 
-### `model/layer_report.py` (323 lines)
+### `model/layer_report.py` (326 lines)
 - PURPOSE: Per-layer reports on a trained model: layer_probe_report, layer_compare_report, random_init_copy.
 - TAGS: layer_probe_report, layer_probe_verdict, layer_compare_report, random_init_copy, per-layer probe
 - PITFALLS: Needs a TRAINED model plus its random-init twin (random_init_copy); depends on diagnostics.py helpers. Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
-- DEPENDS: core
+- DEPENDS: core, stats
 - USES: diagnostics
 - USED BY: workflow/diagnostics
 - API:
-  - `def random_init_copy(model, seed=0)` L31
-  - `def layer_probe_report(model, X_train, y_train, X_val, y_val, max_train=2000, max_val=2000, ridge=10.0, n_null=5, n_rand=1, seed=0, batch_size=256, z_min=3.0, rand_margin=0.02)` L83
-  - `def layer_probe_verdict(df)` L149
-  - `def layer_compare_report(model, X, y, heads=None, max_n=1500, n_perm=30, n_rand=3, min_group=30, margin_auc=0.03, margin_d=0.0, margin_feat=0.25, rand_mult=1.5, seed=0, batch_size=256, verbose=False)` L213
+  - `def random_init_copy(model, seed=0)` L33
+  - `def layer_probe_report(model, X_train, y_train, X_val, y_val, max_train=2000, max_val=2000, ridge=10.0, n_null=5, n_rand=1, seed=0, batch_size=256, z_min=3.0, rand_margin=0.02)` L86
+  - `def layer_probe_verdict(df)` L152
+  - `def layer_compare_report(model, X, y, heads=None, max_n=1500, n_perm=30, n_rand=3, min_group=30, margin_auc=0.03, margin_d=0.0, margin_feat=0.25, rand_mult=1.5, seed=0, batch_size=256, verbose=False)` L216
 
 ### `model/nig_layers.py` (108 lines)
 - PURPOSE: Raw NIG head layers: NIGHead, OrderedMeans, NIGUncertainty, ConfidenceHead (+ NIG_ALPHA_DEN_MIN).

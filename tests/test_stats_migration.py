@@ -274,5 +274,16 @@ class WorkflowCapacityMigration(unittest.TestCase):
             same(self, skill("reg", b, a), _legacy_diag_spearman(a, b))
 
 
+class ModelLayerReportMigration(unittest.TestCase):
+    def test_metric_is_bit_equal_to_the_old_diagnostics_auc_and_spearman(self):
+        import _nbload
+        ns = _nbload.load_model()
+        metric = ns["_metric"]
+        for y, s in auc_cases() + auc_cases_with_nan():
+            same(self, metric("class", y.astype(float) * 2 - 1, s), _legacy_diag_auc(y, s))
+        for a, b in spearman_cases():
+            same(self, metric("reg", b, a), _legacy_diag_spearman(a, b))
+
+
 if __name__ == "__main__":
     unittest.main()
