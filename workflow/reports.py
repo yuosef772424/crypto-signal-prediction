@@ -4,6 +4,8 @@ TAGS:     latest_trading_report, real_price_predictions, classification_accuracy
 PITFALLS: model, test / test_dict, eval_target_specs, price_targets and model_tf are explicit arguments (RunResult / ChicksInputs / ModelPlan / DatasetInfo of workflow/run.py): no notebook global is read. Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted from main.ipynb cell 23 (section 7).
 """
 import evaluation as _evaluation   # explicit: classification_accuracy_report pools through evaluation/pooled.py + evaluation/predict.py
+from core.heads import label_key as _label_key, output_name as _output_name
+from core.schema import TARGET_COLUMNS as _TARGET_COLUMNS
 
 
 def latest_trading_report(model, test_dict, eval_target_specs, model_tf, n_display=5):
@@ -27,9 +29,10 @@ def real_price_predictions(model, test, asset, target, model_tf):
     x = model_x(split, model_tf)
     if target_mode_of(split) == "entry_range":
         out = model(x, training=False)
-        mu = {t: out[f"y_{t}"].numpy().ravel() / reg_scale_of(split, t) for t in ("high", "low", "close")
-              if f"y_{t}" in out}
-        p_up = out["y_close_class_logits"].numpy().ravel() if "y_close_class_logits" in out else None
+        mu = {t: out[_output_name(t, "mu")].numpy().ravel() / reg_scale_of(split, t) for t in _TARGET_COLUMNS
+              if _output_name(t, "mu") in out}
+        p_up_key = _output_name("close", "logits")
+        p_up = out[p_up_key].numpy().ravel() if p_up_key in out else None
         prices = entry_range_to_prices(split["last_candles"][:, LAST_COLUMNS.index("last_close")],
                                        close_reg=entry_close_reg_of(split), p_close_up=p_up, **mu)
         if target not in prices:
@@ -37,7 +40,7 @@ def real_price_predictions(model, test, asset, target, model_tf):
                              + (" (close بـ range_pos يحتاج high وlow؛ وبـ abs_return يحتاج رأس تصنيف close)"
                                 if target.startswith("close") else ""))
         return prices[target]
-    preds = model(x, training=False)[f"y_{target}"].numpy().ravel()
+    preds = model(x, training=False)[_output_name(target, "mu")].numpy().ravel()
     mode = target_mode_of(split)
     if mode == "scaled":
         # (السعر_المستقبلي − آخر_سعر_من_نوعه) / IQR (القسم ٣-ب) ← آخر_سعر + التوقّع × IQR، بنفس حماية القسمة على صفر
@@ -68,8 +71,8 @@ def classification_accuracy_report(model, test, price_targets, model_tf):
     for b in bounds:
         asset, split = b["name"], test[b["name"]]
         for t in price_targets:
-            y_true = _to_unit_label(np.asarray(split["y"][f"y_{t}_class"]).ravel())
-            y_prob = out[f"y_{t}_class_logits"][b["start"]:b["end"]].ravel()
+            y_true = _to_unit_label(np.asarray(split["y"][_label_key(t, "class")]).ravel())
+            y_prob = out[_output_name(t, "logits")][b["start"]:b["end"]].ravel()
             y_pred = (y_prob >= 0.5).astype("float32")
             auc = roc_auc_score(y_true, y_prob) if len(set(y_true.tolist())) > 1 else float("nan")
             rows.append({"asset": asset, "target": t, "n": len(y_true),

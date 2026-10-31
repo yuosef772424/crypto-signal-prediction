@@ -8,6 +8,7 @@ import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.metrics import roc_auc_score, balanced_accuracy_score
+from core.heads import label_key as _label_key, output_name as _output_name
 
 
 def _candle_frame(split_or_dict, model_tf):
@@ -21,7 +22,7 @@ def _candle_frame(split_or_dict, model_tf):
         "upper_wick": (h - c) / c, "lower_wick": (c - l) / c, "range_rel": (h - l) / c,
     })
     for t in ("high", "low"):
-        y = np.asarray(split["y"][f"y_{t}_class"]).ravel()
+        y = np.asarray(split["y"][_label_key(t, "class")]).ravel()
         df[f"y_{t}"] = (y > 0).astype(int)             # ترميز خط الأنابيب ±1 → {0,1}
     # فحص تعريف الهدف من الأسعار الخام نفسها (يجب أن يطابق ~100%)
     df.attrs["label_check"] = {
@@ -89,8 +90,8 @@ def candle_baseline_report(model, train_split, val_split, test_split, model_tf=N
             scores[part]["candle_gbm"] = candle.predict_proba(df[_CANDLE_COLS].values)[:, 1]
             scores[part]["laststep_gbm"] = last.predict_proba(X_last[part])[:, 1]
             out = out_val if part == "val" else out_test
-            scores[part]["model_class"] = np.asarray(out[f"y_{t}_class_logits"]).ravel()
-            mu = np.asarray(out[f"y_{t}"]).ravel()
+            scores[part]["model_class"] = np.asarray(out[_output_name(t, "logits")]).ravel()
+            mu = np.asarray(out[_output_name(t, "mu")]).ravel()
             scores[part]["model_reg_mu"] = 1.0 / (1.0 + np.exp(-mu / (np.std(mu) + 1e-12)))  # sign(mu) عند 0.5
 
         for part, df in frames.items():

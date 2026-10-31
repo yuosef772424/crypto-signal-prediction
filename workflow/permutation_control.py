@@ -9,6 +9,7 @@ import json
 import os
 import numpy as np
 import pandas as pd
+from core.heads import label_key as _label_key, output_name as _output_name
 
 
 def _permuted_rows(n, days, mode, rng):
@@ -117,11 +118,11 @@ def run_label_permutation_control(train_split, val_split, test_split, epochs=6, 
     days_te = np.asarray(te["last_candles"])[:, _LC["timestamp"]]
     rows = []
     for t in price_targets:
-        if f"y_{t}_class" in te["y"] and f"y_{t}_class_logits" in out_r:
-            yt = (np.asarray(te["y"][f"y_{t}_class"]).ravel() > 0).astype(int)
-            maj = int(np.mean(np.asarray(y[f"y_{t}_class"]).ravel() >= 0.5) >= 0.5)   # فئة train الأكبر
-            cr = ((np.asarray(out_r[f"y_{t}_class_logits"]).ravel() >= 0.5).astype(int) == yt).astype(float)
-            cs = ((np.asarray(out_s[f"y_{t}_class_logits"]).ravel() >= 0.5).astype(int) == yt).astype(float)
+        if _label_key(t, "class") in te["y"] and _output_name(t, "logits") in out_r:
+            yt = (np.asarray(te["y"][_label_key(t, "class")]).ravel() > 0).astype(int)
+            maj = int(np.mean(np.asarray(y[_label_key(t, "class")]).ravel() >= 0.5) >= 0.5)   # فئة train الأكبر
+            cr = ((np.asarray(out_r[_output_name(t, "logits")]).ravel() >= 0.5).astype(int) == yt).astype(float)
+            cs = ((np.asarray(out_s[_output_name(t, "logits")]).ravel() >= 0.5).astype(int) == yt).astype(float)
             cm = (maj == yt).astype(float)
             d_info = _day_bootstrap_mean(cr - cs, days_te, n_boot, seed)
             d_leak = _day_bootstrap_mean(cs - cm, days_te, n_boot, seed + 1)
@@ -134,12 +135,12 @@ def run_label_permutation_control(train_split, val_split, test_split, epochs=6, 
                          "real−shuffled [95%]": f"{d_info[0]:+.4f} [{d_info[1]:+.4f}, {d_info[2]:+.4f}]",
                          "real−baseline [95%]": f"{d_base[0]:+.4f} [{d_base[1]:+.4f}, {d_base[2]:+.4f}]",
                          "shuffled−baseline [95%]": f"{d_leak[0]:+.4f} [{d_leak[1]:+.4f}, {d_leak[2]:+.4f}]",
-                         "_info_lo": d_info[1], "_base_lo": d_base[1], "_leak_lo": d_leak[1], "_leak_m": d_leak[0], "_mem": tr_s - max(np.mean(y[f'y_{t}_class']), 1 - np.mean(y[f'y_{t}_class']))})
-        if f"y_{t}_reg" in te["y"] and f"y_{t}" in out_r:
-            yt = np.asarray(te["y"][f"y_{t}_reg"], dtype="float64").ravel()
-            const = float(np.median(np.asarray(y[f"y_{t}_reg"], dtype="float64")))   # وسيط train: ≈0 للعوائد
-            gr = np.abs(yt - const) - np.abs(yt - np.asarray(out_r[f"y_{t}"]).ravel())  # > 0 = أقرب من الثابت
-            gs = np.abs(yt - const) - np.abs(yt - np.asarray(out_s[f"y_{t}"]).ravel())
+                         "_info_lo": d_info[1], "_base_lo": d_base[1], "_leak_lo": d_leak[1], "_leak_m": d_leak[0], "_mem": tr_s - max(np.mean(y[_label_key(t, "class")]), 1 - np.mean(y[_label_key(t, "class")]))})
+        if _label_key(t, "reg") in te["y"] and _output_name(t, "mu") in out_r:
+            yt = np.asarray(te["y"][_label_key(t, "reg")], dtype="float64").ravel()
+            const = float(np.median(np.asarray(y[_label_key(t, "reg")], dtype="float64")))   # وسيط train: ≈0 للعوائد
+            gr = np.abs(yt - const) - np.abs(yt - np.asarray(out_r[_output_name(t, "mu")]).ravel())  # > 0 = أقرب من الثابت
+            gs = np.abs(yt - const) - np.abs(yt - np.asarray(out_s[_output_name(t, "mu")]).ravel())
             d_info = _day_bootstrap_mean(gr - gs, days_te, n_boot, seed)
             d_leak = _day_bootstrap_mean(gs, days_te, n_boot, seed + 1)
             d_base = _day_bootstrap_mean(gr, days_te, n_boot, seed + 2)

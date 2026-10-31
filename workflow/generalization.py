@@ -5,13 +5,15 @@ PITFALLS: trivial_range_baseline (opt-in, generalization_gap_report(trivial_base
 """
 import numpy as np
 import pandas as pd
+from core.heads import label_key as _label_key, output_name as _output_name
+from core.schema import TARGET_COLUMNS as _TARGET_COLUMNS
 
 from core.schema import LAST_COLUMN_INDEX
 
 #: A class head whose val/test AUC beats the trivial range-position rule by no more than this carries no information beyond range mechanics (audit T4, F-0085).
 TRIVIAL_UPLIFT_MIN = 0.01
 #: The class heads the range-position rule is defined for (next high > last high, next low > last low, next close > last close).
-TRIVIAL_TARGETS = ("high", "low", "close")
+TRIVIAL_TARGETS = _TARGET_COLUMNS
 
 
 def _x_of(split_or_dict, model_tf=None):
@@ -108,13 +110,13 @@ def _heads_eval(model, split_or_dict, max_n, seed, model_tf, batch_size=2048, pr
     out = model.predict(x_in, batch_size=batch_size, verbose=0)
     res = {}
     for t in price_targets:
-        if f"y_{t}_class_logits" in out and f"y_{t}_class" in y:
-            yt = y[f"y_{t}_class"][idx] > 0
-            p = np.asarray(out[f"y_{t}_class_logits"]).ravel()
+        if _output_name(t, "logits") in out and _label_key(t, "class") in y:
+            yt = y[_label_key(t, "class")][idx] > 0
+            p = np.asarray(out[_output_name(t, "logits")]).ravel()
             res[(t, "class_auc")] = _auc(yt, p)
             res[(t, "class_acc")] = float(np.mean((p >= 0.5) == yt))
-        if f"y_{t}" in out and f"y_{t}_reg" in y:
-            df = pd.DataFrame({"y": y[f"y_{t}_reg"][idx], "s": np.asarray(out[f"y_{t}"]).ravel(), "d": ts[idx]})
+        if _output_name(t, "mu") in out and _label_key(t, "reg") in y:
+            df = pd.DataFrame({"y": y[_label_key(t, "reg")][idx], "s": np.asarray(out[_output_name(t, "mu")]).ravel(), "d": ts[idx]})
             ic = df.groupby("d").filter(lambda g: len(g) >= 5).groupby("d")[["y", "s"]].apply(
                 lambda g: g["y"].rank().corr(g["s"].rank()))
             res[(t, "reg_daily_ic")] = float(ic.mean()) if len(ic) else float(
@@ -145,7 +147,7 @@ def _linear_reference(train_split, eval_splits, model_tf, max_n, seed=0, price_t
     sc = StandardScaler().fit(F)
     out = {}
     for t in price_targets:
-        k = f"y_{t}_class"
+        k = _label_key(t, "class")
         if k not in parts[0][1]["y"]:
             continue
         yt = np.concatenate([np.asarray(s["y"][k]).ravel() for _, s in parts])[idx] > 0
@@ -203,7 +205,7 @@ def _trivial_reference(train_split, eval_splits, max_n, price_targets=None):
 
     out = {}
     for t in price_targets:
-        k = f"y_{t}_class"
+        k = _label_key(t, "class")
         if k not in _split_parts(train_split)[0][1]["y"]:
             continue
         _, sign = trivial_range_baseline(*rows(train_split, "train", k), t)

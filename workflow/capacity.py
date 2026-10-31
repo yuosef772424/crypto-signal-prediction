@@ -7,6 +7,8 @@ import copy
 import shutil
 import tempfile
 
+from core.heads import output_name as _output_name
+
 
 def _split_asset_ids(split):
     """رقم الأصل لكل صف: split['asset_ids'] إن وُجد، وإلا يُستنتج من انخفاض الطابع الزمني (split_data يرصّ عملةً عملة زمنياً)."""
@@ -166,7 +168,7 @@ def _model_skills(model, X, y, heads, batch_size=512):
     res = {}
     for h, k, kd in heads:
         t = h.rsplit("_", 1)[0]
-        key = f"y_{t}_class_logits" if kd == "class" else f"y_{t}"
+        key = _output_name(t, "logits" if kd == "class" else "mu")
         if key in out:
             res[h] = _skill(kd, y[k], out[key].reshape(len(y[k]), -1)[:, 0])
     return res
