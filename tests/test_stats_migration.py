@@ -475,5 +475,36 @@ class WorkflowMarketNeutralMigration(unittest.TestCase):
                     close(self, [got["ic_mean"], got["ic_t"]], [want["ic_mean"], want["ic_t"]])
 
 
+# ───────────────────────── workflow/selective_eval.py (wilson_interval) ─────────────────────────
+def _legacy_wilson_interval(k, n, z=1.96):
+    if n == 0:
+        return (np.nan, np.nan)
+    p = k / n
+    d = 1 + z * z / n
+    c = (p + z * z / (2 * n)) / d
+    h = z * np.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d
+    return (c - h, c + h)
+
+
+class WorkflowSelectiveEvalMigration(unittest.TestCase):
+    def test_subset_stats_wilson_is_bit_equal_to_the_old_unclipped_interval(self):
+        import _nbload
+        from core.schema import LAST_COLUMNS
+        ns = {"__name__": "audit_nb", "np": np, "pd": pd, "LAST_COLUMNS": LAST_COLUMNS}
+        _nbload.workflow_package().load_into(ns, only=("selective_eval",))
+        stats_fn = ns["_subset_stats"]
+        rng = np.random.default_rng(4)
+        for seed in range(30):
+            n_rows = int(rng.integers(1, 300))
+            df = pd.DataFrame({"timestamp": rng.integers(0, 20, n_rows)})
+            correct = rng.random(n_rows) < (1.0 if seed % 7 == 0 else 0.0 if seed % 7 == 1 else 0.6)
+            mask = rng.random(n_rows) < (0.0 if seed % 9 == 0 else 0.5)
+            got = stats_fn(df, mask, correct)
+            n, k = int(mask.sum()), int(correct[mask].sum())
+            lo, hi = _legacy_wilson_interval(k, n)
+            same(self, [got["wilson_lo"], got["wilson_hi"]], [lo, hi], f"k={k} n={n}")
+        self.assertEqual(ns["wilson_interval"](10, 10)[1], 1.0)                  # the clipped canonical default stays clipped
+
+
 if __name__ == "__main__":
     unittest.main()

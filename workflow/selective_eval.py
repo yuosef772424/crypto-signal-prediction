@@ -8,6 +8,8 @@ import pandas as pd
 from core.heads import label_key as _label_key, output_name as _output_name
 from core.schema import TARGET_COLUMNS as _TARGET_COLUMNS
 
+from stats.metrics import wilson_interval
+
 _LC = {name: i for i, name in enumerate(LAST_COLUMNS)}
 
 
@@ -98,16 +100,6 @@ def direction_scores(df, target="close"):
     return out
 
 
-def wilson_interval(k, n, z=1.96):
-    if n == 0:
-        return (np.nan, np.nan)
-    p = k / n
-    d = 1 + z * z / n
-    c = (p + z * z / (2 * n)) / d
-    h = z * np.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d
-    return (c - h, c + h)
-
-
 def selective_curve(score, correct, n_bins=10):
     """دقة كل شريحة ثقة (عُشر) + ارتباط سبيرمان بين رتبة الشريحة ودقتها (1.0 = اتساق تام)."""
     ok = np.isfinite(score)
@@ -136,7 +128,7 @@ def pick_threshold(score, correct, target_acc=0.65, min_n=200):
 
 def _subset_stats(df, mask, correct):
     n, k = int(mask.sum()), int(correct[mask].sum())
-    lo, hi = wilson_interval(k, n)
+    lo, hi = wilson_interval(k, n, clip=False)   # الصيغة الخام بلا قصّ إلى [0, 1] كما كانت
     return {"n": n, "n_dates": int(df.loc[mask, "timestamp"].nunique()),
             "coverage": n / max(len(df), 1), "accuracy": k / n if n else np.nan,
             "wilson_lo": lo, "wilson_hi": hi}

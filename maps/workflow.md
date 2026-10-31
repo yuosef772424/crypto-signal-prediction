@@ -183,23 +183,22 @@
   - `def run_reports(settings, which, kit, *, model, train, val, test, dataset, info, plan, chicks)` L503
   - `def run_main(settings, kit, dataset=None, summary=True)` L560
 
-### `workflow/selective_eval.py` (301 lines)
+### `workflow/selective_eval.py` (293 lines)
 - PURPOSE: Section 7-b: selective evaluation (accuracy at confident slices, 2:1 trades): collect_signals, thresholds picked on val only, Wilson intervals, rr_trading_report.
 - TAGS: collect_signals, selective_evaluation, selective_direction_report, rr_trading_report, simulate_rr_trades, wilson_interval, pick_threshold, confidence
 - PITFALLS: Every threshold is chosen on val and judged on test. Uses LAST_COLUMNS from the pipeline. Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 26 (section 7-b).
-- DEPENDS: core
+- DEPENDS: core, stats
 - USES: data/windows, retarget, splits
 - USED BY: candle_baseline, market_neutral, panel_bridge, permutation_control, run, verification, wiring_selftest
 - API:
-  - `def collect_signals(model, split_or_dict, model_tf, batch_size=1024, outputs=None, price_targets=None)` L29
-  - `def direction_scores(df, target='close')` L83
-  - `def wilson_interval(k, n, z=1.96)` L101
-  - `def selective_curve(score, correct, n_bins=10)` L111
-  - `def pick_threshold(score, correct, target_acc=0.65, min_n=200)` L126
-  - `def selective_direction_report(val_df, test_df, target_acc=0.65, min_n=200, target='close', verbose=True)` L145
-  - `def simulate_rr_trades(df, side, rr=2.0, stop_mode='nig', stop_k=1.0, cost_pct=0.08)` L182
-  - `def rr_trading_report(val_df, test_df, rr=2.0, stop_mode='nig', stop_k=1.0, cost_pct=0.08, min_trades=200, quantiles=(0.5, 0.7, 0.8, 0.9, 0.95), target='close', seed=0, verbose=True)` L228
-  - `def selective_evaluation(model=None, val_split=None, test_split=None, model_tf=None, target_acc=0.65, rr=2.0, stop_mode='nig', min_n=200, val_df=None, test_df=None, verbose=True, price_targets=None)` L278
+  - `def collect_signals(model, split_or_dict, model_tf, batch_size=1024, outputs=None, price_targets=None)` L31
+  - `def direction_scores(df, target='close')` L85
+  - `def selective_curve(score, correct, n_bins=10)` L103
+  - `def pick_threshold(score, correct, target_acc=0.65, min_n=200)` L118
+  - `def selective_direction_report(val_df, test_df, target_acc=0.65, min_n=200, target='close', verbose=True)` L137
+  - `def simulate_rr_trades(df, side, rr=2.0, stop_mode='nig', stop_k=1.0, cost_pct=0.08)` L174
+  - `def rr_trading_report(val_df, test_df, rr=2.0, stop_mode='nig', stop_k=1.0, cost_pct=0.08, min_trades=200, quantiles=(0.5, 0.7, 0.8, 0.9, 0.95), target='close', seed=0, verbose=True)` L220
+  - `def selective_evaluation(model=None, val_split=None, test_split=None, model_tf=None, target_acc=0.65, rr=2.0, stop_mode='nig', min_n=200, val_df=None, test_df=None, verbose=True, price_targets=None)` L270
 
 ### `workflow/settings.py` (494 lines)
 - PURPOSE: RunSettings: every setting of a main run (dataset, target mode, model options, training, evaluation, panel model) in one strict, frozen object whose defaults are the values main.ipynb always held; main.ipynb, tools/evaluate_trained_model.p…
