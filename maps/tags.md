@@ -78,7 +78,7 @@
 - anti_memorization: workflow/settings
 - anti_memorization_config: model/config
 - api: data/binance_client
-- apply_confidence_calibration: evaluation/trust_calibration
+- apply_confidence_calibration: evaluation/calibrators
 - apply_dataset_config: workflow/run
 - apply_hourly_preset: data/presets
 - apply_schedules: trainer/schedules
@@ -106,6 +106,7 @@
 - backtest: edge_discovery/tsbt
 - base64: edge_discovery/data_tools/dec
 - base_params last_close: workflow/chicks_bridge
+- base_rate: evaluation/calibrators
 - baseline: tools/check_patterns
 - baseline comparison: cross_asset/experiment
 - baseline signals: workflow/panel_bridge
@@ -143,6 +144,7 @@
 - breakout: edge_discovery/05_events, strategy_discovery/grid
 - breakout stops: edge_discovery/32_breakout_stops
 - breakout_stops_results.csv: edge_discovery/32_breakout_stops
+- brier: evaluation/trust_calibration
 - btc: data/market_context, tools/h07_forward
 - buckets: evaluation/output_conditioned, tools/build_lock
 - build: edge_discovery/features
@@ -215,6 +217,7 @@
 - ci guard: tests/test_no_lookahead
 - class head: data/heads
 - class_baselines: trainer/metrics, workflow/training_config
+- class_margin: evaluation/calibrators
 - class_only: workflow/settings
 - classification_accuracy_report: workflow/reports
 - classification_task_loss: trainer/tasks
@@ -252,6 +255,7 @@
 - compute_trading_performance_metrics: evaluation/tearsheet
 - concat_splits: signal_eval/integration
 - confidence: evaluation/trust_calibration, workflow/selective_eval
+- confidence calibration: evaluation/calibrators
 - confidencehead: model/nig_layers
 - config: data/__init__, data/runtime
 - config default: tools/check_patterns
@@ -361,6 +365,7 @@
 - dev val: strategy_discovery/grid, strategy_discovery/grid2, strategy_discovery/intraday_macd, strategy_discovery/seasonality15m
 - dev val split: indicator_strategy/screen
 - diag_sections: model/diagnostics
+- diagnose_confidence: evaluation/calibrators
 - diagnose_data_vs_configs: data/diagnostics
 - diagnose_feature_availability: data/diagnostics
 - diagnose_model: model/diagnostics
@@ -543,7 +548,7 @@
 - finish_price_norm: data/normalizers
 - finite checks: workflow/verification
 - fit: data/normalizers
-- fit_confidence_calibrators: evaluation/trust_calibration
+- fit_confidence_calibrators: evaluation/calibrators
 - fit_price_norm: data/normalizers
 - fix-gaps: tools/fetch_history_vision_colab
 - flat bars: tools/stale_bars_audit
@@ -726,7 +731,7 @@
 - ipynb: tools/nb_cells
 - is_colab: data/drive
 - isolation forest: evaluation/patterns
-- isotonic: evaluation/trust_calibration
+- isotonic: evaluation/calibrators
 - job queue: tools/colab_runner
 - job.json: tools/colab_runner, tools/colab_smoke
 - json format: tools/nb_cells
@@ -1046,6 +1051,7 @@
 - patience: trainer/best_tracker
 - pattern discovery: evaluation/patterns
 - pattern ratchet: tools/check_patterns
+- pav: evaluation/calibrators
 - pct_change: data/normalize
 - pct_change_overrides: data/presets
 - per-asset predict loop: tools/check_patterns
@@ -1077,7 +1083,7 @@
 - pkl.gz: data/storage
 - plan_model: workflow/run
 - plateau: strategy_discovery/robustness
-- platt: evaluation/trust_calibration
+- platt: evaluation/calibrators
 - plot_calibration_curve: evaluation/plots
 - plot_confusion_matrix_heatmap: evaluation/plots
 - plot_equity_curve: evaluation/plots
@@ -1091,6 +1097,7 @@
 - position sizing: h07_volsizing/01_volsizing
 - positional embedding: model/patches
 - post-hoc: edge_discovery/15_h07_robust, edge_discovery/23_chart_rules_gross
+- post-hoc calibration: evaluation/calibrators
 - post-listing drift: edge_discovery/12_listing
 - pr #7: edge_discovery/18_h13_pr7_signal
 - predict_batch: evaluation/predict
@@ -1187,6 +1194,7 @@
 - relative direction: edge_discovery/18_h13_pr7_signal
 - relative modes: workflow/chicks_bridge
 - relativegqattention: model/transformer
+- reliability curve: evaluation/trust_calibration
 - reopen conditions: tools/experiment_registry
 - repo_root: data/_loader, discovery/_loader, evaluation/_loader, model/_loader, signal_eval/_loader, trainer/_loader … (+1)
 - representation collapse: norm_probe/run_norm_probe
@@ -1591,3 +1599,4 @@
 - التطبيع: data/normalize
 - الخريطة: tools/build_map
 - تطبيع: data/normalizers
+- معايرة الثقة: evaluation/calibrators

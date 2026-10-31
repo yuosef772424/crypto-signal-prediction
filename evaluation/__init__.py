@@ -15,6 +15,7 @@ PITFALLS: The modules run in ONE shared namespace (see evaluation/_loader.py), s
   integrity (34)        تشخيص نزاهة النموذج                       full_analysis (36)    run_full_analysis
   legacy_uncertainty (38) تقرير قديم                              legacy_assets (40)    تقارير محاكاة قديمة
   trade_selection (42-44) اختيار الصفقات                          io_patterns (46-49)   أنماط المدخلات ↔ المخرجات
+  calibrators (جديدة, قبل trust_calibration)  معايِرات الثقة post-hoc (isotonic/Platt) — انتُزعت حرفياً من trust_calibration (24)
   pooled (جديدة, بعد unified)  مسار التنبؤ المدمج الوحيد: pool_x/pool_test_dict ← predict_pooled_raw (استدعاء نموذج واحد) ← slice_by_asset
 """
 import threading as _threading
