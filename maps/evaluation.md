@@ -32,15 +32,25 @@
   - `def calculate_aggregated_metrics_v4(results_df: pd.DataFrame, target_specs) -> Dict` L329
   - `def test_all_assets(model, test_dict, timeframes, targets, verbose=True, n_display=1, batch_size=256, range_frac=0.2)` L364
 
-### `evaluation/calibrators.py` (148 lines)
-- PURPOSE: Post-hoc confidence calibration math (isotonic / Platt) fitted on a val flat table and applied to test: fit_confidence_calibrators, apply_confidence_calibration, diagnose_confidence (moved verbatim out of trust_calibration.py).
-- TAGS: fit_confidence_calibrators, apply_confidence_calibration, diagnose_confidence, isotonic, platt, pav, confidence calibration, class_margin, base_rate, post-hoc calibration, معايرة الثقة
-- PITFALLS: Calibrators are fitted on val only and never touch test. Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules (pd, np, Dict) resolve at call time.
+### `evaluation/calibrators.py` (337 lines)
+- PURPOSE: The Calibrator component (CALIBRATORS registry: isotonic / platt) of post-hoc confidence calibration: fit(data)->state on a role-stamped val/calibration flat table, transform(state, data), dump_state/load_state (JSON). fit_confidence_calib…
+- TAGS: calibrator, calibrators, calibrationstate, fit_confidence_calibrators, apply_confidence_calibration, diagnose_confidence, isotonic, platt, pav, confidence calibration, class_margin, base_rate, post-hoc calibration, split role, role check, one component one interface, معايرة الثقة
+- PITFALLS: fit REFUSES (core.roles.RoleError) a table whose role stamp (`df.attrs['split_role']`, core.roles.stamp_role) is missing, train, holdout, test or otherwise not in the calibrator's allowed roles (default calibration, val: today's val-fit behaviour); put the stamp on the table right before fit (attrs do not survive groupby/merge/concat). The state remembers its fit_role; transform / load_state refu…
+- DEPENDS: core
 - USED BY: full_analysis, trust_calibration
 - API:
-  - `def diagnose_confidence(conf, correct) -> Dict` L71
-  - `def fit_confidence_calibrators(val_df: pd.DataFrame, method: str='isotonic', group_by: str='target', min_n: int=50, verbose: bool=True) -> Dict` L89
-  - `def apply_confidence_calibration(df: pd.DataFrame, calibrators: Dict, group_by: str='target') -> pd.DataFrame` L122
+  - `def diagnose_confidence(conf, correct) -> Dict` L79
+  - `class CalibrationState(dict)` L177
+    - `.__init__(self, entries=(), *, method: str, provenance: Dict)` L182
+  - `class ConfidenceCalibrator` L224
+    - `.__init__(self, name: str, allowed_roles=_roles.CALIBRATOR_ROLES)` L228
+    - `.fit(self, data: pd.DataFrame, *, group_by: str='target', min_n: int=50, verbose: bool=True) -> CalibrationState` L232
+    - `.transform(self, state: CalibrationState, data: pd.DataFrame, *, group_by: str='target') -> pd.DataFrame` L254
+    - `.dump_state(self, state: CalibrationState) -> Dict` L259
+    - `.load_state(self, d: Dict) -> CalibrationState` L268
+  - `def fit_confidence_calibrators(val_df: pd.DataFrame, method: str='isotonic', group_by: str='target', min_n: int=50, verbose: bool=True) -> CalibrationState` L309
+  - `def apply_confidence_calibration(df: pd.DataFrame, calibrators: CalibrationState, group_by: str='target') -> pd.DataFrame` L316
+  - `def stamp_calibration_table(table: pd.DataFrame, source, role: Optional[str]=None) -> pd.DataFrame` L324
 
 ### `evaluation/decode.py` (209 lines)
 - PURPOSE: Stage 2: flexible decoding of raw model outputs into real units (continuous + categorical), decode_predictions_v4.
@@ -62,7 +72,7 @@
 - API:
   - `def build_flat_dataframe(per_asset_results: pd.DataFrame, target_specs: List['TargetSpec'], continuous_only: bool=False) -> pd.DataFrame` L12
 
-### `evaluation/full_analysis.py` (283 lines)
+### `evaluation/full_analysis.py` (287 lines)
 - PURPOSE: run_full_analysis: the whole pipeline plus every report and plot in one call, big outputs saved to analysis_outputs/.
 - TAGS: run_full_analysis, full analysis, all reports
 - PITFALLS: Tests exclude this module on the general load and exec it explicitly (load_into(ns, exclude=...)). Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.

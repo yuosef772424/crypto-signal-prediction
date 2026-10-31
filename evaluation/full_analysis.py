@@ -36,6 +36,7 @@ def run_full_analysis(
     val_dict: Optional[Dict] = None,
     calibrators: Optional[Dict] = None,
     calibration_method: str = 'isotonic',
+    calibration_role: Optional[str] = None,
 ) -> Dict:
     """
     خط الأنابيب الكامل: تنبؤ + فك تشفير مرن + تحقق + تقييم، ثم كل التقارير
@@ -51,7 +52,9 @@ def run_full_analysis(
     eval_all_rows: True (الافتراضي) = كل عملات وصفوف الاختبار تدخل المقاييس المجمّعة (لا تُتخطّى عملة قصيرة)؛ n_display يبقى عرضاً فقط.
     val_dict: بنية test_dict نفسها لقسم **val** (build_chicks_test_dict({'VAL': val}, ...)). إن مُرِّر تُلائَم معايرة الثقة post-hoc
         عليه وحده (method = calibration_method: 'isotonic' | 'platt') وتُطبَّق على test في تقرير الثقة (ECE قبل/بعد) — بلا إعادة تدريب.
-    calibrators: معايِرات جاهزة (fit_confidence_calibrators) بدل val_dict.
+    calibrators: معايِرات جاهزة (fit_confidence_calibrators) بدل val_dict؛ يجب أن تكون CalibrationState (لها مصدر fit_role) لا قاموساً خاماً.
+    calibration_role: دور بيانات val_dict ('val' | 'calibration')؛ None = دور val_dict المختوم. بلا أي منهما يرفع RoleError: لا
+        دور افتراضي (المعاير لا يُلائَم على ما لا نعرف دوره؛ train وholdout مرفوضان دائماً).
     """
     ensure_output_dir(out_dir)
 
@@ -77,6 +80,7 @@ def run_full_analysis(
                                      range_frac=range_frac, run_verification=False, eval_all_rows=True)
         if not val_res['per_asset_results'].empty:
             val_flat = build_flat_dataframe(val_res['per_asset_results'], val_res.get('target_specs', target_specs))
+            val_flat = stamp_calibration_table(val_flat, val_dict, calibration_role)
             calibrators = fit_confidence_calibrators(val_flat, method=calibration_method, verbose=verbose)
         elif verbose:
             print("⚠️ val_dict بلا نتائج — تُتخطّى معايرة الثقة")

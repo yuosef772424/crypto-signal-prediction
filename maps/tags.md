@@ -180,7 +180,10 @@
 - calibration report: natr_range/run_natr_range
 - calibration role: core/roles
 - calibration_report: evaluation/trust_calibration
+- calibrationstate: evaluation/calibrators
+- calibrator: evaluation/calibrators
 - calibrator role check: core/roles
+- calibrators: evaluation/calibrators
 - callback: trainer/snapshot
 - callbacks: trainer/metrics
 - candidate: discovery/__init__
@@ -1001,7 +1004,7 @@
 - old vs new feature set: gate_features/run_gate001
 - on-chain: edge_discovery/20_onchain
 - one click: tools/colab_runner
-- one component one interface: core/registry
+- one component one interface: core/registry, evaluation/calibrators
 - one model call: evaluation/pooled
 - one-shot: indicator_strategy/test_final
 - only shrinks: tools/check_patterns
@@ -1237,6 +1240,7 @@
 - rmsnorm: model/transformer
 - robustness: edge_discovery/15_h07_robust, strategy_discovery/robustness, strategy_discovery/survivor_checks
 - robustness_agg: discovery/survey
+- role check: evaluation/calibrators
 - role stamp: core/roles
 - role_of: core/roles
 - roleerror: core/roles
@@ -1375,7 +1379,7 @@
 - split: data/split
 - split conformal: natr_range/run_natr_calibrate
 - split order: workflow/verification
-- split role: core/roles
+- split role: core/roles, evaluation/calibrators
 - split stamps: workflow/splits
 - split-dates: tools/evaluate_trained_model
 - split['y']: signal_eval/integration

@@ -13,6 +13,10 @@ from core.schema import ENTRY_CLOSE_REGS as _ENTRY_CLOSE_REGS, NO_RELATIVE_BASES
 DATA_FORMATS = ("auto", "pkl.gz", "npy_dir")
 #: Post-hoc confidence calibration methods of the chicks report.
 CALIBRATION_METHODS = ("isotonic", "platt")
+#: Which split the post-hoc calibrators are fitted on (core/roles.py roles): "val" = today's behaviour (val is selection AND calibration);
+#: "calibration" = a split of its own (tail of train behind an embargo), NOT BUILT YET (audit C6, PR 6 follow-up): refused with NotImplementedError.
+CALIBRATION_SOURCES = ("val", "calibration")
+IMPLEMENTED_CALIBRATION_SOURCES = ("val",)
 #: Model config keys the run logic derives itself (workflow.run.plan_model); ModelSettings.config_overrides may not name them.
 _MODEL_OVERRIDES_OWNED_BY_RUN = ("price_targets", "head_types", "enforce_order")
 #: The panel model's ready-made setups; applied by PanelSettings.applied() (they override the fields they name).
@@ -238,6 +242,8 @@ class EvalSettings(_SettingsSection):
     #: Post-hoc confidence calibration (fit on val only, applied to test): the report prints ECE before/after.
     calibrate_confidence: bool = True
     calibration_method: str = "isotonic"
+    #: Split the calibrators are fitted on: "val" (default = what the run always did) | "calibration" (needs a calibration split; none exists yet).
+    calibration_source: str = "val"
     #: True = every asset and row of test enters the metrics.
     eval_all_rows: bool = True
     out_dir: str = "analysis_outputs"
@@ -254,6 +260,13 @@ class EvalSettings(_SettingsSection):
         _settings_check(isinstance(self.calibrate_confidence, bool), "EvalSettings.calibrate_confidence must be a bool")
         _settings_check(self.calibration_method in CALIBRATION_METHODS,
                f"EvalSettings.calibration_method {self.calibration_method!r} unknown; known: {CALIBRATION_METHODS}")
+        _settings_check(self.calibration_source in CALIBRATION_SOURCES,
+               f"EvalSettings.calibration_source {self.calibration_source!r} unknown; known: {CALIBRATION_SOURCES}")
+        if self.calibration_source not in IMPLEMENTED_CALIBRATION_SOURCES:
+            raise NotImplementedError(
+                f"EvalSettings.calibration_source={self.calibration_source!r}: no calibration split exists yet (hardening audit C6, PR 6 "
+                f"follow-up: carve the tail of train behind an embargo in data/split.py, stamp it role 'calibration'). Use "
+                f"{IMPLEMENTED_CALIBRATION_SOURCES[0]!r} (the default) until it is built.")
         _settings_check(isinstance(self.eval_all_rows, bool), "EvalSettings.eval_all_rows must be a bool")
         _settings_check(isinstance(self.out_dir, str) and self.out_dir, "EvalSettings.out_dir must be a non-empty str")
         _settings_check(isinstance(self.mn_quantiles, (list, tuple)) and len(self.mn_quantiles) > 0

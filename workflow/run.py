@@ -13,6 +13,7 @@ from copy import deepcopy as _deepcopy
 
 import numpy as np
 
+from core.roles import role_of as _role_of
 from core.seeds import seed_everything
 
 #: The reports run_reports knows, in the order the evaluation tool runs them by default.
@@ -419,6 +420,14 @@ def prepare_chicks(settings, plan, info, test, kit):
                         eval_target_specs=specs)
 
 
+def calibration_split_of(eval_settings, val):
+    """القسم الذي تُلائَم عليه معايِرات الثقة: ``EvalSettings.calibration_source`` ("val" الافتراضي = ما كان يحدث دائماً). "calibration" يرفع
+    NotImplementedError: لا قسم معايرة بعد (بند التدقيق C6، PR 6 لاحقاً). دور القسم المختوم يقرؤه المعاير بنفسه (core.roles)."""
+    if eval_settings.calibration_source == "val":
+        return val
+    raise NotImplementedError(f"calibration_source={eval_settings.calibration_source!r}: no calibration split exists yet (audit C6, PR 6 follow-up)")
+
+
 def run_chicks(settings, kit, *, model, val, chicks, info):
     """القسم ٦: تقرير chicks الكامل (tearsheet + الدلالة الإحصائية) على test. يُرجع ``full_results`` أو None إن تُخطّي القسم."""
     if chicks.test_dict is None:    # القسم ٦ يُتخطّى إن كانت أهداف test غير مدعومة (انظر build_chicks_test_dict)
@@ -430,8 +439,9 @@ def run_chicks(settings, kit, *, model, val, chicks, info):
     # 'confidence'. calibrate_confidence=False أو calibration_method="platt" لتغييرها. eval_all_rows=True: كل عملات وصفوف test.
     val_dict = None
     if e.calibrate_confidence:
+        cal_split = calibration_split_of(e, val)     # الدور يُقرأ من ختم القسم (split_role) ويُفحص في Calibrator.fit
         try:
-            val_dict = build_chicks_test_dict({"VAL": val}, tfs, chicks_targets=chicks.chicks_targets)
+            val_dict = build_chicks_test_dict({"VAL": cal_split}, tfs, chicks_targets=chicks.chicks_targets)
         except Exception as _e:   # noqa: BLE001 — المعايرة اختيارية، لا تُسقط التقييم
             print(f"⚠️ تعذّر بناء val للمعايرة ({type(_e).__name__}: {_e}) — يُكمَل بلا معايرة")
     return kit.run_full_analysis(
@@ -444,6 +454,7 @@ def run_chicks(settings, kit, *, model, val, chicks, info):
         eval_all_rows=e.eval_all_rows,
         val_dict=val_dict,
         calibration_method=e.calibration_method,
+        calibration_role=(_role_of(cal_split) if val_dict is not None else None),
     )
 
 

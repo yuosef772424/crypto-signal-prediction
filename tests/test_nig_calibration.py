@@ -193,6 +193,12 @@ def _df(n, seed, conf_fn, p_fn=None, acc_fn=None, target="close", class_fn=None)
     return pd.DataFrame(d)
 
 
+def _val(df):
+    """The val flat table carries its split role (core.roles): a calibrator is fitted on val/calibration data only, never unstamped."""
+    from core.roles import stamp_role
+    return stamp_role(df, "val")
+
+
 class CalibrationTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -204,7 +210,7 @@ class CalibrationTests(unittest.TestCase):
         mk = lambda seed: _df(6000, seed, lambda r, n: r.uniform(0.5, 0.95, n),
                               p_fn=lambda r, n: r.uniform(0.05, 0.95, n), class_fn=lambda m: 0.5 + 0.6 * m)
         val, test = mk(1), mk(2)
-        cal = ns["fit_confidence_calibrators"](val, method="isotonic", verbose=False)
+        cal = ns["fit_confidence_calibrators"](_val(val), method="isotonic", verbose=False)
         self.assertEqual(cal["close"]["signal"], "class_margin")
         self.assertNotEqual(cal["close"]["diag"]["verdict"], "informative")
         before = test["confidence"].copy()
@@ -220,7 +226,7 @@ class CalibrationTests(unittest.TestCase):
         mk = lambda seed: _df(6000, seed, lambda r, n: r.uniform(0.3, 0.95, n), acc_fn=lambda c: 0.3 + 0.35 * c)
         val, test = mk(3), mk(4)
         for method in ("isotonic", "platt"):
-            cal = ns["fit_confidence_calibrators"](val, method=method, verbose=False)
+            cal = ns["fit_confidence_calibrators"](_val(val), method=method, verbose=False)
             self.assertEqual(cal["close"]["signal"], "confidence", method)
             rep = ns["calibration_report"](ns["apply_confidence_calibration"](test, cal), verbose=False).iloc[0]
             self.assertLess(rep["ece_after"], rep["ece_before"], method)
@@ -230,7 +236,7 @@ class CalibrationTests(unittest.TestCase):
         ns = self.ns
         val = _df(500, 5, lambda r, n: np.full(n, 0.72))
         test = _df(500, 6, lambda r, n: np.full(n, 0.72))
-        cal = ns["fit_confidence_calibrators"](val, verbose=False)
+        cal = ns["fit_confidence_calibrators"](_val(val), verbose=False)
         self.assertEqual(cal["close"]["diag"]["verdict"], "constant")
         self.assertEqual(cal["close"]["signal"], "base_rate")
         cdf = ns["apply_confidence_calibration"](test, cal)
@@ -240,7 +246,7 @@ class CalibrationTests(unittest.TestCase):
         """المعاير دالة في val وحده: تغيير تسميات test لا يغيّر خريطته."""
         ns = self.ns
         val = _df(2000, 7, lambda r, n: r.uniform(0.3, 0.95, n), acc_fn=lambda c: 0.3 + 0.35 * c)
-        cal = ns["fit_confidence_calibrators"](val, verbose=False)
+        cal = ns["fit_confidence_calibrators"](_val(val), verbose=False)
         grid = np.linspace(0.3, 0.95, 20)
         a = cal["close"]["predict"](grid)
         test = _df(2000, 8, lambda r, n: r.uniform(0.3, 0.95, n), acc_fn=lambda c: 0.9 - 0.5 * c)
@@ -337,7 +343,7 @@ class CoverageWilsonTests(unittest.TestCase):
         with contextlib.redirect_stdout(buf):
             res = ns["run_full_analysis"](_fake_model(), td, ["1h"], specs, make_plots=False, verbose=True,
                                           run_integrity_check=False, run_trade_selection=False,
-                                          out_dir="/tmp/_nig_cal_test", val_dict={"VAL": val["C0"]})
+                                          out_dir="/tmp/_nig_cal_test", val_dict={"VAL": val["C0"]}, calibration_role="val")
         flat = res["flat_df"]
         self.assertEqual(len(flat[flat.target == "close"]), 60)                     # كل صفوف الاختبار
         for c in ("aleatoric_ret", "epistemic_ret", "uncertainty_ret", "confidence", "unc_clipped"):
