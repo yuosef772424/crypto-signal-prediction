@@ -263,16 +263,17 @@
   - `def select_and_rank_trades(df: pd.DataFrame, move_col: Optional[str]=None, uncertainty_col: Optional[str]=None, confidence_col: Optional[str]=None, min_edge_ratio: float=1.0, sort_by: str='both', ascending: bool=False, top_n:…` L61
   - `def print_trade_selection(result: pd.DataFrame, original: Optional[pd.DataFrame]=None, title: Optional[str]=None, max_rows: Optional[int]=20, indent: str=' ') -> None` L199
 
-### `evaluation/trust_calibration.py` (232 lines)
+### `evaluation/trust_calibration.py` (221 lines)
 - PURPOSE: Trust & calibration report: generate_trust_report, calibration_report (ECE/Brier before and after). The calibrator math (isotonic/Platt) lives in evaluation/calibrators.py.
 - TAGS: generate_trust_report, calibration_report, ece, brier, reliability curve, confidence
 - PITFALLS: apply_confidence_calibration (evaluation/calibrators.py) is applied to test inside generate_trust_report; the calibrators themselves are fitted on val only. Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: stats
 - USES: calibrators, outputs, targets
 - USED BY: full_analysis
 - API:
   - `def generate_trust_report(df: pd.DataFrame, group_by: Optional[str]='target', n_bins: int=10, verbose: bool=True, calibrators: Optional[Dict]=None) -> Dict` L19
-  - `def calibration_report(cal_df: pd.DataFrame, n_bins: int=10, group_by: str='target', verbose: bool=True) -> pd.DataFrame` L205
-  - `def print_calibration_report(res: pd.DataFrame)` L220
+  - `def calibration_report(cal_df: pd.DataFrame, n_bins: int=10, group_by: str='target', verbose: bool=True) -> pd.DataFrame` L194
+  - `def print_calibration_report(res: pd.DataFrame)` L209
 
 ### `evaluation/unified.py` (135 lines)
 - PURPOSE: Stage 4: predict_with_evaluation_v4 - prediction + decoding + verification + evaluation in one call (v3 kept for compatibility).

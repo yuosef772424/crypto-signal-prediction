@@ -187,19 +187,8 @@ def _trust_verdict(trust_score, ece, corr):
             print(f"      • المعايرة (ECE={ece:.3f}) ضعيفة — النموذج مبالغ/متحفّظ في ثقته")
 
 
-def _ece_quantile(p, y, n_bins: int = 10) -> float:
-    """ECE بصناديق كمّية (نفس طريقة generate_trust_report): Σ وزن·|متوسط p − متوسط y|."""
-    p, y = np.asarray(p, dtype=np.float64), np.asarray(y, dtype=np.float64)
-    ok = np.isfinite(p) & np.isfinite(y)
-    p, y = p[ok], y[ok]
-    if len(p) == 0:
-        return float('nan')
-    try:
-        bins = pd.qcut(p, q=min(n_bins, len(np.unique(p))), duplicates='drop')
-    except Exception:
-        bins = pd.cut(p, bins=n_bins)
-    g = pd.DataFrame({'p': p, 'y': y, 'b': bins}).groupby('b', observed=True)
-    return float(sum(len(x) / len(p) * abs(x['p'].mean() - x['y'].mean()) for _, x in g))
+# ECE بصناديق كمّية (نفس طريقة generate_trust_report): التعريف الوحيد في stats/metrics.py (ece_quantile).
+from stats.metrics import ece_quantile as _ece_quantile
 
 
 def calibration_report(cal_df: pd.DataFrame, n_bins: int = 10, group_by: str = 'target', verbose: bool = True) -> pd.DataFrame:

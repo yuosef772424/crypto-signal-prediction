@@ -157,5 +157,46 @@ class EvaluationTargetsMigration(unittest.TestCase):
         same(self, new(5, 10), _legacy_wilson_ci(5, 10))
 
 
+# ───────────────────────── evaluation/trust_calibration.py (_ece_quantile) ─────────────────────────
+def _legacy_ece_quantile(p, y, n_bins: int = 10) -> float:
+    p, y = np.asarray(p, dtype=np.float64), np.asarray(y, dtype=np.float64)
+    ok = np.isfinite(p) & np.isfinite(y)
+    p, y = p[ok], y[ok]
+    if len(p) == 0:
+        return float('nan')
+    try:
+        bins = pd.qcut(p, q=min(n_bins, len(np.unique(p))), duplicates='drop')
+    except Exception:
+        bins = pd.cut(p, bins=n_bins)
+    g = pd.DataFrame({'p': p, 'y': y, 'b': bins}).groupby('b', observed=True)
+    return float(sum(len(x) / len(p) * abs(x['p'].mean() - x['y'].mean()) for _, x in g))
+
+
+class EvaluationTrustMigration(unittest.TestCase):
+    def test_ece_quantile_is_bit_equal_to_the_old_definition(self):
+        import _nbload
+        ns = _nbload.load_evaluation()
+        new = ns["_ece_quantile"]
+        rng = np.random.default_rng(0)
+        cases = [(np.full(100, 0.7), np.r_[np.ones(60), np.zeros(40)]), (np.array([np.nan]), np.array([1.0])),
+                 (np.array([]), np.array([])), (np.array([0.5]), np.array([1.0])), (np.array([0.2, 0.8]), np.array([0.0, 1.0]))]
+        for seed in range(12):
+            n = int(rng.integers(5, 800))
+            p = rng.random(n)
+            if seed % 3 == 0:
+                p = np.round(p * 5) / 5                                   # heavy ties -> duplicate quantile edges
+            if seed % 4 == 1:
+                p[rng.random(n) < 0.1] = np.nan
+            y = (rng.random(n) < p).astype(float)
+            if seed % 5 == 2:
+                y[rng.random(n) < 0.1] = np.nan
+            if seed % 6 == 3:
+                p[rng.random(n) < 0.02] = np.inf
+            cases.append((p, y))
+        for p, y in cases:
+            for n_bins in (1, 5, 10, 20):
+                same(self, new(p, y, n_bins), _legacy_ece_quantile(p, y, n_bins), f"n_bins={n_bins} p={p[:5]}")
+
+
 if __name__ == "__main__":
     unittest.main()
