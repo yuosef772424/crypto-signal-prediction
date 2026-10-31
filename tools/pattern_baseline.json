@@ -73,8 +73,6 @@
    "workflow/selective_eval.py": 1
   },
   "output-name-literal": {
-   "model/diagnostics.py": 18,
-   "model/layer_report.py": 3,
    "model/selftests.py": 12,
    "tools/bracket_eval.py": 1,
    "trainer/example.py": 20,

@@ -57,15 +57,16 @@
     - `.compute_output_shape(self, input_shape)` L45
     - `.get_config(self)` L48
 
-### `model/diagnostics.py` (701 lines)
+### `model/diagnostics.py` (714 lines)
 - PURPOSE: On-demand model diagnostics: diagnose_model, model_health_verdicts, print_verdicts (+ DIAG_SECTIONS, HEALTH_THRESHOLDS).
 - TAGS: diagnose_model, model_health_verdicts, print_verdicts, diag_sections, health_thresholds, model health, activations, attention
 - PITFALLS: Runs nothing at load; only on explicit call. Verdict thresholds live in HEALTH_THRESHOLDS. Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: core
 - USED BY: layer_report, workflow/capacity, workflow/diagnostics
 - API:
-  - `def diagnose_model(model, X, y=None, sections=DIAG_SECTIONS, max_n=512, batch_size=256, seed=0, feature_names=None, sensitivity='grad_x_input', top_k=10, floor_tol=0.1, verbose=False)` L330
-  - `def model_health_verdicts(rep, recorder_stats=None, thresholds=None)` L563
-  - `def print_verdicts(v, title='🩺 تقرير صحّة النموذج')` L695
+  - `def diagnose_model(model, X, y=None, sections=DIAG_SECTIONS, max_n=512, batch_size=256, seed=0, feature_names=None, sensitivity='grad_x_input', top_k=10, floor_tol=0.1, verbose=False)` L341
+  - `def model_health_verdicts(rep, recorder_stats=None, thresholds=None)` L576
+  - `def print_verdicts(v, title='🩺 تقرير صحّة النموذج')` L708
 
 ### `model/heads.py` (103 lines)
 - PURPOSE: HEAD_REGISTRY: pluggable output heads (register_head_type, build_head_outputs, binary/multiclass classification heads).
@@ -98,17 +99,18 @@
     - `.compute_output_shape(self, input_shape)` L85
     - `.get_config(self)` L88
 
-### `model/layer_report.py` (318 lines)
+### `model/layer_report.py` (323 lines)
 - PURPOSE: Per-layer reports on a trained model: layer_probe_report, layer_compare_report, random_init_copy.
 - TAGS: layer_probe_report, layer_probe_verdict, layer_compare_report, random_init_copy, per-layer probe
 - PITFALLS: Needs a TRAINED model plus its random-init twin (random_init_copy); depends on diagnostics.py helpers. Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: core
 - USES: diagnostics
 - USED BY: workflow/diagnostics
 - API:
-  - `def random_init_copy(model, seed=0)` L29
-  - `def layer_probe_report(model, X_train, y_train, X_val, y_val, max_train=2000, max_val=2000, ridge=10.0, n_null=5, n_rand=1, seed=0, batch_size=256, z_min=3.0, rand_margin=0.02)` L78
-  - `def layer_probe_verdict(df)` L144
-  - `def layer_compare_report(model, X, y, heads=None, max_n=1500, n_perm=30, n_rand=3, min_group=30, margin_auc=0.03, margin_d=0.0, margin_feat=0.25, rand_mult=1.5, seed=0, batch_size=256, verbose=False)` L208
+  - `def random_init_copy(model, seed=0)` L31
+  - `def layer_probe_report(model, X_train, y_train, X_val, y_val, max_train=2000, max_val=2000, ridge=10.0, n_null=5, n_rand=1, seed=0, batch_size=256, z_min=3.0, rand_margin=0.02)` L83
+  - `def layer_probe_verdict(df)` L149
+  - `def layer_compare_report(model, X, y, heads=None, max_n=1500, n_perm=30, n_rand=3, min_group=30, margin_auc=0.03, margin_d=0.0, margin_feat=0.25, rand_mult=1.5, seed=0, batch_size=256, verbose=False)` L213
 
 ### `model/nig_layers.py` (108 lines)
 - PURPOSE: Raw NIG head layers: NIGHead, OrderedMeans, NIGUncertainty, ConfidenceHead (+ NIG_ALPHA_DEN_MIN).

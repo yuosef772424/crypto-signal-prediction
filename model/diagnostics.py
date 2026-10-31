@@ -36,6 +36,8 @@ rep["classification"]; rep["nig"]; rep["activations"]; rep["attention"]; rep["se
 #   v   = model_health_verdicts(rep)              # جدول حكم ✅/⚠️/🚨 (+ recorder.stats() إن وُجد مسجّل تدريب)
 # المسابر (probes) نماذج فرعية تقرأ طبقات النموذج القائمة نفسها؛ لا طبقة تُضاف ولا تُغيَّر.
 import pandas as pd
+from core.heads import (OUTPUT_PREFIX as _OUTPUT_PREFIX, label_key as _label_key, output_name as _output_name,
+                        parse_output_name as _parse_output_name)
 
 DIAG_SECTIONS = ("heads", "nig", "classification", "activations", "attention", "sensitivity", "samples")
 _SKIP_TAP_TYPES = {"InputLayer", "Dropout", "SpatialDropout1D", "GaussianNoise", "Flatten", "Reshape", "Lambda"}
@@ -77,13 +79,22 @@ def _predict(model, X, batch_size=256):
     return {k: np.concatenate([o[k] for o in outs]) for k in outs[0]}
 
 
+def _parsed_output(key):
+    """(target, output role) of a model output name from core.heads, or (None, None) for a key that is not one."""
+    try:
+        return _parse_output_name(key)
+    except ValueError:
+        return None, None
+
+
 def _targets_of(out):
     ts = []
     for k in out:
-        if k.endswith("_class_logits"):
-            ts.append(k[2:-len("_class_logits")])
-        elif k.startswith("y_") and f"{k}_nu" in out:
-            ts.append(k[2:])
+        t, role = _parsed_output(k)
+        if role == "logits":
+            ts.append(t)
+        elif role == "mu" and _output_name(t, "nu") in out:
+            ts.append(t)
     return sorted(set(ts))
 
 
@@ -106,7 +117,7 @@ def _spearman(a, b):
 
 
 def _label_bool(y, t):
-    return np.asarray(y[f"y_{t}_class"]).reshape(-1) > 0
+    return np.asarray(y[_label_key(t, "class")]).reshape(-1) > 0
 
 
 def _subsample(n, max_n, seed):
@@ -142,9 +153,9 @@ def _make_taps(model, mode="all"):
             out = out[0] if isinstance(out, (list, tuple)) else out
             if getattr(out, "shape", None) is None or len(out.shape) < 2 or "float" not in str(out.dtype):
                 continue
-            if mode == "all" and name.startswith(("y_", "unc_", "ordered_means")):
+            if mode == "all" and name.startswith((_OUTPUT_PREFIX, "unc_", "ordered_means")):
                 continue
-            if mode == "groups" and name.startswith("y_"):
+            if mode == "groups" and name.startswith(_OUTPUT_PREFIX):
                 continue
             taps.append((name, _stage_of(name), out))
         except Exception:
@@ -286,10 +297,10 @@ def _objectives(out_keys, targets):
     """{اسم الرأس: مفتاح المخرج المشتقّ}: mu لرؤوس الانحدار، احتمال الفئة لرؤوس التصنيف."""
     obj = {}
     for t in targets:
-        if f"y_{t}_nu" in out_keys:
-            obj[f"{t}_reg"] = f"y_{t}"
-        if f"y_{t}_class_logits" in out_keys:
-            obj[f"{t}_class"] = f"y_{t}_class_logits"
+        if _output_name(t, "nu") in out_keys:
+            obj[f"{t}_reg"] = _output_name(t, "mu")
+        if _output_name(t, "logits") in out_keys:
+            obj[f"{t}_class"] = _output_name(t, "logits")
     return obj
 
 
@@ -401,8 +412,9 @@ def _diag_heads(out, ys):
              "min": float(f.min()) if f.size else np.nan, "max": float(f.max()) if f.size else np.nan,
              "nonfinite_frac": float((~fin).mean()), "unique_frac": float(len(np.unique(np.round(f, 6))) / max(len(f), 1)),
              "collapsed": bool(f.size and f.std() < 1e-5 * (abs(f.mean()) + 1e-3))}
-        if ys is not None and k.startswith("y_") and f"{k}_reg" in ys:
-            yt = np.asarray(ys[f"{k}_reg"], dtype=np.float64).reshape(-1)
+        mu_t, role = _parsed_output(k)
+        if ys is not None and role == "mu" and _label_key(mu_t, "reg") in ys:
+            yt = np.asarray(ys[_label_key(mu_t, "reg")], dtype=np.float64).reshape(-1)
             r["corr_with_target"] = _spearman(a[:, 0], yt)
             r["std_ratio_to_target"] = float(f.std() / (yt.std() + 1e-12)) if f.size else np.nan
         rows.append(r)
@@ -412,12 +424,12 @@ def _diag_heads(out, ys):
 def _diag_nig(model, out, ys, targets, tol):
     rows = []
     for t in targets:
-        if f"y_{t}_nu" not in out:
+        if _output_name(t, "nu") not in out:
             continue
-        nu, al, be = (out[f"y_{t}_{k}"].reshape(-1).astype(np.float64) for k in ("nu", "alpha", "beta"))
+        nu, al, be = (out[_output_name(t, k)].reshape(-1).astype(np.float64) for k in ("nu", "alpha", "beta"))
         head, unc = _head_layer(model, "nig", t), _head_layer(model, "unc", t)
         cfg = getattr(head, "cfg", {}) or {}
-        ale, epi = out[f"y_{t}_aleatoric"].reshape(-1), out[f"y_{t}_epistemic"].reshape(-1)
+        ale, epi = out[_output_name(t, "aleatoric")].reshape(-1), out[_output_name(t, "epistemic")].reshape(-1)
         near = lambda v, fl: float(np.mean(v - fl <= tol * fl)) if fl else float("nan")  # noqa: E731
         cap = getattr(unc, "unc_max", None)
         r = {"target": t, "nu_floor_frac": near(nu, cfg.get("nu_min")), "alpha_floor_frac": near(al, cfg.get("alpha_min")),
@@ -425,12 +437,12 @@ def _diag_nig(model, out, ys, targets, tol):
              "epistemic_mean": float(epi.mean()), "epi_over_ale": float(epi.mean() / (ale.mean() + 1e-12)),
              "unc_cap_frac": float(np.mean((ale >= 0.999 * cap) | (epi >= 0.999 * cap))) if cap else float("nan"),
              "nonfinite_frac": float(1 - np.isfinite(np.stack([nu, al, be])).mean())}
-        if f"y_{t}_confidence" in out:
-            c = out[f"y_{t}_confidence"].reshape(-1)
+        if _output_name(t, "confidence") in out:
+            c = out[_output_name(t, "confidence")].reshape(-1)
             r["confidence_std"], r["confidence_mean"] = float(c.std()), float(c.mean())
-        if ys is not None and f"y_{t}_reg" in ys:
-            yt = np.asarray(ys[f"y_{t}_reg"], dtype=np.float64).reshape(-1)
-            err = np.abs(yt - out[f"y_{t}"].reshape(-1))
+        if ys is not None and _label_key(t, "reg") in ys:
+            yt = np.asarray(ys[_label_key(t, "reg")], dtype=np.float64).reshape(-1)
+            err = np.abs(yt - out[_output_name(t, "mu")].reshape(-1))
             tot = np.sqrt(ale ** 2 + epi ** 2)
             r.update(unc_err_spearman=_spearman(err, tot), coverage_1sigma=float(np.mean(err <= tot)),
                      aleatoric_over_target_std=float(np.median(ale) / (yt.std() + 1e-12)))
@@ -441,7 +453,7 @@ def _diag_nig(model, out, ys, targets, tol):
 def _diag_classification(out, ys, targets, bins=10):
     rows = []
     for t in targets:
-        k = f"y_{t}_class_logits"
+        k = _output_name(t, "logits")
         if k not in out:
             continue
         p = out[k].astype(np.float64)
@@ -451,7 +463,7 @@ def _diag_classification(out, ys, targets, bins=10):
             pred = q >= 0.5
             r.update(pred_pos_share=float(pred.mean()), prob_mean=float(q.mean()), prob_std=float(q.std()),
                      saturated_frac=float(np.mean((q < 0.02) | (q > 0.98))))
-            if ys is not None and f"y_{t}_class" in ys:
+            if ys is not None and _label_key(t, "class") in ys:
                 lab = _label_bool(ys, t)
                 conf = np.where(pred, q, 1 - q)
                 acc = (pred == lab)
@@ -469,8 +481,8 @@ def _diag_classification(out, ys, targets, bins=10):
             share = np.bincount(pred, minlength=p.shape[-1]) / len(pred)
             r.update(pred_share=np.round(share, 3).tolist(), prob_std=float(p.max(-1).std()),
                      saturated_frac=float(np.mean(p.max(-1) > 0.98)))
-            if ys is not None and f"y_{t}_class" in ys:
-                lab = np.asarray(ys[f"y_{t}_class"]).reshape(-1).astype(int)
+            if ys is not None and _label_key(t, "class") in ys:
+                lab = np.asarray(ys[_label_key(t, "class")]).reshape(-1).astype(int)
                 ls = np.bincount(lab, minlength=p.shape[-1]) / len(lab)
                 r.update(label_share=np.round(ls, 3).tolist(), share_gap=float(np.abs(share - ls).max()),
                          accuracy=float(np.mean(pred == lab)), majority_baseline=float(ls.max()))
@@ -520,10 +532,10 @@ def _perm_metric(out, ys, obj):
     res = {}
     for h, key in obj.items():
         t = h.rsplit("_", 1)[0]
-        if h.endswith("_class") and f"y_{t}_class" in ys:
+        if h.endswith("_class") and _label_key(t, "class") in ys:
             res[h] = _auc(_label_bool(ys, t), out[key].reshape(-1))
-        elif h.endswith("_reg") and f"y_{t}_reg" in ys:
-            res[h] = _spearman(out[key].reshape(-1), np.asarray(ys[f"y_{t}_reg"], dtype=np.float64).reshape(-1))
+        elif h.endswith("_reg") and _label_key(t, "reg") in ys:
+            res[h] = _spearman(out[key].reshape(-1), np.asarray(ys[_label_key(t, "reg")], dtype=np.float64).reshape(-1))
         else:
             res[h] = float("nan")
     return res
@@ -533,20 +545,21 @@ def _diag_samples(out, ys, targets, top_k):
     """عيّنات مشبوهة لكل رأس: (واثقة وخاطئة) للتصنيف، (|الخطأ|/عدم اليقين) الأكبر للانحدار، مع epistemic."""
     rows = []
     for t in targets:
-        if f"y_{t}_class_logits" in out and f"y_{t}_class" in ys and out[f"y_{t}_class_logits"].shape[-1] == 1:
-            q = out[f"y_{t}_class_logits"].reshape(-1)
+        logits_key = _output_name(t, "logits")
+        if logits_key in out and _label_key(t, "class") in ys and out[logits_key].shape[-1] == 1:
+            q = out[logits_key].reshape(-1)
             lab = _label_bool(ys, t)
             wrong_conf = np.where((q >= 0.5) != lab, np.abs(q - 0.5) * 2, 0.0)
             for i in np.argsort(-wrong_conf)[:top_k]:
                 if wrong_conf[i] > 0:
                     rows.append({"head": f"{t}_class", "row": int(i), "kind": "confident_wrong", "score": float(wrong_conf[i])})
-        if f"y_{t}_nu" in out and f"y_{t}_reg" in ys:
-            yt = np.asarray(ys[f"y_{t}_reg"], dtype=np.float64).reshape(-1)
-            z = np.abs(yt - out[f"y_{t}"].reshape(-1)) / (np.sqrt(out[f"y_{t}_aleatoric"].reshape(-1) ** 2
-                                                               + out[f"y_{t}_epistemic"].reshape(-1) ** 2) + 1e-12)
+        if _output_name(t, "nu") in out and _label_key(t, "reg") in ys:
+            yt = np.asarray(ys[_label_key(t, "reg")], dtype=np.float64).reshape(-1)
+            z = np.abs(yt - out[_output_name(t, "mu")].reshape(-1)) / (np.sqrt(out[_output_name(t, "aleatoric")].reshape(-1) ** 2
+                                                                           + out[_output_name(t, "epistemic")].reshape(-1) ** 2) + 1e-12)
             for i in np.argsort(-z)[:top_k]:
                 rows.append({"head": f"{t}_reg", "row": int(i), "kind": "large_standardized_residual", "score": float(z[i])})
-            epi = out[f"y_{t}_epistemic"].reshape(-1)
+            epi = out[_output_name(t, "epistemic")].reshape(-1)
             for i in np.argsort(-epi)[:top_k]:
                 rows.append({"head": f"{t}_reg", "row": int(i), "kind": "high_epistemic", "score": float(epi[i])})
     return pd.DataFrame(rows, columns=["head", "row", "kind", "score"])
