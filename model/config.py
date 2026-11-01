@@ -57,6 +57,7 @@ MODEL_CONFIG = dict(
     linear_path_l2=1e-4,
     level_passthrough=False,
     level_norm=None,
+    tcp_head=False,   # False = النموذج القديم بايتاً ببايت | True: رأس ثقة TCP (مخرج tcp_close؛ انظر core.loss_plan.TCP_OUTPUT_KEY)
     mu_skip=None,   # None = النموذج القديم بايتاً ببايت | "unc_gated": مسار تخطٍّ متعلَّم على mu مُبوَّب بعدم اليقين المعرفي (انظر build_nig_timenet_v2)
 )
 

@@ -17,7 +17,9 @@ PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loade
 # الترابط الذاتي الطبيعي في الأسعار المتتالية؟
 # ═══════════════════════════════════════════════════════════════════════════
 
-from stats.metrics import auc as _stats_auc, pearson as _stats_pearson, spearman as _stats_spearman
+from core.heads import output_name as _head_output_name
+from core.loss_plan import TCP_OUTPUT_KEY as _TCP_OUTPUT_KEY
+from stats.metrics import confidence_quality as _stats_confidence_quality, auc as _stats_auc, pearson as _stats_pearson, spearman as _stats_spearman
 
 
 def compute_point_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, float]:
@@ -198,3 +200,13 @@ def run_integrity_diagnostics(
                                   filename=f"integrity_{r['asset']}_{r['target']}_lag_scan")
 
     return display_df
+
+
+def confidence_quality_report(preds, y_close):
+    """Risk-coverage AUC (lower = better) and AUROC (conf vs "direction of mu_close is right") of the OLD confidence output of the close head
+    and, when the model has it (tcp_head=True), of the TCP output; ``preds`` = the model's output dict (numpy), ``y_close`` = the close label in
+    the head's own space. Returns ``stats.metrics.confidence_quality``'s dict with the keys ``confidence`` (old) and ``tcp``."""
+    scores = {"confidence": preds[_head_output_name("close", "confidence")]}
+    if _TCP_OUTPUT_KEY in preds:
+        scores["tcp"] = preds[_TCP_OUTPUT_KEY]
+    return _stats_confidence_quality(scores, preds[_head_output_name("close", "mu")], y_close)

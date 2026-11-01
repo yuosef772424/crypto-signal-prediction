@@ -12,7 +12,7 @@ from core.heads import HeadSet
 from core.registry import Contract, Registry
 
 CURRICULUM_RANK_KEY = "__curriculum_rank__"   # the sample_weight dict entry carrying each TRAIN sample's curriculum rank (read by GenericTrainer by this key)
-__all__ = ["UTILITY_STAMP_KEY", "UTILITY_DEFAULTS", "check_utility", "utility_plan", "OPTIONAL_SUB_TERM_SCHEDULES", "CURRICULUM_RANK_KEY", "sample_weighting_parts", "LOSS_BALANCERS", "HEAD_LOSS_TERMS", "check_head_loss_terms", "check_report_heads", "SAMPLE_WEIGHTINGS", "check_sample_weighting", "SELECTION_METRICS", "SelectionChoice", "SCHEDULE_CURVES", "SUB_TERM_SCHEDULES", "DEFAULT_BALANCING",
+__all__ = ["TCP_OUTPUT_KEY", "TCP_DEFAULTS", "check_tcp", "tcp_plan", "UTILITY_STAMP_KEY", "UTILITY_DEFAULTS", "check_utility", "utility_plan", "OPTIONAL_SUB_TERM_SCHEDULES", "CURRICULUM_RANK_KEY", "sample_weighting_parts", "LOSS_BALANCERS", "HEAD_LOSS_TERMS", "check_head_loss_terms", "check_report_heads", "SAMPLE_WEIGHTINGS", "check_sample_weighting", "SELECTION_METRICS", "SelectionChoice", "SCHEDULE_CURVES", "SUB_TERM_SCHEDULES", "DEFAULT_BALANCING",
            "DEFAULT_SELECTION_METRIC", "check_loss_weights", "check_loss_schedules", "resolve_selection_metric", "trainer_loss_section"]
 
 #: curve names of a scheduled loss sub-term (trainer/schedules.py `_progress_curve`; trainer/config.py validates against this tuple).
@@ -27,7 +27,7 @@ DEFAULT_SELECTION_METRIC = "val_raw_loss"
 _SCHEDULE_KEYS = ("start", "end", "warmup_epochs", "schedule", "delay_epochs")
 #: sub-term schedules a plan MAY add (absent = the term is off; unlike SUB_TERM_SCHEDULES, whose absence would switch a term off silently).
 #: ``delay_epochs`` (default 0 = the old schedule): the value stays ``start`` until that epoch, then ramps over ``warmup_epochs``.
-OPTIONAL_SUB_TERM_SCHEDULES = ("lambda_utility",)
+OPTIONAL_SUB_TERM_SCHEDULES = ("lambda_utility", "lambda_tcp")
 
 
 # ───────────────────────────── task balancing ─────────────────────────────
@@ -273,6 +273,41 @@ def utility_plan(utility: Mapping[str, Any], codec: str, scale: float) -> Tuple[
     schedule = {"start": 0.0, "end": float(utility["weight"]), "warmup_epochs": int(utility["ramp_epochs"]), "schedule": "linear",
                 "delay_epochs": int(utility["warmup_epochs"])}
     return section, schedule
+
+
+#: the TCP confidence head (true-class-probability style): a small MLP on stop_gradient(trunk features) whose output ``tcp_close`` is trained
+#: to be P(sign(mu_close) == sign(y_close)) with a Brier loss against stop_gradient(1[mu * y > 0]); it can neither move the trunk nor mu.
+#: The output key has no ``y_`` prefix on purpose: it is not a registered head kind, so name-parsing consumers skip it. weight = the Brier
+#: weight, 0 for ``warmup_epochs`` (the schedule lambda_tcp with delay_epochs), then ``weight``. Needs the model option ``tcp_head=True``.
+TCP_OUTPUT_KEY = "tcp_close"
+TCP_DEFAULTS = {"weight": 0.1, "warmup_epochs": 10}
+
+
+def check_tcp(tcp: Any, what: str = "loss.tcp") -> Dict[str, float]:
+    """Validate the TCP options (``{}`` = off) and return a plain copy with the defaults filled in."""
+    if not isinstance(tcp, Mapping):
+        raise ValueError(f"{what} must be a dict, got {type(tcp).__name__}")
+    if not tcp:
+        return {}
+    unknown = sorted(set(tcp) - set(TCP_DEFAULTS))
+    if unknown:
+        raise ValueError(f"{what}: unknown option(s) {unknown}; known: {sorted(TCP_DEFAULTS)}")
+    out = {**TCP_DEFAULTS, **dict(tcp)}
+    problems = []
+    if not _finite_number(out["weight"]) or out["weight"] <= 0:
+        problems.append(f"weight must be a finite number > 0 (an empty dict switches the term off), got {out['weight']!r}")
+    w = out["warmup_epochs"]
+    if not (isinstance(w, int) and not isinstance(w, bool) and w >= 0):
+        problems.append(f"warmup_epochs must be an int >= 0, got {w!r}")
+    if problems:
+        raise ValueError(f"{what}: " + "; ".join(problems))
+    return {"weight": float(out["weight"]), "warmup_epochs": int(out["warmup_epochs"])}
+
+
+def tcp_plan(tcp: Mapping[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    """``(trainer loss.tcp section, lambda_tcp schedule)`` of a validated TCP plan: weight 0 before warmup_epochs, ``weight`` from then on."""
+    return ({"head": "close_reg", "output_key": TCP_OUTPUT_KEY},
+            {"start": 0.0, "end": float(tcp["weight"]), "warmup_epochs": 0, "schedule": "linear", "delay_epochs": int(tcp["warmup_epochs"])})
 
 
 def check_report_heads(names: Any, heads: HeadSet, stat: str = "ic", what: str = "loss.report_ic") -> Tuple[str, ...]:

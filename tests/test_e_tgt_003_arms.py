@@ -25,6 +25,10 @@ def arm(S, name, run_dir, seed=0):
     loss = {"report_ic": ("high_reg", "low_reg"), "balancing": "ema_norm", "head_terms": terms}
     if name >= "S1":
         loss["head_terms"] = {h: {"huber_weight": 0.1, "beta_nll": 0.5} for h in HEADS}
+    model = {}
+    if name >= "S2":
+        model = {"config_overrides": {"tcp_head": True}}
+        loss["tcp"] = {"weight": 0.1, "warmup_epochs": 0}
     if name >= "S3":
         loss["utility"] = {"weight": 0.1, "warmup_epochs": 0, "ramp_epochs": 1}
     if name == "S4":
@@ -33,7 +37,7 @@ def arm(S, name, run_dir, seed=0):
         loss["sample_weighting"] = "curriculum_random"
     if name == "S5":
         loss["sample_weighting"] = "jump_downweight"
-    return S().updated({"target": {"suspended_targets": (), "target_mode": "volret", "clip": 4.0},
+    return S().updated({"model": model, "target": {"suspended_targets": (), "target_mode": "volret", "clip": 4.0},
                         "train": {"seed": seed, "run_dir": run_dir, "epochs": 2, "batch_size": 64, "fit_verbose": 0,
                                   "early_stopping_monitor": "val_close_reg_ic", "early_stopping_mode": "max", "loss": loss}})
 
@@ -55,6 +59,12 @@ class Arms(unittest.TestCase):
         self.assertNotIn("utility_loss", h)
         self.assertTrue(np.all(np.isfinite(h["val_raw_loss"])))
         self.assertIn("val_close_reg_ic", h)
+
+    def test_s2_tcp_head(self):
+        h = self._run("S2")
+        self.assertIn("tcp_brier", h)
+        self.assertTrue(np.all(np.isfinite(h["tcp_brier"])) and np.all(np.isfinite(h["val_raw_loss"])))
+        self.assertNotIn("utility_loss", h)
 
     def test_s3_utility_and_beta_nll(self):
         h = self._run("S3")

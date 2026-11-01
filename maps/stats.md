@@ -8,7 +8,7 @@
 - TAGS: stats, tier 1, metrics, single owner, spearman, pearson, auc, wilson, pinball, ece, tie policy, nan policy, hardening c7
 - PITFALLS: stats may import ONLY `core` (tools/check_deps.py enforces it), the standard library and third-party numeric libraries (numpy, pandas, scipy); it must never import data/model/trainer/evaluation/workflow, so every package, tool or runner can `from stats.metrics import ...`. No import-time work. The repo root must be on sys.path (every runner notebook does it before importing its package). A metric…
 
-### `stats/metrics.py` (385 lines)
+### `stats/metrics.py` (400 lines)
 - PURPOSE: The ONE implementation of each metric: pearson / spearman (rank-IC) / partial_spearman, auc, wilson_interval, pinball_loss / mean_pinball, ece_quantile, each with an explicit tie/NaN policy chosen by a keyword (no hidden default per call s…
 - TAGS: metrics, evaluate_heads, per-head policy, qss, quantile skill score, quantile coverage, interval coverage, winkler, profit factor, net sharpe, turnover cost, threshold trades, spearman, pearson, rank ic, information coefficient, auc, mann-whitney, wilson interval, pinball loss, ece, expected calibration error, tie policy, nan policy, average rank, single owner
 - PITFALLS: Ties get AVERAGE ranks everywhere (pandas `rank()` == scipy `rankdata`). NaN policy is a keyword, never implied: correlations take nan_policy in {"drop_nonfinite" (default: drop pairs with NaN or +-inf), "drop" (drop pairs with NaN only; the pandas `Series.corr` behaviour), "propagate" (any NaN -> NaN)}; auc takes {"propagate" (default), "drop", "legacy_rank_skipna" (reproduces model/diagnostics:…
@@ -33,12 +33,13 @@
   - `def confidence_summary(conf, floor: float=0.55) -> dict` L240
   - `def position_share(mu, sigma, k: float=1.0, threshold: float=0.1, eps: float=1e-06) -> float` L248
   - `def risk_coverage_auc(conf, correct) -> float` L254
-  - `def sigma_calibration(y, mu, sigma, z: float=1.645) -> float` L264
-  - `def threshold_trades(pred, ret, threshold: float, round_trip_cost: float=0.0) -> np.ndarray` L271
-  - `def profit_factor(net) -> float` L282
-  - `def win_loss_ratio(net) -> float` L292
-  - `def net_sharpe(ret, position, cost_per_turnover: float=0.0, periods_per_year: float | None=None) -> float` L302
-  - `def evaluate_heads(preds, targets, heads, *, direction_target: str=DIRECTION_TARGET, direction_scores=None, intervals=None) -> dict` L340
+  - `def confidence_quality(scores, mu, y) -> dict` L264
+  - `def sigma_calibration(y, mu, sigma, z: float=1.645) -> float` L279
+  - `def threshold_trades(pred, ret, threshold: float, round_trip_cost: float=0.0) -> np.ndarray` L286
+  - `def profit_factor(net) -> float` L297
+  - `def win_loss_ratio(net) -> float` L307
+  - `def net_sharpe(ret, position, cost_per_turnover: float=0.0, periods_per_year: float | None=None) -> float` L317
+  - `def evaluate_heads(preds, targets, heads, *, direction_target: str=DIRECTION_TARGET, direction_scores=None, intervals=None) -> dict` L355
 
 ### `stats/prediction_table.py` (234 lines)
 - PURPOSE: The ONE PredictionTable: build_table (arrays -> table with the point-in-time columns), validate_table (the contract), write_table / read_table (csv.gz + `<path>.meta.json`, both validate). A table row = one prediction of one model for one…

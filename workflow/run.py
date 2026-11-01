@@ -15,7 +15,7 @@ import numpy as np
 
 from core.heads import HeadSet as _HeadSet
 from core.loss_plan import (resolve_selection_metric as _resolve_selection_metric, trainer_loss_section as _trainer_loss_section,
-                            utility_plan as _utility_plan)
+                            utility_plan as _utility_plan, tcp_plan as _tcp_plan)
 from stats.target_codec import codec_name_for_mode as _codec_name_for_mode
 from core.roles import role_of as _role_of
 from core.seeds import seed_everything
@@ -337,6 +337,8 @@ def _loss_section_with_utility(settings, heads, info):
     if tr.loss.utility:
         codec = _codec_name_for_mode(settings.target.target_mode)
         section["utility"], section["schedules"]["lambda_utility"] = _utility_plan(tr.loss.utility, codec, info.reg_target_scale)
+    if tr.loss.tcp:
+        section["tcp"], section["schedules"]["lambda_tcp"] = _tcp_plan(tr.loss.tcp)
     return section
 
 

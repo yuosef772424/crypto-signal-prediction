@@ -375,6 +375,7 @@ _CONFIG_SCHEMA = {
         # decision-utility term (core.loss_plan.utility_plan): head, k, cost, eps, codec, scale; its weight is the schedule lambda_utility
         "utility": {"head": _r_any, "k": _r_real(gt=0.0), "cost": _r_real(ge=0.0), "eps": _r_real(gt=0.0), "codec": _r_any,
                     "scale": _r_real(gt=0.0)},
+        "tcp": {"head": _r_any, "output_key": _r_any},
         "curriculum": {"f0": _r_real(gt=0.0, lt=1.0001), "full_at_epoch": _r_int(ge=1)},
         "schedules": _r_any, "constraints": _r_any,
     },

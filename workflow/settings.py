@@ -13,7 +13,7 @@ from stats.target_codec import codec_name_for_mode as _codec_name_for_mode
 from core.loss_plan import (DEFAULT_BALANCING as _DEFAULT_BALANCING, LOSS_BALANCERS as _LOSS_BALANCERS,
                             check_head_loss_terms as _check_head_loss_terms, check_report_heads as _check_report_heads,
                             check_sample_weighting as _check_sample_weighting, SAMPLE_WEIGHTINGS as _SAMPLE_WEIGHTINGS,
-                            check_utility as _check_utility,
+                            check_utility as _check_utility, check_tcp as _check_tcp,
                             check_loss_schedules as _check_loss_schedules, check_loss_weights as _check_loss_weights,
                             resolve_selection_metric as _resolve_selection_metric)
 from core.schema import (ENTRY_CLOSE_REGS as _ENTRY_CLOSE_REGS, NO_RELATIVE_BASES as _NO_RELATIVE_BASES, TARGET_COLUMNS as _TARGET_COLUMNS,
@@ -262,6 +262,10 @@ class LossSettings(_SettingsSection):
     #: with r the DECODED return (target codec), loss -mean(gain)/std(r) ADDED to the head losses with weight 0 for warmup_epochs then
     #: ramped linearly to lambda_U over ramp_epochs. Needs a target mode with a return decode (return / volnorm / volret / relative).
     utility: dict = _dc.field(default_factory=dict)
+    #: TCP confidence head (core.loss_plan.TCP_DEFAULTS): ``{}`` = off = the old loss exactly; ``{"weight": 0.1, "warmup_epochs": 10}``: Brier
+    #: loss of the head ``tcp_close`` (an MLP on stop_gradient(trunk features)) against stop_gradient(1[mu_close * y_close > 0]), weight 0
+    #: for warmup_epochs then ``weight``. Needs ``ModelSettings.config_overrides["tcp_head"] = True`` (the model builds the head).
+    tcp: dict = _dc.field(default_factory=dict)
 
     def __post_init__(self):
         _settings_check(isinstance(self.balancing, str), "LossSettings.balancing must be a str (a registered balancer name)")
@@ -273,7 +277,7 @@ class LossSettings(_SettingsSection):
             _LOSS_BALANCERS.get(self.balancing)
         except ValueError as e:
             raise ValueError(f"LossSettings.balancing: {e}") from None
-        _settings_set(self, utility=_check_utility(self.utility, None, "LossSettings.utility"))
+        _settings_set(self, utility=_check_utility(self.utility, None, "LossSettings.utility"), tcp=_check_tcp(self.tcp, "LossSettings.tcp"))
         _settings_set(self, weights=_check_loss_weights(self.weights, _HeadSet.default(_TARGET_COLUMNS), "LossSettings.weights"),
                       schedules=_check_loss_schedules(self.schedules, "LossSettings.schedules"),
                       head_terms=_check_head_loss_terms(self.head_terms, _HeadSet.default(_TARGET_COLUMNS), "LossSettings.head_terms"),
@@ -502,6 +506,9 @@ class RunSettings:
         # head-dependent checks that need two sections: the plan's head names / the selection metric against the heads class_only builds
         self.train.check_against_heads(_HeadSet.default(_TARGET_COLUMNS, class_only=self.model.class_only))
         _check_sample_weighting(self.train.loss.sample_weighting, self.target.target_mode, "TrainSettings.loss.sample_weighting")
+        _settings_check(bool(self.train.loss.tcp) == bool("tcp_head" in self.model.config_overrides and self.model.config_overrides["tcp_head"]),
+               "TrainSettings.loss.tcp and ModelSettings.config_overrides['tcp_head'] go together: the loss trains the head the model builds "
+               "(set both, or neither)")
         if self.train.loss.utility:      # a mode without a TargetCodec has no return decode: refuse at construction, not mid-run
             try:
                 _codec_name_for_mode(self.target.target_mode)
@@ -544,6 +551,7 @@ def run_dir_for(settings, reg_target_scale, model_tfs):
             # أوزان عيّنات التدريب = هدف تدريب آخر (لا تظهر في بصمة إعداد المدرّب): مجلد آخر؛ None لا يضيف شيئاً
             + (f"_sw-{settings.train.loss.sample_weighting}" if settings.train.loss.sample_weighting is not None else "")
             + (f"_util{settings.train.loss.utility['weight']:g}" if settings.train.loss.utility else "")
+            + (f"_tcp{settings.train.loss.tcp['weight']:g}" if settings.train.loss.tcp else "")
             # هدف بمقياس آخر (reg_target_scale من البيانات) = مجلد آخر: لا يُستأنف نموذج دُرِّب على عوائد خام
             + (f"_s{reg_target_scale:g}" if reg_target_scale != 1.0 else "")
             + ("_am" if settings.model.anti_memorization else "")

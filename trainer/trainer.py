@@ -82,6 +82,13 @@ class GenericTrainer(tf.keras.Model):
             if self.utility["head"] not in config["targets"]:
                 raise ValueError(f"loss.utility.head {self.utility['head']!r} is not a target: {list(config['targets'])}")
             self.utility_tracker = tf.keras.metrics.Mean(name="utility_loss")
+        self.tcp = dict(_loss_cfg["tcp"]) if "tcp" in _loss_cfg else None
+        if self.tcp is not None:
+            if "lambda_tcp" not in self.scheduled_vars:
+                raise ValueError("loss.tcp needs the schedule 'lambda_tcp' in loss.schedules (core.loss_plan.tcp_plan writes both)")
+            if self.tcp["head"] not in config["targets"]:
+                raise ValueError(f"loss.tcp.head {self.tcp['head']!r} is not a target: {list(config['targets'])}")
+            self.tcp_tracker = tf.keras.metrics.Mean(name="tcp_brier")
         self.loss_ema = ({t: tf.Variable(0.0, trainable=False, dtype=tf.float32, name=f"loss_ema_{t}") for t in self.target_names}
                           if self.loss_normalization == "ema" else {})
 
@@ -139,10 +146,20 @@ class GenericTrainer(tf.keras.Model):
         gain = s * r - u["cost"] * tf.abs(s)
         return -tf.reduce_mean(gain) / (tf.stop_gradient(tf.math.reduce_std(r)) + 1e-8)
 
+    def _tcp_loss(self, y, outputs):
+        """Brier loss of the TCP confidence output against 1[mu * y > 0] (direction of the head's mu is right); the target is stop-gradient,
+        so the loss trains only the TCP head (its input is already stop-gradient in the model)."""
+        tcfg = self.config["targets"][self.tcp["head"]]
+        mu = tf.stop_gradient(_flat(outputs[tcfg["output_keys"]["mu"]]))
+        correct = tf.cast(mu * _flat(y[tcfg["true_key"]]) > 0.0, tf.float32)
+        p = _flat(outputs[self.tcp["output_key"]])
+        return tf.reduce_mean(tf.square(p - correct))
+
     @property
     def metrics(self):
         return (
             ([self.utility_tracker] if self.utility is not None else [])
+            + ([self.tcp_tracker] if self.tcp is not None else [])
             + [self.loss_tracker, self.raw_loss_tracker]
             + list(self._target_loss_trackers.values())
             + list(self._stat_trackers.values())
@@ -233,6 +250,10 @@ class GenericTrainer(tf.keras.Model):
             utility = self._utility_loss(y, outputs)
             extra = extra + tf.cast(self.scheduled_vars["lambda_utility"], tf.float32) * utility
             per_stat_values["__utility__"] = utility
+        if self.tcp is not None:            # the TCP head's own Brier loss; weight 0 until the schedule 'lambda_tcp' switches it on
+            tcp = self._tcp_loss(y, outputs)
+            extra = extra + tf.cast(self.scheduled_vars["lambda_tcp"], tf.float32) * tcp
+            per_stat_values["__tcp__"] = tcp
         if self.model.losses:
             extra = extra + tf.add_n([tf.cast(l, tf.float32) for l in self.model.losses])
         total_loss = total_loss + extra
@@ -248,6 +269,8 @@ class GenericTrainer(tf.keras.Model):
             self._target_loss_trackers[t].update_state(v)
         if "__utility__" in per_stat_values:
             self.utility_tracker.update_state(per_stat_values["__utility__"])
+        if "__tcp__" in per_stat_values:
+            self.tcp_tracker.update_state(per_stat_values["__tcp__"])
         for k, v in per_stat_values.items():
             if k in self._stat_trackers:
                 if isinstance(v, tuple):            # an epoch-level (stream) stat: update_state(x, y, sample_weight)

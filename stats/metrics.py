@@ -11,7 +11,7 @@ import pandas as pd
 from core.heads import ROLES
 from core.schema import DIRECTION_TARGET, RANGE_TARGETS
 
-__all__ = ["crps_gaussian", "spread_ratio", "confidence_summary", "position_share", "risk_coverage_auc", "sigma_calibration", "qss", "quantile_coverage", "interval_coverage", "mean_interval_width", "winkler_score", "threshold_trades",
+__all__ = ["confidence_quality", "crps_gaussian", "spread_ratio", "confidence_summary", "position_share", "risk_coverage_auc", "sigma_calibration", "qss", "quantile_coverage", "interval_coverage", "mean_interval_width", "winkler_score", "threshold_trades",
            "profit_factor", "win_loss_ratio", "net_sharpe", "evaluate_heads", "NAN_POLICIES", "AUC_NAN_POLICIES", "rank_average", "pearson", "spearman", "partial_spearman", "auc",
            "wilson_interval", "pinball_loss", "mean_pinball", "ece_quantile"]
 
@@ -259,6 +259,21 @@ def risk_coverage_auc(conf, correct) -> float:
         return float("nan")
     err = 1.0 - (np.asarray(correct) > 0.5).astype("float64")[np.argsort(-conf, kind="stable")]
     return float(np.mean(np.cumsum(err) / np.arange(1, len(err) + 1)))
+
+
+def confidence_quality(scores, mu, y) -> dict:
+    """Quality of confidence scores as predictors of "the direction of mu is right" (correct = mu * y > 0): for each named score in
+    ``scores`` (``{name: array}``) the risk-coverage AUC (lower = better; a useless score gives 1 - accuracy) and the AUROC of the score
+    against ``correct`` (0.5 = useless), plus the overall ``accuracy``. Compare the old confidence output with the TCP head with this."""
+    mu, y = _finite_pairs(mu, y)
+    correct = (mu * y > 0).astype("float64")
+    out = {"accuracy": float(correct.mean()) if len(correct) else float("nan")}
+    for name, sc in scores.items():
+        sc = np.asarray(sc, dtype="float64").reshape(-1)
+        if sc.shape != correct.shape:
+            raise ValueError(f"confidence_quality: score {name!r} has {sc.shape[0]} rows, mu/y (finite pairs) have {correct.shape[0]}")
+        out[name] = {"risk_coverage_auc": risk_coverage_auc(sc, correct), "auroc": auc(correct, sc, nan_policy="drop")}
+    return out
 
 
 def sigma_calibration(y, mu, sigma, z: float = 1.645) -> float:

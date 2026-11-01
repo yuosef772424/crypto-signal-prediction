@@ -49,7 +49,7 @@
   - `def build_trainer_variables(trainer: 'GenericTrainer', sample_batch: Tuple[Any, ...])` L127
   - `def stage_warm_start_weights(config: dict) -> Tuple[str, int, int]` L139
 
-### `trainer/config.py` (657 lines)
+### `trainer/config.py` (658 lines)
 - PURPOSE: TRAINER_DEFAULT_CONFIG (alias DEFAULT_CONFIG; the trainer's single source of truth), deep_update, build_config (merge + validate_config, the ONE place that validates), config_fingerprint, model_signature.
 - TAGS: trainer_default_config, default_config, build_config, validate_config, _config_schema, strict config, deep_update, config_fingerprint, model_signature, valid_train_modes, trainer config
 - PITFALLS: build_config validates through validate_config (aggregated ValueError): an unknown key at any level (with a did-you-mean), a non-finite / negative / non-number loss_weight, an unregistered task_type, a key of another task type, a schedule name (lambda_*_var, constraint weight_var) not defined in loss.schedules, an early-stopping monitor the trainer never logs, a knob that would be silently ignore…
@@ -58,10 +58,10 @@
 - API:
   - `def deep_update(base: dict, override: dict) -> dict` L246
   - `def build_config(user_config: dict) -> dict` L257
-  - `def validate_config(cfg: dict) -> dict` L583
-  - `def fingerprint_payload(cfg: dict, extra_ignored_run_keys: tuple=()) -> dict` L637
-  - `def config_fingerprint(cfg: dict, extra_ignored_run_keys: tuple=()) -> str` L646
-  - `def model_signature(model: tf.keras.Model) -> list` L650
+  - `def validate_config(cfg: dict) -> dict` L584
+  - `def fingerprint_payload(cfg: dict, extra_ignored_run_keys: tuple=()) -> dict` L638
+  - `def config_fingerprint(cfg: dict, extra_ignored_run_keys: tuple=()) -> str` L647
+  - `def model_signature(model: tf.keras.Model) -> list` L651
 
 ### `trainer/ensemble.py` (66 lines)
 - PURPOSE: Optional ensemble inference for evidential targets: ensemble_predict_evidential(_meinert).
@@ -237,7 +237,7 @@
   - `def regression_task_loss(y_true, outputs, target_cfg, scheduled_vars, sample_weight=None)` L395
   - `def classification_task_loss(y_true, outputs, target_cfg, scheduled_vars, sample_weight=None)` L427
 
-### `trainer/trainer.py` (283 lines)
+### `trainer/trainer.py` (306 lines)
 - PURPOSE: GenericTrainer: the training-step core (any number of targets, evidential/regression/classification).
 - TAGS: generictrainer, train_step, test_step, compute_loss, tf.keras.model subclass, multi-task
 - PITFALLS: The model is passed to self.model(x) as is (the framework never opens x); keep train_step and test_step symmetric. Executed into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other modules resolve at call time.
@@ -247,10 +247,10 @@
 - API:
   - `class GenericTrainer(tf.keras.Model)` L33
     - `.__init__(self, model: tf.keras.Model, config: dict, **kwargs)` L34
-    - `.metrics(self)` L143
-    - `.fit(self, x=None, y=None, **kwargs)` L260
-    - `.train_step(self, data)` L265
-    - `.test_step(self, data)` L279
+    - `.metrics(self)` L159
+    - `.fit(self, x=None, y=None, **kwargs)` L283
+    - `.train_step(self, data)` L288
+    - `.test_step(self, data)` L302
 
 ### `trainer/training_diagnostics.py` (646 lines)
 - PURPOSE: TrainingDiagnostics: optional diagnostic recorder (+ SAMPLE_IDX_KEY, with_sample_index).

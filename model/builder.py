@@ -9,6 +9,7 @@ PITFALLS: Every anti-memorization option defaults to the OLD behaviour exactly, 
 """
 from core.heads import HEAD_KINDS as _HEAD_KINDS, y_name as _y_name
 from core.schema import TARGET_COLUMNS as _TARGET_COLUMNS
+from core.loss_plan import TCP_OUTPUT_KEY as _TCP_OUTPUT_KEY
 
 
 def _nig_outputs(target):
@@ -45,7 +46,7 @@ def build_nig_timenet_v2(
     nu_min=0.1, alpha_min=2.0, beta_min=0.01, unc_max=20.0,
     class_head_hidden=64, n_classes=3,
     norm_eps=1e-4, input_clip=None, stats_mode="full", input_noise_std=0.0, feature_dropout=0.0,
-    linear_path_l2=1e-4, level_passthrough=False, level_norm=None, mu_skip=None,
+    linear_path_l2=1e-4, level_passthrough=False, level_norm=None, mu_skip=None, tcp_head=False,
     encoder="transformer", level_film=False, architecture="fused", fusion="concat", level_hidden=64,
     n_coins=0, coin_emb_dim=4, coin_emb_l2=1e-3,
     name="nig_timenet_v2",
@@ -276,6 +277,15 @@ def build_nig_timenet_v2(
             if head_type == "nig_regression":
                 continue
             outputs.update(build_head_outputs(head_type, h, t, head_cfg))
+
+    if tcp_head:
+        # رأس ثقة TCP: MLP صغير على stop_gradient(ميزات الجذع) يتنبأ P(sign(mu_close) == sign(y_close)) (خسارة Brier في المدرّب، core.loss_plan
+        # .TCP_OUTPUT_KEY)؛ لا يدفع الجذع ولا mu. مفتاح المخرج بلا بادئة y_ فلا يقرؤه أي مستهلك يحلّل أسماء الرؤوس.
+        if "close" not in nig_targets:
+            raise ValueError("tcp_head=True needs a 'close' NIG head")
+        tcp_in = layers.Lambda(tf.stop_gradient, name="tcp_sg")(h)
+        tcp_h = layers.Dense(32, activation="swish", name="tcp_fc")(tcp_in)
+        outputs[_TCP_OUTPUT_KEY] = layers.Dense(1, activation="sigmoid", name="tcp_prob")(tcp_h)
 
     model_inputs = list(inputs_by_tf.values()) if tfs is not None else [inputs]
     return Model(model_inputs + [coin_in] if n_coins else (model_inputs if tfs is not None else inputs),
