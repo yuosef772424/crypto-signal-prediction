@@ -777,7 +777,6 @@
 - job queue: tools/colab_runner
 - job.json: tools/colab_runner, tools/colab_smoke
 - json format: tools/nb_cells
-- k-fold: trainer/kfold
 - k-sweep: gate_features/run_gate001
 - kdj: tools/gate_features, tools/indicator_reverse
 - keep_asset_test_separate: signal_eval/integration
@@ -1203,8 +1202,6 @@
 - psar: data/custom
 - pullback: edge_discovery/24_pullback_maker
 - pump: edge_discovery/05_events
-- purge: trainer/kfold
-- purged_walk_forward_splits: trainer/kfold
 - push results: tools/colab_runner
 - px proxy: edge_discovery/data_tools/build_panel
 - qlike: h07_volsizing/01_volsizing
@@ -1297,7 +1294,6 @@
 - resumable: edge_discovery/25_image_cnn
 - resume: cross_asset/train, data/checkpoints, tools/fetch_history_csv_concurrent, tools/fetch_history_vision_colab, trainer/best_tracker, trainer/checkpoints … (+2)
 - resume check: trainer/identity
-- resume per fold: trainer/kfold
 - retail long/short ratio: edge_discovery/02_fmb
 - retail positioning: edge_discovery/11_more
 - retarget: workflow/run
@@ -1342,7 +1338,6 @@
 - run_hourly_4h_selftests: data/presets
 - run_input_output_pattern_discovery: evaluation/io_patterns
 - run_integrity_diagnostics: evaluation/integrity
-- run_kfold_training: trainer/kfold
 - run_label_permutation_control: workflow/permutation_control
 - run_main: workflow/run
 - run_main_training: workflow/settings
@@ -1688,7 +1683,6 @@
 - volume confirmation: strategy_discovery/grid2
 - volume donchian: strategy_discovery/survivor_checks
 - vwap: data/funding_oi
-- walk-forward: trainer/kfold
 - warm_start: trainer/checkpoints, trainer/smoke_test
 - wavelet: edge_discovery/27_repr_info
 - weights: tools/evaluate_trained_model

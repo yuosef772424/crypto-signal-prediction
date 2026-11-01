@@ -72,7 +72,7 @@ Documents:
   - `def discovery_package()` L64
   - `def load_pipeline(quiet=True)` L69
   - `def load_model(ns=None, quiet=True, selftests=False)` L78
-  - `def load_trainer(ns=None, quiet=True, smoke_test=False, kfold=False)` L89
+  - `def load_trainer(ns=None, quiet=True, smoke_test=False)` L89
   - `def load_evaluation(ns=None, exclude=(), quiet=True)` L101
   - `def exec_evaluation_module(name, ns, quiet=True)` L110
 

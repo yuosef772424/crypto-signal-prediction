@@ -36,7 +36,6 @@ MODULES = (
     "system",
     "smoke_test",
     "example",
-    "kfold",
     "ensemble",
 )
 

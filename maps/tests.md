@@ -616,7 +616,7 @@
   - `class CapacityToolsTests(unittest.TestCase)` L502
     - (8 methods)
 
-### `tests/test_model_trainer_packages.py` (162 lines)
+### `tests/test_model_trainer_packages.py` (180 lines)
 - PURPOSE: The model/ and trainer/ packages (formerly the cells of model_v2 (1).ipynb and trainer_framework_v2.ipynb) and their runner (from docstring)
 - DEPENDS: docs, model, trainer
 - API:
@@ -625,7 +625,7 @@
   - `class ModelNamespaceTests(unittest.TestCase)` L103
     - (4 methods)
   - `class TrainerNamespaceTests(unittest.TestCase)` L127
-    - (5 methods)
+    - (6 methods)
 
 ### `tests/test_multi_tf.py` (592 lines)
 - PURPOSE: فريمان (1h أساسي + سياق 4h) عبر خط الأنابيب والنموذج واللوحة: python -m unittest tests.test_multi_tf -v (from docstring)

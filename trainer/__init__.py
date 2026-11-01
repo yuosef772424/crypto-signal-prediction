@@ -26,7 +26,6 @@ PITFALLS: The modules run in ONE shared namespace (see trainer/_loader.py), so n
   system                build_training_system
   smoke_test            Smoke Test (تعريف فقط؛ يُشغَّل بـrun_self_tests)
   example               قالب الاستخدام
-  kfold                 K-Fold
   ensemble              استدلال Ensemble
 """
 import threading as _threading

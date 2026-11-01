@@ -69,7 +69,7 @@ def project():
         import model, trainer           # packages model/ and trainer/ (ex model_v2 / trainer_framework_v2 notebooks)
         with contextlib.redirect_stdout(io.StringIO()):
             model.load_into(NS)
-            trainer.load_into(NS, exclude=("smoke_test", "example", "kfold", "ensemble"))   # = the cells before the smoke test
+            trainer.load_into(NS, exclude=("smoke_test", "example", "ensemble"))   # = the cells before the smoke test
     return NS
 
 

@@ -53,11 +53,11 @@
 | | | 28 (§9 Smoke Test) | `trainer/smoke_test.py` |
 | | | 30 + 31 (§10.1/10.2 مثال النموذج والإعداد) | `trainer/example.py` |
 | | | 32 (§10.3 مثال التدريب، أسطر مُعلَّقة) | يبقى في دفتر `trainer_framework_v2.ipynb` |
-| | | 35 (§12 K-Fold) | `trainer/kfold.py` |
+| | | 35 (§12 K-Fold) | حُذفت (بند التدقيق C6: فهرسة بالعيّنات لا بالزمن، تتجاهل `embargo`، بلا مستدعٍ) |
 | | | 37 (§13 Ensemble) | `trainer/ensemble.py` |
 
 للتعديل: غيّر ملف الوحدة (لا الدفتر)، وراجع `CLAUDE.md`. الاختبارات تحمّل الحزمتين عبر `docs/research/audit/_nbload.load_model()` و`load_trainer()`
-(بلا الاختبار الذاتي ولا Smoke Test ولا K-Fold)، وتفحص `tests/test_model_trainer_packages.py` البنية.
+(بلا الاختبار الذاتي ولا Smoke Test)، وتفحص `tests/test_model_trainer_packages.py` البنية.
 ## أين كود تقييم النموذج (`chicks_v4_5_input_output_patterns`) ومحور الإشارة (`signal_evaluation_axis`)
 
 كودا الدفترين نُقلا حرفياً إلى حزمتين: [`evaluation/`](../../evaluation/) (تقييم النموذج بعد التدريب؛ خريطتها [`maps/evaluation.md`](../../maps/evaluation.md))
