@@ -84,8 +84,11 @@ BINARY_FLAG = 'binary_flag'
 #: معدّل التمويل الخام (0.0001 = 0.01% لكل 8 ساعات) → ×1000: مستوى مطلق (0.01% → 0.1، 0.05% → 0.5)،
 #: لا نسبي للنافذة — تمويل ثابت عند 0.05% أسابيع معلومة مختلفة عن ثابت عند 0.01%.
 FUNDING_RATE = 'funding_rate'
+#: أعمدة قناة المستوى LVL_* (data/level_channel.py، مُطفأة افتراضياً): مستوى مطلق خام يُخزَّن ``x / LEVEL_RAW_SCALE`` بلا تمركز ولا تقييس
+#: داخل النافذة (التطبيع داخل النافذة هو ما يمحو المستوى: F-0029)؛ يُقيَّس لاحقاً بإحصاءات train وحدها (``split['level_meta']``).
+LEVEL_RAW = 'level_raw'
 #: أنواع مقياسها ثابت ومعناها في قيمتها المطلقة — لا تُصفَّر حين تثبت داخل نافذتها.
-NEVER_ZEROED_KINDS = frozenset({BINARY_FLAG, FUNDING_RATE})
+NEVER_ZEROED_KINDS = frozenset({BINARY_FLAG, FUNDING_RATE, LEVEL_RAW})
 #: لوغاريتم كمية مستواها يختلف بين الأصول لكن وحدته معلومة (log عدد الصفقات اليومي) → ``x − وسيط النافذة``
 #: بلا قسمة. **لماذا لا CUMULATIVE؟** السلسلة يومية داخل نافذة ساعات، أي دالّة درجية بقيمتين أو ثلاث: IQR النافذة
 #: إمّا الدرجة نفسها (فيخرج 1 لكل حجم درجة) أو ~0 (فتُقصّ عند ±5) — يضيع حجم التغيّر وهو المعلومة. الفرق
@@ -205,6 +208,8 @@ FEATURE_KINDS: Dict[str, str] = {
     **{p: PERCENT for p in ('ITD_RVOL',)},           # تقلّب محقَّق يومي بالنسبة المئوية (كـNATR)
     **{p: UNIT_SYM for p in ('LSR_', 'TAKER_LSR_')}, # log نِسَب long/short: حول 0، مستواها معلومة
     **{p: SIGN_ROBUST for p in ('LSR_GLOBAL_chg_',)},
+    # ── قناة المستوى (data/level_channel.py): مستوى مطلق، لا تقييس داخل النافذة ──
+    LEVEL_PREFIX: LEVEL_RAW,
 }
 
 #: البادئات مرتّبة تنازلياً بالطول — تضمن أن ``BBP`` تسبق ``BB``، و``ATRr`` تسبق ``ATR``.
@@ -412,6 +417,8 @@ def normalize_column(x: np.ndarray, kind: str, center: float, scale: float,
         return _standardize(np.log1p(np.clip(x, 0, None)), method, eps)
     if kind == LOG_CENTERED:
         return x - np.median(x)
+    if kind == LEVEL_RAW:
+        return x / LEVEL_RAW_SCALE
     # CUMULATIVE والافتراضي
     return _standardize(x, method, eps)
 
@@ -544,6 +551,8 @@ def process_windows(windows: np.ndarray, columns: List[str],
             res = _standardize_batch(np.log1p(np.clip(sub, 0, None)), method, eps)
         elif kind == LOG_CENTERED:
             res = sub - np.median(sub, axis=1, keepdims=True)
+        elif kind == LEVEL_RAW:
+            res = sub / LEVEL_RAW_SCALE
         else:                                   # CUMULATIVE والافتراضي
             res = _standardize_batch(sub, method, eps)
 

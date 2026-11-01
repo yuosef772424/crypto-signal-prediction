@@ -43,6 +43,7 @@
 - add_custom_features: data/custom
 - add_features: data/features
 - add_funding_oi_features: data/funding_oi
+- add_level_features: data/level_channel
 - add_market_context: data/market_context
 - addendum b: edge_discovery/14_holdout
 - addendum d: edge_discovery/20_onchain
@@ -332,6 +333,7 @@
 - data loader guard: tools/holdout_guard
 - data manifest: tools/data_manifest, tools/data_manifest_colab_cell
 - data pipeline: data/__init__
+- data prep audit: data/level_channel
 - data quality: tools/indicator_reverse
 - data quality audit: tools/stale_bars_audit
 - data rebuild: edge_discovery/data_tools/build_panel, edge_discovery/data_tools/dec, edge_discovery/data_tools/folder_index, edge_discovery/data_tools/sweep
@@ -411,8 +413,10 @@
 - discovery_tracks: signal_eval/registry
 - disk backed: data/disk_backed
 - dist_hi/lo: edge_discovery/features
+- distance to high low: data/level_channel
 - diversification: h07_combos/01_combos
 - docstring: tools/build_map
+- dollar volume z: data/level_channel
 - donchian: edge_discovery/07_trend, edge_discovery/22_chart_rules, indicator_strategy/engine, strategy_discovery/forward, tools/trade_engine
 - donchian long_only: indicator_strategy/test_final
 - dose-response: edge_discovery/10_flush_curve
@@ -548,6 +552,7 @@
 - extract_feature_series: discovery/predictors
 - extract_input_snapshot_features: evaluation/io_patterns
 - extract_last_batch: data/live
+- f-0029: data/level_channel
 - f-0083: natr_range/run_natr_calibrate
 - f-0084: natr_range/run_natr_rolling
 - fail: signal_eval/selftests
@@ -574,11 +579,13 @@
 - final evaluation: indicator_strategy/test_final
 - finer bars: tools/bracket_path
 - fingerprint: data/checkpoints, tests/run_fixture
+- finish_level_channel: data/level_channel
 - finish_price_norm: data/normalizers
 - finite checks: workflow/verification
 - fit: data/normalizers
 - fit on the wrong data: core/roles
 - fit_confidence_calibrators: evaluation/calibrators
+- fit_level_channel: data/level_channel
 - fit_price_norm: data/normalizers
 - fix-gaps: tools/fetch_history_vision_colab
 - flat bars: tools/stale_bars_audit
@@ -834,7 +841,15 @@
 - ledger: tools/experiment_registry, tools/h07_forward, tools/touched_ledger
 - legacy report: evaluation/legacy_assets, evaluation/legacy_uncertainty
 - length_sweep: discovery/survey
+- level channel: data/level_channel
+- level side-channel: data/level_channel
+- level_channel_columns: data/level_channel
+- level_channel_settings: data/level_channel
+- level_channels: data/level_channel
+- level_features: data/level_channel
 - level_passthrough: model/input_norm
+- level_v1: data/level_channel
+- levelchannel: data/level_channel
 - lfs: tools/fetch_crypto_dataset
 - limit orders: edge_discovery/21_range_fade, edge_discovery/31_wick_capture
 - linear probe: norm_probe/run_norm_probe
@@ -896,6 +911,7 @@
 - low_class: workflow/candle_baseline
 - lr schedule: cross_asset/train, trainer/schedules
 - ls_acc: edge_discovery/features
+- lvl_: data/level_channel
 - ma_alignment: tools/gate_features
 - macd: indicator_strategy/engine, strategy_discovery/intraday_macd, tools/indicator_reverse, tools/trade_engine
 - macd_signal: tools/gate_features
@@ -1132,6 +1148,7 @@
 - per-layer probe: model/layer_report
 - per-sample loss: trainer/training_diagnostics
 - per-timestamp loss: tools/paired_compare
+- per-window normalization: data/level_channel
 - per_asset: data/split
 - per_asset_ci_table: evaluation/all_assets
 - per_head: evaluation/patterns
@@ -1247,6 +1264,7 @@
 - real_model_builder: trainer/example
 - real_price_predictions: tests/test_real_price_modes, workflow/reports
 - realized variance: h07_volsizing/01_volsizing
+- realized vol: data/level_channel
 - rebound: edge_discovery/09_market_flush
 - recorder: workflow/diagnostics
 - recurrence plot: edge_discovery/27_repr_info
@@ -1609,6 +1627,7 @@
 - trades: tools/bracket_eval, tools/bracket_path
 - trailing quantile baseline: tools/natr_range
 - trailing_close_sigma: data/normalizers
+- train-only fit: data/level_channel
 - train<=2021 val 2022 test 2023-26: edge_discovery/27_repr_info
 - train_end: core/prediction_schema, stats/prediction_table
 - train_labels: cross_asset/report
@@ -1689,6 +1708,7 @@
 - volatility: edge_discovery/features
 - volatility clustering: tools/natr_range
 - volatility forecast: h07_volsizing/01_volsizing
+- volatility level: data/level_channel
 - volnorm: workflow/retarget
 - volume concentration: data/funding_oi
 - volume confirmation: strategy_discovery/grid2

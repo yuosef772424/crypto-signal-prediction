@@ -23,7 +23,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `stats/` — Tier-1 package: the ONE implementation of each evaluation metric (rank-IC / Spearman, Pearson, AUC, Wilson interval, pinball loss, quantile ECE, ...) with ONE explicit tie/NaN policy, importable by every code package. | 3 modules, 0 data files (0 B) → maps/stats.md
 - `cross_asset/` — Package entry of the cross-asset 'panel' model (phase 1): one sample = a full UTC day with all coins, attention across same-day coins; re-exports PanelSplit, panel_split_from, VARIANTS, run_panel_experiment. | 7 modules, 0 data files (0 B) → maps/cross_asset.md
 - `tools/` — bracket_eval, bracket_path, build_lock, build_map, check_deps, check_patterns, colab_bridge, colab_… | 34 modules, 4 data files (11 KB) → maps/tools.md
-- `data/` — Package holding ALL data-preparation code of the project (formerly the cells of crypto_data_pipeline_v6.ipynb): `import data` gives the whole pipeline (data.CONFIG, data.build_dataset, data.split_data, ...) in this package's namespace, loa… | 31 modules, 1 data files (289 B) → maps/data.md
+- `data/` — Package holding ALL data-preparation code of the project (formerly the cells of crypto_data_pipeline_v6.ipynb): `import data` gives the whole pipeline (data.CONFIG, data.build_dataset, data.split_data, ...) in this package's namespace, loa… | 32 modules, 1 data files (289 B) → maps/data.md
 - `model/` — Package holding the NIG-TimeNet v2 model code (formerly the cells of model_v2 (1).ipynb): `import model` gives the whole model (model.build_model_fn, model.MODEL_CONFIG, model.diagnose_model, ...) in this package's namespace, loaded lazily… | 15 modules, 0 data files (0 B) → maps/model.md
 - `trainer/` — Package holding the generic training framework (formerly the cells of trainer_framework_v2.ipynb): `import trainer` gives the whole framework (trainer.build_training_system, trainer.build_config, trainer.GenericTrainer, ...) in this packag… | 20 modules, 0 data files (0 B) → maps/trainer.md
 - `evaluation/` — Package holding ALL model-evaluation code of the project (formerly the cells of chicks_v4_5_input_output_patterns.ipynb): `import evaluation` gives predict_with_evaluation_v4, test_all_assets_v4, run_full_analysis, ... in this package's na… | 26 modules, 0 data files (0 B) → maps/evaluation.md
@@ -59,6 +59,6 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `docs/research/templates/` — Experiment card — <id>: <one-line title> | 0 scripts, 1 md, 0 data files (0 B) → maps/docs_research.md
 
 ## Tests
-- `tests/` — calibration_fixture, run_fixture, split_golden, test_audit_round2, test_bracket_eval, test_bracket_… | 86 modules, 8 data files (654 KB) → maps/tests.md
+- `tests/` — calibration_fixture, run_fixture, split_golden, test_audit_round2, test_bracket_eval, test_bracket_… | 87 modules, 8 data files (654 KB) → maps/tests.md
 
 ## Where do I edit X? → `maps/tags.md` (TAGS → modules index)

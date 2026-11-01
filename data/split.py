@@ -88,10 +88,11 @@ def _finish_splits(data: Dict, train: Dict, val: Dict, test: Dict, config: Optio
     ``(train, calibration, val, test)`` بدل ``(train, val, test)``."""
     if calibration is None:
         train, val, test = finish_price_norm(data, train, val, test)
+        train, val, test = finish_level_channel(data, train, val, test)      # مُطفأة افتراضياً: الأقسام كما هي
         train, val, test = (stamp_label_end(data, sp, config) for sp in (train, val, test))
         return stamp_split_roles(train, val, test)
     train, calibration, val, test = (stamp_label_end(data, sp, config)
-                                     for sp in finish_price_norm_many(data, train, calibration, val, test))
+                                     for sp in finish_level_channel_many(data, *finish_price_norm_many(data, train, calibration, val, test)))
     train, val, test = stamp_split_roles(train, val, test)
     return train, _split_roles.stamp_role(calibration, _split_roles.CALIBRATION), val, test
 
@@ -775,11 +776,13 @@ def split_holdout(data: Dict,
                   keep_asset_test_separate: Optional[bool] = None,
                   prefix_y: bool = True,
                   config: Optional[dict] = None,
-                  price_norm_meta: Optional[dict] = None):
+                  price_norm_meta: Optional[dict] = None,
+                  level_meta: Optional[dict] = None):
     """عيّنات الـholdout المختوم (``ts ≥ holdout_start``) بنفس شكل ``test`` من :func:`split_data`.
 
     ``price_norm_meta``: لبيانات 'logret_std' (غير مُلائمة) إحصاءات train (``train['price_norm_meta']``) — إلزامي، فلا
-    يُلائَم شيء على الـholdout.
+    يُلائَم شيء على الـholdout. ``level_meta``: لبيانات بقناة مستوى (``CONFIG['level_channel']``) حالة train (``train['level_meta']``) — إلزامي
+    حينها، لا يُلائَم شيء على الـholdout أيضاً؛ بلا قناة مستوى يُهمَل.
     مقفلة افتراضياً: ترفع ``PermissionError`` ما لم يكن ``config['open_holdout'] is True``. الـholdout يُفتح مرة
     واحدة عند الإصدار؛ كل تقييم عليه يُسجَّل (PROTOCOL.md: «opened once, at release»)."""
     config = CONFIG if config is None else config
@@ -800,10 +803,11 @@ def split_holdout(data: Dict,
         if prefix_y:
             for sp in out.values():
                 add_y_prefix(sp)
-        return _split_roles.stamp_role(stamp_label_end(data, stamp_price_norm(data, out, price_norm_meta), config), _split_roles.HOLDOUT)
+        return _split_roles.stamp_role(stamp_label_end(data, stamp_level_channel(data, stamp_price_norm(data, out, price_norm_meta), level_meta), config),
+                                       _split_roles.HOLDOUT)
     out = _take(data, mask, timeframes, targets)
     return _split_roles.stamp_role(
-        stamp_label_end(data, stamp_price_norm(data, add_y_prefix(out) if prefix_y else out, price_norm_meta), config),
+        stamp_label_end(data, stamp_level_channel(data, stamp_price_norm(data, add_y_prefix(out) if prefix_y else out, price_norm_meta), level_meta), config),
         _split_roles.HOLDOUT)
 
 

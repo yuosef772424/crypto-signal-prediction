@@ -80,6 +80,9 @@ def _checkpoint_fingerprint(config: dict, features: List[str], tail: int = 0,
     # الشموع الراكدة تغيّر أيّ العيّنات تُحفَظ — تدخل البصمة حين تُفعَّل فقط.
     if stale_bars_min_run(config) is not None:
         parts['stale_bars'] = {'min_run': stale_bars_min_run(config)}
+    # قناة المستوى (CONFIG['level_channel']) تغيّر قيم أعمدة LVL_* (نافذة/نافذة طويلة/ميزات) بلا تغيّر الأسماء — تدخل البصمة حين تُفعَّل فقط.
+    if level_channel_settings(config) is not None:
+        parts['level_channel'] = level_channel_settings(config)
     # الميزات العابرة للأصول: نقاط الاستئناف القديمة من مسار التحميل تحمل قيمها
     # المحايدة الثابتة (قبل _load_cross_asset_frames) ⇒ يجب أن تُبطَل.
     cross = {k: config.get(k) for k in ('momentum_rank', 'market_breadth', 'momentum_orth_natr')
