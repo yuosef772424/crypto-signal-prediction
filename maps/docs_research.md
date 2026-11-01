@@ -210,7 +210,7 @@ Documents:
   - `def auc_pair(aligned)` L90
 
 ## `docs/research/cards/`
-- Experiment card — E-liq-001: does telling the model how liquid the coin is (A) or removing illiquid… | 0 scripts, 5 md, 0 data files (0 B)
+- Experiment card — E-liq-001: does telling the model how liquid the coin is (A) or removing illiquid… | 0 scripts, 6 md, 0 data files (0 B)
 
 Documents:
 - `E-liq-001.md` — Experiment card — E-liq-001: does telling the model how liquid the coin is (A) or removing illiquid…
@@ -218,6 +218,7 @@ Documents:
 - `E-norm-002.md` — Experiment card — E-norm-002: logret_std inputs without the model's per-window InstanceNorm
 - `E-rel-001.md` — Experiment card — E-rel-001: absolute vs within-timestamp relative target on the current 4h model l…
 - `E-tgt-002.md` — Experiment card — E-tgt-002: IC-aligned objective for the main model (volnorm target, clip 4, Huber…
+- `E-tgt-003.md` — Experiment card — E-tgt-003: proper scoring, decision utility, confidence and curriculum on top of…
 
 ## `docs/research/hardening/`
 - hardening/: root-cause audits of the codebase before a new experiment round | 1 scripts, 9 md, 2 data files (10 KB)

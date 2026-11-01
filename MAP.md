@@ -48,7 +48,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 ## docs/research (legacy)
 - `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 45 md, 1 data files (107 KB) → maps/docs_research.md
 - `docs/research/audit/` — Audit / Improvement Protocol (Auditor ↔ Builder) | 26 scripts, 5 md, 0 data files (0 B) → maps/docs_research.md
-- `docs/research/cards/` — Experiment card — E-liq-001: does telling the model how liquid the coin is (A) or removing illiquid… | 0 scripts, 5 md, 0 data files (0 B) → maps/docs_research.md
+- `docs/research/cards/` — Experiment card — E-liq-001: does telling the model how liquid the coin is (A) or removing illiquid… | 0 scripts, 6 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/hardening/` — hardening/: root-cause audits of the codebase before a new experiment round | 1 scripts, 9 md, 2 data files (10 KB) → maps/docs_research.md
 - `docs/research/notes/` — External research takeaways (2026-10-20) | 0 scripts, 3 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/plan/` — Colab runner: one click per experiment | 0 scripts, 20 md, 6 data files (547 KB) → maps/docs_research.md
