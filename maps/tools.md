@@ -260,14 +260,15 @@
   - `def all_cards()` L166
   - `def main(argv=None)` L173
 
-### `tools/fetch_crypto_dataset.py` (95 lines)
+### `tools/fetch_crypto_dataset.py` (118 lines)
 - PURPOSE: Download Binance spot OHLCV from the public GitHub dataset Speirsy11/crypto-dataset (monthly parquet per coin and interval, stored in Git LFS) and merge it into one parquet per coin: <out>/ohlc_<SYMBOL>_<interval>.parquet with a UTC Dateti…
 - TAGS: download history, ohlc, 5m, spot, github dataset, speirsy11, lfs, media.githubusercontent, research data, h19
-- PITFALLS: Listing uses a blob-less git clone (`git ls-tree --name-only` only — `-l` would fetch every blob); existing output files are skipped (delete to refresh); `--end` trims to a pre-registered test window so a newer snapshot does not silently extend it (H19 used 2026-09-30 23:55).
+- PITFALLS: Listing uses a blob-less git clone (`git ls-tree --name-only` only — `-l` would fetch every blob); existing output files are skipped (delete to refresh); `--end` trims to a pre-registered test window so a newer snapshot does not silently extend it (H19 used 2026-09-30 23:55). `--trim-dead-tail` (off by default = old output) cuts the trailing zero-volume candles of delisted coins back to the last…
 - API:
-  - `def list_files(clone_dir=None)` L32
-  - `def fetch(coins, interval='5m', out='.', end=None, workers=8, clone_dir=None, verbose=True)` L55
-  - `def main(argv=None)` L82
+  - `def list_files(clone_dir=None)` L36
+  - `def trim_dead_tail(d)` L59
+  - `def fetch(coins, interval='5m', out='.', end=None, workers=8, clone_dir=None, verbose=True, trim_tail=False)` L68
+  - `def main(argv=None)` L103
 
 ### `tools/fetch_history_colab_cell.py` (77 lines)
 - PURPOSE: Single paste-and-run Colab cell: mount Drive, fetch fetch_history_vision_colab.py (GitHub or Drive) and run it with the settings at the top.

@@ -840,14 +840,14 @@
   - `class ThreeTFTests(unittest.TestCase)` L12
     - (3 methods)
 
-### `tests/test_tools_reuse.py` (72 lines)
+### `tests/test_tools_reuse.py` (98 lines)
 - PURPOSE: tools/nb_cells.py (تحرير خلايا الدفاتر بلا إعادة تنسيق) وtools/fetch_crypto_dataset.py (دمج الملفات الشهرية) — بلا شبكة. (from docstring)
 - DEPENDS: tools
 - API:
   - `class NbCellsTests(unittest.TestCase)` L20
     - (2 methods)
   - `class FetchDatasetTests(unittest.TestCase)` L45
-    - (1 methods)
+    - (3 methods)
 
 ### `tests/test_touched_ledger.py` (161 lines)
 - PURPOSE: tools/touched_ledger.py: the touched-data ledger (docs/research/plan/lock/touched.csv) is built from master, covers every registry (from docstring)
