@@ -11,7 +11,7 @@ import pandas as pd
 from core.heads import ROLES
 from core.schema import DIRECTION_TARGET, RANGE_TARGETS
 
-__all__ = ["qss", "quantile_coverage", "interval_coverage", "mean_interval_width", "winkler_score", "threshold_trades",
+__all__ = ["crps_gaussian", "spread_ratio", "confidence_summary", "position_share", "risk_coverage_auc", "sigma_calibration", "qss", "quantile_coverage", "interval_coverage", "mean_interval_width", "winkler_score", "threshold_trades",
            "profit_factor", "win_loss_ratio", "net_sharpe", "evaluate_heads", "NAN_POLICIES", "AUC_NAN_POLICIES", "rank_average", "pearson", "spearman", "partial_spearman", "auc",
            "wilson_interval", "pinball_loss", "mean_pinball", "ece_quantile"]
 
@@ -212,6 +212,59 @@ def winkler_score(y, lo, hi, alpha: float) -> float:
     if not len(y):
         return float("nan")
     return float(np.mean((hi - lo) + (2.0 / alpha) * (np.maximum(lo - y, 0.0) + np.maximum(y - hi, 0.0))))
+
+
+def crps_gaussian(y, mu, sigma) -> float:
+    """Mean continuous ranked probability score of N(mu, sigma^2) forecasts (closed form: sigma * (z (2 Phi(z) - 1) + 2 phi(z) - 1/sqrt(pi)),
+    z = (y - mu) / sigma; lower = better; a proper score of the whole predictive distribution, in the units of y). sigma must be > 0.
+    Non-finite rows dropped; none -> NaN."""
+    y, mu, sigma = _finite_pairs(y, mu, sigma)
+    if not len(y):
+        return float("nan")
+    if np.any(sigma <= 0):
+        raise ValueError("crps_gaussian needs sigma > 0")
+    from scipy.stats import norm
+    z = (y - mu) / sigma
+    return float(np.mean(sigma * (z * (2.0 * norm.cdf(z) - 1.0) + 2.0 * norm.pdf(z) - 1.0 / np.sqrt(np.pi))))
+
+
+# ───────────────────────────── anti-fear diagnostics (a model that predicts 'nothing to be safe') ─────────────────────────────
+def spread_ratio(mu, y) -> float:
+    """std(mu) / std(y) over the finite rows: ~0 = the head collapsed to a constant ('fear of predicting'), ~1 = it moves like the label.
+    NaN when std(y) is 0 or there are no rows."""
+    mu, y = _finite_pairs(mu, y)
+    sy = float(np.std(y)) if len(y) else 0.0
+    return float(np.std(mu)) / sy if sy > 0 else float("nan")
+
+
+def confidence_summary(conf, floor: float = 0.55) -> dict:
+    """mean / std of a confidence P(direction correct) and the share below ``floor`` (0.55: close to a coin flip)."""
+    (c,) = _finite_pairs(conf)
+    if not len(c):
+        return {"mean": float("nan"), "std": float("nan"), "share_below": float("nan")}
+    return {"mean": float(np.mean(c)), "std": float(np.std(c)), "share_below": float(np.mean(c < floor))}
+
+
+def position_share(mu, sigma, k: float = 1.0, threshold: float = 0.1, eps: float = 1e-6) -> float:
+    """Share of rows whose utility position |tanh(k * mu / (sigma + eps))| exceeds ``threshold`` (0 = the model never takes a position)."""
+    mu, sigma = _finite_pairs(mu, sigma)
+    return float(np.mean(np.abs(np.tanh(k * mu / (sigma + eps))) > threshold)) if len(mu) else float("nan")
+
+
+def risk_coverage_auc(conf, correct) -> float:
+    """Area under the risk-coverage curve of a confidence score (lower = better): rows are sorted by decreasing confidence and the error
+    rate of the top-n rows is averaged over n = 1..N. A useless confidence gives the overall error rate; a perfect one approaches 0."""
+    conf, correct = _finite_pairs(conf, correct)
+    if not len(conf):
+        return float("nan")
+    err = 1.0 - (np.asarray(correct) > 0.5).astype("float64")[np.argsort(-conf, kind="stable")]
+    return float(np.mean(np.cumsum(err) / np.arange(1, len(err) + 1)))
+
+
+def sigma_calibration(y, mu, sigma, z: float = 1.645) -> float:
+    """Coverage of the central interval mu +- z * sigma (z = 1.645: nominal 90%): the share of rows inside; compare with the nominal level."""
+    y, mu, sigma = _finite_pairs(y, mu, sigma)
+    return float(np.mean(np.abs(y - mu) <= z * sigma)) if len(y) else float("nan")
 
 
 # ───────────────────────────── trading metrics (additive; no threshold optimisation here) ─────────────────────────────
