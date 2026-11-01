@@ -528,6 +528,8 @@
 - events_disc.csv: edge_discovery/05_events
 - evidential: model/nig_layers
 - evidential_task_loss: trainer/tasks
+- ewma: stats/volatility
+- ewma_std: stats/volatility
 - exact-zero targets: tools/stale_bars_audit
 - example: trainer/example
 - example run script: tools/colab_smoke
@@ -1129,6 +1131,7 @@
 - parse_output_name: core/heads
 - partial ic: cross_asset/report
 - pass: signal_eval/selftests
+- past-only: stats/volatility
 - paste bundle: tools/data_manifest, tools/data_manifest_colab_cell
 - patch_len: model/patches
 - patchembedding: model/patches
@@ -1565,6 +1568,7 @@
 - taker_z: edge_discovery/features
 - tap: trainer/training_diagnostics
 - target modes: workflow/retarget
+- target normalisation: stats/volatility
 - target scale: cross_asset/data
 - target-mode: tools/evaluate_trained_model
 - target_columns: core/schema
@@ -1572,6 +1576,7 @@
 - target_mode: tests/test_real_price_modes, workflow/retarget, workflow/settings
 - target_mode_of: workflow/splits
 - target_modes: core/__init__, core/schema
+- target_vol: workflow/retarget
 - targets: data/cross_sectional_norm, data/windows
 - targetsettings: workflow/settings
 - targetspec: evaluation/targets
@@ -1705,11 +1710,15 @@
 - vol-matched drawdown: h07_combos/01_combos
 - vol-quintile ic: cross_asset/report
 - vol-target weights: edge_discovery/tsbt
-- volatility: edge_discovery/features
+- vol_unit_modes: core/schema
+- volatility: edge_discovery/features, stats/volatility
 - volatility clustering: tools/natr_range
 - volatility forecast: h07_volsizing/01_volsizing
 - volatility level: data/level_channel
 - volnorm: workflow/retarget
+- volret: stats/volatility, workflow/retarget
+- volret_floor: core/schema
+- volret_lambda: core/schema
 - volume concentration: data/funding_oi
 - volume confirmation: strategy_discovery/grid2
 - volume donchian: strategy_discovery/survivor_checks

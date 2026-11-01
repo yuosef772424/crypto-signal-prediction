@@ -159,7 +159,7 @@ class DataSettings(_SettingsSection):
 @_dc.dataclass(frozen=True)
 class TargetSettings(_SettingsSection):
     """Target mode on the same data (section 3-b); None = the pipeline's own targets."""
-    #: "return" | "return_close" | "scaled" | "magnitude" | "volnorm" | "entry_range" | "relative" | "<mode>+relative"
+    #: "return" | "return_close" | "scaled" | "magnitude" | "volnorm" | "entry_range" | "volret" | "relative" | "<mode>+relative"
     target_mode: _t.Optional[str] = None
     #: The close regression of entry_range: "abs_return" | "range_pos".
     entry_close_reg: str = "abs_return"
@@ -172,7 +172,7 @@ class TargetSettings(_SettingsSection):
     #: A JSON round-trip gives a list: it is normalised to a tuple.
     suspended_targets: _t.Optional[tuple] = None
     #: Clip (+-, in target units) of the regression targets that retarget_splits recomputes for ``target_mode``. None = the mode's
-    #: old default (10 for scaled / volnorm, 1 for the others: workflow/retarget.py _DEFAULT_CLIP). Needs a target_mode (the pipeline's
+    #: old default (10 for scaled / volnorm / volret, 1 for the others: workflow/retarget.py _DEFAULT_CLIP). Needs a target_mode (the pipeline's
     #: own targets are not recomputed); not None changes the run folder name (run_dir_for: "_clip<value>").
     clip: _t.Optional[float] = None
 

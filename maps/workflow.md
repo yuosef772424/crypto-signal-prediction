@@ -142,18 +142,18 @@
   - `def real_price_predictions(model, test, asset, target, model_tf)` L20
   - `def classification_accuracy_report(model, test, price_targets, model_tf)` L61
 
-### `workflow/retarget.py` (259 lines)
-- PURPOSE: Target-mode switching on already-built splits (return, return_close, scaled, magnitude, volnorm, entry_range, +relative): retarget_splits recomputes y_*_reg / y_*_class from raw last_candles; entry_range_to_prices inverts entry_range.
-- TAGS: target_mode, retarget_splits, target modes, relative, entry_range, entry_range_to_prices, entry_close_reg, reg_target_scale, magnitude, volnorm, scaled
-- PITFALLS: retarget_splits takes reg_target_scale (the dataset's, DatasetInfo), price_targets and close_reg (TargetSettings.entry_close_reg) as arguments; only the pipeline's CONFIG (default targets) and LAST_COLUMNS come from the namespace. The scale must be the dataset's, not read back from a split's stamp: a 'scaled' retarget stamps 1.0. tools/evaluate_trained_model.py pins TARGET_MODES/ENTRY_CLOSE_REGS…
-- DEPENDS: core
+### `workflow/retarget.py` (330 lines)
+- PURPOSE: Target-mode switching on already-built splits (return, return_close, scaled, magnitude, volnorm, volret, entry_range, +relative): retarget_splits recomputes y_*_reg / y_*_class from raw last_candles (volret: and the past closes decoded fro…
+- TAGS: target_mode, retarget_splits, target modes, relative, entry_range, entry_range_to_prices, entry_close_reg, reg_target_scale, magnitude, volnorm, volret, target_vol, scaled
+- PITFALLS: volnorm needs base_params (window IQR) in every part AND refuses logret_* datasets (retarget_splits guard: their targets are train-standardised and tied to the inputs); volret does not read base_params: it decodes the window's past closes from the stored close channel (X_<base_tf>[:, :, close_index], core.price_norm.input_close_logreturns: 'window_scale' and 'logret_std' only, 'close' must be a m…
+- DEPENDS: core, stats
 - USES: data/runtime, data/windows
 - USED BY: capacity, diagnostics, generalization, reports, run, selective_eval, wiring_selftest
 - API:
-  - `def retarget_splits(train_split, val_split, test_split, mode='return', targets=None, clip=None, center='median', group_freq=None, min_group=5, drop_small_groups=False, close_reg='abs_return', verbose=True, reg_target_s…` L146
-  - `def entry_range_to_prices(last_close, high=None, low=None, close=None, close_reg='abs_return', p_close_up=None)` L234
+  - `def retarget_splits(train_split, val_split, test_split, mode='return', targets=None, clip=None, center='median', group_freq=None, min_group=5, drop_small_groups=False, close_reg='abs_return', verbose=True, reg_target_s…` L210
+  - `def entry_range_to_prices(last_close, high=None, low=None, close=None, close_reg='abs_return', p_close_up=None)` L305
 
-### `workflow/run.py` (615 lines)
+### `workflow/run.py` (619 lines)
 - PURPOSE: The steps of a main run as functions of (RunSettings, explicit inputs) -> outputs: load data, adapt CONFIG, split, retarget, plan and build the model, training config and datasets, train, prepare the chicks evaluation, run it, panel model,…
 - TAGS: run_main, load_dataset, apply_dataset_config, make_splits, retarget, plan_model, build_model, make_training_config, make_datasets, train_model, prepare_chicks, run_chicks, run_panel, run_reports, toolkit, datasetinfo, modelplan, chicksinputs, runresult, runsettings steps
 - PITFALLS: Steps read no notebook global: settings come as the first argument and everything else (the pipeline/model/trainer/chicks entry points = Toolkit.from_namespace(globals()), the loaded data, the splits, the derived facts DatasetInfo / ModelPlan / ChicksInputs) as explicit arguments. They still call the other workflow modules and the pipeline's own CONFIG-reading helpers late-bound in the shared nam…
@@ -163,27 +163,27 @@
   - `class Toolkit` L26
     - `.from_namespace(cls, ns)` L56
   - `class DatasetInfo` L65
-  - `class ModelPlan` L73
-  - `class ChicksInputs` L85
-  - `class RunResult` L94
-  - `def apply_project_config(settings, kit)` L117
-  - `def load_dataset(settings, kit)` L123
-  - `def apply_dataset_config(settings, dataset, kit)` L150
-  - `def make_splits(settings, dataset, info, kit)` L200
-  - `def make_splits_with_calibration(settings, dataset, info, kit)` L210
-  - `def retarget(settings, train, val, test, info)` L238
-  - `def retarget_calibration(settings, train, calibration, info)` L252
-  - `def plan_model(settings, dataset, info, kit)` L261
-  - `def build_model(plan, kit, summary=True)` L315
-  - `def make_training_config(settings, plan, info, val, kit)` L327
-  - `def make_datasets(main_config, train, val, info, *, settings)` L374
-  - `def train_model(settings, kit, *, model, model_builder, main_config, train_ds, val_ds, sample_batch)` L389
-  - `def prepare_chicks(settings, plan, info, test, kit)` L406
-  - `def calibration_split_of(eval_settings, val, calibration=None)` L451
-  - `def run_chicks(settings, kit, *, model, val, chicks, info, calibration=None)` L463
-  - `def run_panel(settings, kit, *, dataset, train, val, test, info, plan, model, model_builder, main_config, apply_preset=True)` L496
-  - `def run_reports(settings, which, kit, *, model, train, val, test, dataset, info, plan, chicks)` L538
-  - `def run_main(settings, kit, dataset=None, summary=True)` L595
+  - `class ModelPlan` L74
+  - `class ChicksInputs` L86
+  - `class RunResult` L95
+  - `def apply_project_config(settings, kit)` L118
+  - `def load_dataset(settings, kit)` L124
+  - `def apply_dataset_config(settings, dataset, kit)` L151
+  - `def make_splits(settings, dataset, info, kit)` L203
+  - `def make_splits_with_calibration(settings, dataset, info, kit)` L213
+  - `def retarget(settings, train, val, test, info)` L241
+  - `def retarget_calibration(settings, train, calibration, info)` L256
+  - `def plan_model(settings, dataset, info, kit)` L265
+  - `def build_model(plan, kit, summary=True)` L319
+  - `def make_training_config(settings, plan, info, val, kit)` L331
+  - `def make_datasets(main_config, train, val, info, *, settings)` L378
+  - `def train_model(settings, kit, *, model, model_builder, main_config, train_ds, val_ds, sample_batch)` L393
+  - `def prepare_chicks(settings, plan, info, test, kit)` L410
+  - `def calibration_split_of(eval_settings, val, calibration=None)` L455
+  - `def run_chicks(settings, kit, *, model, val, chicks, info, calibration=None)` L467
+  - `def run_panel(settings, kit, *, dataset, train, val, test, info, plan, model, model_builder, main_config, apply_preset=True)` L500
+  - `def run_reports(settings, which, kit, *, model, train, val, test, dataset, info, plan, chicks)` L542
+  - `def run_main(settings, kit, dataset=None, summary=True)` L599
 
 ### `workflow/selective_eval.py` (293 lines)
 - PURPOSE: Section 7-b: selective evaluation (accuracy at confident slices, 2:1 trades): collect_signals, thresholds picked on val only, Wilson intervals, rr_trading_report.

@@ -5,5 +5,6 @@ PITFALLS: stats may import ONLY `core` (tools/check_deps.py enforces it), the st
 
 Modules:
   prediction_table  PredictionTable: build_table, validate_table (the leakage / key contract), write_table, read_table (csv.gz + .meta.json), PredictionTableSpec (the opt-in of the evaluation predict path); schema names in core/prediction_schema.py
+  volatility ewma_std (past-only EWMA standard deviation of a window of returns; target_mode volret)
   metrics    rank_average, pearson, spearman, partial_spearman, auc, wilson_interval, pinball_loss, mean_pinball, ece_quantile, qss, quantile_coverage, interval_coverage, winkler_score, threshold_trades, profit_factor, win_loss_ratio, net_sharpe, evaluate_heads (the per-head policy)
 """

@@ -66,13 +66,16 @@
 - API:
   - `def head_output_column(raw_key: str) -> str` L42
 
-### `core/price_norm.py` (20 lines)
+### `core/price_norm.py` (61 lines)
 - PURPOSE: The ONE pair of formulas that maps a future price to the standardized log-return target space of price_norm_mode 'logret_*' and back: z = (log(price / anchor) - mean) / std. Used by data.normalizers (pipeline) and evaluation.decode (model…
 - TAGS: price_norm, logret, logret_forward, logret_inverse, denormalize, normalize targets, log return, anchor, last_close, core
 - PITFALLS: Stdlib-only (tier 0): array-agnostic arithmetic, the caller passes float64 arrays and the log/exp function (numpy.log / numpy.exp), so results are byte-identical to the old numpy version. No clipping (the input channels are clipped by the pipeline, targets are not). `anchor` is last_close for every head in 'logret_*'. Do not duplicate this formula elsewhere: call it.
 - API:
   - `def logret_forward(price, mean: float, std: float, anchor, log)` L8
   - `def logret_inverse(pred, mean: float, std: float, anchor, exp, output: str='price')` L14
+  - `def volret_forward(logret, vol)` L24
+  - `def volret_inverse(z, vol)` L30
+  - `def input_close_logreturns(x_close, mode: str, *, center=None, scale=None, mean=None, std=None, clip_abs=None, log=None)` L36
 
 ### `core/registry.py` (215 lines)
 - PURPOSE: The ONE generic registry primitive (tier 0, stdlib only): `Registry(kind, contract)` registers objects by name with a declared contract (name, version, kind-specific required metadata, optional validator run AT REGISTRATION), raises on a d…
@@ -112,9 +115,9 @@
   - `def role_of(obj: Any) -> str` L84
   - `def require_role(obj: Any, allowed: Iterable[str], *, what: str, never: Iterable[str]=()) -> str` L106
 
-### `core/schema.py` (60 lines)
+### `core/schema.py` (68 lines)
 - PURPOSE: The data schema names shared by data, workflow, discovery, cross_asset and tools: the last_candles column order (LAST_COLUMNS, TS_COL, LAST_COLUMN_INDEX), its dtype, the price target columns and the target-mode names.
-- TAGS: clip_abs, last_columns, ts_col, last_column_index, last_dtype, target_columns, direction_target, range_targets, target_modes, no_relative_bases, entry_close_regs, last_candles, schema, column order
+- TAGS: clip_abs, vol_unit_modes, volret_lambda, volret_floor, last_columns, ts_col, last_column_index, last_dtype, target_columns, direction_target, range_targets, target_modes, no_relative_bases, entry_close_regs, last_candles, schema, column order
 - PITFALLS: LAST_COLUMNS is the physical column order of every saved dataset's last_candles array: reordering or inserting breaks existing datasets, checkpoints and every positional index, so only APPEND (and then update the "(N, 7)" docs). It is a tuple (immutable); `.index(name)` is the way to get a position. LAST_COLUMN_INDEX is a read-only name -> index mapping (cross_asset's old LC dict). TARGET_MODES l…
 
 ### `core/seeds.py` (28 lines)

@@ -1,17 +1,21 @@
 """
-PURPOSE:  Target-mode switching on already-built splits (return, return_close, scaled, magnitude, volnorm, entry_range, +relative): retarget_splits recomputes y_*_reg / y_*_class from raw last_candles; entry_range_to_prices inverts entry_range.
-TAGS:     target_mode, retarget_splits, target modes, relative, entry_range, entry_range_to_prices, entry_close_reg, reg_target_scale, magnitude, volnorm, scaled
-PITFALLS: retarget_splits takes reg_target_scale (the dataset's, DatasetInfo), price_targets and close_reg (TargetSettings.entry_close_reg) as arguments; only the pipeline's CONFIG (default targets) and LAST_COLUMNS come from the namespace. The scale must be the dataset's, not read back from a split's stamp: a 'scaled' retarget stamps 1.0. tools/evaluate_trained_model.py pins TARGET_MODES/ENTRY_CLOSE_REGS (tests/test_entry_range.py). Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 10 (section 3-b).
+PURPOSE:  Target-mode switching on already-built splits (return, return_close, scaled, magnitude, volnorm, volret, entry_range, +relative): retarget_splits recomputes y_*_reg / y_*_class from raw last_candles (volret: and the past closes decoded from the stored inputs); entry_range_to_prices inverts entry_range.
+TAGS:     target_mode, retarget_splits, target modes, relative, entry_range, entry_range_to_prices, entry_close_reg, reg_target_scale, magnitude, volnorm, volret, target_vol, scaled
+PITFALLS: volnorm needs base_params (window IQR) in every part AND refuses logret_* datasets (retarget_splits guard: their targets are train-standardised and tied to the inputs); volret does not read base_params: it decodes the window's past closes from the stored close channel (X_<base_tf>[:, :, close_index], core.price_norm.input_close_logreturns: 'window_scale' and 'logret_std' only, 'close' must be a model input), stamps the per-row vol as split['target_vol'] (decode: core.price_norm.volret_inverse, never elsewhere) and, on a logret dataset, drops the split's price_norm_meta (the targets are no longer in that space). retarget_splits takes reg_target_scale (the dataset's, DatasetInfo), price_targets and close_reg (TargetSettings.entry_close_reg) as arguments; only the pipeline's CONFIG (default targets) and LAST_COLUMNS come from the namespace. The scale must be the dataset's, not read back from a split's stamp: a 'scaled' retarget stamps 1.0. tools/evaluate_trained_model.py pins TARGET_MODES/ENTRY_CLOSE_REGS (tests/test_entry_range.py). Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 10 (section 3-b).
 """
 import numpy as np
 import pandas as pd
 
+from core.price_norm import input_close_logreturns, volret_forward
+from stats.volatility import ewma_std
+
 # أسماء أوضاع الهدف (+ اختيارياً "+relative") والأوضاع التي لا تقبل "+relative" وتعريفات انحدار close في entry_range: core/schema.py
-from core.schema import ENTRY_CLOSE_REGS, NO_RELATIVE_BASES as _NO_RELATIVE_BASES, TARGET_MODES   # noqa: F401
+from core.schema import (CLIP_ABS, ENTRY_CLOSE_REGS, NO_RELATIVE_BASES as _NO_RELATIVE_BASES, TARGET_MODES,   # noqa: F401
+                         VOLRET_FLOOR, VOLRET_LAMBDA)
 _FUTURE_COL = {"high": "future_high_max", "low": "future_low_min", "close": "future_close"}
-_DEFAULT_CLIP = {"scaled": 10.0, "volnorm": 10.0}   # نفس قصّ خط الأنابيب لوضعه القديم المقاس بـ IQR؛ الباقي ±1
+_DEFAULT_CLIP = {"scaled": 10.0, "volnorm": 10.0, "volret": 10.0}   # نفس قصّ خط الأنابيب لوضعه القديم المقاس بـ IQR؛ الباقي ±1
 # أوضاع بوحدة العائد: تُضرب في REG_TARGET_SCALE (من البيانات) بعد القصّ كخط الأنابيب، فيبقى مقياس أهداف النموذج
-# واحداً بين None و"return" و"relative"… scaled/volnorm بوحدة التقلّب أصلاً فلا تُضرب (مقياسها 1).
+# واحداً بين None و"return" و"relative"… scaled/volnorm/volret بوحدة التقلّب أصلاً فلا تُضرب (مقياسها 1).
 _RETURN_UNIT_BASES = ("return", "return_close", "magnitude", "entry_range")
 # تعريفات انحدار close في entry_range: "abs_return" = |عائد الإغلاق من P| (يُضرب في المقياس كغيره)،
 # "range_pos" = موقع الإغلاق في المدى [0,1] (لا يُضرب: وحدته O(1) أصلاً). كل قسم يُختم بمقياس كل هدف
@@ -36,9 +40,55 @@ def _split_parts(split_or_dict):
     return [(None, split_or_dict)] if "y" in split_or_dict else list(split_or_dict.items())
 
 
-def _price_columns(parts):
+_VOL_CHUNK = 50_000
+
+
+def _window_vol(parts, base_tf, close_index):
+    """volret: التقلّب الماضي لكل عيّنة (n,) مدموجاً عبر الأجزاء، من قناة الإغلاق المخزَّنة في X_<base_tf> (معروفة وقت الدخول):
+    EWMA std لعوائد log الإغلاق داخل النافذة (core.price_norm.input_close_logreturns ثم stats.volatility.ewma_std)، بأرضية
+    VOLRET_FLOOR. صفّ لا يُفكّ بموثوقية (إغلاق غير موجب/مقصوص) ← وسيط التقلّب لباقي الصفوف. يُرجع (vol، عدد الصفوف البديلة)."""
+    if base_tf is None or close_index is None:
+        raise ValueError("target_mode 'volret' needs base_tf and close_index (the base timeframe of X and the position of 'close' in "
+                         "the model's features): run.retarget passes DatasetInfo.model_tf / DatasetInfo.close_index; 'close' must be a model input")
+    vols, oks = [], []
+    for _, s in parts:
+        X, mode, meta = s[f"X_{base_tf}"], s.get("price_norm_mode", "window_scale"), s.get("price_norm_meta")
+        kw = {}
+        if mode == "logret_std":
+            st = (meta or {}).get("inputs", {}).get(base_tf)
+            if st is None or close_index not in st["index"]:
+                raise ValueError(f"volret on a logret_std dataset needs the 'close' channel (position {close_index}) in "
+                                 f"price_norm_meta['inputs'][{base_tf!r}]")
+            j = st["index"].index(close_index)
+            kw = {"mean": float(st["mean"][j]), "std": float(st["std"][j])}
+        n = len(X)
+        vol, ok = np.empty(n, dtype="float64"), np.empty(n, dtype=bool)
+        for a in range(0, n, _VOL_CHUNK):
+            b = min(n, a + _VOL_CHUNK)
+            xc = np.asarray(X[a:b, :, close_index], dtype="float64")
+            if mode == "window_scale":
+                bp = np.asarray(s["base_params"][a:b], dtype="float64")
+                kw = {"center": bp[:, :1], "scale": bp[:, 1:2], "clip_abs": CLIP_ABS, "log": np.log}
+            with np.errstate(all="ignore"):
+                r, ok_b = input_close_logreturns(xc, mode, **kw)
+                v = ewma_std(r, VOLRET_LAMBDA)
+            ok_b = ok_b & np.isfinite(v)
+            vol[a:b], ok[a:b] = np.where(ok_b, v, np.nan), ok_b
+        vols.append(vol)
+        oks.append(ok)
+    vol, ok = np.concatenate(vols), np.concatenate(oks)
+    if not ok.any():
+        raise ValueError("volret: no row has a decodable close window (all closes non-positive / clipped): cannot form a volatility")
+    fill = float(np.median(vol[ok]))
+    vol = np.where(ok, np.maximum(vol, VOLRET_FLOOR), max(fill, VOLRET_FLOOR))
+    return vol, int((~ok).sum())
+
+
+def _price_columns(parts, vol=None):
     lc = np.concatenate([np.asarray(s["last_candles"], dtype="float64") for _, s in parts])
     P = {name: lc[:, i] for i, name in enumerate(LAST_COLUMNS)}
+    if vol is not None:
+        P["win_vol"] = vol
     if all("base_params" in s for _, s in parts):
         bp = np.concatenate([np.asarray(s["base_params"], dtype="float64") for _, s in parts])
         P["bp_center"], P["bp_scale"] = bp[:, 0], bp[:, 1]
@@ -66,6 +116,14 @@ def _raw_target(P, t, base, close_reg="abs_return"):
         vol = np.abs(P["bp_scale"]) / np.maximum(np.abs(P["last_close"]), 1e-12)
         vol = np.where(vol > 1e-6, vol, np.nanmedian(vol[vol > 1e-6]) if np.any(vol > 1e-6) else 1.0)
         return (fut / P[f"last_{t}"] - 1.0) / vol
+    if base == "volret":
+        # log(fut/last) ÷ EWMA std لعوائد إغلاق النافذة الماضية (لا قراءة base_params ولا شيء بعد الدخول): يعمل على أي بيانات
+        # تُخزّن قناة الإغلاق. الصيغة (والعكس) في core/price_norm.py؛ ما ليس منتهياً (سعر غير موجب) ← 0.
+        if "win_vol" not in P:
+            raise ValueError("وضع 'volret' يتطلّب win_vol (retarget_splits يحسبه من X: base_tf وclose_index)")
+        with np.errstate(all="ignore"):
+            z = volret_forward(np.log(fut / P[f"last_{t}"]), P["win_vol"])
+        return np.where(np.isfinite(z), z, 0.0)
     if base == "magnitude":
         r = fut / P["last_close"] - 1.0
         return {"close": np.abs(r), "high": np.maximum(r, 0.0), "low": np.maximum(-r, 0.0)}[t]
@@ -92,9 +150,9 @@ def _group_keys(ts, group_freq):
 
 
 def _targets_for(parts, targets, base, cross, clip, center, group_freq, thresholds, scale=1.0,
-                 close_reg="abs_return"):
+                 close_reg="abs_return", vol=None):
     """يُرجع ({y_key: مصفوفة مدمجة}, معلومات) لكل أجزاء قسم واحد معاً. info["scales"]: مقياس كل هدف فعلاً."""
-    P = _price_columns(parts)
+    P = _price_columns(parts, vol)
     out, info = {}, {"P": P, "scales": {}}
     keys = _group_keys(P["timestamp"], group_freq) if cross else None
     if keys is not None:
@@ -119,8 +177,9 @@ def _targets_for(parts, targets, base, cross, clip, center, group_freq, threshol
     return out, info
 
 
-def _rebuild(parts, new_y, keep, mode, scale=1.0, scales=None, stamps=None):
-    """يوزّع المصفوفات المدمجة على الأجزاء الأصلية؛ نسخ سطحية — X لا يُنسَخ."""
+def _rebuild(parts, new_y, keep, mode, scale=1.0, scales=None, stamps=None, arrays=None, drop=()):
+    """يوزّع المصفوفات المدمجة على الأجزاء الأصلية؛ نسخ سطحية — X لا يُنسَخ. arrays: مفاتيح (n,) تُختم على القسم (target_vol)
+    قبل تصفية keep فتُصفّى معه؛ drop: مفاتيح تُحذف من القسم (price_norm_meta بعد volret على بيانات logret)."""
     rebuilt, start = [], 0
     for name, s in parts:
         n = len(s["last_candles"])
@@ -129,6 +188,11 @@ def _rebuild(parts, new_y, keep, mode, scale=1.0, scales=None, stamps=None):
         ns["y"] = dict(s["y"])
         for k, v in new_y.items():
             ns["y"][k] = v[start:start + n]
+        ns.pop("target_vol", None)                     # ختم وضع سابق (volret) لا يبقى على وضع آخر
+        for k in drop:
+            ns.pop(k, None)
+        for k, v in (arrays or {}).items():
+            ns[k] = v[start:start + n]
         if not mask.all():                   # يحدث فقط مع drop_small_groups=True (ينسخ X لهذا الجزء)
             ns = {k: ({kk: vv[mask] for kk, vv in v.items()} if k == "y"
                       else (v[mask] if hasattr(v, "__len__") and not isinstance(v, (str, dict)) and len(v) == n else v))
@@ -145,7 +209,7 @@ def _rebuild(parts, new_y, keep, mode, scale=1.0, scales=None, stamps=None):
 
 def retarget_splits(train_split, val_split, test_split, mode="return", targets=None, clip=None,
                     center="median", group_freq=None, min_group=5, drop_small_groups=False, close_reg="abs_return",
-                    verbose=True, reg_target_scale=1.0, price_targets=None):
+                    verbose=True, reg_target_scale=1.0, price_targets=None, base_tf=None, close_index=None):
     """يُرجع (train, val, test) جديدة بأهداف الوضع المطلوب. الأصلية لا تُعدَّل.
 
     clip            : حدّ قصّ هدف الانحدار (±). الافتراضي 10 لـ scaled و1 لغيره — نفس خط الأنابيب.
@@ -156,9 +220,10 @@ def retarget_splits(train_split, val_split, test_split, mode="return", targets=N
     close_reg       : تعريف انحدار close في entry_range: "abs_return" | "range_pos" (TargetSettings.entry_close_reg).
     reg_target_scale: مقياس أهداف الانحدار من البيانات (DatasetInfo.reg_target_scale؛ يُضرب فيه بعد القصّ لأوضاع وحدة العائد)؛
                       1.0 = عائد خام (ملف بلا المفتاح).
-    price_targets   : الأهداف المفعّلة (ModelPlan.price_targets)؛ None = أهداف CONFIG (كل ما في y)."""
+    price_targets   : الأهداف المفعّلة (ModelPlan.price_targets)؛ None = أهداف CONFIG (كل ما في y).
+    base_tf, close_index: لـ volret فقط — فريم X الأساسي وموضع 'close' بين ميزات النموذج (DatasetInfo.model_tf / close_index)."""
     base, cross = _parse_mode(mode)
-    if any(m.get("price_norm_meta") is not None for _, m in _split_parts(train_split)):
+    if base != "volret" and any(m.get("price_norm_meta") is not None for _, m in _split_parts(train_split)):
         raise ValueError("retarget_splits لا يدعم price_norm_mode='logret_*': أهدافه مُقيَّسة بإحصاءات train ومرتبطة بمدخلاته؛ "
                          "إعادة بنائها من last_candles تكسر الاتساق. استخدم target_mode=None")
     clip = _DEFAULT_CLIP.get(base, 1.0) if clip is None else clip
@@ -187,8 +252,12 @@ def retarget_splits(train_split, val_split, test_split, mode="return", targets=N
     results, report = [], []
     for name, sp in (("train", train_split), ("val", val_split), ("test", test_split)):
         parts = _split_parts(sp)
+        vol, n_fallback = _window_vol(parts, base_tf, close_index) if base == "volret" else (None, 0)
         new_y, info = _targets_for(parts, targets, base, cross, clip, center, group_freq, thresholds, scale,
-                                   close_reg)
+                                   close_reg, vol)
+        if vol is not None:
+            report.append((name, "وسيط التقلّب الماضي (EWMA)", f"{np.median(vol):.5f}",
+                           f"صفوف بتقلّب بديل (إغلاق غير قابل للفكّ): {n_fallback}"))
         n = len(next(iter(new_y.values())))
         keep = np.ones(n, dtype=bool)
         if "group_size" in info:
@@ -213,7 +282,9 @@ def retarget_splits(train_split, val_split, test_split, mode="return", targets=N
             yc, yr = new_y[f"y_{t}_class"][keep], new_y[f"y_{t}_reg"][keep]
             report.append((name, f"{t}: نسبة الفئة +1", f"{np.mean(yc > 0):.3f}",
                            f"reg: متوسط {np.mean(yr):+.4f} | انحراف {np.std(yr):.4f}"))
-        results.append(_rebuild(parts, new_y, keep, mode, scale, info["scales"], stamps))
+        results.append(_rebuild(parts, new_y, keep, mode, scale, info["scales"], stamps,
+                                arrays=None if vol is None else {"target_vol": vol.astype("float32")},
+                                drop=("price_norm_meta",) if base == "volret" else ()))
 
     if verbose:
         print(f"🎯 وضع الهدف: {mode!r} — الأهداف: {targets} — قصّ الانحدار ±{clip:g} × مقياس {scale:g}"

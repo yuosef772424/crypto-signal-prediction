@@ -1,6 +1,6 @@
 """
 PURPOSE:  The data schema names shared by data, workflow, discovery, cross_asset and tools: the last_candles column order (LAST_COLUMNS, TS_COL, LAST_COLUMN_INDEX), its dtype, the price target columns and the target-mode names.
-TAGS:     CLIP_ABS, LAST_COLUMNS, TS_COL, LAST_COLUMN_INDEX, LAST_DTYPE, TARGET_COLUMNS, DIRECTION_TARGET, RANGE_TARGETS, TARGET_MODES, NO_RELATIVE_BASES, ENTRY_CLOSE_REGS, last_candles, schema, column order
+TAGS:     CLIP_ABS, VOL_UNIT_MODES, VOLRET_LAMBDA, VOLRET_FLOOR, LAST_COLUMNS, TS_COL, LAST_COLUMN_INDEX, LAST_DTYPE, TARGET_COLUMNS, DIRECTION_TARGET, RANGE_TARGETS, TARGET_MODES, NO_RELATIVE_BASES, ENTRY_CLOSE_REGS, last_candles, schema, column order
 PITFALLS: LAST_COLUMNS is the physical column order of every saved dataset's last_candles array: reordering or inserting breaks existing datasets, checkpoints and every positional index, so only APPEND (and then update the "(N, 7)" docs). It is a tuple (immutable); `.index(name)` is the way to get a position. LAST_COLUMN_INDEX is a read-only name -> index mapping (cross_asset's old LC dict). TARGET_MODES lists the base modes of workflow.retarget_splits; "+relative" may be appended to every base not in NO_RELATIVE_BASES, and the alias "relative" means "return+relative".
 """
 from types import MappingProxyType
@@ -31,7 +31,15 @@ DIRECTION_TARGET = 'close'
 RANGE_TARGETS = ('low', 'high')
 
 #: أوضاع الهدف الأساسية في ``retarget_splits`` (+ اختيارياً "+relative"؛ و"relative" وحدها = "return+relative").
-TARGET_MODES = ("return", "return_close", "scaled", "magnitude", "volnorm", "entry_range")
+TARGET_MODES = ("return", "return_close", "scaled", "magnitude", "volnorm", "entry_range", "volret")
+
+#: أوضاع هدفها بوحدة التقلّب (z = عائد ÷ تقلّب): |z| مقياس «قوة الحركة بالنسبة لتقلّبها» (curriculum_snr) وبها تُحوَّل كلفة الصفقة.
+#: volnorm = عائد ÷ (IQR نافذة الإغلاق ÷ آخر إغلاق) من base_params؛ volret = log(fut/last) ÷ EWMA std لعوائد الإغلاق الماضية داخل النافذة (يعمل على أي مجموعة بيانات).
+VOL_UNIT_MODES = ("volnorm", "volret")
+
+#: وضع volret: معامل EWMA (RiskMetrics، العمر 0 = أحدث عائد) وأرضية التقلّب (لا قسمة على صفر). ثابتان في الكود لا إعداد: الإعداد الوحيد هو TargetSettings.clip.
+VOLRET_LAMBDA = 0.94
+VOLRET_FLOOR = 1e-4
 
 #: أوضاع لا تقبل لاحقة "+relative" (الوسيط المقطعي لا يُطبَّق على موقع الإغلاق).
 NO_RELATIVE_BASES = ("entry_range",)

@@ -67,6 +67,7 @@ class DatasetInfo:
     model_tf: str             # the base timeframe (the first of model_tfs): targets, last_candles and the grid come from it
     model_tfs: tuple          # timeframes fed to the model; one = the old single-array model, more = one encoder branch each
     reg_target_scale: float   # y_*_reg = return x this (100 in 1h_s8); old files without the key = 1.0
+    close_index: _t.Optional[int] = None   # position of 'close' among the model's features (None = not a model input): target_mode 'volret' decodes the window's past closes from this channel
 
 
 @_dc.dataclass(frozen=True)
@@ -194,7 +195,9 @@ def apply_dataset_config(settings, dataset, kit):
           f"{dataset['window_sizes'][model_tf] if len(model_tfs) == 1 else {tf: dataset['window_sizes'][tf] for tf in model_tfs}}"
           f" — الأفق: {CONFIG['forecast_horizon']} — stride: {CONFIG['stride']}"
           f" — تطبيع الأسعار: {CONFIG['price_norm_mode']}")
-    return DatasetInfo(model_tf=model_tf, model_tfs=tuple(model_tfs), reg_target_scale=reg_target_scale)
+    _fo = list(dataset.get("feature_order", ()))
+    return DatasetInfo(model_tf=model_tf, model_tfs=tuple(model_tfs), reg_target_scale=reg_target_scale,
+                       close_index=_fo.index("close") if "close" in _fo else None)
 
 
 def make_splits(settings, dataset, info, kit):
@@ -241,7 +244,8 @@ def retarget(settings, train, val, test, info):
     t = settings.target
     if t.target_mode:
         train, val, test = retarget_splits(train, val, test, mode=t.target_mode, reg_target_scale=info.reg_target_scale,
-                                           close_reg=t.entry_close_reg, group_freq=t.group_freq, clip=t.clip)
+                                           close_reg=t.entry_close_reg, group_freq=t.group_freq, clip=t.clip,
+                                           base_tf=info.model_tf, close_index=info.close_index)
     elif _split_parts(train)[0][1].get("target_mode") not in (None, "return"):
         # عودة إلى None بعد تجربة وضع آخر في نفس الجلسة: نعيد أهداف خط الأنابيب ('return')
         train, val, test = retarget_splits(train, val, test, mode="return", reg_target_scale=info.reg_target_scale,

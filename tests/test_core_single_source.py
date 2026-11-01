@@ -47,8 +47,9 @@ class SharedNamespacePointsAtCoreTests(unittest.TestCase):
 
     def test_evaluate_trained_model_choices_derive_from_core_and_equal_the_old_list(self):
         import evaluate_trained_model as etm
-        old = ("return", "return_close", "scaled", "magnitude", "volnorm", "relative", "return+relative",
-               "return_close+relative", "scaled+relative", "magnitude+relative", "volnorm+relative", "entry_range")
+        old = ("return", "return_close", "scaled", "magnitude", "volnorm", "volret", "relative", "return+relative",
+               "return_close+relative", "scaled+relative", "magnitude+relative", "volnorm+relative", "volret+relative",
+               "entry_range")                                  # the old list + the registered 'volret' (E-tgt-003)
         self.assertEqual(etm.TARGET_MODE_CHOICES, old)
         self.assertEqual(etm.ENTRY_CLOSE_REG_CHOICES, ("abs_return", "range_pos"))
 
