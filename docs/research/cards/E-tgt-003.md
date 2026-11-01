@@ -61,8 +61,9 @@ def arm(name, seed, lam_u=0.1):
         loss["sample_weighting"] = "curriculum_random"                          # the control: same sizes, random order
     if name == "S5":
         loss["sample_weighting"] = "jump_downweight"                            # k = 6 vol units, weight 0.3, never dropped
-    # S6: model.config_overrides {"mu_skip": "unc_gated"} -- REQUIRES the mu_skip feat commit, NOT in this branch
+    model = {"config_overrides": {"mu_skip": "unc_gated"}} if name == "S6" else {}   # S6: the gated skip residual on mu (vs the same arm without it)
     return RunSettings().updated({
+        "model": model,
         "target": {"suspended_targets": (), "target_mode": "volret", "clip": 4.0},
         "train": {"seed": seed, "run_dir": f"/content/drive/MyDrive/training_runs/E-tgt-003_{name}_s{seed}",
                   "early_stopping_monitor": "val_close_reg_ic", "early_stopping_mode": "max", "loss": loss}})
@@ -116,8 +117,11 @@ the same metrics excluding samples with |future return|/vol > 6 (not built into 
 - ema_norm changes every head's gradient share relative to the kendall default: S0 already uses it, so S0 is NOT the E-tgt-002 arm A/B.
 
 ## Not built in the branch that carries this card (arms that cannot run yet)
-S2 (tcp confidence head), S6 (uncertainty-gated mu skip) and the event input features of S5 are not implemented here; their arms stay
-pre-registered but are blocked until their feat commits land. The dedicated Gaussian / Student-t regression heads were not built either:
+S2 (tcp confidence head) and the event input features of S5 are not implemented here; their arms stay pre-registered but are blocked until
+their feat commits land. S6 (`mu_skip="unc_gated"`) IS built: its comparison is S6 vs the SAME arm without it, same seeds (it is judged on val IC,
+std(mu)/std(y), coverage, and the distribution of the gate `unc_gate_model(model)` and its correlation with |error|; the gate reads
+stop_gradient(epistemic), so it cannot push epistemic). S1 is additionally judged on median sigma/|y| and the coverage of mu +- 1.645 sigma
+BEFORE and AFTER the post-hoc `sigma_scale` calibrator (`evaluation.calibrators.SIGMA_CALIBRATORS`, fitted on the calibration split only). The dedicated Gaussian / Student-t regression heads were not built either:
 S1 uses the NIG likelihood with the beta-NLL term (`head_terms[...]["beta_nll"]`), whose predictive distribution is a Student-t.
 Evaluation reporting of the confidence quality, of every metric with and without jump samples, and of the post-hoc sigma-scale calibrator is
 not wired into `evaluate_heads` yet (the pure metric functions exist in `stats.metrics`).
