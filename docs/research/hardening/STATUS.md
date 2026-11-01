@@ -1,6 +1,6 @@
 # Hardening — STATUS (handoff for a fresh session)
 
-Updated 2026-10-31. A new session starts here: read CLAUDE.md + this file only, then open other files via MAP.md and line ranges.
+Updated 2026-11-01. A new session starts here: read CLAUDE.md + this file only, then open other files via MAP.md and line ranges.
 Plan of record: `audit_2026-10-31.md` (8 root-cause classes C1-C8, PR sequence §5). Reply to the owner in Arabic.
 
 ## Done
@@ -15,12 +15,14 @@ Guards now in CI (all inside `python tools/check_deps.py`): pattern ratchet (cou
 hlc-target-tuple 27, config-get-default 140, target-mode-branch 51, seed-literal 30, metric-def-outside-stats 19, per-asset loop 1 (false positive).
 Last full local suite: 963 passed (before PR4); CI green on batch 1 head and on PR5 head.
 
+| 3 | #58 (same branch) | PR10 `stats/metrics.py` (one impl per metric, explicit NaN/tie policy; 14 consumers migrated byte-identical, ratchet metric-def 19 -> 12; `evaluate_heads` owner policy; trading metrics QSS/coverage/Winkler/profit factor/net Sharpe/threshold_trades); E-tgt-002 code (HEAD_LOSS_TERMS ic_weight/var_weight/huber via `train.loss.head_terms`, `val_<head>_ic`, `TargetSettings.clip`, SAMPLE_WEIGHTINGS abs_target_clip) + card; PR11 PredictionTable (`core/prediction_schema.py`, `stats/prediction_table.py`, opt-in `prediction_table=` in evaluation); PR12 `label_end` on splits, `SplitPlan` (data/split_plan.py, golden `tests/golden_split_arrays.json`), opt-in calibration split (`data.calibration_split={"source":"train_tail"|"val_head","share":..}` + `evaluation.calibration_source="calibration"`, purity tests), `trainer/kfold.py` removed (unused, coin blocks not periods) | open; CI green up to f112394 |
+
 ## Next (audit §5)
-1. PR10 `stats/metrics.py` — one implementation per metric (rank-IC x5, auc x2), migrate one `refactor` commit per consumer (C7; shrinks metric-def ratchet). Add QSS / quantile coverage / net Sharpe with turnover here (suggested by the cryptoformer digest).
-2. PR11 `PredictionTable` schema + writer/validator (`prediction_made_at`, `label_available_at`, `train_end`, fold, identity) (C5).
-3. PR12 `label_end` on samples + `SplitPlan` over data/split.py; a real CALIBRATION split carved with embargo (today `calibration_source="calibration"` raises NotImplementedError); purity test; remove/rebuild `trainer/kfold.py` (ignores `embargo`) (C6).
-4. PR13 `TargetCodec` registry (C4; shrinks target-mode-branch). PR14 optional seams (sampler, callbacks).
-5. config-get-default (140) is untouched: candidate for a PR after PR12.
+1. E-tgt-002: owner runs 12 Colab runs (arms A-D x seeds 0-2; snippet in the card / chat), then evaluate per the card.
+2. PR13 `TargetCodec` registry (C4; shrinks target-mode-branch 51). PR14 optional seams (sampler, callbacks).
+3. config-get-default (140): candidate PR after PR13.
+Leftovers: main.ipynb still calls `make_splits` (raises if calibration_split is set: switch to `make_splits_with_calibration`); `collect_signals`/`export_signals` not adapters over PredictionTable; raw `'1d'` in data/custom.py, live.py, pipeline.py; `tools/natr_range.py` metric defs blocked by the sealed E-natr-004-confirm sha (owner decision to re-seal); per-timestamp IC loss needs timestamps in batches; selection IC is Pearson (rank-IC needs epoch-end computation).
+
 Owner metric policy (2026-10-31, sent to the PR10 builder): direction/sign accuracy is computed ONLY for the close head (if present);
 high/low (and close) are judged by rank-IC + closeness to truth (MAE/RMSE + skill score vs a naive no-change baseline) + interval
 coverage (share of true targets inside the predicted [low, high] / quantile interval, reported with mean width, Winkler score).
