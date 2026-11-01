@@ -1,7 +1,7 @@
 """
 PURPOSE:  Time-based train/val/test split with an embargo gap: global_time (default) or per_asset, holdout, leak-free and rolling splits.
-TAGS:     split, split_data, embargo, holdout, split_dates, global_time, per_asset, rolling_splits, build_leak_free_split, compute_global_cutoff, split_role, stamp_split_roles
-PITFALLS: Every split is stamped with its role (additive key `split_role`: train/val/test, holdout for split_holdout; core/roles.py; `test` as {asset: split} is stamped per member); there is no `calibration` split yet (val is still selection AND calibration). per_asset leaks when coins' histories differ in length; global_time is the default. The embargo is a time gap covering the largest window plus the horizon. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+TAGS:     split, split_data, embargo, holdout, split_dates, global_time, per_asset, rolling_splits, build_leak_free_split, compute_global_cutoff, split_role, stamp_split_roles, label_end, stamp_label_end, label_end_values
+PITFALLS: Every split also carries `label_end` (additive int64-ns array per sample = timestamp + forecast_horizon x base-tf bar, the last bar its label reads; stamp_label_end, one producer path `_finish_splits`; the arrays of a split are unchanged, pinned by tests/golden_split_arrays.json). Every split is stamped with its role (additive key `split_role`: train/val/test, holdout for split_holdout; core/roles.py; `test` as {asset: split} is stamped per member); there is no `calibration` split yet (val is still selection AND calibration). per_asset leaks when coins' histories differ in length; global_time is the default. The embargo is a time gap covering the largest window plus the horizon. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
 
 ## 16) التقسيم الزمني train/val/test (`split.py` سابقاً)
 """
@@ -49,6 +49,7 @@ Y_PREFIX = 'y_'
 SPLIT_MODES = ('global_time', 'per_asset')
 
 from core import roles as _split_roles   # أدوار الأقسام (core/roles.py: train/calibration/val/test/holdout)
+from core.schema import LABEL_END_KEY as _LABEL_END_KEY   # مفتاح label_end الإضافي على كل قسم
 
 
 def stamp_split_roles(train: dict, val: dict, test: dict):
@@ -57,6 +58,35 @@ def stamp_split_roles(train: dict, val: dict, test: dict):
     لا قسم ``calibration`` بعد: ``val`` ما زال المعايرة والاختيار معاً (بند التدقيق C6)."""
     return (_split_roles.stamp_role(train, _split_roles.TRAIN), _split_roles.stamp_role(val, _split_roles.VAL),
             _split_roles.stamp_role(test, _split_roles.TEST))
+
+
+def label_end_values(data: Dict, last_candles, config: Optional[dict] = None) -> np.ndarray:
+    """``label_end`` لكل صف من ``last_candles`` (int64 نانوثانية UTC): طابع آخر شمعة تقرؤها التسمية = ``timestamp + forecast_horizon ×
+    مدة الفريم الأساسي``. هذا ما يفحصه ``windows.py`` بالضبط (``base_index[end + horizon] - base_index[end] == horizon × bar``)؛
+    القيم من ``data['forecast_horizon']`` / ``data['base_tf']`` أولاً ثم CONFIG (كما في embargo_candles)."""
+    config = CONFIG if config is None else config
+    horizon = int(data.get('forecast_horizon', config['forecast_horizon']))
+    bar_ns = int(_tf_to_timedelta(data.get('base_tf', config['base_tf'])).value)
+    return np.asarray(last_candles)[:, TS_COL].astype('int64') + horizon * bar_ns
+
+
+def stamp_label_end(data: Dict, split_or_assets: Dict, config: Optional[dict] = None) -> Dict:
+    """نسخة سطحية من القسم (أو من كل عضو في قاموس عملات) بمفتاح ``label_end`` المضاف (:func:`label_end_values`)؛ مصفوفات القسم لا تُنسخ
+    ولا تُمسّ. قسم يحمل المفتاح مسبقاً يرفع خطأ (لا تغيير صامت لما حُسب)."""
+    if 'y' not in split_or_assets and all(isinstance(v, dict) for v in split_or_assets.values()):
+        return type(split_or_assets)((k, stamp_label_end(data, v, config)) for k, v in split_or_assets.items())
+    if _LABEL_END_KEY in split_or_assets:
+        raise ValueError(f"القسم يحمل '{_LABEL_END_KEY}' مسبقاً؛ لا يُعاد ختمه")
+    out = dict(split_or_assets)
+    out[_LABEL_END_KEY] = label_end_values(data, split_or_assets['last_candles'], config)
+    return out
+
+
+def _finish_splits(data: Dict, train: Dict, val: Dict, test: Dict, config: Optional[dict] = None):
+    """خاتمة كل مُنتِج للأقسام: تقييس السعر على train (finish_price_norm) ← ``label_end`` ← ختم الأدوار. الترتيب والمفاتيح في مكان واحد."""
+    train, val, test = finish_price_norm(data, train, val, test)
+    train, val, test = (stamp_label_end(data, sp, config) for sp in (train, val, test))
+    return stamp_split_roles(train, val, test)
 
 
 def embargo_candles(data: Dict, config: Optional[dict] = None) -> int:
@@ -597,7 +627,7 @@ def split_data(
             else:
                 for asset_split in test.values():
                     add_y_prefix(asset_split)
-        return stamp_split_roles(*finish_price_norm(data, train, val, test))   # logret_*: تقييس على train وحده؛ غيره: بلا مساس
+        return _finish_splits(data, train, val, test, config)   # logret_*: تقييس على train وحده؛ غيره: بلا مساس
 
     timeframes: List[str] = data['timeframes']
     targets: List[str] = data['targets']
@@ -673,7 +703,7 @@ def split_data(
             for asset_split in test.values():
                 add_y_prefix(asset_split)
 
-    return stamp_split_roles(*finish_price_norm(data, train, val, test))
+    return _finish_splits(data, train, val, test, config)
 
 
 def split_holdout(data: Dict,
@@ -705,10 +735,11 @@ def split_holdout(data: Dict,
         if prefix_y:
             for sp in out.values():
                 add_y_prefix(sp)
-        return _split_roles.stamp_role(stamp_price_norm(data, out, price_norm_meta), _split_roles.HOLDOUT)
+        return _split_roles.stamp_role(stamp_label_end(data, stamp_price_norm(data, out, price_norm_meta), config), _split_roles.HOLDOUT)
     out = _take(data, mask, timeframes, targets)
-    return _split_roles.stamp_role(stamp_price_norm(data, add_y_prefix(out) if prefix_y else out, price_norm_meta),
-                                   _split_roles.HOLDOUT)
+    return _split_roles.stamp_role(
+        stamp_label_end(data, stamp_price_norm(data, add_y_prefix(out) if prefix_y else out, price_norm_meta), config),
+        _split_roles.HOLDOUT)
 
 
 def build_leak_free_split(data: Dict,
@@ -904,8 +935,7 @@ def rolling_splits(data: Dict, test_span=None, val_span=None,
             else:
                 for asset_split in test.values():
                     add_y_prefix(asset_split)
-        train, val, test = finish_price_norm(data, train, val, test)   # لكل نافذة إحصاءات train نافذتها وحدها
-        train, val, test = stamp_split_roles(train, val, test)
+        train, val, test = _finish_splits(data, train, val, test, config)   # لكل نافذة إحصاءات train نافذتها وحدها
 
         if verbose:
             print(f"🔁 نافذة {i}/{len(schedule)}: "

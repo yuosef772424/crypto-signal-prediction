@@ -181,6 +181,7 @@
 - bundle: tools/colab_runner
 - buy and hold: edge_discovery/14_holdout
 - buy and hold benchmark: edge_discovery/16_h07_oos
+- byte identical splits: tests/split_golden
 - calibration: tools/natr_range
 - calibration report: natr_range/run_natr_range
 - calibration role: core/roles
@@ -788,6 +789,8 @@
 - label key: core/heads
 - label-shift null: gate_features/run_gate001
 - label_available_at: core/prediction_schema, stats/prediction_table
+- label_end: data/split
+- label_end_values: data/split
 - label_key: core/heads
 - label_smoothing: workflow/training_config
 - lag scan: evaluation/integrity
@@ -1310,7 +1313,7 @@
 - roleerror: core/roles
 - roles: core/roles
 - rolling recalibration: natr_range/run_natr_confirm_forward, natr_range/run_natr_rolling
-- rolling_splits: data/split, signal_eval/integration
+- rolling_splits: data/split, signal_eval/integration, tests/split_golden
 - rotation portfolio: strategy_discovery/rotation
 - round-trip: evaluation/verify, tools/nb_cells
 - rqa: edge_discovery/27_repr_info
@@ -1450,15 +1453,19 @@
 - spill: data/disk_backed
 - split: data/split
 - split conformal: natr_range/run_natr_calibrate
+- split fingerprint: tests/split_golden
+- split golden: tests/split_golden
 - split order: workflow/verification
 - split role: core/roles, evaluation/calibrators
 - split stamps: workflow/splits
 - split-dates: tools/evaluate_trained_model
 - split['y']: signal_eval/integration
 - split_asset_names: workflow/market_neutral
-- split_data: data/__init__, data/split
+- split_data: data/__init__, data/split, tests/split_golden
 - split_dates: data/defaults, data/split
+- split_holdout: tests/split_golden
 - split_role: core/prediction_schema, data/split, stats/prediction_table
+- splitplan oracle: tests/split_golden
 - spot: tools/fetch_crypto_dataset
 - squeeze breakout: strategy_discovery/grid
 - stablecoin: edge_discovery/20_onchain
@@ -1467,6 +1474,7 @@
 - stage-2 logistic: edge_discovery/30_envelope_direction
 - stale bars: natr_range/run_natr_calibrate, tools/stale_bars_audit, tools/stale_bars_colab_job, tools/trim_dead_tails
 - stale_bars: tools/stale_bars_audit
+- stamp_label_end: data/split
 - stamp_price_norm: data/normalizers
 - stamp_role: core/roles
 - stamp_split_roles: data/split
@@ -1549,7 +1557,7 @@
 - test_all_assets_v4: evaluation/__init__, evaluation/all_assets
 - test_dict: evaluation/all_assets, workflow/chicks_bridge
 - test_step: trainer/trainer
-- tests: tests/run_fixture
+- tests: tests/run_fixture, tests/split_golden
 - tests/test_cross_asset: cross_asset/selftest
 - tf.data: workflow/batches
 - tf.keras.model subclass: trainer/trainer

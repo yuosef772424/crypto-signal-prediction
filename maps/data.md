@@ -395,30 +395,32 @@
   - `def resample_timeframes(df: pd.DataFrame, target_tfs: Optional[List[str]]=None, base_tf: Optional[str]=None, with_features: bool=True, config: Optional[dict]=None) -> Dict[str, pd.DataFrame]` L262
   - `def make_resample_fn(config: Optional[dict]=None)` L298
 
-### `data/split.py` (916 lines)
+### `data/split.py` (946 lines)
 - PURPOSE: Time-based train/val/test split with an embargo gap: global_time (default) or per_asset, holdout, leak-free and rolling splits.
-- TAGS: split, split_data, embargo, holdout, split_dates, global_time, per_asset, rolling_splits, build_leak_free_split, compute_global_cutoff, split_role, stamp_split_roles
-- PITFALLS: Every split is stamped with its role (additive key `split_role`: train/val/test, holdout for split_holdout; core/roles.py; `test` as {asset: split} is stamped per member); there is no `calibration` split yet (val is still selection AND calibration). per_asset leaks when coins' histories differ in length; global_time is the default. The embargo is a time gap covering the largest window plus the ho…
+- TAGS: split, split_data, embargo, holdout, split_dates, global_time, per_asset, rolling_splits, build_leak_free_split, compute_global_cutoff, split_role, stamp_split_roles, label_end, stamp_label_end, label_end_values
+- PITFALLS: Every split also carries `label_end` (additive int64-ns array per sample = timestamp + forecast_horizon x base-tf bar, the last bar its label reads; stamp_label_end, one producer path `_finish_splits`; the arrays of a split are unchanged, pinned by tests/golden_split_arrays.json). Every split is stamped with its role (additive key `split_role`: train/val/test, holdout for split_holdout; core/role…
 - DEPENDS: core
 - USES: disk_backed, normalizers, runtime, windows
 - USED BY: presets, selftests, workflow/market_neutral
 - API:
-  - `def stamp_split_roles(train: dict, val: dict, test: dict)` L54
-  - `def embargo_candles(data: Dict, config: Optional[dict]=None) -> int` L62
-  - `def embargo_size(data: Dict, config: Optional[dict]=None) -> int` L90
-  - `def embargo_duration(data: Dict, config: Optional[dict]=None) -> pd.Timedelta` L102
-  - `def resolve_holdout_start(config: Optional[dict]=None) -> Optional[pd.Timestamp]` L109
-  - `def sample_timestamps(split_or_data: Dict) -> pd.DatetimeIndex` L135
-  - `def add_y_prefix(split: dict) -> dict` L189
-  - `def strip_y_prefix(y: dict) -> dict` L200
-  - `def compute_global_cutoff(data: Dict, pct: float) -> pd.Timestamp` L340
-  - `def extract_test_dates(test: Dict) -> pd.DatetimeIndex` L378
-  - `def resolve_split_dates(data: Dict, train_pct: float, val_pct: float, config: Optional[dict]=None, cutoff_method: Optional[str]=None) -> Tuple[pd.Timestamp, pd.Timestamp]` L391
-  - `def split_data(data: Dict, train_pct: Optional[float]=None, val_pct: Optional[float]=None, keep_asset_test_separate: Optional[bool]=None, prefix_y: bool=True, mode: Optional[str]=None, config: Optional[dict]=None)…` L555
-  - `def split_holdout(data: Dict, keep_asset_test_separate: Optional[bool]=None, prefix_y: bool=True, config: Optional[dict]=None, price_norm_meta: Optional[dict]=None)` L679
-  - `def build_leak_free_split(data: Dict, train_pct: Optional[float]=None, val_pct: Optional[float]=None, keep_asset_test_separate: Optional[bool]=None, config: Optional[dict]=None) -> Tuple[dict, dict, dict]` L714
-  - `def rolling_split_schedule(data: Dict, test_span=None, val_span=None, train_span=_UNSET, initial_train_span=_UNSET, step=None, max_windows: Optional[int]=None, config: Optional[dict]=None) -> List[Dict[str, pd.Timestamp]]` L749
-  - `def rolling_splits(data: Dict, test_span=None, val_span=None, train_span=_UNSET, initial_train_span=_UNSET, step=None, max_windows: Optional[int]=None, keep_asset_test_separate: Optional[bool]=None, prefix_y: bool=Tru…` L842
+  - `def stamp_split_roles(train: dict, val: dict, test: dict)` L55
+  - `def label_end_values(data: Dict, last_candles, config: Optional[dict]=None) -> np.ndarray` L63
+  - `def stamp_label_end(data: Dict, split_or_assets: Dict, config: Optional[dict]=None) -> Dict` L73
+  - `def embargo_candles(data: Dict, config: Optional[dict]=None) -> int` L92
+  - `def embargo_size(data: Dict, config: Optional[dict]=None) -> int` L120
+  - `def embargo_duration(data: Dict, config: Optional[dict]=None) -> pd.Timedelta` L132
+  - `def resolve_holdout_start(config: Optional[dict]=None) -> Optional[pd.Timestamp]` L139
+  - `def sample_timestamps(split_or_data: Dict) -> pd.DatetimeIndex` L165
+  - `def add_y_prefix(split: dict) -> dict` L219
+  - `def strip_y_prefix(y: dict) -> dict` L230
+  - `def compute_global_cutoff(data: Dict, pct: float) -> pd.Timestamp` L370
+  - `def extract_test_dates(test: Dict) -> pd.DatetimeIndex` L408
+  - `def resolve_split_dates(data: Dict, train_pct: float, val_pct: float, config: Optional[dict]=None, cutoff_method: Optional[str]=None) -> Tuple[pd.Timestamp, pd.Timestamp]` L421
+  - `def split_data(data: Dict, train_pct: Optional[float]=None, val_pct: Optional[float]=None, keep_asset_test_separate: Optional[bool]=None, prefix_y: bool=True, mode: Optional[str]=None, config: Optional[dict]=None)…` L585
+  - `def split_holdout(data: Dict, keep_asset_test_separate: Optional[bool]=None, prefix_y: bool=True, config: Optional[dict]=None, price_norm_meta: Optional[dict]=None)` L709
+  - `def build_leak_free_split(data: Dict, train_pct: Optional[float]=None, val_pct: Optional[float]=None, keep_asset_test_separate: Optional[bool]=None, config: Optional[dict]=None) -> Tuple[dict, dict, dict]` L745
+  - `def rolling_split_schedule(data: Dict, test_span=None, val_span=None, train_span=_UNSET, initial_train_span=_UNSET, step=None, max_windows: Optional[int]=None, config: Optional[dict]=None) -> List[Dict[str, pd.Timestamp]]` L780
+  - `def rolling_splits(data: Dict, test_span=None, val_span=None, train_span=_UNSET, initial_train_span=_UNSET, step=None, max_windows: Optional[int]=None, keep_asset_test_separate: Optional[bool]=None, prefix_y: bool=Tru…` L873
 
 ### `data/storage.py` (326 lines)
 - PURPOSE: Save/load the prepared dataset to/from mounted Drive: pkl.gz or npy_dir (memmap) formats, latest + timestamped copies.

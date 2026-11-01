@@ -50,3 +50,7 @@ PRICE_NORM_CHANNELS = ('open', 'high', 'low', 'close')
 PRICE_NORM_CLIP = 5.0
 PRICE_NORM_SIGMA_N = 14
 PRICE_NORM_SIGMA_FLOOR = 1e-4
+
+#: مفتاح إضافي على كل قسم من أقسام التقسيم (data/split.py): ``label_end`` = لكل عيّنة (int64 نانوثانية UTC) طابع آخر شمعة تقرؤها تسميتها
+#: = ``timestamp + forecast_horizon × مدة الفريم الأساسي``. إضافي فقط: مصفوفات القسم لا تتغيّر.
+LABEL_END_KEY = 'label_end'
