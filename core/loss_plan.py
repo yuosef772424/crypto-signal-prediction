@@ -33,7 +33,7 @@ def _check_balancer(name, fn, meta):
     out = fn(None)
     if not isinstance(out, Mapping):
         return [f"must return a mapping of trainer `loss` keys, got {type(out).__name__}"]
-    bad = sorted(set(out) - {"use_uncertainty_weighting", "uncertainty_weighting_exclude_task_types"})
+    bad = sorted(set(out) - {"use_uncertainty_weighting", "uncertainty_weighting_exclude_task_types", "loss_normalization"})
     return [f"returns unknown trainer loss key(s) {bad}"] if bad else []
 
 
@@ -46,6 +46,12 @@ LOSS_BALANCERS.register("static", lambda heads: {"use_uncertainty_weighting": Fa
 LOSS_BALANCERS.register("kendall", lambda heads: {"use_uncertainty_weighting": True}, version=1,
                         description="Kendall et al. 2018 learned homoscedastic weights on the classification heads; evidential heads "
                                     "keep their static weight (trainer default exclude list)")
+
+
+LOSS_BALANCERS.register("ema_norm", lambda heads: {"use_uncertainty_weighting": False, "loss_normalization": "ema"}, version=1,
+                        description="each head's loss is divided by its own EMA of |loss| (stop-gradient, beta 0.98) and then multiplied by the "
+                                    "FIXED loss_weight: heads of different scales (NIG nll vs BCE vs Huber) get comparable gradient shares "
+                                    "without a learned weight (no Kendall on a variance head)")
 
 
 def _finite_number(v):

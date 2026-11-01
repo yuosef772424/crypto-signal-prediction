@@ -97,7 +97,7 @@ def plan(**kw):
 
 class Vocabulary(unittest.TestCase):
     def test_balancers_are_what_the_trainer_implements_today(self):
-        self.assertEqual(LOSS_BALANCERS.names(), ("static", "kendall"))
+        self.assertEqual(LOSS_BALANCERS.names(), ("static", "kendall", "ema_norm"))
         self.assertEqual(LOSS_BALANCERS.get("static")(None), {"use_uncertainty_weighting": False})
         self.assertEqual(LOSS_BALANCERS.get("kendall")(None), {"use_uncertainty_weighting": True})
         self.assertEqual(LOSS_BALANCERS.check_all(), [])

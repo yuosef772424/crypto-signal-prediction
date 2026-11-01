@@ -65,6 +65,14 @@ class GenericTrainer(tf.keras.Model):
             UncertaintyWeightedLoss(self.kendall_task_names) if self.kendall_task_names else None
         )
 
+        # ── loss_normalization='ema' (LOSS_BALANCERS 'ema_norm'): كل خسارة رأس ÷ EMA لقيمتها المطلقة (stop-gradient) ثم × وزنها الثابت ──
+        # غير موجود/'none' = لا متغيّرات ولا قسمة = السلوك القديم تماماً. المتغيّرات داخل checkpoint فيستأنف التطبيع صحيحاً.
+        _loss_cfg = config["loss"]
+        self.loss_normalization = _loss_cfg["loss_normalization"] if "loss_normalization" in _loss_cfg else "none"
+        self.loss_norm_beta = float(_loss_cfg["loss_norm_beta"]) if "loss_norm_beta" in _loss_cfg else 0.98
+        self.loss_ema = ({t: tf.Variable(0.0, trainable=False, dtype=tf.float32, name=f"loss_ema_{t}") for t in self.target_names}
+                          if self.loss_normalization == "ema" else {})
+
         # ── قيود منطقية/فيزيائية اختيارية بين المخرجات ──
         self.constraints_cfg = config["loss"].get("constraints", [])
 
@@ -148,6 +156,13 @@ class GenericTrainer(tf.keras.Model):
             if training and flood is not None:
                 # Flooding: القيمة الأمامية تبقى ≥ b، والتدرّج يعكس اتجاهه تحت b (صعود بدل نزول)
                 raw_loss = tf.abs(raw_loss - float(flood)) + float(flood)
+            if self.loss_ema:
+                ema = self.loss_ema[t]
+                mag = tf.stop_gradient(tf.abs(raw_loss))
+                new = tf.where(ema > 0.0, self.loss_norm_beta * ema + (1.0 - self.loss_norm_beta) * mag, mag)
+                if training:
+                    ema.assign(new)
+                raw_loss = raw_loss / tf.maximum(tf.stop_gradient(new if training else tf.where(ema > 0.0, ema, mag)), 1e-8)
             w = self.loss_weights[t]
             per_target_losses[t] = raw_loss * w
             for k, v in stats.items():

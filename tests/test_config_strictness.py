@@ -363,7 +363,8 @@ class ValidatorIsTheOnePlace(unittest.TestCase):
         self.assertEqual(missing, [], "a TRAINER_DEFAULT_CONFIG key without a rule in _CONFIG_SCHEMA is an accepted-but-unchecked key")
 
     def test_every_rule_has_a_default(self):
-        """No rule names a key the defaults do not have, except the declared late-bound ones (class_baselines is added from val)."""
+        """No rule names a key the defaults do not have, except the declared late-bound ones (class_baselines is added from val; the OPTIONAL
+        loss keys of registered balancers/terms are absent from the defaults so the default config and its golden fingerprint stay unchanged)."""
         extra = []
 
         def walk(rules, defaults, path):
@@ -373,7 +374,8 @@ class ValidatorIsTheOnePlace(unittest.TestCase):
                 elif isinstance(r, dict) and isinstance(defaults[k], dict):
                     walk(r, defaults[k], f"{path}.{k}")
         walk(self.ns["_CONFIG_SCHEMA"], self.ns["TRAINER_DEFAULT_CONFIG"], "config")
-        self.assertEqual(sorted(extra), ["config.callbacks.class_baselines", "config.optimizer.lr_schedule.total_epochs"])
+        self.assertEqual(sorted(extra), ["config.callbacks.class_baselines", "config.loss.loss_norm_beta",
+                                       "config.loss.loss_normalization", "config.optimizer.lr_schedule.total_epochs"])
 
     def test_build_config_calls_validate_config_and_nothing_else_validates(self):
         calls = []

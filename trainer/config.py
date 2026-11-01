@@ -369,6 +369,8 @@ _CONFIG_SCHEMA = {
     "loss": {
         "use_uncertainty_weighting": _r_bool,
         "uncertainty_weighting_exclude_task_types": _r_any,
+        # optional keys (absent from the defaults = the old loss exactly): see GenericTrainer
+        "loss_normalization": _r_enum("none", "ema"), "loss_norm_beta": _r_real(gt=0.0, lt=1.0),
         "schedules": _r_any, "constraints": _r_any,
     },
     "optimizer": {
