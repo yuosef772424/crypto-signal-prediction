@@ -469,7 +469,7 @@
 - ema20: edge_discovery/24_pullback_maker
 - ema200 pullback: indicator_strategy/engine, tools/trade_engine
 - emawindow: trainer/system
-- embargo: data/split
+- embargo: data/split, data/split_plan
 - enable_ema_warmup: trainer/system
 - enabled_heads: data/heads
 - encoder: model/builder
@@ -591,6 +591,7 @@
 - fresh bars: strategy_discovery/oos, strategy_discovery/survivor_checks
 - from __future__: data/common
 - from __future__ annotations: signal_eval/common
+- from_dates: data/split_plan
 - from_target_configs: core/heads
 - frozen config: natr_range/run_natr_confirm_forward
 - frozen counts: tools/check_patterns
@@ -676,6 +677,7 @@
 - har-rv: h07_volsizing/01_volsizing
 - hardening: tools/check_patterns
 - hardening c5: stats/prediction_table
+- hardening c6: data/split_plan
 - hardening c7: stats/__init__
 - has_saved_state: trainer/checkpoints
 - hash ribbon: edge_discovery/20_onchain
@@ -818,7 +820,7 @@
 - leaderboard: discovery/scanner
 - leakage: tests/test_no_lookahead
 - leakage check: stats/prediction_table, workflow/permutation_control
-- leakage control: core/roles
+- leakage control: core/roles, data/split_plan
 - learning curve: gate_features/run_gate001
 - learning_curve: workflow/capacity
 - ledger: tools/experiment_registry, tools/h07_forward, tools/touched_ledger
@@ -1141,6 +1143,7 @@
 - pipeline package: data/_loader
 - pipeline_default_config: data/defaults
 - pkl.gz: data/storage
+- plan masks: data/split_plan
 - plan_model: workflow/run
 - plateau: strategy_discovery/robustness
 - platt: evaluation/calibrators
@@ -1283,6 +1286,7 @@
 - residual: model/decomposition
 - resolve_phase2_toggles: data/phase2
 - resolve_selection_metric: core/loss_plan
+- resolve_split_plan: data/split
 - resolve_targets: evaluation/targets
 - restore: tools/trim_dead_tails
 - restore best: trainer/best_tracker
@@ -1308,6 +1312,7 @@
 - robustness_agg: discovery/survey
 - role: core/heads
 - role check: evaluation/calibrators
+- role intervals: data/split_plan
 - role stamp: core/roles
 - role_of: core/roles
 - roleerror: core/roles
@@ -1456,6 +1461,7 @@
 - split fingerprint: tests/split_golden
 - split golden: tests/split_golden
 - split order: workflow/verification
+- split plan: data/split_plan
 - split role: core/roles, evaluation/calibrators
 - split stamps: workflow/splits
 - split-dates: tools/evaluate_trained_model
@@ -1465,6 +1471,7 @@
 - split_dates: data/defaults, data/split
 - split_holdout: tests/split_golden
 - split_role: core/prediction_schema, data/split, stats/prediction_table
+- splitplan: data/split, data/split_plan
 - splitplan oracle: tests/split_golden
 - spot: tools/fetch_crypto_dataset
 - squeeze breakout: strategy_discovery/grid

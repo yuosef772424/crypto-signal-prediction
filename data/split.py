@@ -1,6 +1,6 @@
 """
 PURPOSE:  Time-based train/val/test split with an embargo gap: global_time (default) or per_asset, holdout, leak-free and rolling splits.
-TAGS:     split, split_data, embargo, holdout, split_dates, global_time, per_asset, rolling_splits, build_leak_free_split, compute_global_cutoff, split_role, stamp_split_roles, label_end, stamp_label_end, label_end_values
+TAGS:     split, split_data, embargo, holdout, split_dates, global_time, per_asset, rolling_splits, build_leak_free_split, compute_global_cutoff, split_role, stamp_split_roles, label_end, stamp_label_end, label_end_values, SplitPlan, resolve_split_plan
 PITFALLS: Every split also carries `label_end` (additive int64-ns array per sample = timestamp + forecast_horizon x base-tf bar, the last bar its label reads; stamp_label_end, one producer path `_finish_splits`; the arrays of a split are unchanged, pinned by tests/golden_split_arrays.json). Every split is stamped with its role (additive key `split_role`: train/val/test, holdout for split_holdout; core/roles.py; `test` as {asset: split} is stamped per member); there is no `calibration` split yet (val is still selection AND calibration). per_asset leaks when coins' histories differ in length; global_time is the default. The embargo is a time gap covering the largest window plus the horizon. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
 
 ## 16) التقسيم الزمني train/val/test (`split.py` سابقاً)
@@ -531,23 +531,34 @@ def _take_per_asset(data, mask, timeframes, targets):
     return out, skipped
 
 
+def resolve_split_plan(data: Dict, train_pct: Optional[float] = None, val_pct: Optional[float] = None,
+                       config: Optional[dict] = None) -> 'SplitPlan':
+    """:class:`SplitPlan` (data/split_plan.py) الافتراضية للتقسيم ``global_time``: حدّا :func:`resolve_split_dates` وفجوة
+    :func:`embargo_duration` وبداية الـholdout المختوم. المرجع الوحيد للأقنعة: ``split_data`` تستعمله، وكل مستهلك (اختبار نقاء الأقسام،
+    قسم المعايرة) يطلبه من هنا بدل إعادة اشتقاق الحدود."""
+    config = CONFIG if config is None else config
+    train_pct = config['train_pct'] if train_pct is None else train_pct
+    val_pct = config['val_pct'] if val_pct is None else val_pct
+    train_end, val_end = resolve_split_dates(data, train_pct, val_pct, config)
+    gap = embargo_duration(data, config)
+    hs = resolve_holdout_start(config)
+    if hs is not None and hs <= val_end + gap:
+        raise ValueError(
+            f"❌ holdout_start={hs:%Y-%m-%d %H:%M} لا يقع بعد val_end + العزل ({(val_end + gap):%Y-%m-%d %H:%M}): "
+            f"الـholdout المختوم لا يجوز أن يتداخل مع val. قدّم split_dates أو أخّر holdout_start.")
+    return SplitPlan.from_dates(train_end, val_end, gap, holdout_start=hs)
+
+
 def _split_global_time(data, train_pct, val_pct, keep_asset_test_separate,
                        timeframes, targets, config):
     """تقسيم بحدود زمنية مطلقة مشتركة بين كل العملات."""
     ts = sample_timestamps(data)
-    train_end, val_end = resolve_split_dates(data, train_pct, val_pct, config)
-    gap = embargo_duration(data, config)
-
-    train_mask = ts <= train_end
-    val_mask = (ts > train_end + gap) & (ts <= val_end)
-    test_mask = ts > val_end + gap
-    hs = resolve_holdout_start(config)
-    if hs is not None:
-        if hs <= val_end + gap:
-            raise ValueError(
-                f"❌ holdout_start={hs:%Y-%m-%d %H:%M} لا يقع بعد val_end + العزل ({(val_end + gap):%Y-%m-%d %H:%M}): "
-                f"الـholdout المختوم لا يجوز أن يتداخل مع val. قدّم split_dates أو أخّر holdout_start.")
-        test_mask = test_mask & (ts < hs - gap)        # فجوة العزل نفسها قبل الـholdout
+    plan = resolve_split_plan(data, train_pct, val_pct, config)
+    train_end, val_end, gap, hs = plan.train_end, plan.val_end, plan.embargo, plan.holdout_start
+    # الأقنعة من الخطة: train ≤ train_end | val بعد train_end+عزل | test بعد val_end+عزل (وقبل holdout_start − عزل) — نفس المقارنات
+    # التي كانت هنا يدوياً (tests/golden_split_arrays.json)
+    masks = plan.masks(ts)
+    train_mask, val_mask, test_mask = masks['train'], masks['val'], masks['test']
 
     train = _take(data, train_mask, timeframes, targets)
     val = _take(data, val_mask, timeframes, targets)
@@ -903,9 +914,8 @@ def rolling_splits(data: Dict, test_span=None, val_span=None,
 
     out: List[Tuple[dict, dict, dict]] = []
     for i, w in enumerate(schedule, 1):
-        train_mask = np.asarray((ts > w['train_start']) & (ts <= w['train_end']))
-        val_mask = np.asarray((ts > w['train_end'] + gap) & (ts <= w['val_end']))
-        test_mask = np.asarray((ts > w['val_end'] + gap) & (ts <= w['test_end']))
+        masks = SplitPlan.from_dates(w['train_end'], w['val_end'], gap, train_start=w['train_start'], test_end=w['test_end']).masks(ts)
+        train_mask, val_mask, test_mask = (np.asarray(masks[r]) for r in ('train', 'val', 'test'))
 
         sizes = {'train': int(train_mask.sum()), 'val': int(val_mask.sum()),
                 'test': int(test_mask.sum())}

@@ -21,7 +21,7 @@ REPO_ROOT = PACKAGE_DIR.parent
 MODULES = (
     "common", "drive", "defaults", "runtime", "heads", "custom", "features", "normalize", "normalizers", "align", "windows",
     "diagnostics", "parallel", "sources", "market_context", "cross_sectional_features", "checkpoints", "disk_backed",
-    "pipeline", "cross_sectional_norm", "split", "binance_client", "funding_oi", "phase2", "live", "storage",
+    "pipeline", "cross_sectional_norm", "split_plan", "split", "binance_client", "funding_oi", "phase2", "live", "storage",
     "selftests", "presets",
 )
 

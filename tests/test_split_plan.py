@@ -3,6 +3,9 @@
     python -m pytest -q tests/test_split_plan.py
 
 Groups (added commit by commit):
+  * DefaultPlanTests       the default SplitPlan (data/split_plan.py) selects, byte for byte, the rows `split_data` / `rolling_splits` return
+                           (also pinned by golden_split_arrays.json, recorded before the plan existed); a plan whose gap is shorter than the
+                           embargo is refused;
   * LabelEndTests          every split (train / val / test, per-asset dict, holdout, rolling window) carries `label_end` = timestamp +
                            horizon bars, the time of the last bar the label reads (checked against the raw candles), and the split ARRAYS are
                            the ones recorded before `label_end` existed (tests/golden_split_arrays.json, tests/split_golden.py).
@@ -115,6 +118,65 @@ class LabelEndTests(unittest.TestCase):
         self.assertIs(out["X_1h"], bare["X_1h"])
         self.assertNotIn(LABEL_END_KEY, bare)
         self.assertEqual(roles.role_of(out), "train")
+
+
+class DefaultPlanTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.ns = pipeline()
+        cls.ds = build_dataset(cls.ns)
+        cls.cfg = dict(cls.ns["CONFIG"], split_dates=dict(sg.SPLIT_DATES))
+
+    def _rows_equal(self, split, mask):
+        """The split IS the dataset rows of ``mask``: every array of the split equals ``ds[array][mask]`` byte for byte."""
+        mask = np.asarray(mask)
+        for k in ("base_params", "last_candles", "X_1h"):
+            a, b = np.asarray(split[k]), np.asarray(self.ds[k])[mask]
+            self.assertTrue(a.dtype == b.dtype and a.shape == b.shape and a.tobytes() == b.tobytes(), k)
+        for t in self.ds["targets"]:
+            a, b = np.asarray(split["y"][f"y_{t}"] if f"y_{t}" in split["y"] else split["y"][t]), np.asarray(self.ds[f"y_{t}"])[mask]
+            self.assertEqual(a.tobytes(), b.tobytes(), t)
+
+    def test_default_plan_selects_the_rows_split_data_returns(self):
+        ns, ds = self.ns, self.ds
+        for cfg, label in ((self.cfg, "no holdout"), (dict(self.cfg, holdout_start=sg.HOLDOUT, open_holdout=True, min_split_samples=8), "holdout")):
+            with self.subTest(label):
+                plan = ns["resolve_split_plan"](ds, config=cfg)
+                ts = ns["sample_timestamps"](ds)
+                masks = plan.masks(ts)
+                self.assertEqual(list(masks), ["train", "val", "test"] + (["holdout"] if label == "holdout" else []))
+                tr, va, te = _quiet(ns["split_data"], ds, config=cfg, keep_asset_test_separate=False)
+                for split, role in ((tr, "train"), (va, "val"), (te, "test")):
+                    self._rows_equal(split, masks[role])
+                if label == "holdout":
+                    ho = _quiet(ns["split_holdout"], ds, config=cfg, keep_asset_test_separate=False)
+                    self._rows_equal(ho, masks["holdout"])
+                    self.assertFalse((masks["test"] & masks["holdout"]).any())
+                plan.check()
+
+    def test_rolling_windows_are_plans_too(self):
+        ns, ds = self.ns, self.ds
+        cfg = dict(ns["CONFIG"])
+        sched = ns["rolling_split_schedule"](ds, test_span="4D", val_span="4D", train_span="14D", step="4D", max_windows=3, config=cfg)
+        wins = _quiet(ns["rolling_splits"], ds, test_span="4D", val_span="4D", train_span="14D", step="4D", max_windows=3,
+                      keep_asset_test_separate=False, config=cfg, verbose=False)
+        ts, gap = ns["sample_timestamps"](ds), ns["embargo_duration"](ds, cfg)
+        for w, (tr, va, te) in zip(sched, wins):
+            plan = ns["SplitPlan"].from_dates(w["train_end"], w["val_end"], gap, train_start=w["train_start"], test_end=w["test_end"]).check()
+            m = plan.masks(ts)
+            for split, role in ((tr, "train"), (va, "val"), (te, "test")):
+                self._rows_equal(split, m[role])
+
+    def test_plan_check_refuses_a_gap_shorter_than_the_embargo(self):
+        SplitPlan = self.ns["SplitPlan"]
+        gap = self.ns["embargo_duration"](self.ds, self.cfg)
+        te, ve = pd.Timestamp(sg.SPLIT_DATES["train_end"], tz="UTC"), pd.Timestamp(sg.SPLIT_DATES["val_end"], tz="UTC")
+        SplitPlan.from_dates(te, ve, gap).check()
+        leaky = SplitPlan(embargo=gap, train_end=te, val=(te + gap / 2, ve), test_lo=ve + gap)
+        with self.assertRaisesRegex(ValueError, "shorter than the embargo"):
+            leaky.check()
+        with self.assertRaisesRegex(ValueError, "empty interval"):
+            SplitPlan(embargo=gap, train_end=te, val=(te + gap, te), test_lo=te + 2 * gap).check()
 
 
 if __name__ == "__main__":

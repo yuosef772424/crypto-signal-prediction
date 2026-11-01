@@ -953,16 +953,18 @@
   - `class HarnessSelfCheckTests(_CausalityMixin, unittest.TestCase)` L153
     - (1 methods)
 
-### `tests/test_split_plan.py` (121 lines)
+### `tests/test_split_plan.py` (183 lines)
 - PURPOSE: Split leakage control (audit C6 / PR 12): `label_end` on every sample, the SplitPlan, the opt-in calibration split, the purity of the roles. (from docstring)
 - DEPENDS: core, docs
 - API:
-  - `def pipeline()` L30
-  - `def members(split)` L36
-  - `class SplitArraysAreUnchanged(unittest.TestCase)` L41
+  - `def pipeline()` L33
+  - `def members(split)` L39
+  - `class SplitArraysAreUnchanged(unittest.TestCase)` L44
     - (2 methods)
-  - `class LabelEndTests(unittest.TestCase)` L56
+  - `class LabelEndTests(unittest.TestCase)` L59
     - (5 methods)
+  - `class DefaultPlanTests(unittest.TestCase)` L123
+    - (4 methods)
 
 ### `tests/test_stale_bars_audit.py` (317 lines)
 - PURPOSE: tools/stale_bars_audit.py + CONFIG['stale_bars']: dead-coin tails and long zero-volume flat runs. (from docstring)
