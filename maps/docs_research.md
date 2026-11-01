@@ -220,7 +220,7 @@ Documents:
 - `E-tgt-002.md` — Experiment card — E-tgt-002: IC-aligned objective for the main model (volnorm target, clip 4, Huber…
 
 ## `docs/research/hardening/`
-- hardening/: root-cause audits of the codebase before a new experiment round | 1 scripts, 8 md, 2 data files (10 KB)
+- hardening/: root-cause audits of the codebase before a new experiment round | 1 scripts, 9 md, 2 data files (10 KB)
 
 Documents:
 - `README.md` — hardening/: root-cause audits of the codebase before a new experiment round
@@ -229,6 +229,7 @@ Documents:
 - `data_prep_audit.md` — Data-preparation audit: what per-window normalization destroys (2026-11-01)
 - `external_decay_audit.md` — Audit of external "model staleness / rolling retrain" experiment (Perplexity, repo /home/user/crypt…
 - `external_research_prompts.md` — تعليمات بحث خارجي (لأداة البحث التي أنتجت `cryptoformer.zip`)
+- `open_defects.md` — Open code / pipeline defects (read-only sweep, 2026-11-01)
 - `proposal_cascaded_stages.md` — Proposal: cascaded / stacked training stages
 - `proposal_rolling_retrain.md` — Proposal: rolling-retrain study (does the market change enough to make the model random?)
 
