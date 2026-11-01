@@ -252,6 +252,8 @@
 - closed bars: data/align, tools/gate_features
 - cnn: edge_discovery/25_image_cnn
 - code version: trainer/identity
+- codec_name_for_mode: stats/target_codec
+- codecs: stats/target_codec
 - coin categories: data/defaults
 - coinmetrics: edge_discovery/16_h07_oos, edge_discovery/20_onchain
 - coins_by_category: data/defaults
@@ -359,9 +361,11 @@
 - decision tree: evaluation/patterns
 - decode: evaluation/decode, edge_discovery/data_tools/dec, tests/test_real_price_modes
 - decode drive downloads: edge_discovery/data_tools/sweep
+- decode_absolute: stats/target_codec
 - decode_predictions: evaluation/decode
 - decode_predictions_v4: evaluation/decode
 - decode_price_window: data/windows
+- decode_return: stats/target_codec
 - decoding check: evaluation/verify
 - decomposition: model/decomposition
 - dedup: edge_discovery/events
@@ -586,6 +590,7 @@
 - finite checks: workflow/verification
 - fit: data/normalizers
 - fit on the wrong data: core/roles
+- fit transform inverse: stats/target_codec
 - fit_confidence_calibrators: evaluation/calibrators
 - fit_level_channel: data/level_channel
 - fit_price_norm: data/normalizers
@@ -1079,7 +1084,7 @@
 - old vs new feature set: gate_features/run_gate001
 - on-chain: edge_discovery/20_onchain
 - one click: tools/colab_runner
-- one component one interface: core/heads, core/loss_plan, core/registry, evaluation/calibrators
+- one component one interface: core/heads, core/loss_plan, core/registry, evaluation/calibrators, stats/target_codec
 - one model call: evaluation/pooled
 - one-shot: indicator_strategy/test_final
 - only shrinks: tools/check_patterns
@@ -1297,6 +1302,7 @@
 - relative bias: model/transformer
 - relative direction: edge_discovery/18_h13_pr7_signal
 - relative modes: workflow/chicks_bridge
+- relative_median: stats/target_codec
 - relativegqattention: model/transformer
 - reliability curve: evaluation/trust_calibration
 - reopen conditions: tools/experiment_registry
@@ -1329,6 +1335,7 @@
 - retarget: workflow/run
 - retarget_splits: tests/test_real_price_modes, workflow/__init__, workflow/retarget
 - return: tests/test_real_price_modes
+- return codec: stats/target_codec
 - return_close: tests/test_real_price_modes
 - returns: data/custom
 - reversal hedge: hedge_recovery/sim2
@@ -1573,10 +1580,12 @@
 - target-mode: tools/evaluate_trained_model
 - target_columns: core/schema
 - target_configs: core/heads
+- target_group_median: stats/target_codec
 - target_mode: tests/test_real_price_modes, workflow/retarget, workflow/settings
 - target_mode_of: workflow/splits
 - target_modes: core/__init__, core/schema
-- target_vol: workflow/retarget
+- target_vol: stats/target_codec, workflow/retarget
+- targetcodec: stats/target_codec
 - targets: data/cross_sectional_norm, data/windows
 - targetsettings: workflow/settings
 - targetspec: evaluation/targets
@@ -1715,8 +1724,8 @@
 - volatility clustering: tools/natr_range
 - volatility forecast: h07_volsizing/01_volsizing
 - volatility level: data/level_channel
-- volnorm: workflow/retarget
-- volret: stats/volatility, workflow/retarget
+- volnorm: stats/target_codec, workflow/retarget
+- volret: stats/target_codec, stats/volatility, workflow/retarget
 - volret_floor: core/schema
 - volret_lambda: core/schema
 - volume concentration: data/funding_oi

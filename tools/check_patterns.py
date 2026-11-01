@@ -340,7 +340,7 @@ RULES: tuple[Rule, ...] = (
     Rule("target-mode-branch", "C4",
          "`mode == '<target mode>'` / `startswith('entry_range')` outside the component that owns target modes "
          "(a future TargetCodec): every new mode otherwise edits N modules.",
-         exclude=_NOT_SELF + ("core/schema.py",), matcher=match_target_mode_branch),
+         exclude=_NOT_SELF + ("core/schema.py", "stats/target_codec.py"), matcher=match_target_mode_branch),
     Rule("seed-literal", "C3",
          "Integer seed literals at call sites (`default_rng(42)`, `set_random_seed(0)`, `seed=7`): seeds must be one "
          "setting threaded from one place (multi-seed runs, run identity). In-package self-tests / smoke tests are not scanned.",

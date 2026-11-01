@@ -6,7 +6,8 @@ PITFALLS: volnorm needs base_params (window IQR) in every part AND refuses logre
 import numpy as np
 import pandas as pd
 
-from core.price_norm import input_close_logreturns, volret_forward
+from core.price_norm import input_close_logreturns
+from stats.target_codec import CODECS
 from stats.volatility import ewma_std
 
 # أسماء أوضاع الهدف (+ اختيارياً "+relative") والأوضاع التي لا تقبل "+relative" وتعريفات انحدار close في entry_range: core/schema.py
@@ -99,7 +100,7 @@ def _raw_target(P, t, base, close_reg="abs_return"):
     """قيمة الهدف المستمرة قبل أي معالجة مقطعية. close_reg: تعريف close في entry_range فقط."""
     fut = P[_FUTURE_COL[t]]
     if base == "return":
-        return fut / P[f"last_{t}"] - 1.0
+        return CODECS["return"].forward(P, t, None)
     if base == "return_close":
         return fut / P["last_close"] - 1.0
     if base == "scaled":
@@ -108,22 +109,12 @@ def _raw_target(P, t, base, close_reg="abs_return"):
         scale = np.where(np.abs(P["bp_scale"]) > 1e-12, P["bp_scale"], 1e-8)   # حماية من القسمة على صفر
         return (fut - P[f"last_{t}"]) / scale
     if base == "volnorm":
-        # عائد نفس النوع (كـ return) ÷ تقلّب النافذة النسبي (IQR إغلاقات النافذة ÷ آخر إغلاق) — كلاهما معروف وقت
-        # الدخول، فلا تسرّب (كـ scaled: لا يُقرأ مركز base_params، وهو وسيط النافذة). قفزة +50% لعملة
-        # تقلّبها 20% تصبح 2.5 لا حدثاً يهيمن على الترتيب — يطابق محفظة rank_weighted_vol.
-        if "bp_scale" not in P:
-            raise ValueError("وضع 'volnorm' يتطلّب base_params في كل الأقسام")
-        vol = np.abs(P["bp_scale"]) / np.maximum(np.abs(P["last_close"]), 1e-12)
-        vol = np.where(vol > 1e-6, vol, np.nanmedian(vol[vol > 1e-6]) if np.any(vol > 1e-6) else 1.0)
-        return (fut / P[f"last_{t}"] - 1.0) / vol
+        # عائد نفس النوع ÷ تقلّب النافذة النسبي (IQR إغلاقات النافذة ÷ آخر إغلاق) — كلاهما معروف وقت الدخول فلا تسرّب. الصيغة
+        # وعكسها في TargetCodec 'volnorm' (stats/target_codec.py)؛ قفزة +50% لعملة تقلّبها 20% تصبح 2.5 لا حدثاً يهيمن على الترتيب.
+        return CODECS["volnorm"].forward(P, t, None)
     if base == "volret":
-        # log(fut/last) ÷ EWMA std لعوائد إغلاق النافذة الماضية (لا قراءة base_params ولا شيء بعد الدخول): يعمل على أي بيانات
-        # تُخزّن قناة الإغلاق. الصيغة (والعكس) في core/price_norm.py؛ ما ليس منتهياً (سعر غير موجب) ← 0.
-        if "win_vol" not in P:
-            raise ValueError("وضع 'volret' يتطلّب win_vol (retarget_splits يحسبه من X: base_tf وclose_index)")
-        with np.errstate(all="ignore"):
-            z = volret_forward(np.log(fut / P[f"last_{t}"]), P["win_vol"])
-        return np.where(np.isfinite(z), z, 0.0)
+        # log(fut/last) ÷ EWMA std لعوائد إغلاق النافذة الماضية (لا قراءة base_params ولا شيء بعد الدخول): TargetCodec 'volret'.
+        return CODECS["volret"].forward(P, t, None)
     if base == "magnitude":
         r = fut / P["last_close"] - 1.0
         return {"close": np.abs(r), "high": np.maximum(r, 0.0), "low": np.maximum(-r, 0.0)}[t]
@@ -153,15 +144,16 @@ def _targets_for(parts, targets, base, cross, clip, center, group_freq, threshol
                  close_reg="abs_return", vol=None):
     """يُرجع ({y_key: مصفوفة مدمجة}, معلومات) لكل أجزاء قسم واحد معاً. info["scales"]: مقياس كل هدف فعلاً."""
     P = _price_columns(parts, vol)
-    out, info = {}, {"P": P, "scales": {}}
+    out, info = {}, {"P": P, "scales": {}, "medians": {}}
     keys = _group_keys(P["timestamp"], group_freq) if cross else None
     if keys is not None:
         info["group_size"] = pd.Series(keys).groupby(keys).transform("size").to_numpy()
     for t in targets:
         r = _raw_target(P, t, base, close_reg)
         if cross:
-            c = pd.Series(r).groupby(keys).transform(center).to_numpy()
-            reg, up = r - c, r > c
+            reg, c = CODECS["relative_median"].center(r, keys, center)
+            up = r > c
+            info["medians"][t] = c
         elif base == "magnitude":
             reg, up = r, r > thresholds[t]
         elif base == "entry_range":
@@ -188,7 +180,8 @@ def _rebuild(parts, new_y, keep, mode, scale=1.0, scales=None, stamps=None, arra
         ns["y"] = dict(s["y"])
         for k, v in new_y.items():
             ns["y"][k] = v[start:start + n]
-        ns.pop("target_vol", None)                     # ختم وضع سابق (volret) لا يبقى على وضع آخر
+        for k in [k for k in ns if k == "target_vol" or k.startswith("target_group_median_")]:
+            ns.pop(k)                                  # ختم وضع سابق (volnorm/volret/relative) لا يبقى على وضع آخر
         for k in drop:
             ns.pop(k, None)
         for k, v in (arrays or {}).items():
@@ -282,8 +275,10 @@ def retarget_splits(train_split, val_split, test_split, mode="return", targets=N
             yc, yr = new_y[f"y_{t}_class"][keep], new_y[f"y_{t}_reg"][keep]
             report.append((name, f"{t}: نسبة الفئة +1", f"{np.mean(yc > 0):.3f}",
                            f"reg: متوسط {np.mean(yr):+.4f} | انحراف {np.std(yr):.4f}"))
-        results.append(_rebuild(parts, new_y, keep, mode, scale, info["scales"], stamps,
-                                arrays=None if vol is None else {"target_vol": vol.astype("float32")},
+        # per-row facts the codec inverse needs, stored with the split (volnorm/volret: target_vol; return+relative: the ex-post median)
+        arrays = (CODECS["relative_median"].stamps_for(base, info["medians"]) if cross else CODECS[base].stamps(info["P"], None)) \
+            if (cross or base in CODECS) else {}
+        results.append(_rebuild(parts, new_y, keep, mode, scale, info["scales"], stamps, arrays=arrays,
                                 drop=("price_norm_meta",) if base == "volret" else ()))
 
     if verbose:

@@ -142,7 +142,7 @@
   - `def real_price_predictions(model, test, asset, target, model_tf)` L20
   - `def classification_accuracy_report(model, test, price_targets, model_tf)` L61
 
-### `workflow/retarget.py` (330 lines)
+### `workflow/retarget.py` (325 lines)
 - PURPOSE: Target-mode switching on already-built splits (return, return_close, scaled, magnitude, volnorm, volret, entry_range, +relative): retarget_splits recomputes y_*_reg / y_*_class from raw last_candles (volret: and the past closes decoded fro…
 - TAGS: target_mode, retarget_splits, target modes, relative, entry_range, entry_range_to_prices, entry_close_reg, reg_target_scale, magnitude, volnorm, volret, target_vol, scaled
 - PITFALLS: volnorm needs base_params (window IQR) in every part AND refuses logret_* datasets (retarget_splits guard: their targets are train-standardised and tied to the inputs); volret does not read base_params: it decodes the window's past closes from the stored close channel (X_<base_tf>[:, :, close_index], core.price_norm.input_close_logreturns: 'window_scale' and 'logret_std' only, 'close' must be a m…
@@ -150,8 +150,8 @@
 - USES: data/runtime, data/windows
 - USED BY: capacity, diagnostics, generalization, reports, run, selective_eval, wiring_selftest
 - API:
-  - `def retarget_splits(train_split, val_split, test_split, mode='return', targets=None, clip=None, center='median', group_freq=None, min_group=5, drop_small_groups=False, close_reg='abs_return', verbose=True, reg_target_s…` L210
-  - `def entry_range_to_prices(last_close, high=None, low=None, close=None, close_reg='abs_return', p_close_up=None)` L305
+  - `def retarget_splits(train_split, val_split, test_split, mode='return', targets=None, clip=None, center='median', group_freq=None, min_group=5, drop_small_groups=False, close_reg='abs_return', verbose=True, reg_target_s…` L203
+  - `def entry_range_to_prices(last_close, high=None, low=None, close=None, close_reg='abs_return', p_close_up=None)` L300
 
 ### `workflow/run.py` (619 lines)
 - PURPOSE: The steps of a main run as functions of (RunSettings, explicit inputs) -> outputs: load data, adapt CONFIG, split, retarget, plan and build the model, training config and datasets, train, prepare the chicks evaluation, run it, panel model,…
