@@ -42,89 +42,61 @@ easy-to-hard curriculum by |move|/vol (never focal / hard mining on noisy labels
 
 ```python
 HEADS = ("high_reg", "low_reg", "close_reg")
+ORDER = ["S0", "S1", "S2", "S3", "S4", "S4c", "S5", "S6"]
 
 def arm(name, seed, lam_u=0.1):
-    """name in S0 S1 S2 S3 S4 S4c S5 S6; each arm = the previous one's loss plus ONE entry. Early stopping on val_close_reg_ic (max)."""
-    terms = {h: {"huber_weight": 0.1} for h in HEADS}                           # S0: volret clip 4 + Huber on mu
-    loss = {"report_ic": ("high_reg", "low_reg"), "balancing": "ema_norm"}      # fixed weights on EMA-normalised head losses
-    order = ["S0", "S1", "S2", "S3", "S4", "S4c", "S5", "S6"]
-    has = lambda a: order.index(name) >= order.index(a)
+    """name in S0 S1 S2 S3 S4 S4c S5 S6; each arm = the previous one's settings plus ONE entry (S4c = S3 + the control of S4, S5/S6 stack on the
+    BEST of S4/S4c per the accept rule: pass `base` = that arm's name to build them on it). Early stopping on val_close_reg_ic (max), epochs 60, patience 15."""
+    has = lambda a: ORDER.index(name) >= ORDER.index(a)
+    terms = {h: {"huber_weight": 0.1} for h in HEADS}                            # S0: volret clip 4 + Huber on mu
+    loss = {"report_ic": ("high_reg", "low_reg"), "balancing": "ema_norm"}       # fixed weights on EMA-normalised head losses
+    model = {}
     if has("S1"):
-        terms = {h: {"huber_weight": 0.1, "beta_nll": 0.5} for h in HEADS}      # beta-NLL on the NIG (Student-t) likelihood
+        terms = {h: {"huber_weight": 0.1, "beta_nll": 0.5} for h in HEADS}       # S1: beta-NLL on the NIG (Student-t) likelihood
     loss["head_terms"] = terms
-    # S2: the "tcp" confidence head (registered head type) -- REQUIRES the tcp feat commit, NOT in this branch (see "Not built")
-    if has("S3"):
+    if has("S2"):                                                                # S2: the TCP confidence head (Brier, after 10 warm-up epochs)
+        model["config_overrides"] = {"tcp_head": True}                           # model builds the head tcp_close (on stop_gradient trunk features)
+        loss["tcp"] = {"weight": 0.1, "warmup_epochs": 10}                       # RunSettings refuses one without the other
+    if has("S3"):                                                                # S3: the decision-utility term, lam_u in {0.1, 0.25}
         loss["utility"] = {"weight": lam_u, "warmup_epochs": 10, "ramp_epochs": 10, "cost": 0.0008}
     if name == "S4":
         loss["sample_weighting"] = "curriculum_snr"
     if name == "S4c":
-        loss["sample_weighting"] = "curriculum_random"                          # the control: same sizes, random order
+        loss["sample_weighting"] = "curriculum_random"                           # the control: same sizes, random order
     if name == "S5":
-        loss["sample_weighting"] = "jump_downweight"                            # k = 6 vol units, weight 0.3, never dropped
-    model = {"config_overrides": {"mu_skip": "unc_gated"}} if name == "S6" else {}   # S6: the gated skip residual on mu (vs the same arm without it)
+        loss["sample_weighting"] = "jump_downweight"                             # k = 6 vol units, weight 0.3, never dropped (+ the data line below)
+    if name == "S6":                                                             # S6: the gated skip residual on mu (compare with the SAME arm without it)
+        model["config_overrides"] = {**model.get("config_overrides", {}), "mu_skip": "unc_gated"}
     return RunSettings().updated({
         "model": model,
         "target": {"suspended_targets": (), "target_mode": "volret", "clip": 4.0},
-        "train": {"seed": seed, "run_dir": f"/content/drive/MyDrive/training_runs/E-tgt-003_{name}_s{seed}",
+        "train": {"seed": seed, "epochs": 60, "early_stopping_patience": 15,
+                  "run_dir": f"/content/drive/MyDrive/training_runs/E-tgt-003_{name}_s{seed}",
                   "early_stopping_monitor": "val_close_reg_ic", "early_stopping_mode": "max", "loss": loss}})
+
+# S5 data line (event features known at entry; default None = off; the dataset is rebuilt WITH them for S5 only, `data.CONFIG`):
+#   data.CONFIG["custom_settings"] = {**data.CONFIG.get("custom_settings", {}),
+#                                     "event_features": {"spike_z": 3.0, "ret_windows": [8], "gap_k": 3.0}}   # -> EVT_VOL_SPIKE, EVT_MAXRET_8, EVT_GAP
+# usage: for name in ORDER: for seed in range(5): run_main(arm(name, seed), kit)      # 10 arms (S3 at lam_u 0.1 and 0.25) x 5 seeds = 50 runs
 ```
 
-`tests/test_e_tgt_003_arms.py` builds and trains two epochs of the arms that exist in this branch (S0, S1, S3, S4, S4c, S5) on the synthetic
-fixture. Every arm selects the best epoch by the SAME objective-independent metric `val_close_reg_ic`; since the fix of audit D1 the EMA
-weights that get saved are the ones re-evaluated on val (so the restored best equals the recorded best).
+`tests/test_e_tgt_003_arms.py` builds and trains two epochs of the arms on the synthetic fixture. Every arm selects the best epoch by the SAME
+objective-independent metric `val_close_reg_ic`; since the fix of audit D1 the EMA weights that get saved are the ones re-evaluated on val
+(so the restored best equals the recorded best).
 
-## Verified cause and mechanism
-- Cause attacked (hypotheses, not yet verified by a dedicated test): the raw NIG NLL is dominated by high-variance rows (S1); the
-  confidence output is supervised for the magnitude of the error, which is mostly noise (S2); the objective never rewards the decision
-  (S3); noise-level moves carry the same weight as clear ones early in training (S4); event jumps (news, pumps, hacks) dominate squared
-  errors (S5).
-- Diagnostic that must move (every arm, val, per head, computed in return space through the TargetCodec): `std(mu)/std(y)` (anti-fear),
-  median sigma/|y| and the coverage of mu +- 1.645 sigma (`stats.metrics.sigma_calibration`), CRPS of the Gaussian summary
-  (`stats.metrics.crps_gaussian`), the share of |position| > 0.1 (`position_share`), confidence mean / std / share < 0.55 and the
-  risk-coverage AUC (`risk_coverage_auc`), the share of samples at each NIG floor (nu_min 0.1, alpha_min 2, beta_min 0.01).
-- Predicted movement (val, vs the predecessor): S1 coverage of the 90% interval closer to 0.90 and CRPS down with IC not worse; S2 risk-coverage
-  AUC down (confidence ranks mistakes) with direction accuracy not worse; S3 net Sharpe up, turnover not exploding, MSE up a little
-  (expected, the price of the utility); S4 IC up vs the control with the same sizes (the order, not the size, is the effect); S5 IC / Sharpe
-  on non-jump samples up with all-sample P&L not worse; S6 IC up with std(mu)/std(y) not collapsing.
-
-## Metrics reported per arm (val; mean +- seed spread)
-close: direction (AUC / hit rate of sign(mu)), IC and rank-IC; high / low rank-IC; interval coverage at 90 / 95% WITH width, CRPS, winkler
-(`stats.metrics.evaluate_heads`); the diagnostics above; net P&L at 0.08% round trip with one |pred| threshold fixed on val
-(`threshold_trades`, `net_sharpe`, turnover, profit factor) on ALL samples INCLUDING jumps (F-0031: jump tails dominated mean returns), and
-the same metrics excluding samples with |future return|/vol > 6 (not built into the evaluation yet, see "Not built").
-
-## Accept / reject rules (val; every arm vs its named predecessor; paired by seed)
-- Paired bootstrap (`tools/paired_compare.py --loss precomputed`, per-timestamp loss = minus that timestamp's rank-IC for IC claims, the
-  per-timestamp net P&L for Sharpe claims; stationary block bootstrap n_boot 2000, seed 0, Newey-West lags `auto_nw`): the CI of the
-  difference must EXCLUDE 0 in the predicted direction, AND the arm must win in a MAJORITY of seeds (>= 3 of 5), AND the predicted
-  diagnostic of the arm moved beyond its null (S1: coverage error and CRPS; S2: risk-coverage AUC; S3: net Sharpe with CI excluding 0,
-  turnover and the MSE rise reported; S4: IC against the CONTROL S4c, not only against S3; S5: non-jump IC/Sharpe), AND no significant
-  degradation of calibration (coverage error) or direction accuracy (paired CI of the accuracy difference includes 0 or is positive).
-- Reject if the CI includes 0, or the wrong diagnostic moved, or the majority of seeds disagree; close the failure with a registry row
-  naming the arm and the cause. "IC up but diagnostic flat" = unexplained, not adopted. P&L alone never accepts an arm; for S3 only the net
-  Sharpe CI is the primary claim and the all-sample P&L must not be worse than S2's.
-- S3 compares lambda_U 0.1 and 0.25 as two arms of the same stage; the better one (by the S3 rule) goes on; both count as trials.
-- Seeds: no arm is accepted on one seed; seed noise = the max-min over seeds of the SAME arm.
-
-## Risks (pre-registered)
-- F-0031 (jump tails): the clip at +-4 vol units and the jump down-weight remove exactly the tail that dominated mean returns; IC may rise
-  while all-sample P&L falls. The jump-rate by mu decile and the P&L including jumps are reported for every arm; if IC rises and P&L falls
-  that is this risk, not a contradiction.
-- Utility term: it trains a position from a noisy mu / sigma; the cost is in return units (0.0008) and the term is normalised by std(r), so
-  lambda_U is comparable to O(1) head losses; watch the share of |position| > 0.1 (it can collapse to 0 = the fear it is meant to cure).
-- The ramp starts after warmup_epochs = 10; with patience 15 an early stop before the ramp would silently test S2 again: the run bundle
-  records the epoch of the best checkpoint, and a best epoch below the ramp start voids the S3 comparison for that seed.
-- ema_norm changes every head's gradient share relative to the kendall default: S0 already uses it, so S0 is NOT the E-tgt-002 arm A/B.
-
-## Not built in the branch that carries this card (arms that cannot run yet)
-S2 (tcp confidence head) and the event input features of S5 are not implemented here; their arms stay pre-registered but are blocked until
-their feat commits land. S6 (`mu_skip="unc_gated"`) IS built: its comparison is S6 vs the SAME arm without it, same seeds (it is judged on val IC,
-std(mu)/std(y), coverage, and the distribution of the gate `unc_gate_model(model)` and its correlation with |error|; the gate reads
-stop_gradient(epistemic), so it cannot push epistemic). S1 is additionally judged on median sigma/|y| and the coverage of mu +- 1.645 sigma
-BEFORE and AFTER the post-hoc `sigma_scale` calibrator (`evaluation.calibrators.SIGMA_CALIBRATORS`, fitted on the calibration split only). The dedicated Gaussian / Student-t regression heads were not built either:
-S1 uses the NIG likelihood with the beta-NLL term (`head_terms[...]["beta_nll"]`), whose predictive distribution is a Student-t.
-Evaluation reporting of the confidence quality, of every metric with and without jump samples, and of the post-hoc sigma-scale calibrator is
-not wired into `evaluate_heads` yet (the pure metric functions exist in `stats.metrics`).
+## Built in the branch that carries this card (and what is still missing)
+- S2: `LossSettings.tcp` + `model config tcp_head` (`tests/test_tcp_head.py`): an MLP on stop_gradient(trunk features) -> output `tcp_close` =
+  P(sign(mu_close) == sign(y_close)), Brier loss against stop_gradient(1[mu * y > 0]), weight 0 until `warmup_epochs`. Confidence quality
+  is read with `evaluation.integrity.confidence_quality_report(preds, y_close)` (risk-coverage AUC and AUROC of the OLD confidence output
+  and of TCP; pure function `stats.metrics.confidence_quality`).
+- S5 event inputs: `data/custom.py` setting `event_features` (EVT_VOL_SPIKE, EVT_MAXRET_w, EVT_GAP; default None = off; `tests/test_event_features.py`).
+- S6 (`mu_skip="unc_gated"`) is judged against the SAME arm without it, same seeds (val IC, std(mu)/std(y), coverage, the gate distribution
+  `unc_gate_model(model)` and its correlation with |error|; the gate reads stop_gradient(epistemic), so it cannot push epistemic).
+- S1 is additionally judged on median sigma/|y| and the coverage of mu +- 1.645 sigma BEFORE and AFTER the post-hoc `sigma_scale` calibrator
+  (`evaluation.calibrators.SIGMA_CALIBRATORS`, fitted on the calibration split only).
+- Not built: the dedicated Gaussian / Student-t regression heads (S1 uses the NIG likelihood with the beta-NLL term, whose predictive is a
+  Student-t); the evaluation of every metric with and without jump samples and the full anti-fear diagnostics are not wired into the
+  evaluation run (the pure functions exist in `stats.metrics`).
 
 ---
 ## Result (added after the run)
