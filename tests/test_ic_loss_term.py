@@ -83,7 +83,7 @@ class Vocabulary(unittest.TestCase):
     def test_terms_are_declared_in_core_and_implemented_in_the_trainer(self):
         n = ns()
         self.assertEqual(HEAD_LOSS_TERMS.check_all(), [])
-        self.assertEqual(HEAD_LOSS_TERMS.names(), ("huber", "ic", "var"))
+        self.assertEqual(HEAD_LOSS_TERMS.names(), ("huber", "beta_nll", "ic", "var"))   # + beta_nll (E-tgt-003)
         batch = {e.name for e in HEAD_LOSS_TERMS.entries() if e.meta["kind"] == "batch"}
         self.assertEqual(batch, set(n["BATCH_LOSS_TERMS"]))
         for e in HEAD_LOSS_TERMS.entries():
