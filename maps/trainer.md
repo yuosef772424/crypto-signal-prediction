@@ -17,7 +17,7 @@
   - `def module_path(name: str) -> Path` L43
   - `def load_into(ns: dict, exclude=()) -> dict` L50
 
-### `trainer/best_tracker.py` (194 lines)
+### `trainer/best_tracker.py` (220 lines)
 - PURPOSE: BestModelTracker: best-copy tracking plus early stopping in one resumable callback.
 - TAGS: bestmodeltracker, early stopping, best weights, restore best, patience, resume
 - PITFALLS: State is saved with the checkpoint (get_state/set_state); changing it breaks resuming old runs. Executed into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other modules resolve at call time.
@@ -28,9 +28,9 @@
     - `.__init__(self, base_model: tf.keras.Model, best_path: Optional[str]=None, monitor: str='val_loss', mode: str='min', patience: int=15, min_delta: float=0.0001, smoothing: str='window', window: int=3, ema_beta…` L22
     - `.get_state(self) -> dict` L61
     - `.load_state(self, state: dict)` L66
-    - `.on_epoch_end(self, epoch, logs=None)` L156
-    - `.restore_best(self) -> bool` L178
-    - `.on_train_end(self, logs=None)` L188
+    - `.on_epoch_end(self, epoch, logs=None)` L181
+    - `.restore_best(self) -> bool` L204
+    - `.on_train_end(self, logs=None)` L214
 
 ### `trainer/checkpoints.py` (150 lines)
 - PURPOSE: Save/resume system: CheckpointManager, archive_state, build_trainer_variables, stage_warm_start_weights.
@@ -237,7 +237,7 @@
   - `def regression_task_loss(y_true, outputs, target_cfg, scheduled_vars, sample_weight=None)` L395
   - `def classification_task_loss(y_true, outputs, target_cfg, scheduled_vars, sample_weight=None)` L427
 
-### `trainer/trainer.py` (219 lines)
+### `trainer/trainer.py` (224 lines)
 - PURPOSE: GenericTrainer: the training-step core (any number of targets, evidential/regression/classification).
 - TAGS: generictrainer, train_step, test_step, compute_loss, tf.keras.model subclass, multi-task
 - PITFALLS: The model is passed to self.model(x) as is (the framework never opens x); keep train_step and test_step symmetric. Executed into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other modules resolve at call time.
@@ -247,8 +247,9 @@
   - `class GenericTrainer(tf.keras.Model)` L29
     - `.__init__(self, model: tf.keras.Model, config: dict, **kwargs)` L30
     - `.metrics(self)` L104
-    - `.train_step(self, data)` L201
-    - `.test_step(self, data)` L215
+    - `.fit(self, x=None, y=None, **kwargs)` L201
+    - `.train_step(self, data)` L206
+    - `.test_step(self, data)` L220
 
 ### `trainer/training_diagnostics.py` (646 lines)
 - PURPOSE: TrainingDiagnostics: optional diagnostic recorder (+ SAMPLE_IDX_KEY, with_sample_index).

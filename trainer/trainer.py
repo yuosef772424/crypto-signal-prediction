@@ -198,6 +198,11 @@ class GenericTrainer(tf.keras.Model):
         for name, v in per_constraint_values.items():
             self._constraint_trackers[name].update_state(v)
 
+    def fit(self, x=None, y=None, **kwargs):
+        # kept so BestModelTracker(weights_snapshot='ema_weights') can re-evaluate the EMA weights it saves on the SAME validation data
+        self.__dict__["_fit_validation_data"] = kwargs.get("validation_data")   # not an attribute assignment: Keras would track the dataset in checkpoints
+        return super().fit(x, y, **kwargs)
+
     def train_step(self, data):
         x, y, sample_weight = tf.keras.utils.unpack_x_y_sample_weight(data)
         # self.trainable_variables تشمل النموذج + متغيرات طبقة الموازنة (log_var لكل مهمة)
