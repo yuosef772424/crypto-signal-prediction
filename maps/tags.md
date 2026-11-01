@@ -5,7 +5,8 @@
 - .get default: tools/check_patterns
 - 0.5% sizing: hedge_recovery/sim2
 - 136 tests: edge_discovery/04_screen_mean
-- 15m: data/phase2, strategy_discovery/intraday_macd, strategy_discovery/seasonality15m, tools/intraday_features
+- 15m: data/phase2, strategy_discovery/intraday_macd, strategy_discovery/seasonality15m, tools/bracket_path, tools/intraday_features
+- 1:1: tools/bracket_path
 - 1h: strategy_discovery/intraday_macd
 - 2018-2023: edge_discovery/16_h07_oos
 - 21-23 utc: edge_discovery/06_seasonality
@@ -36,6 +37,7 @@
 - accept rule: indicator_strategy/screen, indicator_strategy/test_final, strategy_discovery/oos
 - access log: tools/holdout_guard
 - accumulator: data/pipeline
+- accuracy vs confidence: tools/bracket_path
 - activations: model/diagnostics
 - adaptive conformal: natr_range/run_natr_rolling
 - add_custom_features: data/custom
@@ -92,7 +94,7 @@
 - asymmetry: edge_discovery/29_path_envelope
 - ath distance: data/custom
 - atomic_write_json: trainer/env
-- atr stop: edge_discovery/24_pullback_maker, indicator_strategy/engine, tools/trade_engine
+- atr stop: edge_discovery/24_pullback_maker, indicator_strategy/engine, tools/bracket_path, tools/trade_engine
 - attention: model/diagnostics, model/transformer
 - attentionpool: model/readout
 - auc: stats/__init__, stats/metrics
@@ -105,7 +107,7 @@
 - available_features: data/features
 - average rank: stats/metrics
 - axis evaluation: discovery/evaluation
-- backtest: edge_discovery/tsbt
+- backtest: edge_discovery/tsbt, tools/bracket_path
 - balancing: workflow/settings
 - base64: edge_discovery/data_tools/dec
 - base_params last_close: workflow/chicks_bridge
@@ -140,10 +142,11 @@
 - bootstrap: tools/drive_sync
 - bootstrap month blocks: norm_probe/run_norm_probe
 - bot2 get_range_forecast: tools/natr_range
-- bracket: tools/bracket_eval
+- bracket: tools/bracket_eval, tools/bracket_path
 - bracket table: cross_asset/report
 - break attempt: edge_discovery/17_h07_break
 - break-even hit rate: tools/bracket_eval
+- break-even win rate: tools/bracket_path
 - breakout: edge_discovery/05_events, strategy_discovery/grid
 - breakout stops: edge_discovery/32_breakout_stops
 - breakout_stops_results.csv: edge_discovery/32_breakout_stops
@@ -273,6 +276,7 @@
 - concat_splits: signal_eval/integration
 - confidence: evaluation/trust_calibration, workflow/selective_eval
 - confidence calibration: evaluation/calibrators
+- confidence decile: tools/bracket_path
 - confidence head: core/heads
 - confidencehead: model/nig_layers
 - config: data/__init__, data/runtime
@@ -295,6 +299,7 @@
 - cost stress: edge_discovery/15_h07_robust, edge_discovery/17_h07_break, strategy_discovery/robustness
 - cost x2: strategy_discovery/significance
 - cost_big cost_small: edge_discovery/03_quintiles
+- costs: tools/bracket_path
 - count balancing: hedge_recovery/sim2
 - coverage: natr_range/run_natr_range, tools/natr_range
 - cqr: natr_range/run_natr_calibrate
@@ -338,7 +343,7 @@
 - day bootstrap: workflow/candle_baseline, workflow/verification
 - day grouping: cross_asset/data
 - day of week: edge_discovery/06_seasonality
-- day-clustered t: edge_discovery/events, strategy_discovery/significance, tools/bracket_eval
+- day-clustered t: edge_discovery/events, strategy_discovery/significance, tools/bracket_eval, tools/bracket_path
 - day_pearson: cross_asset/train
 - dead coins: tools/stale_bars_audit
 - dead tail: tools/trim_dead_tails, tools/trim_dead_tails_colab_job
@@ -567,6 +572,7 @@
 - filters: tools/bracket_eval
 - filters c0-c3: edge_discovery/25_image_cnn
 - final evaluation: indicator_strategy/test_final
+- finer bars: tools/bracket_path
 - fingerprint: data/checkpoints, tests/run_fixture
 - finish_price_norm: data/normalizers
 - finite checks: workflow/verification
@@ -872,6 +878,7 @@
 - logretsigma: data/normalizers
 - logretstd: data/normalizers
 - london breakout: edge_discovery/22_chart_rules
+- long short split: tools/bracket_path
 - long-only: edge_discovery/07_trend
 - long-short: edge_discovery/03_quintiles
 - long/short ratio: tools/intraday_features
@@ -1110,6 +1117,7 @@
 - patch_len: model/patches
 - patchembedding: model/patches
 - path envelope: edge_discovery/29_path_envelope
+- path resolved: tools/bracket_path
 - patience: trainer/best_tracker
 - pattern discovery: evaluation/patterns
 - pattern ratchet: tools/check_patterns
@@ -1118,7 +1126,7 @@
 - pct_change_overrides: data/presets
 - pearson: stats/__init__, stats/metrics
 - per-asset predict loop: tools/check_patterns
-- per-coin consistency: indicator_strategy/screen
+- per-coin consistency: indicator_strategy/screen, tools/bracket_path
 - per-coin events: edge_discovery/events
 - per-head policy: stats/metrics
 - per-layer probe: model/layer_report
@@ -1176,10 +1184,11 @@
 - predict_with_evaluation_v3: evaluation/unified
 - predict_with_evaluation_v4: evaluation/__init__, evaluation/unified
 - predicted high low: edge_discovery/31_wick_capture, edge_discovery/32_breakout_stops, tools/bracket_eval
+- predicted range: tools/bracket_path
 - prediction schema: core/prediction_schema
 - prediction table: core/prediction_schema, stats/prediction_table
 - prediction_made_at: core/prediction_schema, stats/prediction_table
-- predictiontable: stats/prediction_table
+- predictiontable: stats/prediction_table, tools/bracket_path
 - premium index: tools/fetch_history_vision_colab
 - prepare_chicks: workflow/run
 - prepare_data: tools/colab_bridge
@@ -1195,7 +1204,7 @@
 - print_trade_selection: evaluation/trade_selection
 - print_verdicts: model/diagnostics
 - process_windows: data/normalize
-- profit factor: indicator_strategy/screen, stats/metrics
+- profit factor: indicator_strategy/screen, stats/metrics, tools/bracket_path
 - profit target: hedge_recovery/sim2
 - projectsettings: workflow/settings
 - provenance: tools/touched_ledger
@@ -1218,7 +1227,7 @@
 - ram: data/disk_backed
 - ram cap: data/parallel
 - random control: hedge_recovery/sim, hedge_recovery/sim2
-- random-direction null: tools/bracket_eval
+- random-direction null: tools/bracket_eval, tools/bracket_path
 - random_init_copy: model/layer_report
 - range fade: edge_discovery/21_range_fade
 - range forecast: tools/natr_range
@@ -1441,7 +1450,7 @@
 - skip_labels: data/pipeline
 - sl_room: tools/bracket_eval
 - slice_by_asset: evaluation/pooled
-- slippage: edge_discovery/32_breakout_stops
+- slippage: edge_discovery/32_breakout_stops, tools/bracket_path
 - small_array_bytes: data/disk_backed
 - smart-minus-retail: edge_discovery/features
 - smoke: model/selftests
@@ -1492,7 +1501,7 @@
 - stats: edge_discovery/tsbt, stats/__init__
 - stats_mode: model/input_norm
 - std_ic: signal_eval/windows
-- stop loss: edge_discovery/13_listing_stops, tools/bracket_eval
+- stop loss: edge_discovery/13_listing_stops, tools/bracket_eval, tools/bracket_path
 - storage: data/storage
 - stress test: edge_discovery/17_h07_break
 - strict config: trainer/config, workflow/settings
@@ -1531,7 +1540,7 @@
 - t_extract_*: signal_eval/selftests
 - t_ic_*: signal_eval/selftests
 - t_permutation_*: signal_eval/selftests
-- take profit: tools/bracket_eval
+- take profit: tools/bracket_eval, tools/bracket_path
 - taker extremes: edge_discovery/05_events
 - taker ratio: tools/intraday_features
 - taker stop orders: edge_discovery/32_breakout_stops
@@ -1577,6 +1586,7 @@
 - time-series screen: edge_discovery/08_ts_screen
 - time_hour: data/custom
 - timeframe resample: indicator_strategy/engine, tools/trade_engine
+- timeout exit: tools/bracket_path
 - timestamps: evaluation/latest_table
 - token: tools/colab_runner
 - token language: edge_discovery/28_token_decompose
@@ -1587,6 +1597,7 @@
 - top traders: edge_discovery/19_hl_copy
 - top-50 big: edge_discovery/lib
 - torch: edge_discovery/25_image_cnn
+- touch order: tools/bracket_path
 - touched data: tools/touched_ledger
 - touched ledger: tools/build_lock
 - tp sl: edge_discovery/29_path_envelope
@@ -1595,7 +1606,7 @@
 - trade log: indicator_strategy/screen, indicator_strategy/test_final, strategy_discovery/significance
 - trade selection: evaluation/trade_selection
 - trade simulator: indicator_strategy/engine, tools/trade_engine
-- trades: tools/bracket_eval
+- trades: tools/bracket_eval, tools/bracket_path
 - trailing quantile baseline: tools/natr_range
 - trailing_close_sigma: data/normalizers
 - train<=2021 val 2022 test 2023-26: edge_discovery/27_repr_info
