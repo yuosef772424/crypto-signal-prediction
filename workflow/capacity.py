@@ -147,7 +147,10 @@ def _select_cols(X, cols):
 
 def _capacity_fit(builder, X, y, Xv, yv, epochs, seed, config=None, batch_size=None):
     """تدريب سريع بنفس مسار main (build_training_system) في مجلد مؤقّت: حقب ثابتة بلا إيقاف مبكر ولا استعادة «الأفضل» على val
-    (فلا تدخل val في اختيار الحقبة — مقياس val نظيف)، ثم يُحذف المجلد."""
+    (فلا تدخل val في اختيار الحقبة — مقياس val نظيف)، ثم يُحذف المجلد.
+    ⚠️ النموذج المُقيَّم هو أوزان الحقبة الأخيرة لا الأفضل (restore_best_weights=False عن قصد)؛ ومع optimizer فيه EMA (مقاومة الحفظ) يُبدّل Keras
+    أوزان EMA مكان الخام عند نهاية fit، فهي أوزان EMA للحقبة الأخيرة. weights_snapshot='ema_weights' يعيد تقييم EMA على val كل حقبة (D1) لكنه لا يختار
+    بها شيئاً هنا: القياس يبقى «ما بعد عدد ثابت من الحقب»، متّسقاً بين الأذرع."""
     cfg = copy.deepcopy(_required(config, "config"))
     d = tempfile.mkdtemp(prefix="capacity_")
     cfg["run"].update({"run_dir": d, "mirror_dir": None, "epochs": epochs, "train_mode": "new", "seed": seed, "verbose": 0})

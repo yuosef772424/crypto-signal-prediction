@@ -17,11 +17,28 @@ PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loade
 # الترابط الذاتي الطبيعي في الأسعار المتتالية؟
 # ═══════════════════════════════════════════════════════════════════════════
 
+from stats.metrics import auc as _stats_auc, pearson as _stats_pearson, spearman as _stats_spearman
+
+
 def compute_point_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, float]:
     mae = float(np.mean(np.abs(y_true - y_pred)))
     rmse = float(np.sqrt(np.mean((y_true - y_pred) ** 2)))
     corr = float(np.corrcoef(y_true, y_pred)[0, 1]) if np.std(y_true) > 1e-9 and np.std(y_pred) > 1e-9 else 0.0
     return {"mae": mae, "rmse": rmse, "corr": corr}
+
+
+def compute_return_metrics(y_true: np.ndarray, y_pred: np.ndarray, entry: np.ndarray) -> Dict[str, float]:
+    """RETURN-space twin of compute_point_metrics (added next to it, the old keys are unchanged): on price LEVELS corr / MAE are dominated by
+    last_close (corr 0.997 for any model that copies the entry price), so here pred/entry-1 is compared with true/entry-1: ``ic`` (Pearson),
+    ``rank_ic`` (Spearman), ``auc`` of sign(pred - entry) vs the realised direction, ``mae`` of the return forecast and the PERSISTENCE
+    baseline's ``persistence_mae`` (= mean |true/entry - 1|: predicting no change). All through stats.metrics (one tie / NaN policy)."""
+    entry = np.asarray(entry, dtype=np.float64)
+    r_true, r_pred = np.asarray(y_true, dtype=np.float64) / entry - 1.0, np.asarray(y_pred, dtype=np.float64) / entry - 1.0
+    up = (r_true > 0).astype(float)
+    mae, naive = float(np.mean(np.abs(r_true - r_pred))), float(np.mean(np.abs(r_true)))
+    return {"ic": float(_stats_pearson(r_pred, r_true, degenerate=0.0)), "rank_ic": float(_stats_spearman(r_pred, r_true, degenerate=0.0)),
+            "auc": float(_stats_auc(up, r_pred)) if 0 < up.mean() < 1 else float("nan"),
+            "mae": mae, "persistence_mae": naive, "mae_improvement_%": (naive - mae) / (naive + 1e-12) * 100.0}
 
 
 def cross_correlation_lag_scan(y_actual: np.ndarray, y_pred: np.ndarray, max_lag: int = 5):
@@ -104,6 +121,7 @@ def run_integrity_diagnostics(
                 continue
 
             y_naive = entry  # الـ naive baseline = "لا تغيير عن آخر سعر معروف"
+            ret_m = compute_return_metrics(y_actual, y_pred, entry)
             model_m = compute_point_metrics(y_actual, y_pred)
             naive_m = compute_point_metrics(y_actual, y_naive)
             mae_improve = (naive_m['mae'] - model_m['mae']) / (naive_m['mae'] + 1e-12) * 100
@@ -123,6 +141,9 @@ def run_integrity_diagnostics(
                 'model_corr': model_m['corr'], 'naive_corr': naive_m['corr'],
                 'dir_acc_model_%': dir_acc_model * 100 if not np.isnan(dir_acc_model) else np.nan,
                 'dir_acc_momentum_%': dir_acc_momentum * 100 if not np.isnan(dir_acc_momentum) else np.nan,
+                'return_ic': ret_m['ic'], 'return_rank_ic': ret_m['rank_ic'], 'return_auc': ret_m['auc'],
+                'return_mae': ret_m['mae'], 'persistence_return_mae': ret_m['persistence_mae'],
+                'return_mae_improvement_%': ret_m['mae_improvement_%'],
                 'best_lag': best_lag, 'bias_pct': bias['bias_pct'],
                 'bias_same_sign_%': bias['same_sign_pct'], 'bias_label': bias['direction_label'],
                 '_y_actual': y_actual, '_y_pred': y_pred, '_y_naive': y_naive,

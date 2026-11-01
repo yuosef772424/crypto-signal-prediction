@@ -81,18 +81,20 @@
 - API:
   - `def run_full_analysis(model, test_dict: Dict, timeframes: List[str], target_specs: List['TargetSpec'], batch_size: int=256, range_frac: float=0.2, batch_analysis_size: int=100, out_dir: str=DEFAULT_OUTPUT_DIR, make_plots…` L14
 
-### `evaluation/integrity.py` (179 lines)
+### `evaluation/integrity.py` (200 lines)
 - PURPOSE: Model integrity diagnostics: naive baseline, lag scan (late copying), momentum baseline and directional bias.
 - TAGS: run_integrity_diagnostics, cross_correlation_lag_scan, momentum_direction_accuracy, directional_bias, naive baseline, lag scan
 - PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: stats
 - USES: outputs, plots, targets
 - USED BY: full_analysis
 - API:
-  - `def compute_point_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, float]` L20
-  - `def cross_correlation_lag_scan(y_actual: np.ndarray, y_pred: np.ndarray, max_lag: int=5)` L27
-  - `def momentum_direction_accuracy(y_actual: np.ndarray, entry_price: np.ndarray) -> float` L44
-  - `def directional_bias(y_actual: np.ndarray, y_pred: np.ndarray) -> Dict` L61
-  - `def run_integrity_diagnostics(per_asset_results: pd.DataFrame, target_specs: List['TargetSpec'], max_lag: int=5, plot_worst_n: int=2, plot_best_n: int=1, out_dir: str=DEFAULT_OUTPUT_DIR, verbose: bool=True) -> pd.DataFrame` L72
+  - `def compute_point_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> Dict[str, float]` L23
+  - `def compute_return_metrics(y_true: np.ndarray, y_pred: np.ndarray, entry: np.ndarray) -> Dict[str, float]` L30
+  - `def cross_correlation_lag_scan(y_actual: np.ndarray, y_pred: np.ndarray, max_lag: int=5)` L44
+  - `def momentum_direction_accuracy(y_actual: np.ndarray, entry_price: np.ndarray) -> float` L61
+  - `def directional_bias(y_actual: np.ndarray, y_pred: np.ndarray) -> Dict` L78
+  - `def run_integrity_diagnostics(per_asset_results: pd.DataFrame, target_specs: List['TargetSpec'], max_lag: int=5, plot_worst_n: int=2, plot_best_n: int=1, out_dir: str=DEFAULT_OUTPUT_DIR, verbose: bool=True) -> pd.DataFrame` L89
 
 ### `evaluation/io_patterns.py` (488 lines)
 - PURPOSE: Validated input-output pattern discovery: raw X-window snapshot features vs prediction success with train/validation split, binomial and permutation tests.
