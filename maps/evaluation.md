@@ -32,7 +32,7 @@
   - `def calculate_aggregated_metrics_v4(results_df: pd.DataFrame, target_specs) -> Dict` L338
   - `def test_all_assets(model, test_dict, timeframes, targets, verbose=True, n_display=1, batch_size=256, range_frac=0.2)` L373
 
-### `evaluation/calibrators.py` (337 lines)
+### `evaluation/calibrators.py` (390 lines)
 - PURPOSE: The Calibrator component (CALIBRATORS registry: isotonic / platt) of post-hoc confidence calibration: fit(data)->state on a role-stamped val/calibration flat table, transform(state, data), dump_state/load_state (JSON). fit_confidence_calib…
 - TAGS: calibrator, calibrators, calibrationstate, fit_confidence_calibrators, apply_confidence_calibration, diagnose_confidence, isotonic, platt, pav, confidence calibration, class_margin, base_rate, post-hoc calibration, split role, role check, one component one interface, معايرة الثقة
 - PITFALLS: fit REFUSES (core.roles.RoleError) a table whose role stamp (`df.attrs['split_role']`, core.roles.stamp_role) is missing, train, holdout, test or otherwise not in the calibrator's allowed roles (default calibration, val: today's val-fit behaviour); put the stamp on the table right before fit (attrs do not survive groupby/merge/concat). The state remembers its fit_role; transform / load_state refu…
@@ -48,9 +48,15 @@
     - `.transform(self, state: CalibrationState, data: pd.DataFrame, *, group_by: str='target') -> pd.DataFrame` L254
     - `.dump_state(self, state: CalibrationState) -> Dict` L259
     - `.load_state(self, d: Dict) -> CalibrationState` L268
-  - `def fit_confidence_calibrators(val_df: pd.DataFrame, method: str='isotonic', group_by: str='target', min_n: int=50, verbose: bool=True) -> CalibrationState` L309
-  - `def apply_confidence_calibration(df: pd.DataFrame, calibrators: CalibrationState, group_by: str='target') -> pd.DataFrame` L316
-  - `def stamp_calibration_table(table: pd.DataFrame, source, role: Optional[str]=None) -> pd.DataFrame` L324
+  - `class SigmaScaleCalibrator` L309
+    - `.__init__(self, allowed_roles=_roles.CALIBRATOR_ROLES)` L318
+    - `.fit(self, data: pd.DataFrame, *, z: float=1.645, nominal: float=0.9, min_n: int=50) -> Dict` L321
+    - `.transform(self, state: Dict, data: pd.DataFrame) -> pd.DataFrame` L340
+    - `.dump_state(self, state: Dict) -> Dict` L347
+    - `.load_state(self, d: Dict) -> Dict` L351
+  - `def fit_confidence_calibrators(val_df: pd.DataFrame, method: str='isotonic', group_by: str='target', min_n: int=50, verbose: bool=True) -> CalibrationState` L362
+  - `def apply_confidence_calibration(df: pd.DataFrame, calibrators: CalibrationState, group_by: str='target') -> pd.DataFrame` L369
+  - `def stamp_calibration_table(table: pd.DataFrame, source, role: Optional[str]=None) -> pd.DataFrame` L377
 
 ### `evaluation/decode.py` (209 lines)
 - PURPOSE: Stage 2: flexible decoding of raw model outputs into real units (continuous + categorical), decode_predictions_v4.

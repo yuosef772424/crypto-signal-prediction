@@ -306,6 +306,59 @@ for _m in ('isotonic', 'platt'):
     CALIBRATORS.register(_m, ConfidenceCalibrator(_m), version=1)
 
 
+class SigmaScaleCalibrator:
+    """Post-hoc variance-scale calibrator (E2): ONE scale ``s`` fitted on the CALIBRATION (or val) split so that the interval
+    ``mu +- z * s * sigma`` covers exactly ``nominal`` of the rows: ``s = quantile_nominal(|y - mu| / sigma) / z``. s > 1 widens an
+    over-confident sigma, s < 1 narrows an over-wide one (the NIG floors made sigma larger than the move). Same role contract as the
+    confidence calibrators: fit refuses train / holdout / test / unstamped tables, transform and load_state refuse a state fitted on a
+    forbidden role. A flat table needs the columns ``y``, ``mu``, ``sigma`` (same units)."""
+
+    name = 'sigma_scale'
+
+    def __init__(self, allowed_roles=_roles.CALIBRATOR_ROLES):
+        self.allowed_roles = tuple(allowed_roles)
+
+    def fit(self, data: pd.DataFrame, *, z: float = 1.645, nominal: float = 0.90, min_n: int = 50) -> Dict:
+        role = _roles.require_role(data, self.allowed_roles, what=f"calibrator {self.name!r}", never=_roles.NEVER_FIT_ROLES)
+        if not 0.0 < nominal < 1.0 or z <= 0:
+            raise ValueError(f"nominal must be in (0, 1) and z > 0, got nominal={nominal!r} z={z!r}")
+        d = data[['y', 'mu', 'sigma']].astype('float64').replace([np.inf, -np.inf], np.nan).dropna()
+        d = d[d['sigma'] > 0]
+        if len(d) < min_n:
+            raise ValueError(f"sigma_scale needs >= {min_n} usable rows, got {len(d)}")
+        scale = float(np.quantile(np.abs(d['y'] - d['mu']) / d['sigma'], nominal) / z)
+        return {'kind': 'sigma_scale_calibrator', 'scale': scale, 'z': float(z), 'nominal': float(nominal),
+                'provenance': {'fit_role': role, 'fit_rows': int(len(d))}}
+
+    def _check_state(self, state: Dict) -> None:
+        if not isinstance(state, dict) or state.get('kind') != 'sigma_scale_calibrator' or 'provenance' not in state:
+            raise _roles.RoleError("sigma_scale state has no provenance (not a state from SigmaScaleCalibrator.fit): refused")
+        fit_role = state['provenance'].get('fit_role')
+        if fit_role in _roles.NEVER_FIT_ROLES or fit_role not in self.allowed_roles:
+            raise _roles.RoleError(f"sigma_scale state was fitted on role {fit_role!r}; allowed: {list(self.allowed_roles)}")
+
+    def transform(self, state: Dict, data: pd.DataFrame) -> pd.DataFrame:
+        """A copy of ``data`` with ``sigma_cal = scale * sigma`` (the raw sigma is untouched)."""
+        self._check_state(state)
+        out = data.copy()
+        out['sigma_cal'] = state['scale'] * out['sigma'].astype('float64')
+        return out
+
+    def dump_state(self, state: Dict) -> Dict:
+        self._check_state(state)
+        return {k: (dict(v) if isinstance(v, dict) else v) for k, v in state.items()}
+
+    def load_state(self, d: Dict) -> Dict:
+        state = {k: (dict(v) if isinstance(v, dict) else v) for k, v in d.items()}
+        self._check_state(state)
+        return state
+
+
+#: registry of the post-hoc sigma (variance) calibrators; same contract as CALIBRATORS (name, callables, roles without train / holdout).
+SIGMA_CALIBRATORS = _Registry("sigma calibrator", _Contract("sigma calibrator", optional_meta=(), validator=_check_calibrator))
+SIGMA_CALIBRATORS.register('sigma_scale', SigmaScaleCalibrator(), version=1)
+
+
 def fit_confidence_calibrators(val_df: pd.DataFrame, method: str = 'isotonic', group_by: str = 'target',
                                min_n: int = 50, verbose: bool = True) -> CalibrationState:
     """غلاف على ``CALIBRATORS[method].fit``: ``val_df`` يجب أن يكون مختوماً بدور مسموح (``core.roles.stamp_role(val_flat, 'val')``)؛
