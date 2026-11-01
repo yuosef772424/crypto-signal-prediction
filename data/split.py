@@ -133,7 +133,7 @@ def embargo_size(data: Dict, config: Optional[dict] = None) -> int:
 
 def _tf_to_timedelta(tf: str) -> pd.Timedelta:
     """``'4h'`` → ``Timedelta('4h')``. يقبل صيغ pandas المعتادة (``1D``, ``15T``...)."""
-    return pd.Timedelta(tf)
+    return pd.Timedelta(pandas_tf(tf))
 
 
 def embargo_duration(data: Dict, config: Optional[dict] = None) -> pd.Timedelta:

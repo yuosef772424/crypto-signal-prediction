@@ -282,13 +282,13 @@ def resample_timeframes(df: pd.DataFrame,
 
     smallest = target_tfs[0]
     if base_tf != smallest:
-        df = df.resample(smallest).agg(OHLCV_AGG).dropna(how='all')
+        df = df.resample(pandas_tf(smallest)).agg(OHLCV_AGG).dropna(how='all')
         base_tf = smallest
 
     closed = _higher_tf_closed(dict(config, tf_order=list(target_tfs)))
     dfs: Dict[str, pd.DataFrame] = {}
     for tf in target_tfs:
-        frame = df if tf == base_tf else df.resample(tf).agg(OHLCV_AGG).dropna(how='all')
+        frame = df if tf == base_tf else df.resample(pandas_tf(tf)).agg(OHLCV_AGG).dropna(how='all')
         if closed and tf != base_tf:
             frame = _keep_full_bars(frame, df.index[df['close'].notna()], tf, base_tf)
         dfs[tf] = add_features(frame.copy(), config=config) if with_features else frame.copy()

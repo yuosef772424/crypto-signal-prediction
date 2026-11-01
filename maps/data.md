@@ -21,7 +21,7 @@
 - PURPOSE: Time-based multi-timeframe alignment: window end indices on a common grid, the single-TF fast path, and the 'closed' higher-TF mode (only bars closed at t).
 - TAGS: alignment, align_multi_timeframes_time_based, window_end_indices, higher_tf_mode, closed bars, 4h context, align_windows_to_grid, look-ahead
 - PITFALLS: A higher-TF window must end on a bar already closed at t (higher_tf_offset / 'closed' mode); any change here must pass tests/test_no_lookahead.py and tests/test_multi_tf.py. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
-- USES: runtime
+- USES: common, runtime
 - USED BY: checkpoints, pipeline, presets, selftests, sources, windows
 - API:
   - `def window_end_indices(index: pd.DatetimeIndex, win: int, stride: int, tf: str, config: Optional[dict]=None) -> np.ndarray` L43
@@ -55,11 +55,13 @@
 - API:
   - `def clear_checkpoint(checkpoint_dir, names: Optional[List[str]]=None) -> int` L197
 
-### `data/common.py` (24 lines)
+### `data/common.py` (33 lines)
 - PURPOSE: Shared imports (numpy, pandas, typing, concurrency) and the TypeVars T/R used by every other pipeline module.
 - TAGS: imports, shared namespace, typing, typevar, from __future__
 - PITFALLS: Loaded first: every later module relies on these names (np, pd, Optional, deepcopy, Path...) without importing them. The __future__ import applies to this file only (each module is compiled on its own). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
-- USED BY: parallel
+- USED BY: align, parallel, sources, split
+- API:
+  - `def pandas_tf(tf)` L27
 
 ### `data/cross_sectional_features.py` (471 lines)
 - PURPOSE: Cross-sectional features computed across all coins at the same timestamp: momentum rank, market breadth, momentum orthogonalised to NATR.
@@ -384,7 +386,7 @@
 - PURPOSE: Historical data sources (mounted Drive only): asset registry, coin selection by category, coin exclusion, load_asset and resampling (make_resample_fn).
 - TAGS: sources, load_asset, load_asset_registry, flatten_coins_by_category, filter_desired_coins, exclude_coins, resample_timeframes, make_resample_fn, all_global, drive_raw_dir
 - PITFALLS: No public links / gdown: every read goes through mount_drive(). flatten_coins_by_category() without arguments uses DEFAULT_ENABLED_CATEGORIES, not the whole registry. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
-- USES: align, defaults, drive, features, runtime
+- USES: align, common, defaults, drive, features, runtime
 - USED BY: live, pipeline, presets, selftests, windows
 - API:
   - `def load_asset_registry(path: Optional[str]=None, config: Optional[dict]=None) -> List[Dict]` L36
@@ -401,7 +403,7 @@
 - TAGS: split, split_data, embargo, holdout, split_dates, global_time, per_asset, rolling_splits, build_leak_free_split, compute_global_cutoff, split_role, stamp_split_roles, label_end, stamp_label_end, label_end_values, splitplan, resolve_split_plan, split_data_with_calibration, calibrationcarve
 - PITFALLS: Every split also carries `label_end` (additive int64-ns array per sample = timestamp + forecast_horizon x base-tf bar, the last bar its label reads; stamp_label_end, one producer path `_finish_splits`; the arrays of a split are unchanged, pinned by tests/golden_split_arrays.json). Every split is stamped with its role (additive key `split_role`: train/val/test, holdout for split_holdout; core/role…
 - DEPENDS: core
-- USES: disk_backed, normalizers, runtime, split_plan, windows
+- USES: common, disk_backed, normalizers, runtime, split_plan, windows
 - USED BY: presets, selftests, workflow/market_neutral
 - API:
   - `def stamp_split_roles(train: dict, val: dict, test: dict)` L55
