@@ -18,7 +18,7 @@
   - `def exec_module(name: str, ns: dict) -> dict` L29
   - `def load_into(ns: dict, exclude=()) -> dict` L37
 
-### `evaluation/all_assets.py` (371 lines)
+### `evaluation/all_assets.py` (380 lines)
 - PURPOSE: test_all_assets_v4: test a model on every asset separately plus aggregated metrics and Wilson-CI tables.
 - TAGS: test_all_assets_v4, test_all_assets, per_asset_ci_table, summarize_verification, aggregated metrics, test_dict
 - PITFALLS: Tests exclude this module on the general load and exec it explicitly (load_into(ns, exclude=...)). Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
@@ -29,8 +29,8 @@
   - `def print_verification_summary(verification_df: pd.DataFrame)` L62
   - `def per_asset_ci_table(all_results: List[Dict], specs: List['TargetSpec']) -> pd.DataFrame` L110
   - `def test_all_assets_v4(model, test_dict: Dict, timeframes: List[str], target_specs, verbose: bool=True, n_display: int=1, batch_size: int=256, range_frac: float=0.2, min_samples_per_asset: int=20, run_verification: bool=T…` L132
-  - `def calculate_aggregated_metrics_v4(results_df: pd.DataFrame, target_specs) -> Dict` L329
-  - `def test_all_assets(model, test_dict, timeframes, targets, verbose=True, n_display=1, batch_size=256, range_frac=0.2)` L364
+  - `def calculate_aggregated_metrics_v4(results_df: pd.DataFrame, target_specs) -> Dict` L338
+  - `def test_all_assets(model, test_dict, timeframes, targets, verbose=True, n_display=1, batch_size=256, range_frac=0.2)` L373
 
 ### `evaluation/calibrators.py` (337 lines)
 - PURPOSE: The Calibrator component (CALIBRATORS registry: isotonic / platt) of post-hoc confidence calibration: fit(data)->state on a role-stamped val/calibration flat table, transform(state, data), dump_state/load_state (JSON). fit_confidence_calib…
@@ -72,7 +72,7 @@
 - API:
   - `def build_flat_dataframe(per_asset_results: pd.DataFrame, target_specs: List['TargetSpec'], continuous_only: bool=False) -> pd.DataFrame` L12
 
-### `evaluation/full_analysis.py` (287 lines)
+### `evaluation/full_analysis.py` (289 lines)
 - PURPOSE: run_full_analysis: the whole pipeline plus every report and plot in one call, big outputs saved to analysis_outputs/.
 - TAGS: run_full_analysis, full analysis, all reports
 - PITFALLS: Tests exclude this module on the general load and exec it explicitly (load_into(ns, exclude=...)). Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
@@ -202,19 +202,21 @@
   - `def plot_equity_curve(equity: np.ndarray, drawdown_pct: np.ndarray, title: str='Equity Curve', save_dir: str=DEFAULT_OUTPUT_DIR, filename: Optional[str]=None) -> str` L212
   - `def plot_batch_performance(batch_stats: pd.DataFrame, z_threshold: float=1.5, title: str='Performance Across Batches', save_dir: str=DEFAULT_OUTPUT_DIR) -> str` L233
 
-### `evaluation/pooled.py` (130 lines)
+### `evaluation/pooled.py` (152 lines)
 - PURPOSE: The ONE batched evaluation predict path (lifted from workflow/pooling.py): pool the windows of all assets (pool_x / pool_test_dict), call the model once in fixed-size batches (predict_pooled_raw), slice the raw outputs back per asset by as…
 - TAGS: pooling, predict_pooled_raw, pool_x, pool_test_dict, predict_pooled_batch_by_asset, _pool_by_asset, slice_by_asset, asset_bounds, latest_table_from_raw, one model call, batched evaluation, performance
 - PITFALLS: Every per-asset evaluation site (test_all_assets_v4, predict_latest_all_assets, predict_pooled_batch_by_asset, workflow's classification_accuracy_report) must go through this module instead of calling the model once per asset: 500 coins x one tiny predict call each was ~50x slower than one pooled call. The model is independent of batch composition (no BatchNorm in inference), so pooled raw output…
+- DEPENDS: core, stats
 - USES: decode, latest_table, metrics, predict, targets
 - USED BY: all_assets, live
 - API:
-  - `def pool_x(test_dict, timeframes, names=None, n_per_asset=None)` L37
-  - `def pool_test_dict(test_dict, model_tf, n_per_asset=None, names=None, with_y=True)` L49
-  - `def predict_pooled_raw(model, pooled, timeframes, target_specs=None, batch_size: int=256, unc_max=None)` L76
-  - `def slice_by_asset(raw, asset_bounds)` L85
-  - `def latest_table_from_raw(raw, specs, base_params, last_candles, y_true, n_display, timestamps=None, asset=None)` L90
-  - `def predict_pooled_batch_by_asset(model, pooled, model_tf, target_specs=None, n_display=5, y_true_pooled=None, timestamp_col=None, verbose=True)` L98
+  - `def pool_x(test_dict, timeframes, names=None, n_per_asset=None)` L41
+  - `def pool_test_dict(test_dict, model_tf, n_per_asset=None, names=None, with_y=True)` L53
+  - `def predict_pooled_raw(model, pooled, timeframes, target_specs=None, batch_size: int=256, unc_max=None)` L80
+  - `def slice_by_asset(raw, asset_bounds)` L89
+  - `def latest_table_from_raw(raw, specs, base_params, last_candles, y_true, n_display, timestamps=None, asset=None)` L94
+  - `def predict_pooled_batch_by_asset(model, pooled, model_tf, target_specs=None, n_display=5, y_true_pooled=None, timestamp_col=None, verbose=True)` L102
+  - `def write_prediction_table(spec, test_dict, raw_by_asset, names)` L137
 
 ### `evaluation/predict.py` (124 lines)
 - PURPOSE: Stage 1: batched model prediction for any set of continuous/categorical targets (predict_batch_v4; predict_batch kept for compatibility).

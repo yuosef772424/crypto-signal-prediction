@@ -143,6 +143,7 @@ def test_all_assets_v4(
     timestamp_col: Optional[int] = None,
     timestamp_key: Optional[str] = None,
     eval_all_rows: bool = True,
+    prediction_table=None,
 ) -> Dict:
     """
     اختبار النموذج على كل أصل/عملة على حدة، بدعم أهداف مستمرة وفئوية معاً.
@@ -154,6 +155,8 @@ def test_all_assets_v4(
     eval_all_rows: True (الافتراضي) = تُقيَّم **كل** العملات وكل صفوفها (لا حدّ أدنى لعدد صفوف العملة). False = السلوك
                   القديم: تُتخطّى العملات التي صفوفها < min_samples_per_asset (20) — كانت تُسقط صامتاً العملات القصيرة
                   فيبدو الاختبار أصغر ممّا هو. يُطبع ملخص تغطية (صفوف الاختبار مقابل المُقيَّمة) دائماً حين verbose.
+    prediction_table: None (الافتراضي) = لا يُكتب شيء، السلوك القديم حرفياً. PredictionTableSpec (stats/prediction_table.py) = تُكتب
+                  مخرجات النموذج الخام لكل صفوف العملات المُقيَّمة كجدول تنبؤات واحد (مفتاح 'prediction_table_path' في النتيجة).
     timestamp_key / timestamp_col: مصدر التاريخ (مفتاح داخل بيانات الأصل، أو رقم عمود
                   في last_candles). إن لم يُحدَّد يُبحث عن مفاتيح شائعة (timestamps/times/dates...).
 
@@ -186,6 +189,7 @@ def test_all_assets_v4(
             kept.append(asset_name)
 
     raw_by_asset: Dict = {}
+    prediction_table_path = None
     if kept:
         _first = test_dict[kept[0]]
         specs = _resolve_for_model(target_specs, model, tuple(_first[f'X_{tf_name}'] for tf_name in timeframes))
@@ -194,6 +198,8 @@ def test_all_assets_v4(
         pooled_x, bounds = pool_x(test_dict, timeframes, names=kept)
         raw_pooled, specs = predict_pooled_raw(model, pooled_x, timeframes, specs, batch_size)
         raw_by_asset = {b['name']: r for b, r in slice_by_asset(raw_pooled, bounds)}
+        if prediction_table is not None:
+            prediction_table_path = write_prediction_table(prediction_table, test_dict, raw_by_asset, kept)
         del pooled_x, raw_pooled
 
     for idx, (asset_name, test_data) in enumerate(test_dict.items(), 1):
@@ -315,7 +321,7 @@ def test_all_assets_v4(
             print("=" * 100)
             print(overall.to_string(index=False, float_format=lambda x: f"{x:.4f}"))
 
-    return {
+    out = {
         'per_asset_results': results_df,
         'aggregated_results': aggregated,
         'verification_summary': verification_df,
@@ -324,6 +330,9 @@ def test_all_assets_v4(
         'coverage': coverage,
         'target_specs': specs,
     }
+    if prediction_table_path is not None:       # مفتاح إضافي فقط حين طُلب الجدول: بدونه النتيجة كما كانت
+        out['prediction_table_path'] = prediction_table_path
+    return out
 
 
 def calculate_aggregated_metrics_v4(results_df: pd.DataFrame, target_specs) -> Dict:

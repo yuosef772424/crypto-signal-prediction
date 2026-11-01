@@ -175,6 +175,7 @@
 - build_optimizer: trainer/system
 - build_panel_model: cross_asset/model
 - build_robust_candidate_dicts: discovery/survey
+- build_table: stats/prediction_table
 - build_target_configs: workflow/training_config
 - build_training_system: trainer/__init__, trainer/system
 - bundle: tools/colab_runner
@@ -575,6 +576,7 @@
 - flatten_coins_by_category: data/sources
 - float16: evaluation/legacy_uncertainty, workflow/batches
 - flush curve: edge_discovery/10_flush_curve
+- fold: core/prediction_schema, stats/prediction_table
 - forecast input features: core/heads
 - format_latest_table: evaluation/latest_table
 - forward confirmation: natr_range/run_natr_confirm_forward
@@ -672,6 +674,7 @@
 - hac: tools/paired_compare
 - har-rv: h07_volsizing/01_volsizing
 - hardening: tools/check_patterns
+- hardening c5: stats/prediction_table
 - hardening c7: stats/__init__
 - has_saved_state: trainer/checkpoints
 - hash ribbon: edge_discovery/20_onchain
@@ -681,6 +684,7 @@
 - head vocabulary: core/heads
 - head_kinds: core/heads
 - head_name: core/heads
+- head_output_prefix: core/prediction_schema
 - head_registry: model/heads
 - head_terms: workflow/training_config
 - head_types: core/heads, model/config
@@ -720,6 +724,7 @@
 - ic loss: cross_asset/train
 - ic loss test: cross_asset/selftest
 - identity.json: trainer/identity
+- identity_hash: core/prediction_schema, stats/prediction_table
 - image_cnn_results.csv: edge_discovery/25_image_cnn
 - imap_ordered: data/parallel, discovery/batch_runner
 - implicit dependencies: tools/check_deps, tools/implicit_deps
@@ -775,12 +780,14 @@
 - keras 2/3: trainer/env
 - keras layers: model/common
 - key mask: cross_asset/model
+- key_columns: core/prediction_schema
 - klines: tools/fetch_history_csv_concurrent, tools/fetch_history_vision_colab
 - kmeans: evaluation/patterns
 - lab: discovery/selftest
 - label checks: workflow/verification
 - label key: core/heads
 - label-shift null: gate_features/run_gate001
+- label_available_at: core/prediction_schema, stats/prediction_table
 - label_key: core/heads
 - label_smoothing: workflow/training_config
 - lag scan: evaluation/integrity
@@ -807,7 +814,7 @@
 - lead-lag: edge_discovery/11_more
 - leaderboard: discovery/scanner
 - leakage: tests/test_no_lookahead
-- leakage check: workflow/permutation_control
+- leakage check: stats/prediction_table, workflow/permutation_control
 - leakage control: core/roles
 - learning curve: gate_features/run_gate001
 - learning_curve: workflow/capacity
@@ -1139,6 +1146,7 @@
 - plot_equity_curve: evaluation/plots
 - plot_pattern_validation: evaluation/io_patterns
 - plugin: core/registry
+- point in time: core/prediction_schema, stats/prediction_table
 - pool_test_dict: evaluation/pooled
 - pool_x: evaluation/pooled
 - pooled z*y: edge_discovery/08_ts_screen
@@ -1160,6 +1168,10 @@
 - predict_with_evaluation_v3: evaluation/unified
 - predict_with_evaluation_v4: evaluation/__init__, evaluation/unified
 - predicted high low: edge_discovery/31_wick_capture, edge_discovery/32_breakout_stops, tools/bracket_eval
+- prediction schema: core/prediction_schema
+- prediction table: core/prediction_schema, stats/prediction_table
+- prediction_made_at: core/prediction_schema, stats/prediction_table
+- predictiontable: stats/prediction_table
 - premium index: tools/fetch_history_vision_colab
 - prepare_chicks: workflow/run
 - prepare_data: tools/colab_bridge
@@ -1214,6 +1226,7 @@
 - rank_weighted: workflow/market_neutral
 - ratchet: tools/build_map
 - ratelimiter: data/binance_client
+- read_table: stats/prediction_table
 - readout: model/readout
 - real_config: trainer/example
 - real_model_builder: trainer/example
@@ -1259,6 +1272,7 @@
 - reproduction check: tools/colab_runner
 - require_phase2_data: data/phase2
 - require_role: core/roles
+- required_columns: core/prediction_schema
 - resample_timeframes: data/sources
 - research data: tools/fetch_crypto_dataset
 - research protocol: tools/experiment_registry
@@ -1363,6 +1377,7 @@
 - schedule_curves: core/loss_plan
 - schedule_value: trainer/schedules
 - schema: core/__init__, core/schema
+- schema_version: core/prediction_schema
 - scratch: data/disk_backed
 - screen_disc_mean.csv: edge_discovery/04_screen_mean
 - sealed coins: tools/holdout_guard, tools/touched_ledger
@@ -1443,11 +1458,12 @@
 - split_asset_names: workflow/market_neutral
 - split_data: data/__init__, data/split
 - split_dates: data/defaults, data/split
-- split_role: data/split
+- split_role: core/prediction_schema, data/split, stats/prediction_table
 - spot: tools/fetch_crypto_dataset
 - squeeze breakout: strategy_discovery/grid
 - stablecoin: edge_discovery/20_onchain
 - stage b: natr_range/run_natr_confirm_forward
+- stage contract: stats/prediction_table
 - stage-2 logistic: edge_discovery/30_envelope_direction
 - stale bars: natr_range/run_natr_calibrate, tools/stale_bars_audit, tools/stale_bars_colab_job, tools/trim_dead_tails
 - stale_bars: tools/stale_bars_audit
@@ -1540,7 +1556,7 @@
 - threads: data/parallel
 - threshold trades: stats/metrics
 - tie policy: stats/__init__, stats/metrics
-- tier 0: core/__init__, core/heads, core/loss_plan, core/registry, core/roles, core/seeds
+- tier 0: core/__init__, core/heads, core/loss_plan, core/prediction_schema, core/registry, core/roles … (+1)
 - tier 1: stats/__init__
 - time of day: strategy_discovery/seasonality15m
 - time seal: natr_range/run_natr_confirm_forward, tools/holdout_guard
@@ -1569,6 +1585,7 @@
 - trailing quantile baseline: tools/natr_range
 - trailing_close_sigma: data/normalizers
 - train<=2021 val 2022 test 2023-26: edge_discovery/27_repr_info
+- train_end: core/prediction_schema, stats/prediction_table
 - train_labels: cross_asset/report
 - train_mode: trainer/system
 - train_model: workflow/run
@@ -1629,6 +1646,7 @@
 - valid_train_modes: trainer/config
 - validate_config: trainer/config
 - validate_head_config: data/heads
+- validate_table: stats/prediction_table
 - variance ratio: data/custom
 - variant arms: indicator_strategy/variants
 - variant b (no attention): cross_asset/model
@@ -1674,6 +1692,7 @@
 - workflow package: workflow/_loader
 - workflow.run steps: tools/evaluate_trained_model
 - wr: tools/gate_features
+- write_table: stats/prediction_table
 - xla: trainer/perf
 - y_ target head names: tools/check_patterns
 - y_name: core/heads

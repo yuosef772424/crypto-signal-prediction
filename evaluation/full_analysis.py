@@ -37,6 +37,7 @@ def run_full_analysis(
     calibrators: Optional[Dict] = None,
     calibration_method: str = 'isotonic',
     calibration_role: Optional[str] = None,
+    prediction_table=None,
 ) -> Dict:
     """
     خط الأنابيب الكامل: تنبؤ + فك تشفير مرن + تحقق + تقييم، ثم كل التقارير
@@ -53,6 +54,7 @@ def run_full_analysis(
     val_dict: بنية test_dict نفسها لقسم **val** (build_chicks_test_dict({'VAL': val}, ...)). إن مُرِّر تُلائَم معايرة الثقة post-hoc
         عليه وحده (method = calibration_method: 'isotonic' | 'platt') وتُطبَّق على test في تقرير الثقة (ECE قبل/بعد) — بلا إعادة تدريب.
     calibrators: معايِرات جاهزة (fit_confidence_calibrators) بدل val_dict؛ يجب أن تكون CalibrationState (لها مصدر fit_role) لا قاموساً خاماً.
+    prediction_table: None = لا جدول (السلوك القديم). PredictionTableSpec = يُكتب جدول تنبؤات test (test_all_assets_v4).
     calibration_role: دور بيانات val_dict ('val' | 'calibration')؛ None = دور val_dict المختوم. بلا أي منهما يرفع RoleError: لا
         دور افتراضي (المعاير لا يُلائَم على ما لا نعرف دوره؛ train وholdout مرفوضان دائماً).
     """
@@ -62,7 +64,7 @@ def run_full_analysis(
         model, test_dict, timeframes, target_specs,
         verbose=verbose, batch_size=batch_size, range_frac=range_frac,
         n_display=n_display, timestamp_col=timestamp_col, timestamp_key=timestamp_key,
-        eval_all_rows=eval_all_rows,
+        eval_all_rows=eval_all_rows, prediction_table=prediction_table,
     )
     target_specs = test_results.get('target_specs', target_specs)   # الأهداف بعد الحسم (نصوص → TargetSpec)
     per_asset = test_results['per_asset_results']
