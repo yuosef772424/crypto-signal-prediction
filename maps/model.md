@@ -17,7 +17,7 @@
   - `def module_path(name: str) -> Path` L38
   - `def load_into(ns: dict, exclude=()) -> dict` L45
 
-### `model/builder.py` (252 lines)
+### `model/builder.py` (282 lines)
 - PURPOSE: build_nig_timenet_v2: the model architecture builder (+ DEFAULT_HEAD_TYPES).
 - TAGS: build_nig_timenet_v2, default_head_types, encoder, multi-timeframe, anti-memorization options, model builder
 - PITFALLS: Every anti-memorization option defaults to the OLD behaviour exactly, so older checkpoints still load. The nig_regression output names come from the HeadKind in core/heads.py (never spell y_<t>_nu etc. here); the model's outputs are listed nig heads first, then the other heads per target (HeadSet.output_names is per head: compare sorted). Executed into the one shared model namespace by model/_loa…
@@ -25,7 +25,8 @@
 - USES: decomposition, heads, input_norm, nig_layers, patches, readout, transformer
 - USED BY: config
 - API:
-  - `def build_nig_timenet_v2(seq_len, n_features, d_model=128, num_layers=4, num_heads=4, num_kv_heads=2, patch_len=4, stride=2, kernel_sizes=(3, 5, 9, 17), max_rel_pos=16, dropout=0.1, attn_dropout=0.0, causal=False, window=No…` L24
+  - `def unc_gate_model(model)` L28
+  - `def build_nig_timenet_v2(seq_len, n_features, d_model=128, num_layers=4, num_heads=4, num_kv_heads=2, patch_len=4, stride=2, kernel_sizes=(3, 5, 9, 17), max_rel_pos=16, dropout=0.1, attn_dropout=0.0, causal=False, window=No…` L37
 
 ### `model/common.py` (13 lines)
 - PURPOSE: Shared imports (numpy, tensorflow, keras layers) and the `register` decorator (keras serializable, package 'nigts').
@@ -33,7 +34,7 @@
 - PITFALLS: `register` must exist before any layer module runs; the registered name is 'nigts>ClassName', so renaming a class breaks saved models. Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
 - USED BY: decomposition, input_norm, nig_layers, patches, readout, transformer
 
-### `model/config.py` (94 lines)
+### `model/config.py` (95 lines)
 - PURPOSE: MODEL_CONFIG, ANTI_MEMORIZATION_CONFIG and build_model_fn, the entry point used by main.ipynb.
 - TAGS: model_config, anti_memorization_config, build_model_fn, head_types, model config
 - PITFALLS: MODEL_CONFIG is a live dict mutated by main.ipynb (MODEL_CONFIG['head_types'] = ...); build_model_fn reads it at call time. Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
@@ -41,7 +42,7 @@
 - USES: builder
 - USED BY: selftests, workflow/wiring_selftest
 - API:
-  - `def build_model_fn(seq_len, n_features, config=None)` L86
+  - `def build_model_fn(seq_len, n_features, config=None)` L87
 
 ### `model/decomposition.py` (49 lines)
 - PURPOSE: CausalMultiScaleDecomp: causal multi-scale trend/residual split (no future leakage).

@@ -21,6 +21,19 @@ def _nig_outputs(target):
 DEFAULT_HEAD_TYPES = {t: ["nig_regression"] for t in _TARGET_COLUMNS}
 
 
+#: the registered values of the optional mu skip residual (None = the old model exactly).
+MU_SKIPS = (None, "unc_gated")
+
+
+def unc_gate_model(model):
+    """A sub-model returning the uncertainty gates ``{target: (B, 1)}`` of a model built with ``mu_skip='unc_gated'`` (to inspect their
+    distribution and their correlation with |error|); raises if the model has no such gates."""
+    gates = {l.name[len("unc_gate_"):]: l.output for l in model.layers if l.name.startswith("unc_gate_")}
+    if not gates:
+        raise ValueError("this model has no uncertainty gates (built without mu_skip='unc_gated')")
+    return tf.keras.Model(model.inputs, gates)
+
+
 def build_nig_timenet_v2(
     seq_len, n_features,
     d_model=128, num_layers=4, num_heads=4, num_kv_heads=2,
@@ -32,7 +45,7 @@ def build_nig_timenet_v2(
     nu_min=0.1, alpha_min=2.0, beta_min=0.01, unc_max=20.0,
     class_head_hidden=64, n_classes=3,
     norm_eps=1e-4, input_clip=None, stats_mode="full", input_noise_std=0.0, feature_dropout=0.0,
-    linear_path_l2=1e-4, level_passthrough=False, level_norm=None,
+    linear_path_l2=1e-4, level_passthrough=False, level_norm=None, mu_skip=None,
     encoder="transformer", level_film=False, architecture="fused", fusion="concat", level_hidden=64,
     n_coins=0, coin_emb_dim=4, coin_emb_l2=1e-3,
     name="nig_timenet_v2",
@@ -82,6 +95,8 @@ def build_nig_timenet_v2(
                   عملة لم تُرَ في التدريب تبقى صفراً (= «عملة متوسّطة»). ⚠️ معرِّف عملة صريح = قناة حفظ محتملة
                   بالتعريف؛ لذلك L2 وdropout عليه، ويُقاس بالتسميات المخلوطة قبل أي اعتماد.
     """
+    if mu_skip not in MU_SKIPS:
+        raise ValueError(f"mu_skip: {' | '.join(map(repr, MU_SKIPS))} — لا {mu_skip!r}")
     head_types = head_types or DEFAULT_HEAD_TYPES
     head_cfg = dict(
         dropout=dropout, class_head_hidden=class_head_hidden, n_classes=n_classes,
@@ -221,6 +236,21 @@ def build_nig_timenet_v2(
     for t in nig_targets:
         nig = NIGHead(head_hidden, dropout, nu_min, alpha_min, beta_min, name=f"nig_{t}")
         raw_nig[t] = nig(h)  # (mu_raw, nu, alpha, beta)
+        if mu_skip == "unc_gated":
+            # مسار تخطٍّ متعلَّم على mu (من UltimateNIGLayer القديم): skip = Dense(128, swish)(MHA(query = متوسط الميزات عبر الزمن، key = value = المدخل))،
+            # unc_gate = sigmoid(Dense(1)(stop_gradient(epistemic)))، mu = mu + unc_gate * skip[:, 0, 0:1]. stop_gradient على epistemic: البوّابة
+            # تقرأ عدم اليقين ولا تستطيع دفعه (الخسارة لا تصل epistemic عبرها)؛ وmu وحده يتلقّى تدرّج المسار.
+            mu_raw, nu_t, alpha_t, beta_t = raw_nig[t]
+            feat_in = inputs if tfs is None else inputs_by_tf[tfs[0]]
+            n_feat = int(feat_in.shape[-1])
+            query = layers.Lambda(lambda x: tf.reduce_mean(x, axis=1, keepdims=True), name=f"skip_query_{t}")(feat_in)
+            attn = layers.MultiHeadAttention(num_heads=4, key_dim=max(4, n_feat // 4), name=f"skip_attn_{t}")(query, feat_in, feat_in)
+            skip = layers.Dense(128, activation="swish", name=f"skip_fc_{t}")(attn)
+            skip_mu = layers.Lambda(lambda x: x[:, 0, 0:1], name=f"skip_mu_{t}")(skip)
+            epi_src, _ = NIGUncertainty(unc_max=unc_max, name=f"skip_unc_{t}")([nu_t, alpha_t, beta_t])
+            gate = layers.Dense(1, activation="sigmoid", name=f"unc_gate_{t}")(layers.Lambda(tf.stop_gradient, name=f"skip_sg_{t}")(epi_src))
+            mu_gated = layers.Add(name=f"mu_skip_add_{t}")([mu_raw, layers.Multiply(name=f"mu_skip_gated_{t}")([gate, skip_mu])])
+            raw_nig[t] = (mu_gated, nu_t, alpha_t, beta_t)
 
     apply_order = enforce_order and set(_TARGET_COLUMNS).issubset(nig_targets)
     if apply_order:
