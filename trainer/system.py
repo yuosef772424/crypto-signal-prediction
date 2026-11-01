@@ -245,7 +245,7 @@ def build_training_system(
         callbacks.append(ParamScheduler(
             trainer.scheduled_vars[pname], start=pcfg["start"], end=pcfg["end"],
             warmup_epochs=pcfg.get("warmup_epochs", 0), schedule=pcfg.get("schedule", "linear"),
-            label=pname, verbose=verbose,
+            label=pname, verbose=verbose, delay_epochs=pcfg["delay_epochs"] if "delay_epochs" in pcfg else 0,
         ))
 
     callbacks.append(tf.keras.callbacks.LearningRateScheduler(lr_fn, verbose=0))

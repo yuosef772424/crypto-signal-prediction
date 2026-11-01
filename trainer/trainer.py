@@ -26,7 +26,8 @@ regression أو classification أو خليط منها، مع موازنة تلق
 > وطبقة الموازنة معًا.
 """
 # @title 5) المدرّب العام (GenericTrainer)
-from core.loss_plan import CURRICULUM_RANK_KEY
+from core.loss_plan import CURRICULUM_RANK_KEY, UTILITY_STAMP_KEY
+from stats.target_codec import CODECS as _TARGET_CODECS
 
 
 class GenericTrainer(tf.keras.Model):
@@ -74,6 +75,13 @@ class GenericTrainer(tf.keras.Model):
         self.loss_normalization = _loss_cfg["loss_normalization"] if "loss_normalization" in _loss_cfg else "none"
         self.loss_norm_beta = float(_loss_cfg["loss_norm_beta"]) if "loss_norm_beta" in _loss_cfg else 0.98
         self.curriculum = dict(_loss_cfg["curriculum"]) if "curriculum" in _loss_cfg else None
+        self.utility = dict(_loss_cfg["utility"]) if "utility" in _loss_cfg else None
+        if self.utility is not None:
+            if "lambda_utility" not in self.scheduled_vars:
+                raise ValueError("loss.utility needs the schedule 'lambda_utility' in loss.schedules (core.loss_plan.utility_plan writes both)")
+            if self.utility["head"] not in config["targets"]:
+                raise ValueError(f"loss.utility.head {self.utility['head']!r} is not a target: {list(config['targets'])}")
+            self.utility_tracker = tf.keras.metrics.Mean(name="utility_loss")
         self.loss_ema = ({t: tf.Variable(0.0, trainable=False, dtype=tf.float32, name=f"loss_ema_{t}") for t in self.target_names}
                           if self.loss_normalization == "ema" else {})
 
@@ -112,10 +120,30 @@ class GenericTrainer(tf.keras.Model):
             for c in self.constraints_cfg
         }
 
+    def _utility_loss(self, y, outputs):
+        """-mean(s * r - cost * |s|) / std(r): s = tanh(k * mu / (sigma + eps)) from the close head, r = the DECODED simple return of the
+        (clipped) label through the target codec (the one inverse: stats.target_codec). Units of the batch return std (stop-gradient), so
+        lambda_U is comparable to the O(1) head losses. sigma = the head's own scale: 'sigma' output, else the NIG aleatoric
+        sqrt(beta / (alpha - 1))."""
+        u = self.utility
+        tcfg = self.config["targets"][u["head"]]
+        keys = tcfg["output_keys"]
+        mu = _flat(outputs[keys["mu"]])
+        if "sigma" in keys:
+            sigma = _flat(outputs[keys["sigma"]])
+        else:
+            sigma = tf.sqrt(_flat(outputs[keys["beta"]]) / tf.maximum(_flat(outputs[keys["alpha"]]) - 1.0, 1e-2))
+        s = tf.tanh(u["k"] * mu / (sigma + u["eps"]))
+        stamps = {"target_vol": _flat(y[UTILITY_STAMP_KEY])} if UTILITY_STAMP_KEY in y else {}
+        r = _TARGET_CODECS[u["codec"]].inverse(_flat(y[tcfg["true_key"]]), stamps, {"scale": u["scale"]}, tf.math)
+        gain = s * r - u["cost"] * tf.abs(s)
+        return -tf.reduce_mean(gain) / (tf.stop_gradient(tf.math.reduce_std(r)) + 1e-8)
+
     @property
     def metrics(self):
         return (
-            [self.loss_tracker, self.raw_loss_tracker]
+            ([self.utility_tracker] if self.utility is not None else [])
+            + [self.loss_tracker, self.raw_loss_tracker]
             + list(self._target_loss_trackers.values())
             + list(self._stat_trackers.values())
             + list(self._constraint_trackers.values())
@@ -201,6 +229,10 @@ class GenericTrainer(tf.keras.Model):
             total_loss = raw_loss
 
         extra = constraint_total
+        if self.utility is not None:        # ADDED to the standard head losses; weight ramped 0 -> lambda_U by the schedule 'lambda_utility'
+            utility = self._utility_loss(y, outputs)
+            extra = extra + tf.cast(self.scheduled_vars["lambda_utility"], tf.float32) * utility
+            per_stat_values["__utility__"] = utility
         if self.model.losses:
             extra = extra + tf.add_n([tf.cast(l, tf.float32) for l in self.model.losses])
         total_loss = total_loss + extra
@@ -214,6 +246,8 @@ class GenericTrainer(tf.keras.Model):
         self.raw_loss_tracker.update_state(raw_loss)
         for t, v in per_target_losses.items():
             self._target_loss_trackers[t].update_state(v)
+        if "__utility__" in per_stat_values:
+            self.utility_tracker.update_state(per_stat_values["__utility__"])
         for k, v in per_stat_values.items():
             if k in self._stat_trackers:
                 if isinstance(v, tuple):            # an epoch-level (stream) stat: update_state(x, y, sample_weight)

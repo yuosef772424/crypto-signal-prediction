@@ -372,6 +372,9 @@ _CONFIG_SCHEMA = {
         # optional keys (absent from the defaults = the old loss exactly): see GenericTrainer
         "loss_normalization": _r_enum("none", "ema"), "loss_norm_beta": _r_real(gt=0.0, lt=1.0),
         # curriculum sample weighting (SAMPLE_WEIGHTINGS curriculum_*): {"f0": share trained at epoch 0, "full_at_epoch": epoch of the full set}
+        # decision-utility term (core.loss_plan.utility_plan): head, k, cost, eps, codec, scale; its weight is the schedule lambda_utility
+        "utility": {"head": _r_any, "k": _r_real(gt=0.0), "cost": _r_real(ge=0.0), "eps": _r_real(gt=0.0), "codec": _r_any,
+                    "scale": _r_real(gt=0.0)},
         "curriculum": {"f0": _r_real(gt=0.0, lt=1.0001), "full_at_epoch": _r_int(ge=1)},
         "schedules": _r_any, "constraints": _r_any,
     },
@@ -499,7 +502,8 @@ def _check_loss(cfg, errs):
     if not isinstance(sched, dict):
         errs.append(f"loss.schedules: must be a dict of name -> schedule, got {type(sched).__name__}")
         sched = {}
-    sched_schema = {"start": _r_real(), "end": _r_real(), "warmup_epochs": _r_int(ge=0), "schedule": _r_enum(*_SCHEDULE_NAMES)}
+    sched_schema = {"start": _r_real(), "end": _r_real(), "warmup_epochs": _r_int(ge=0), "schedule": _r_enum(*_SCHEDULE_NAMES),
+                    "delay_epochs": _r_int(ge=0)}
     for pname, pcfg in sched.items():
         p = f"loss.schedules[{pname!r}]"
         if not isinstance(pname, str) or not pname:

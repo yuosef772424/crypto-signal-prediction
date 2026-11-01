@@ -12,7 +12,7 @@ from core.heads import HeadSet
 from core.registry import Contract, Registry
 
 CURRICULUM_RANK_KEY = "__curriculum_rank__"   # the sample_weight dict entry carrying each TRAIN sample's curriculum rank (read by GenericTrainer by this key)
-__all__ = ["CURRICULUM_RANK_KEY", "sample_weighting_parts", "LOSS_BALANCERS", "HEAD_LOSS_TERMS", "check_head_loss_terms", "check_report_heads", "SAMPLE_WEIGHTINGS", "check_sample_weighting", "SELECTION_METRICS", "SelectionChoice", "SCHEDULE_CURVES", "SUB_TERM_SCHEDULES", "DEFAULT_BALANCING",
+__all__ = ["UTILITY_STAMP_KEY", "UTILITY_DEFAULTS", "check_utility", "utility_plan", "OPTIONAL_SUB_TERM_SCHEDULES", "CURRICULUM_RANK_KEY", "sample_weighting_parts", "LOSS_BALANCERS", "HEAD_LOSS_TERMS", "check_head_loss_terms", "check_report_heads", "SAMPLE_WEIGHTINGS", "check_sample_weighting", "SELECTION_METRICS", "SelectionChoice", "SCHEDULE_CURVES", "SUB_TERM_SCHEDULES", "DEFAULT_BALANCING",
            "DEFAULT_SELECTION_METRIC", "check_loss_weights", "check_loss_schedules", "resolve_selection_metric", "trainer_loss_section"]
 
 #: curve names of a scheduled loss sub-term (trainer/schedules.py `_progress_curve`; trainer/config.py validates against this tuple).
@@ -24,7 +24,10 @@ SUB_TERM_SCHEDULES = ("lambda_reg", "lambda_calib")
 DEFAULT_BALANCING = "kendall"
 DEFAULT_SELECTION_METRIC = "val_raw_loss"
 
-_SCHEDULE_KEYS = ("start", "end", "warmup_epochs", "schedule")
+_SCHEDULE_KEYS = ("start", "end", "warmup_epochs", "schedule", "delay_epochs")
+#: sub-term schedules a plan MAY add (absent = the term is off; unlike SUB_TERM_SCHEDULES, whose absence would switch a term off silently).
+#: ``delay_epochs`` (default 0 = the old schedule): the value stays ``start`` until that epoch, then ramps over ``warmup_epochs``.
+OPTIONAL_SUB_TERM_SCHEDULES = ("lambda_utility",)
 
 
 # ───────────────────────────── task balancing ─────────────────────────────
@@ -88,6 +91,11 @@ HEAD_LOSS_TERMS.register("huber", "huber", version=1, kind="per_sample", options
                          weight_key="huber_weight", task_types=("evidential",),
                          description="Huber loss directly on mu, added to the NIG loss: mu gets a gradient that does not pass through "
                                      "the uncertainty (the head cannot 'explain' its error by inflating beta)")
+HEAD_LOSS_TERMS.register("beta_nll", "beta_nll", version=1, kind="per_sample", options={"beta_nll": 0.0}, weight_key="beta_nll",
+                         task_types=("evidential",),
+                         description="beta-NLL (Seitzer et al. 2022): the NIG nll of each sample is multiplied by stopgrad(sigma^(2*beta)), sigma = the "
+                                     "Student-t scale w_St of the NIG predictive, so high-variance samples cannot silence their own gradient "
+                                     "(beta = 0.5 keeps the mean fitted while the variance stays calibrated); 0 = plain NIG nll")
 HEAD_LOSS_TERMS.register("ic", "ic", version=1, kind="batch", options={"ic_weight": 0.0}, weight_key="ic_weight",
                          task_types=("evidential", "regression"),
                          description="-pearson(mu, y) over the (pooled) batch, differentiable, 0 for a constant batch: aligns the point "
@@ -225,6 +233,48 @@ def check_sample_weighting(name: Any, target_mode: Optional[str], what: str = "l
     return name
 
 
+#: the decision-utility term: position s = tanh(k * mu / (sigma + eps)), gain = s * r - cost * |s|, loss = -mean(gain) / std(r), with r the
+#: DECODED simple return of the (clipped) label (stats.target_codec.decode_return: works for return / volnorm / volret / relative, refuses
+#: entry_range and the other modes without a codec) and cost in RETURN units (0.0008 = 0.08% round trip). weight = lambda_U, ramped
+#: 0 -> weight over ramp_epochs after warmup_epochs (the OPTIONAL schedule lambda_utility) and always ADDED to the standard head losses.
+UTILITY_STAMP_KEY = "__utility_target_vol__"      # the y-dict entry carrying each sample's per-row decode stamp (target_vol)
+UTILITY_DEFAULTS = {"weight": 0.0, "k": 1.0, "cost": 0.0008, "eps": 1e-6, "warmup_epochs": 10, "ramp_epochs": 10}
+
+
+def check_utility(utility: Any, target_mode: Optional[str] = None, what: str = "loss.utility") -> Dict[str, float]:
+    """Validate the utility options (``{}`` = off) and return a plain copy with the defaults filled in; a target mode without a return
+    decode (no TargetCodec) raises. Needs weight > 0 to be on."""
+    if not isinstance(utility, Mapping):
+        raise ValueError(f"{what} must be a dict, got {type(utility).__name__}")
+    if not utility:
+        return {}
+    unknown = sorted(set(utility) - set(UTILITY_DEFAULTS))
+    if unknown:
+        raise ValueError(f"{what}: unknown option(s) {unknown}; known: {sorted(UTILITY_DEFAULTS)}")
+    out = {**UTILITY_DEFAULTS, **{k: v for k, v in utility.items()}}
+    problems = []
+    for k in ("weight", "k", "cost", "eps"):
+        if not _finite_number(out[k]) or out[k] < 0 or (k in ("k", "eps") and out[k] == 0):
+            problems.append(f"{k} must be a finite number {'> 0' if k in ('k', 'eps') else '>= 0'}, got {out[k]!r}")
+    for k in ("warmup_epochs", "ramp_epochs"):
+        if not (isinstance(out[k], int) and not isinstance(out[k], bool) and out[k] >= (1 if k == "ramp_epochs" else 0)):
+            problems.append(f"{k} must be an int >= {1 if k == 'ramp_epochs' else 0}, got {out[k]!r}")
+    if not problems and out["weight"] == 0:
+        problems.append("weight must be > 0 (an empty dict is how the term is switched off)")
+    if problems:
+        raise ValueError(f"{what}: " + "; ".join(problems))
+    return {k: (int(v) if isinstance(v, int) else float(v)) for k, v in out.items()}
+
+
+def utility_plan(utility: Mapping[str, Any], codec: str, scale: float) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    """``(trainer loss.utility section, lambda_utility schedule)`` of a validated utility plan: the codec name and the reg scale tell
+    the trainer how to decode the label / mu into a return (the codec's inverse: the one decode)."""
+    section = {"head": "close_reg", "k": utility["k"], "cost": utility["cost"], "eps": utility["eps"], "codec": codec, "scale": float(scale)}
+    schedule = {"start": 0.0, "end": float(utility["weight"]), "warmup_epochs": int(utility["ramp_epochs"]), "schedule": "linear",
+                "delay_epochs": int(utility["warmup_epochs"])}
+    return section, schedule
+
+
 def check_report_heads(names: Any, heads: HeadSet, stat: str = "ic", what: str = "loss.report_ic") -> Tuple[str, ...]:
     """Validate the heads whose epoch-level selection-metric ``stat`` (SELECTION_METRICS, per-head, e.g. ``ic``) is logged although
     it is not the monitor: a list/tuple of head names that exist and whose task type the metric supports. Returns a tuple (order kept)."""
@@ -267,14 +317,14 @@ def check_loss_schedules(schedules: Any, what: str = "loss.schedules") -> Dict[s
         raise ValueError(f"{what} must be a dict {{sub-term: schedule}}, got {type(schedules).__name__}")
     problems = []
     missing = [n for n in SUB_TERM_SCHEDULES if n not in schedules]
-    extra = sorted(str(k) for k in schedules if k not in SUB_TERM_SCHEDULES)
+    extra = sorted(str(k) for k in schedules if k not in SUB_TERM_SCHEDULES and k not in OPTIONAL_SUB_TERM_SCHEDULES)
     if missing:
         problems.append(f"missing sub-term(s) {missing} (a missing schedule would switch the term off silently; "
                         f"switch it off with start=end=0)")
     if extra:
         problems.append(f"unknown sub-term(s) {extra}; known: {list(SUB_TERM_SCHEDULES)}")
     out = {}
-    for name in SUB_TERM_SCHEDULES:
+    for name in SUB_TERM_SCHEDULES + OPTIONAL_SUB_TERM_SCHEDULES:
         s = schedules.get(name)
         if s is None:
             continue
@@ -292,6 +342,9 @@ def check_loss_schedules(schedules: Any, what: str = "loss.schedules") -> Dict[s
         w = s.get("warmup_epochs", 0)
         if not (isinstance(w, int) and not isinstance(w, bool) and w >= 0):
             problems.append(f"{name}.warmup_epochs must be an int >= 0, got {w!r}")
+        d = s.get("delay_epochs", 0)
+        if not (isinstance(d, int) and not isinstance(d, bool) and d >= 0):
+            problems.append(f"{name}.delay_epochs must be an int >= 0, got {d!r}")
         if s.get("schedule", "linear") not in SCHEDULE_CURVES:
             problems.append(f"{name}.schedule must be one of {list(SCHEDULE_CURVES)}, got {s.get('schedule')!r}")
         out[name] = dict(s)

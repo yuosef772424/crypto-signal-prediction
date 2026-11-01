@@ -7,6 +7,8 @@ import numpy as np
 
 import tensorflow as tf
 
+from core.loss_plan import UTILITY_STAMP_KEY
+
 
 def _to_unit_label(y):
     """يحوّل ترميز اتجاه خط الأنابيب إلى {0,1} القياسية التي يفترضها
@@ -24,6 +26,8 @@ def _y_for(split, config=None):
     for cfg in config["targets"].values():
         v = split["y"][cfg["true_key"]]
         y[cfg["true_key"]] = _to_unit_label(v) if cfg["task_type"] == "classification" else v
+    if "utility" in config["loss"] and "target_vol" in split:      # the per-row decode stamp of the utility term (vol modes only)
+        y[UTILITY_STAMP_KEY] = split["target_vol"]
     return y
 
 

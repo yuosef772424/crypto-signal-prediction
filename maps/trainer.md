@@ -49,7 +49,7 @@
   - `def build_trainer_variables(trainer: 'GenericTrainer', sample_batch: Tuple[Any, ...])` L127
   - `def stage_warm_start_weights(config: dict) -> Tuple[str, int, int]` L139
 
-### `trainer/config.py` (653 lines)
+### `trainer/config.py` (657 lines)
 - PURPOSE: TRAINER_DEFAULT_CONFIG (alias DEFAULT_CONFIG; the trainer's single source of truth), deep_update, build_config (merge + validate_config, the ONE place that validates), config_fingerprint, model_signature.
 - TAGS: trainer_default_config, default_config, build_config, validate_config, _config_schema, strict config, deep_update, config_fingerprint, model_signature, valid_train_modes, trainer config
 - PITFALLS: build_config validates through validate_config (aggregated ValueError): an unknown key at any level (with a did-you-mean), a non-finite / negative / non-number loss_weight, an unregistered task_type, a key of another task type, a schedule name (lambda_*_var, constraint weight_var) not defined in loss.schedules, an early-stopping monitor the trainer never logs, a knob that would be silently ignore…
@@ -58,10 +58,10 @@
 - API:
   - `def deep_update(base: dict, override: dict) -> dict` L246
   - `def build_config(user_config: dict) -> dict` L257
-  - `def validate_config(cfg: dict) -> dict` L579
-  - `def fingerprint_payload(cfg: dict, extra_ignored_run_keys: tuple=()) -> dict` L633
-  - `def config_fingerprint(cfg: dict, extra_ignored_run_keys: tuple=()) -> str` L642
-  - `def model_signature(model: tf.keras.Model) -> list` L646
+  - `def validate_config(cfg: dict) -> dict` L583
+  - `def fingerprint_payload(cfg: dict, extra_ignored_run_keys: tuple=()) -> dict` L637
+  - `def config_fingerprint(cfg: dict, extra_ignored_run_keys: tuple=()) -> str` L646
+  - `def model_signature(model: tf.keras.Model) -> list` L650
 
 ### `trainer/ensemble.py` (66 lines)
 - PURPOSE: Optional ensemble inference for evidential targets: ensemble_predict_evidential(_meinert).
@@ -152,20 +152,20 @@
 - TAGS: gpu, memory growth, mixed precision, use_mixed_precision, xla, performance
 - PITFALLS: Runs at load and changes global TensorFlow state (GPU memory growth, global dtype policy). Executed into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other modules resolve at call time.
 
-### `trainer/schedules.py` (120 lines)
+### `trainer/schedules.py` (127 lines)
 - PURPOSE: ParamScheduler, schedule_value, apply_schedules and the learning-rate schedules (cosine warm restarts).
 - TAGS: paramscheduler, schedule_value, apply_schedules, cosine_warm_restarts, build_lr_schedule_fn, lr schedule
 - PITFALLS: cross_asset/train.py re-states build_lr_schedule_fn: keep both in sync. Executed into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other modules resolve at call time.
 - USED BY: system
 - API:
-  - `def schedule_value(start: float, end: float, warmup_epochs: int, schedule: str, epoch: int) -> float` L38
-  - `class ParamScheduler(tf.keras.callbacks.Callback)` L46
-    - `.__init__(self, var: tf.Variable, start: float, end: float, warmup_epochs: int, schedule: str='linear', label: Optional[str]=None, log_every: int=5, verbose: int=1)` L49
-    - `.value_at(self, epoch: int) -> float` L61
-    - `.on_epoch_begin(self, epoch, logs=None)` L64
-  - `def apply_schedules(trainer, config: dict, epoch: int)` L71
-  - `def cosine_warm_restarts(epoch, lr_initial, lr_min, cycle_length=10, cycle_mult=1.5)` L79
-  - `def build_lr_schedule_fn(opt_cfg: dict, rewarm_from_epoch: Optional[int]=None, rewarm_epochs: int=0) -> Callable[[int], float]` L89
+  - `def schedule_value(start: float, end: float, warmup_epochs: int, schedule: str, epoch: int, delay_epochs: int=0) -> float` L38
+  - `class ParamScheduler(tf.keras.callbacks.Callback)` L50
+    - `.__init__(self, var: tf.Variable, start: float, end: float, warmup_epochs: int, schedule: str='linear', label: Optional[str]=None, log_every: int=5, verbose: int=1, delay_epochs: int=0)` L53
+    - `.value_at(self, epoch: int) -> float` L67
+    - `.on_epoch_begin(self, epoch, logs=None)` L70
+  - `def apply_schedules(trainer, config: dict, epoch: int)` L77
+  - `def cosine_warm_restarts(epoch, lr_initial, lr_min, cycle_length=10, cycle_mult=1.5)` L86
+  - `def build_lr_schedule_fn(opt_cfg: dict, rewarm_from_epoch: Optional[int]=None, rewarm_epochs: int=0) -> Callable[[int], float]` L96
 
 ### `trainer/smoke_test.py` (136 lines)
 - PURPOSE: Smoke test: proves optimizer state survives an interruption and warm_start works (run_trainer_smoke_test() trains a real tiny model; run by tools/run_self_tests).
@@ -218,7 +218,7 @@
 - PITFALLS: An unregistered task_type raises. NIG loss is numerically fragile (log/lgamma): losses cast to float32. Executed into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other modules resolve at call time.
 - DEPENDS: core, stats
 - USES: config
-- USED BY: ensemble
+- USED BY: ensemble, trainer
 - API:
   - `def register_task_type(name: str, fn: Callable, stat_keys: List[str], supports_sample_weight: bool=False, config_keys: Tuple[str, ...]=(), version: int=1, stream_stats: Optional[Dict[str, Tuple[Callable, Callable]]]=None)` L79
   - `def batch_corr(pred, y, w=None, eps: float=_PEARSON_VAR_EPS)` L123
@@ -237,20 +237,20 @@
   - `def regression_task_loss(y_true, outputs, target_cfg, scheduled_vars, sample_weight=None)` L395
   - `def classification_task_loss(y_true, outputs, target_cfg, scheduled_vars, sample_weight=None)` L427
 
-### `trainer/trainer.py` (249 lines)
+### `trainer/trainer.py` (283 lines)
 - PURPOSE: GenericTrainer: the training-step core (any number of targets, evidential/regression/classification).
 - TAGS: generictrainer, train_step, test_step, compute_loss, tf.keras.model subclass, multi-task
 - PITFALLS: The model is passed to self.model(x) as is (the framework never opens x); keep train_step and test_step symmetric. Executed into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other modules resolve at call time.
-- DEPENDS: core
-- USES: config, task_weighting
+- DEPENDS: core, stats
+- USES: config, task_weighting, tasks
 - USED BY: system
 - API:
-  - `class GenericTrainer(tf.keras.Model)` L32
-    - `.__init__(self, model: tf.keras.Model, config: dict, **kwargs)` L33
-    - `.metrics(self)` L116
-    - `.fit(self, x=None, y=None, **kwargs)` L226
-    - `.train_step(self, data)` L231
-    - `.test_step(self, data)` L245
+  - `class GenericTrainer(tf.keras.Model)` L33
+    - `.__init__(self, model: tf.keras.Model, config: dict, **kwargs)` L34
+    - `.metrics(self)` L143
+    - `.fit(self, x=None, y=None, **kwargs)` L260
+    - `.train_step(self, data)` L265
+    - `.test_step(self, data)` L279
 
 ### `trainer/training_diagnostics.py` (646 lines)
 - PURPOSE: TrainingDiagnostics: optional diagnostic recorder (+ SAMPLE_IDX_KEY, with_sample_index).

@@ -14,7 +14,9 @@ from copy import deepcopy as _deepcopy
 import numpy as np
 
 from core.heads import HeadSet as _HeadSet
-from core.loss_plan import resolve_selection_metric as _resolve_selection_metric, trainer_loss_section as _trainer_loss_section
+from core.loss_plan import (resolve_selection_metric as _resolve_selection_metric, trainer_loss_section as _trainer_loss_section,
+                            utility_plan as _utility_plan)
+from stats.target_codec import codec_name_for_mode as _codec_name_for_mode
 from core.roles import role_of as _role_of
 from core.seeds import seed_everything
 
@@ -328,6 +330,16 @@ def build_model(plan, kit, summary=True):
 # ═══════════════════════════════════════════════════════════════════════════
 # القسم ٥: التدريب
 # ═══════════════════════════════════════════════════════════════════════════
+def _loss_section_with_utility(settings, heads, info):
+    """The trainer `loss` section of the plan; with LossSettings.utility also the section `utility` and the schedule `lambda_utility`."""
+    tr = settings.train
+    section = _trainer_loss_section(tr.loss.balancing, tr.loss.schedules, heads, tr.loss.sample_weighting)
+    if tr.loss.utility:
+        codec = _codec_name_for_mode(settings.target.target_mode)
+        section["utility"], section["schedules"]["lambda_utility"] = _utility_plan(tr.loss.utility, codec, info.reg_target_scale)
+    return section
+
+
 def make_training_config(settings, plan, info, val, kit):
     """القسم ٥: إعداد المدرّب (trainer_framework) من الإعدادات: مجلد التشغيل، الأهداف (true_key ↔ output_keys)، الخسائر، الإيقاف
     المبكر، وخطوط الأساس الساذجة لكل رأس تصنيف على val. يُرجع main_config."""
@@ -354,7 +366,7 @@ def make_training_config(settings, plan, info, val, kit):
         # Kendall تبقى لرؤوس التصنيف فقط؛ رؤوس evidential (NLL قد تكون سالبة) تُستثنى افتراضياً في trainer_framework —
         # معها كانت الخسارة الكلية تنهار نحو -∞ (راجع ملاحظة القسم 4 هناك). الجدولان lambda_reg/lambda_calib قيمتاهما الابتدائيتان
         # من مثال trainer_framework نفسه — عدّلهما بعد مراقبة val_*_nig_pen. كلها من خطة الخسارة train.loss (core/loss_plan.py).
-        "loss": _trainer_loss_section(tr.loss.balancing, tr.loss.schedules, heads, tr.loss.sample_weighting),
+        "loss": _loss_section_with_utility(settings, heads, info),
         "callbacks": {
             # val_raw_loss (الافتراضي) = مجموع خسائر المهام بأوزانها الثابتة (بلا حدود Kendall المتعلَّمة): هدف التدريب نفسه، فتغيير وزن
             # يغيّر أيضاً أي حقبة «أفضل». مقياس مستقل عن الهدف (val_<head>_accuracy/mae/nig_base) يُختار بالاسم من SELECTION_METRICS.
