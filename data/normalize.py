@@ -61,7 +61,7 @@ binary_flag   علم توفّر 0/1 (``*_available``)                   ``x * 2 
 """
 
 # مصدرها الوحيد core/schema.py؛ تُربط هنا بالاسم نفسه (نطاق خط الأنابيب ينفّذ هذه الوحدة في نطاق واحد مشترك).
-from core.schema import LOGRET_PRICE_NORM_MODES
+from core.schema import CLIP_ABS, LOGRET_PRICE_NORM_MODES
 
 # ══════════════════════════════════════════════════════════════════════════
 # أنواع الميزات
@@ -99,9 +99,8 @@ LOG_CENTERED = 'log_centered'
 #: النوع الافتراضي لأي عمود غير مُصنَّف — تقييس داخل النافذة (آمن دائماً).
 DEFAULT_KIND = CUMULATIVE
 
-#: أقصى قيمة مطلقة بعد التطبيع. القصّ يمنع انفجار التدرّجات من عيّنة شاذة
+#: أقصى قيمة مطلقة بعد التطبيع (``CLIP_ABS`` من core/schema.py: مصدر واحد). القصّ يمنع انفجار التدرّجات من عيّنة شاذة
 #: واحدة، ويُبقي 99%+ من القيم بلا مساس (انظر ``audit_normalization``).
-CLIP_ABS = 5.0
 
 #: أوضاع تطبيع أعمدة ``price_level`` (CONFIG['price_norm_mode']) — انظر رأس الخلية.
 PRICE_NORM_WINDOW = 'window_scale'

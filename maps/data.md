@@ -243,7 +243,7 @@
   - `def build_market_context(load_asset_fn: Optional[Callable]=None, resample_fn: Optional[Callable]=None, data: Optional[Dict]=None, config: Optional[dict]=None) -> Optional[Dict[str, pd.DataFrame]]` L105
   - `def add_market_context(dfs: Dict[str, pd.DataFrame], market_dfs: Optional[Dict[str, pd.DataFrame]], is_reference: bool, config: Optional[dict]=None) -> Dict[str, pd.DataFrame]` L141
 
-### `data/normalize.py` (648 lines)
+### `data/normalize.py` (647 lines)
 - PURPOSE: Window normalisation driven by a semantic kind per feature (FEATURE_KINDS prefixes): process_windows, price_norm_mode ('window_scale' | 'pct_change' | 'logret_std' | 'logret_sigma'), pct_change encode/decode, audit_normalization. The per-m…
 - TAGS: normalization, normalize, feature_kinds, classify_feature, process_windows, price_norm_mode, pct_change, logret_std, logret_sigma, clip_abs, audit_normalization, التطبيع
 - PITFALLS: Classification is by column-name prefix (longest prefix wins): a new feature with an unknown prefix falls back to DEFAULT_KIND silently — register its kind in FEATURE_KINDS. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time. logret_*: only the open/high/low/close channels change (other price_level columns…
@@ -251,19 +251,19 @@
 - USES: level_channel, runtime
 - USED BY: checkpoints, cross_sectional_norm, live, normalizers, pipeline, presets, selftests, windows
 - API:
-  - `def classify_feature(col_name: str, kinds: Optional[Dict[str, str]]=None, default: str=DEFAULT_KIND) -> str` L225
-  - `def calc_scale_params(data: np.ndarray, method: str='robust') -> Tuple[float, float]` L256
-  - `def scale_data(data: np.ndarray, center: float, scale: float) -> np.ndarray` L272
-  - `def inverse_scale(preds: np.ndarray, bases: np.ndarray) -> np.ndarray` L276
-  - `def price_norm_mode(config: Optional[dict]=None) -> str` L303
-  - `def price_pct_clip(config: Optional[dict]=None) -> float` L312
-  - `def pct_change_encode(x: np.ndarray, axis: int=0) -> np.ndarray` L321
-  - `def pct_change_decode(r: np.ndarray, anchor, anchor_at: str='last', axis: int=0) -> np.ndarray` L338
-  - `def normalize_column(x: np.ndarray, kind: str, center: float, scale: float, method: str='robust', eps: float=1e-08, price_mode: str=PRICE_NORM_WINDOW) -> np.ndarray` L376
-  - `def process_window(w: np.ndarray, columns: list, med_p: float, iqr_p: float, method: str='robust', config: Optional[dict]=None, clip_abs: Optional[float]=None) -> np.ndarray` L426
-  - `def process_windows(windows: np.ndarray, columns: List[str], centers: np.ndarray, scales: np.ndarray, method: str='robust', config: Optional[dict]=None, clip_abs: Optional[float]=None) -> np.ndarray` L465
-  - `def describe_features(features: List[str]) -> Dict[str, List[str]]` L587
-  - `def audit_normalization(windows: np.ndarray, features: List[str], verbose: bool=True, config: Optional[dict]=None) -> pd.DataFrame` L595
+  - `def classify_feature(col_name: str, kinds: Optional[Dict[str, str]]=None, default: str=DEFAULT_KIND) -> str` L224
+  - `def calc_scale_params(data: np.ndarray, method: str='robust') -> Tuple[float, float]` L255
+  - `def scale_data(data: np.ndarray, center: float, scale: float) -> np.ndarray` L271
+  - `def inverse_scale(preds: np.ndarray, bases: np.ndarray) -> np.ndarray` L275
+  - `def price_norm_mode(config: Optional[dict]=None) -> str` L302
+  - `def price_pct_clip(config: Optional[dict]=None) -> float` L311
+  - `def pct_change_encode(x: np.ndarray, axis: int=0) -> np.ndarray` L320
+  - `def pct_change_decode(r: np.ndarray, anchor, anchor_at: str='last', axis: int=0) -> np.ndarray` L337
+  - `def normalize_column(x: np.ndarray, kind: str, center: float, scale: float, method: str='robust', eps: float=1e-08, price_mode: str=PRICE_NORM_WINDOW) -> np.ndarray` L375
+  - `def process_window(w: np.ndarray, columns: list, med_p: float, iqr_p: float, method: str='robust', config: Optional[dict]=None, clip_abs: Optional[float]=None) -> np.ndarray` L425
+  - `def process_windows(windows: np.ndarray, columns: List[str], centers: np.ndarray, scales: np.ndarray, method: str='robust', config: Optional[dict]=None, clip_abs: Optional[float]=None) -> np.ndarray` L464
+  - `def describe_features(features: List[str]) -> Dict[str, List[str]]` L586
+  - `def audit_normalization(windows: np.ndarray, features: List[str], verbose: bool=True, config: Optional[dict]=None) -> pd.DataFrame` L594
 
 ### `data/normalizers.py` (515 lines)
 - PURPOSE: ONE registered Normalizer interface behind every price normalization mode ('window_scale', 'logret_std', 'logret_sigma'; the legacy window-level 'pct_change' resolves to 'window_scale' via normalizer_for_mode): fit on train only -> a plain…

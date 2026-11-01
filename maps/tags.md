@@ -246,7 +246,7 @@
 - classify_result: discovery/batch_runner
 - clean_reg_target: discovery/__init__, discovery/evaluation
 - clear_checkpoint: data/checkpoints
-- clip_abs: data/normalize
+- clip_abs: core/schema, data/normalize
 - clone ref: tools/drive_sync
 - close_reg: tools/stale_bars_audit, tools/stale_bars_colab_job
 - closed bars: data/align, tools/gate_features

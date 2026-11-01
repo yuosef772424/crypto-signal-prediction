@@ -1,6 +1,6 @@
 """
 PURPOSE:  The data schema names shared by data, workflow, discovery, cross_asset and tools: the last_candles column order (LAST_COLUMNS, TS_COL, LAST_COLUMN_INDEX), its dtype, the price target columns and the target-mode names.
-TAGS:     LAST_COLUMNS, TS_COL, LAST_COLUMN_INDEX, LAST_DTYPE, TARGET_COLUMNS, DIRECTION_TARGET, RANGE_TARGETS, TARGET_MODES, NO_RELATIVE_BASES, ENTRY_CLOSE_REGS, last_candles, schema, column order
+TAGS:     CLIP_ABS, LAST_COLUMNS, TS_COL, LAST_COLUMN_INDEX, LAST_DTYPE, TARGET_COLUMNS, DIRECTION_TARGET, RANGE_TARGETS, TARGET_MODES, NO_RELATIVE_BASES, ENTRY_CLOSE_REGS, last_candles, schema, column order
 PITFALLS: LAST_COLUMNS is the physical column order of every saved dataset's last_candles array: reordering or inserting breaks existing datasets, checkpoints and every positional index, so only APPEND (and then update the "(N, 7)" docs). It is a tuple (immutable); `.index(name)` is the way to get a position. LAST_COLUMN_INDEX is a read-only name -> index mapping (cross_asset's old LC dict). TARGET_MODES lists the base modes of workflow.retarget_splits; "+relative" may be appended to every base not in NO_RELATIVE_BASES, and the alias "relative" means "return+relative".
 """
 from types import MappingProxyType
@@ -54,3 +54,7 @@ PRICE_NORM_SIGMA_FLOOR = 1e-4
 #: مفتاح إضافي على كل قسم من أقسام التقسيم (data/split.py): ``label_end`` = لكل عيّنة (int64 نانوثانية UTC) طابع آخر شمعة تقرؤها تسميتها
 #: = ``timestamp + forecast_horizon × مدة الفريم الأساسي``. إضافي فقط: مصفوفات القسم لا تتغيّر.
 LABEL_END_KEY = 'label_end'
+
+#: أقصى قيمة مطلقة بعد تطبيع قنوات X في window_scale (data/normalize.py process_windows يقصّ بها؛ و target_mode 'volret' يكتشف بها
+#: النوافذ المقصوصة التي لا يُفكّ إغلاقها): مصدر واحد للقيمة.
+CLIP_ABS = 5.0
