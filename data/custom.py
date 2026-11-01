@@ -152,7 +152,24 @@ DEFAULT_CUSTOM_SETTINGS: Dict[str, object] = {
     # يتسارع (short>long، "انضغاط قبل انفجار" — أدبيات تداول تركيب التقلّب
     # في الخيارات) أم يتباطأ؟ [] يعني مُعطَّلة تماماً.
     "vol_term_structure_pairs": [],
+    # ميزات الأحداث المعروفة عند الدخول (event group، E-tgt-003 S5) — كلها سببية (الشمعة الحالية والماضي فقط): EVT_VOL_SPIKE (علم: درجة
+    # الحجم المعيارية > spike_z)، EVT_MAXRET_{w} (أقصى |عائد|/تقلّب الماضي خلال آخر w شمعة)، EVT_GAP (علم: |log(open/إغلاق سابق)| >
+    # gap_k × تقلّب). None يعني مُعطَّلة تماماً (لا أعمدة EVT_* ولا تغيير في أي ناتج قديم)؛ مفتاح مجهول يرفع ValueError.
+    "event_features": None,
 }
+
+#: مفاتيح مجموعة event_features وقيمها الافتراضية عند التفعيل (``{}`` = كل الافتراضيات).
+EVENT_FEATURE_DEFAULTS: Dict[str, object] = {"volume_window": 20, "spike_z": 3.0, "ret_windows": [8], "vol_window": 20, "gap_k": 3.0}
+
+
+def _event_settings(s: dict) -> Optional[dict]:
+    """The validated event_features options with the defaults filled in; None when the group is off."""
+    ev = s["event_features"]
+    if ev is None:
+        return None
+    if not isinstance(ev, dict) or set(ev) - set(EVENT_FEATURE_DEFAULTS):
+        raise ValueError(f"event_features: a dict with keys from {sorted(EVENT_FEATURE_DEFAULTS)} or None, got {ev!r}")
+    return {**EVENT_FEATURE_DEFAULTS, **ev}
 
 
 def _hour_features_meaningful(config: Optional[dict] = None) -> bool:
@@ -451,6 +468,20 @@ def add_custom_features(data: pd.DataFrame,
                 natr_short / natr_long.replace(0, np.nan)
             ).fillna(1.0)
 
+    # ── ميزات الأحداث المعروفة عند الدخول (مُعطَّلة افتراضياً، event_features=None) ──
+    ev = _event_settings(s)
+    if ev is not None:
+        vw, nw = int(ev["volume_window"]), int(ev["vol_window"])
+        sigma = ret_1.rolling(nw, min_periods=nw).std().shift(1).replace(0, np.nan)    # تقلّب الماضي فقط (بلا الشمعة الحالية)
+        if 'volume' in df:
+            lv = np.log1p(df['volume'].clip(lower=0).astype('float64'))
+            z = (lv - lv.rolling(vw, min_periods=vw).mean()) / lv.rolling(vw, min_periods=vw).std().replace(0, np.nan)
+            df['EVT_VOL_SPIKE'] = (z > float(ev["spike_z"])).astype('float64')
+        for w in ev["ret_windows"]:
+            df[f'EVT_MAXRET_{int(w)}'] = ((ret_1.abs() / sigma).rolling(int(w), min_periods=1).max()).fillna(0.0)
+        gap = np.log(open_.clip(lower=EPS) / close.shift(1).clip(lower=EPS)).abs()
+        df['EVT_GAP'] = (gap > float(ev["gap_k"]) * sigma).astype('float64')
+
     return df
 
 
@@ -591,6 +622,9 @@ def custom_feature_names(settings: Optional[dict] = None,
         names += ['PCT_FROM_ATH', 'DAYS_SINCE_ATH']
     for short_w, long_w in s["vol_term_structure_pairs"]:
         names += [f'VOL_TERM_{short_w}_{long_w}']
+    ev = _event_settings(s)
+    if ev is not None:
+        names += ['EVT_VOL_SPIKE'] + [f'EVT_MAXRET_{int(w)}' for w in ev["ret_windows"]] + ['EVT_GAP']
     return names
 
 
@@ -1358,3 +1392,42 @@ def _test_vol_term_structure_feature():
           'تقلّب متسارع→>1 + تقلّب متباطئ→<1 + سببية مُتحقَّقة')
 
 
+
+
+def _test_event_features():
+    """اختبار ذاتي لمجموعة event_features: (أ) مُعطَّلة افتراضياً (لا أعمدة EVT_ ولا تغيير في بقية الأعمدة)، (ب) قفزة حجم ←
+    EVT_VOL_SPIKE=1 عندها فقط، وقفزة سعر ← EVT_MAXRET كبير وEVT_GAP=1 عند فتح الشمعة بفجوة، (ج) سببية: تقطيع السلسلة لا يُغيّر
+    قيمة نقطة سابقة، (د) مفتاح مجهول يرفع ValueError، (هـ) الأسماء المنتَجة = custom_feature_names."""
+    import numpy as np, pandas as pd
+    n = 120
+    idx = pd.date_range('2024-01-01', periods=n, freq='4h')
+    rng = np.random.default_rng(n)
+    close = 100 * np.exp(np.cumsum(rng.normal(0, 0.002, n)))
+    open_ = np.concatenate([[close[0]], close[:-1]])
+    volume = rng.random(n) * 10 + 100.0
+    volume[100] = 1e5                                                      # قفزة حجم
+    open_[110] = close[109] * 1.05                                         # فجوة فتح +5%
+    close[110] = open_[110] * 1.0005
+    df = pd.DataFrame({'open': open_, 'high': np.maximum(open_, close) * 1.001, 'low': np.minimum(open_, close) * 0.999,
+                       'close': close, 'volume': volume}, index=idx)
+    base = add_custom_features(df, config={'custom_settings': {}})
+    assert not any(c.startswith('EVT_') for c in base.columns), 'event_features=None يجب ألا ينتج أي عمود (توافق خلفي)'
+    settings = {'event_features': {}}
+    out = add_custom_features(df, config={'custom_settings': settings})
+    assert set(out.columns) - set(base.columns) == {'EVT_VOL_SPIKE', 'EVT_MAXRET_8', 'EVT_GAP'}
+    pd.testing.assert_frame_equal(out[list(base.columns)], base)           # بقية الأعمدة بلا تغيير
+    assert out['EVT_VOL_SPIKE'].iloc[100] == 1.0 and out['EVT_VOL_SPIKE'].drop(idx[100]).sum() <= 2.0, 'علم قفزة الحجم'
+    assert out['EVT_GAP'].iloc[110] == 1.0 and out['EVT_GAP'].iloc[30:100].sum() == 0.0, 'علم الفجوة'
+    assert out['EVT_MAXRET_8'].iloc[110] > 5.0 > out['EVT_MAXRET_8'].iloc[60], 'أقصى |عائد|/تقلّب'
+    for k in (80, 105, 115):
+        out_k = add_custom_features(df.iloc[:k].copy(), config={'custom_settings': settings})
+        for c in ('EVT_VOL_SPIKE', 'EVT_MAXRET_8', 'EVT_GAP'):
+            assert np.isclose(out_k[c].iloc[-1], out[c].loc[out_k.index[-1]]), f'تسرّب معلومة مستقبلية في {c} عند k={k}'
+    try:
+        add_custom_features(df, config={'custom_settings': {'event_features': {'nope': 1}}})
+        raise AssertionError('مفتاح مجهول يجب أن يرفع ValueError')
+    except ValueError:
+        pass
+    assert set(custom_feature_names(settings=settings)) == set(c for c in out.columns if c in set(custom_feature_names(settings=settings)))
+    assert {'EVT_VOL_SPIKE', 'EVT_MAXRET_8', 'EVT_GAP'} <= set(custom_feature_names(settings=settings))
+    print('✅ _test_event_features: مُعطَّلة افتراضياً + أعلام الحجم/الفجوة + أقصى عائد + سببية')

@@ -90,15 +90,15 @@
   - `def cross_sectional_normalize(dataset: Dict, heads: Optional[List[str]]=None, method: Optional[str]=None, min_assets: Optional[int]=None, clip: Optional[float]=None, config: Optional[dict]=None, verbose: bool=True) -> Dict` L27
   - `def invert_cross_sectional(preds: np.ndarray, timestamps: np.ndarray, head: str, dataset: Dict) -> np.ndarray` L135
 
-### `data/custom.py` (1360 lines)
+### `data/custom.py` (1433 lines)
 - PURPOSE: Static scale-free custom features (log returns, relative ranges, candle structure, time features, fractals, volatility estimators, trend age, ...) and their column names.
 - TAGS: custom features, add_custom_features, custom_feature_names, default_custom_settings, returns, fractal, supertrend, psar, hurst, variance ratio, ath distance, time_hour
 - PITFALLS: Its _test_*() causality checks do not run at load: Loading only defines it; the checks run in `run_self_tests(globals())` (tools/run_self_tests.py). Every feature must be causal: row t may only use rows <= t (tests/test_no_lookahead.py). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
 - USES: runtime
 - USED BY: cross_sectional_norm, features, funding_oi, selftests, windows
 - API:
-  - `def add_custom_features(data: pd.DataFrame, settings: Optional[dict]=None, config: Optional[dict]=None) -> pd.DataFrame` L177
-  - `def custom_feature_names(settings: Optional[dict]=None, config: Optional[dict]=None) -> List[str]` L546
+  - `def add_custom_features(data: pd.DataFrame, settings: Optional[dict]=None, config: Optional[dict]=None) -> pd.DataFrame` L194
+  - `def custom_feature_names(settings: Optional[dict]=None, config: Optional[dict]=None) -> List[str]` L577
 
 ### `data/defaults.py` (591 lines)
 - PURPOSE: PIPELINE_DEFAULT_CONFIG (alias DEFAULT_CONFIG) — the single source of truth for every pipeline/model/training setting — plus COINS_BY_CATEGORY, STATIC_INDICATORS_FULL and DEFAULT_ENABLED_CATEGORIES.
@@ -243,7 +243,7 @@
   - `def build_market_context(load_asset_fn: Optional[Callable]=None, resample_fn: Optional[Callable]=None, data: Optional[Dict]=None, config: Optional[dict]=None) -> Optional[Dict[str, pd.DataFrame]]` L105
   - `def add_market_context(dfs: Dict[str, pd.DataFrame], market_dfs: Optional[Dict[str, pd.DataFrame]], is_reference: bool, config: Optional[dict]=None) -> Dict[str, pd.DataFrame]` L141
 
-### `data/normalize.py` (647 lines)
+### `data/normalize.py` (650 lines)
 - PURPOSE: Window normalisation driven by a semantic kind per feature (FEATURE_KINDS prefixes): process_windows, price_norm_mode ('window_scale' | 'pct_change' | 'logret_std' | 'logret_sigma'), pct_change encode/decode, audit_normalization. The per-m…
 - TAGS: normalization, normalize, feature_kinds, classify_feature, process_windows, price_norm_mode, pct_change, logret_std, logret_sigma, clip_abs, audit_normalization, التطبيع
 - PITFALLS: Classification is by column-name prefix (longest prefix wins): a new feature with an unknown prefix falls back to DEFAULT_KIND silently — register its kind in FEATURE_KINDS. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time. logret_*: only the open/high/low/close channels change (other price_level columns…
@@ -251,19 +251,19 @@
 - USES: level_channel, runtime
 - USED BY: checkpoints, cross_sectional_norm, live, normalizers, pipeline, presets, selftests, windows
 - API:
-  - `def classify_feature(col_name: str, kinds: Optional[Dict[str, str]]=None, default: str=DEFAULT_KIND) -> str` L224
-  - `def calc_scale_params(data: np.ndarray, method: str='robust') -> Tuple[float, float]` L255
-  - `def scale_data(data: np.ndarray, center: float, scale: float) -> np.ndarray` L271
-  - `def inverse_scale(preds: np.ndarray, bases: np.ndarray) -> np.ndarray` L275
-  - `def price_norm_mode(config: Optional[dict]=None) -> str` L302
-  - `def price_pct_clip(config: Optional[dict]=None) -> float` L311
-  - `def pct_change_encode(x: np.ndarray, axis: int=0) -> np.ndarray` L320
-  - `def pct_change_decode(r: np.ndarray, anchor, anchor_at: str='last', axis: int=0) -> np.ndarray` L337
-  - `def normalize_column(x: np.ndarray, kind: str, center: float, scale: float, method: str='robust', eps: float=1e-08, price_mode: str=PRICE_NORM_WINDOW) -> np.ndarray` L375
-  - `def process_window(w: np.ndarray, columns: list, med_p: float, iqr_p: float, method: str='robust', config: Optional[dict]=None, clip_abs: Optional[float]=None) -> np.ndarray` L425
-  - `def process_windows(windows: np.ndarray, columns: List[str], centers: np.ndarray, scales: np.ndarray, method: str='robust', config: Optional[dict]=None, clip_abs: Optional[float]=None) -> np.ndarray` L464
-  - `def describe_features(features: List[str]) -> Dict[str, List[str]]` L586
-  - `def audit_normalization(windows: np.ndarray, features: List[str], verbose: bool=True, config: Optional[dict]=None) -> pd.DataFrame` L594
+  - `def classify_feature(col_name: str, kinds: Optional[Dict[str, str]]=None, default: str=DEFAULT_KIND) -> str` L227
+  - `def calc_scale_params(data: np.ndarray, method: str='robust') -> Tuple[float, float]` L258
+  - `def scale_data(data: np.ndarray, center: float, scale: float) -> np.ndarray` L274
+  - `def inverse_scale(preds: np.ndarray, bases: np.ndarray) -> np.ndarray` L278
+  - `def price_norm_mode(config: Optional[dict]=None) -> str` L305
+  - `def price_pct_clip(config: Optional[dict]=None) -> float` L314
+  - `def pct_change_encode(x: np.ndarray, axis: int=0) -> np.ndarray` L323
+  - `def pct_change_decode(r: np.ndarray, anchor, anchor_at: str='last', axis: int=0) -> np.ndarray` L340
+  - `def normalize_column(x: np.ndarray, kind: str, center: float, scale: float, method: str='robust', eps: float=1e-08, price_mode: str=PRICE_NORM_WINDOW) -> np.ndarray` L378
+  - `def process_window(w: np.ndarray, columns: list, med_p: float, iqr_p: float, method: str='robust', config: Optional[dict]=None, clip_abs: Optional[float]=None) -> np.ndarray` L428
+  - `def process_windows(windows: np.ndarray, columns: List[str], centers: np.ndarray, scales: np.ndarray, method: str='robust', config: Optional[dict]=None, clip_abs: Optional[float]=None) -> np.ndarray` L467
+  - `def describe_features(features: List[str]) -> Dict[str, List[str]]` L589
+  - `def audit_normalization(windows: np.ndarray, features: List[str], verbose: bool=True, config: Optional[dict]=None) -> pd.DataFrame` L597
 
 ### `data/normalizers.py` (515 lines)
 - PURPOSE: ONE registered Normalizer interface behind every price normalization mode ('window_scale', 'logret_std', 'logret_sigma'; the legacy window-level 'pct_change' resolves to 'window_scale' via normalizer_for_mode): fit on train only -> a plain…
@@ -401,7 +401,7 @@
   - `def seq_len(config: Optional[dict]=None) -> int` L152
   - `def describe(config: Optional[dict]=None) -> None` L158
 
-### `data/selftests.py` (2423 lines)
+### `data/selftests.py` (2424 lines)
 - PURPOSE: run_pipeline_selftests(): the notebook's self-tests on small synthetic data (no Drive, no network).
 - TAGS: self-tests, run_pipeline_selftests, synthetic data, regression tests
 - PITFALLS: Loading only defines run_pipeline_selftests (no call at module level); tools/run_self_tests.run_self_tests(ns) runs it. The tests patch names through globals() of the shared namespace; docs/research/audit/_nbload.load_pipeline() leaves this module out (it takes minutes). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolv…

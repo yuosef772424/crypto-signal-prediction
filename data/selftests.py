@@ -1104,6 +1104,7 @@ def run_pipeline_selftests(verbose: bool = True) -> bool:
             'CRASH_REBOUND_REGIME': UNIT_0_1, 'MKT_CRASH_REBOUND_REGIME': UNIT_0_1,
             'VOL_TERM_3_30': ZSCORE, 'RISK_ADJ_MOM_20': ZSCORE, 'MKT_BETA_20': ZSCORE,
             'MOM_ORTH_NATR': UNIT_SYM,
+            'EVT_VOL_SPIKE': BINARY_FLAG, 'EVT_GAP': BINARY_FLAG, 'EVT_MAXRET_8': ZSCORE,
         }
         for name, kind in expected.items():
             got = classify_feature(name)

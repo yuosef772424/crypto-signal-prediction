@@ -191,6 +191,9 @@ FEATURE_KINDS: Dict[str, str] = {
                              'EFF_RATIO_', 'VOL_CONC_', 'CRASH_REBOUND_REGIME',
                              'MKT_CRASH_REBOUND_REGIME')},             # [0, 1] أصلاً
     **{p: ZSCORE for p in ('VOL_TERM_', 'RISK_ADJ_MOM_', 'MKT_BETA_')},  # نِسَب حول 0/1، قيمها المعتادة داخل ±3
+    # ميزات الأحداث (custom.py event_features، مُعطَّلة افتراضياً): أعلام 0/1 ونسبة |عائد|/تقلّب ≥ 0 (وحدات تقلّب كالـZSCORE)
+    **{p: BINARY_FLAG for p in ('EVT_VOL_SPIKE', 'EVT_GAP')},
+    **{p: ZSCORE for p in ('EVT_MAXRET_',)},
     # ✅ ميزات التمويل/الفائدة المفتوحة — كانت غير مُصنَّفة فتسقط في CUMULATIVE (تقييس داخل النافذة):
     # علم التوفّر ثابت داخل كل نافذة تقريباً فيُصفَّر دائماً (النموذج لا يرى «لا بيانات» أبداً)،
     # وFUND_rate_z يُقيَّس مرة ثانية، وFUND_rate يفقد مستواه المطلق.
