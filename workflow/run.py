@@ -33,6 +33,7 @@ class Toolkit:
     load_data_from_drive: _t.Callable
     load_dataset_dir: _t.Callable
     split_data: _t.Callable
+    split_data_with_calibration: _t.Callable   # opt-in calibration split (DataSettings.calibration_split)
     build_model_fn: _t.Callable           # model package
     anti_memorization_config: dict        # model package: the architecture overrides of ModelSettings.anti_memorization
     model_config: dict                    # model package: MODEL_CONFIG (its keys = the valid ModelSettings.config_overrides names)
@@ -44,7 +45,8 @@ class Toolkit:
 
     #: field -> the name it has in the notebook namespace
     NAMES = {"config": "CONFIG", "update_config": "update_config", "load_data_from_drive": "load_data_from_drive",
-             "load_dataset_dir": "load_dataset_dir", "split_data": "split_data", "build_model_fn": "build_model_fn",
+             "load_dataset_dir": "load_dataset_dir", "split_data": "split_data",
+             "split_data_with_calibration": "split_data_with_calibration", "build_model_fn": "build_model_fn",
              "anti_memorization_config": "ANTI_MEMORIZATION_CONFIG", "model_config": "MODEL_CONFIG",
              "build_config": "build_config",
              "deep_update": "deep_update", "build_training_system": "build_training_system",
@@ -106,6 +108,7 @@ class RunResult:
     callbacks: _t.Any
     history: _t.Any
     chicks: ChicksInputs
+    calibration: _t.Any = None   # the calibration split (role "calibration") when DataSettings.calibration_split is set, else None
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -195,22 +198,41 @@ def apply_dataset_config(settings, dataset, kit):
 
 
 def make_splits(settings, dataset, info, kit):
-    """القسم ٣: التقسيم الزمني train/val/test، ويُختم كل قسم بمقياس الأهداف (المستهلكون: chicks، collect_signals، اللوحة)."""
+    """القسم ٣: التقسيم الزمني train/val/test، ويُختم كل قسم بمقياس الأهداف (المستهلكون: chicks، collect_signals، اللوحة).
+    مع ``DataSettings.calibration_split`` يرفع ValueError: قسم المعايرة يُرجعه :func:`make_splits_with_calibration` (لا يُسقَط بصمت)."""
+    if settings.data.calibration_split is not None:
+        raise ValueError("DataSettings.calibration_split is set: use make_splits_with_calibration (it returns the calibration split "
+                         "as well); make_splits returns (train, val, test) and would drop it")
+    train, _, val, test = make_splits_with_calibration(settings, dataset, info, kit)
+    return train, val, test
+
+
+def make_splits_with_calibration(settings, dataset, info, kit):
+    """القسم ٣ مع قسم معايرة اختياري: ``(train, calibration, val, test)``؛ ``calibration`` = None حين ``DataSettings.calibration_split``
+    None (والأقسام الثلاثة الأخرى هي ما يُرجعه :func:`make_splits` دائماً). عند ضبطه يُقتطع قسم المعايرة بـ data.split_data_with_calibration
+    (ذيل train أو رأس val، عزل على الجانبين، دور 'calibration')."""
     if settings.data.split_dates:           # تقسيم زمني صريح فوق CONFIG/البيانات (وسيط --split-dates في أداة التقييم)
         sd = settings.data.split_dates
         kit.update_config({"split_dates": {"train_end": sd["train_end"], "val_end": sd["val_end"]}})
         print(f"📅 تقسيم زمني صريح: train ≤ {sd['train_end']} | val ≤ {sd['val_end']} | test بعده (مع فجوة العزل)", flush=True)
-    train, val, test = kit.split_data(dataset, config=kit.config)
+    cs = settings.data.calibration_split
+    if cs is None:
+        train, val, test = kit.split_data(dataset, config=kit.config)
+        calibration = None
+    else:
+        train, calibration, val, test = kit.split_data_with_calibration(dataset, cs, config=kit.config)
     # split_data لا ينقل مفاتيح البيانات الوصفية، فيُختم كل قسم بمقياسه — المستهلكون (chicks، collect_signals، اللوحة)
     # يقرؤونه من القسم نفسه.
-    for _s in (train, val, test):
+    for _s in (train, val, test) + (() if calibration is None else (calibration,)):
         for _m in _split_members(_s):
             _m["reg_target_scale"] = info.reg_target_scale
     for _tf in list(info.model_tfs)[1:]:
         print(f"سياق {_tf}: train {train[f'X_{_tf}'].shape} | val {val[f'X_{_tf}'].shape} — نوع X: {train[f'X_{_tf}'].dtype}")
     print("train:", train[f"X_{info.model_tf}"].shape, "| val:", val[f"X_{info.model_tf}"].shape,
           "| test assets:", list(test.keys()) if isinstance(test, dict) and all(isinstance(v, dict) and "y" in v for v in test.values()) else test[f"X_{info.model_tf}"].shape)
-    return train, val, test
+    if calibration is not None:
+        print("calibration:", calibration[f"X_{info.model_tf}"].shape)
+    return train, calibration, val, test
 
 
 def retarget(settings, train, val, test, info):
@@ -225,6 +247,12 @@ def retarget(settings, train, val, test, info):
         train, val, test = retarget_splits(train, val, test, mode="return", reg_target_scale=info.reg_target_scale,
                                            close_reg=t.entry_close_reg, group_freq=t.group_freq)
     return train, val, test
+
+
+def retarget_calibration(settings, train, calibration, info):
+    """قسم المعايرة بوضع الهدف نفسه الذي يُعطيه :func:`retarget` لـ train/val/test (retarget_splits يعالج كل قسم على حدة وعتبة train وحدها):
+    ``train`` الأصلي (قبل retarget) يُمرَّر كما هو. يُرجع قسم المعايرة الجديد."""
+    return retarget(settings, train, calibration, calibration, info)[1]
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -420,15 +448,19 @@ def prepare_chicks(settings, plan, info, test, kit):
                         eval_target_specs=specs)
 
 
-def calibration_split_of(eval_settings, val):
-    """القسم الذي تُلائَم عليه معايِرات الثقة: ``EvalSettings.calibration_source`` ("val" الافتراضي = ما كان يحدث دائماً). "calibration" يرفع
-    NotImplementedError: لا قسم معايرة بعد (بند التدقيق C6، PR 6 لاحقاً). دور القسم المختوم يقرؤه المعاير بنفسه (core.roles)."""
+def calibration_split_of(eval_settings, val, calibration=None):
+    """القسم الذي تُلائَم عليه معايِرات الثقة: ``EvalSettings.calibration_source`` ("val" الافتراضي = ما كان يحدث دائماً؛ "calibration" =
+    قسم المعايرة الحقيقي من :func:`make_splits_with_calibration`، ويرفع ValueError إن لم يُمرَّر). دور القسم المختوم يقرؤه المعاير بنفسه
+    (core.roles): قسم بدور غير مسموح يرفضه Calibrator.fit."""
     if eval_settings.calibration_source == "val":
         return val
-    raise NotImplementedError(f"calibration_source={eval_settings.calibration_source!r}: no calibration split exists yet (audit C6, PR 6 follow-up)")
+    if calibration is None:
+        raise ValueError("calibration_source='calibration' needs the calibration split: pass calibration=<split from make_splits_with_calibration> "
+                         "(DataSettings.calibration_split must be set)")
+    return calibration
 
 
-def run_chicks(settings, kit, *, model, val, chicks, info):
+def run_chicks(settings, kit, *, model, val, chicks, info, calibration=None):
     """القسم ٦: تقرير chicks الكامل (tearsheet + الدلالة الإحصائية) على test. يُرجع ``full_results`` أو None إن تُخطّي القسم."""
     if chicks.test_dict is None:    # القسم ٦ يُتخطّى إن كانت أهداف test غير مدعومة (انظر build_chicks_test_dict)
         print(f"⏭️ القسم ٦ متخطّى — أهداف test غير مدعومة في chicks (target_mode={settings.target.target_mode!r})")
@@ -439,7 +471,7 @@ def run_chicks(settings, kit, *, model, val, chicks, info):
     # 'confidence'. calibrate_confidence=False أو calibration_method="platt" لتغييرها. eval_all_rows=True: كل عملات وصفوف test.
     val_dict = None
     if e.calibrate_confidence:
-        cal_split = calibration_split_of(e, val)     # الدور يُقرأ من ختم القسم (split_role) ويُفحص في Calibrator.fit
+        cal_split = calibration_split_of(e, val, calibration)     # الدور يُقرأ من ختم القسم (split_role) ويُفحص في Calibrator.fit
         try:
             val_dict = build_chicks_test_dict({"VAL": cal_split}, tfs, chicks_targets=chicks.chicks_targets)
         except Exception as _e:   # noqa: BLE001 — المعايرة اختيارية، لا تُسقط التقييم
@@ -567,7 +599,9 @@ def run_main(settings, kit, dataset=None, summary=True):
     if dataset is None:
         dataset = load_dataset(settings, kit)
     info = apply_dataset_config(settings, dataset, kit)
-    train, val, test = make_splits(settings, dataset, info, kit)
+    train, calibration, val, test = make_splits_with_calibration(settings, dataset, info, kit)
+    if calibration is not None:             # بوضع الهدف نفسه؛ من train الأصلي قبل retarget
+        calibration = retarget_calibration(settings, train, calibration, info)
     train, val, test = retarget(settings, train, val, test, info)
     plan = plan_model(settings, dataset, info, kit)
     model_builder, model = build_model(plan, kit, summary=summary)
@@ -578,4 +612,4 @@ def run_main(settings, kit, dataset=None, summary=True):
     chicks = prepare_chicks(settings, plan, info, test, kit)
     return RunResult(dataset=dataset, info=info, train=train, val=val, test=test, plan=plan, model_builder=model_builder, model=model,
                      main_config=main_config, train_ds=train_ds, val_ds=val_ds, trainer=trainer, callbacks=callbacks, history=history,
-                     chicks=chicks)
+                     chicks=chicks, calibration=calibration)

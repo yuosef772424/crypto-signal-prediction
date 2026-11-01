@@ -106,7 +106,7 @@
   - `class CliTests(Base)` L521
     - (2 methods)
 
-### `tests/test_calibrator_role.py` (408 lines)
+### `tests/test_calibrator_role.py` (410 lines)
 - PURPOSE: Data roles (core/roles.py) and the role-checked Calibrator component (evaluation/calibrators.py), audit C6 / PR 6. (from docstring)
 - DEPENDS: core, docs
 - API:
@@ -118,7 +118,7 @@
     - (6 methods)
   - `class CalibrationSourceSettingTests(unittest.TestCase)` L360
     - (2 methods)
-  - `class RunChicksCalibrationTests(unittest.TestCase)` L377
+  - `class RunChicksCalibrationTests(unittest.TestCase)` L379
     - (2 methods)
 
 ### `tests/test_check_patterns.py` (285 lines)
@@ -953,18 +953,27 @@
   - `class HarnessSelfCheckTests(_CausalityMixin, unittest.TestCase)` L153
     - (1 methods)
 
-### `tests/test_split_plan.py` (183 lines)
+### `tests/test_split_plan.py` (412 lines)
 - PURPOSE: Split leakage control (audit C6 / PR 12): `label_end` on every sample, the SplitPlan, the opt-in calibration split, the purity of the roles. (from docstring)
 - DEPENDS: core, docs
 - API:
-  - `def pipeline()` L33
-  - `def members(split)` L39
-  - `class SplitArraysAreUnchanged(unittest.TestCase)` L44
+  - `def pipeline()` L43
+  - `def members(split)` L49
+  - `class SplitArraysAreUnchanged(unittest.TestCase)` L54
     - (2 methods)
-  - `class LabelEndTests(unittest.TestCase)` L59
+  - `class LabelEndTests(unittest.TestCase)` L69
     - (5 methods)
-  - `class DefaultPlanTests(unittest.TestCase)` L123
+  - `class DefaultPlanTests(unittest.TestCase)` L133
     - (4 methods)
+  - `def arrays_of(split)` L195
+  - `def purity_problems(by_role, embargo_ns, horizon_ns)` L202
+  - `def rows_of(split)` L217
+  - `def by_role_of(splits)` L222
+  - `def quiet(fn, *a, **k)` L232
+  - `class CalibrationSplitTests(unittest.TestCase)` L237
+    - (6 methods)
+  - `class PurityTests(unittest.TestCase)` L331
+    - (7 methods)
 
 ### `tests/test_stale_bars_audit.py` (317 lines)
 - PURPOSE: tools/stale_bars_audit.py + CONFIG['stale_bars']: dead-coin tails and long zero-volume flat runs. (from docstring)

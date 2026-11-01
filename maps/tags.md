@@ -183,9 +183,12 @@
 - buy and hold benchmark: edge_discovery/16_h07_oos
 - byte identical splits: tests/split_golden
 - calibration: tools/natr_range
+- calibration carve: data/split_plan
 - calibration report: natr_range/run_natr_range
 - calibration role: core/roles
+- calibration split: data/split_plan
 - calibration_report: evaluation/trust_calibration
+- calibrationcarve: data/split, data/split_plan
 - calibrationstate: evaluation/calibrators
 - calibrator: evaluation/calibrators
 - calibrator role check: core/roles
@@ -1468,6 +1471,7 @@
 - split['y']: signal_eval/integration
 - split_asset_names: workflow/market_neutral
 - split_data: data/__init__, data/split, tests/split_golden
+- split_data_with_calibration: data/split
 - split_dates: data/defaults, data/split
 - split_holdout: tests/split_golden
 - split_role: core/prediction_schema, data/split, stats/prediction_table
@@ -1605,6 +1609,7 @@
 - train_mode: trainer/system
 - train_model: workflow/run
 - train_step: trainer/trainer
+- train_tail: data/split_plan
 - trainer: trainer/identity
 - trainer config: trainer/config
 - trainer framework: trainer/__init__
@@ -1657,6 +1662,7 @@
 - uses: tools/implicit_deps
 - v0-v4: edge_discovery/21_range_fade
 - val auc: edge_discovery/26_h19_generalization
+- val_head: data/split_plan
 - val_raw_loss: core/loss_plan
 - valid_train_modes: trainer/config
 - validate_config: trainer/config
@@ -1700,6 +1706,7 @@
 - windowscale: data/normalizers
 - winkler: stats/metrics
 - wiring: workflow/wiring_selftest
+- with_calibration: data/split_plan
 - with_head_loss_terms: workflow/training_config
 - with_sample_index: trainer/training_diagnostics
 - within_day: workflow/permutation_control

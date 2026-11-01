@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any, Iterable, Mapping, Tuple
 
-__all__ = ["TRAIN", "CALIBRATION", "VAL", "TEST", "HOLDOUT", "ROLES", "ROLE_KEY", "NEVER_FIT_ROLES", "CALIBRATOR_ROLES",
+__all__ = ["TRAIN", "CALIBRATION", "VAL", "TEST", "HOLDOUT", "ROLES", "ROLE_KEY", "NEVER_FIT_ROLES", "CALIBRATOR_ROLES", "CALIBRATION_CARVES",
            "RoleError", "check_role", "stamp_role", "role_of", "require_role"]
 
 TRAIN = "train"              # the model is fitted here (also the only data a Normalizer may be fitted on)
@@ -27,6 +27,11 @@ NEVER_FIT_ROLES: Tuple[str, ...] = (TRAIN, HOLDOUT)
 
 #: Default roles a calibrator may fit on: the dedicated calibration slice, or val (today's behaviour, until a calibration split exists).
 CALIBRATOR_ROLES: Tuple[str, ...] = (CALIBRATION, VAL)
+
+
+#: Where an (opt-in) calibration split is carved from by data/split_plan.py: the last rows of train ("train_tail": train shrinks) or the first
+#: rows of val ("val_head": val starts later); an embargo is on both sides of the slice.
+CALIBRATION_CARVES: Tuple[str, ...] = ("train_tail", "val_head")
 
 
 class RoleError(ValueError):

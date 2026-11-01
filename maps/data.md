@@ -236,7 +236,7 @@
   - `def describe_features(features: List[str]) -> Dict[str, List[str]]` L578
   - `def audit_normalization(windows: np.ndarray, features: List[str], verbose: bool=True, config: Optional[dict]=None) -> pd.DataFrame` L586
 
-### `data/normalizers.py` (509 lines)
+### `data/normalizers.py` (515 lines)
 - PURPOSE: ONE registered Normalizer interface behind every price normalization mode ('window_scale', 'logret_std', 'logret_sigma'; the legacy window-level 'pct_change' resolves to 'window_scale' via normalizer_for_mode): fit on train only -> a plain…
 - TAGS: normalizer, normalizers, get_normalizer, normalizer_for_mode, normalizer_for_data, windowscale, logretstd, logretsigma, fit, transform_inputs, normalize_targets, inverse_targets, state_from_config, price_norm_meta, fit_price_norm, denormalize_price_targets, normalize_price_targets, finish_price_norm, stamp_price_norm, trailing_close_sigma, price_norm_channels, normalization, تطبيع
 - PITFALLS: Add a normalizer = write a Normalizer subclass and register_normalizer(instance) (NORMALIZERS is a core.registry Registry: a duplicate name raises, the .name must equal the registered name; nothing else to edit; its name is the value of CONFIG['price_norm_mode'] once PRICE_NORM_MODES in normalize.py lists it). fit sees TRAIN only; its state is a JSON-safe dict stored on every split (split['price_…
@@ -297,7 +297,8 @@
   - `def fit_price_norm(train: Dict, feature_order: List[str], timeframes: List[str], mode: str=PRICE_NORM_LOGRET_STD, clip: float=PRICE_NORM_CLIP) -> Dict` L487
   - `def price_norm_unfitted(data: Dict) -> bool` L493
   - `def stamp_price_norm(data: Dict, split_or_assets: Dict, meta: Optional[Dict]=None) -> Dict` L498
-  - `def finish_price_norm(data: Dict, train: Dict, val: Dict, test: Dict)` L503
+  - `def finish_price_norm_many(data: Dict, train: Dict, *others: Dict)` L503
+  - `def finish_price_norm(data: Dict, train: Dict, val: Dict, test: Dict)` L512
 
 ### `data/parallel.py` (156 lines)
 - PURPOSE: Thread-parallel asset loading with preserved order: imap_ordered, load_assets, default_workers (capped by CPU and system RAM).
@@ -395,9 +396,9 @@
   - `def resample_timeframes(df: pd.DataFrame, target_tfs: Optional[List[str]]=None, base_tf: Optional[str]=None, with_features: bool=True, config: Optional[dict]=None) -> Dict[str, pd.DataFrame]` L262
   - `def make_resample_fn(config: Optional[dict]=None)` L298
 
-### `data/split.py` (956 lines)
+### `data/split.py` (1010 lines)
 - PURPOSE: Time-based train/val/test split with an embargo gap: global_time (default) or per_asset, holdout, leak-free and rolling splits.
-- TAGS: split, split_data, embargo, holdout, split_dates, global_time, per_asset, rolling_splits, build_leak_free_split, compute_global_cutoff, split_role, stamp_split_roles, label_end, stamp_label_end, label_end_values, splitplan, resolve_split_plan
+- TAGS: split, split_data, embargo, holdout, split_dates, global_time, per_asset, rolling_splits, build_leak_free_split, compute_global_cutoff, split_role, stamp_split_roles, label_end, stamp_label_end, label_end_values, splitplan, resolve_split_plan, split_data_with_calibration, calibrationcarve
 - PITFALLS: Every split also carries `label_end` (additive int64-ns array per sample = timestamp + forecast_horizon x base-tf bar, the last bar its label reads; stamp_label_end, one producer path `_finish_splits`; the arrays of a split are unchanged, pinned by tests/golden_split_arrays.json). Every split is stamped with its role (additive key `split_role`: train/val/test, holdout for split_holdout; core/role…
 - DEPENDS: core
 - USES: disk_backed, normalizers, runtime, split_plan, windows
@@ -406,35 +407,39 @@
   - `def stamp_split_roles(train: dict, val: dict, test: dict)` L55
   - `def label_end_values(data: Dict, last_candles, config: Optional[dict]=None) -> np.ndarray` L63
   - `def stamp_label_end(data: Dict, split_or_assets: Dict, config: Optional[dict]=None) -> Dict` L73
-  - `def embargo_candles(data: Dict, config: Optional[dict]=None) -> int` L92
-  - `def embargo_size(data: Dict, config: Optional[dict]=None) -> int` L120
-  - `def embargo_duration(data: Dict, config: Optional[dict]=None) -> pd.Timedelta` L132
-  - `def resolve_holdout_start(config: Optional[dict]=None) -> Optional[pd.Timestamp]` L139
-  - `def sample_timestamps(split_or_data: Dict) -> pd.DatetimeIndex` L165
-  - `def add_y_prefix(split: dict) -> dict` L219
-  - `def strip_y_prefix(y: dict) -> dict` L230
-  - `def compute_global_cutoff(data: Dict, pct: float) -> pd.Timestamp` L370
-  - `def extract_test_dates(test: Dict) -> pd.DatetimeIndex` L408
-  - `def resolve_split_dates(data: Dict, train_pct: float, val_pct: float, config: Optional[dict]=None, cutoff_method: Optional[str]=None) -> Tuple[pd.Timestamp, pd.Timestamp]` L421
-  - `def resolve_split_plan(data: Dict, train_pct: Optional[float]=None, val_pct: Optional[float]=None, config: Optional[dict]=None) -> 'SplitPlan'` L534
-  - `def split_data(data: Dict, train_pct: Optional[float]=None, val_pct: Optional[float]=None, keep_asset_test_separate: Optional[bool]=None, prefix_y: bool=True, mode: Optional[str]=None, config: Optional[dict]=None)…` L596
-  - `def split_holdout(data: Dict, keep_asset_test_separate: Optional[bool]=None, prefix_y: bool=True, config: Optional[dict]=None, price_norm_meta: Optional[dict]=None)` L720
-  - `def build_leak_free_split(data: Dict, train_pct: Optional[float]=None, val_pct: Optional[float]=None, keep_asset_test_separate: Optional[bool]=None, config: Optional[dict]=None) -> Tuple[dict, dict, dict]` L756
-  - `def rolling_split_schedule(data: Dict, test_span=None, val_span=None, train_span=_UNSET, initial_train_span=_UNSET, step=None, max_windows: Optional[int]=None, config: Optional[dict]=None) -> List[Dict[str, pd.Timestamp]]` L791
-  - `def rolling_splits(data: Dict, test_span=None, val_span=None, train_span=_UNSET, initial_train_span=_UNSET, step=None, max_windows: Optional[int]=None, keep_asset_test_separate: Optional[bool]=None, prefix_y: bool=Tru…` L884
+  - `def embargo_candles(data: Dict, config: Optional[dict]=None) -> int` L99
+  - `def embargo_size(data: Dict, config: Optional[dict]=None) -> int` L127
+  - `def embargo_duration(data: Dict, config: Optional[dict]=None) -> pd.Timedelta` L139
+  - `def resolve_holdout_start(config: Optional[dict]=None) -> Optional[pd.Timestamp]` L146
+  - `def sample_timestamps(split_or_data: Dict) -> pd.DatetimeIndex` L172
+  - `def add_y_prefix(split: dict) -> dict` L226
+  - `def strip_y_prefix(y: dict) -> dict` L237
+  - `def compute_global_cutoff(data: Dict, pct: float) -> pd.Timestamp` L377
+  - `def extract_test_dates(test: Dict) -> pd.DatetimeIndex` L415
+  - `def resolve_split_dates(data: Dict, train_pct: float, val_pct: float, config: Optional[dict]=None, cutoff_method: Optional[str]=None) -> Tuple[pd.Timestamp, pd.Timestamp]` L428
+  - `def resolve_split_plan(data: Dict, train_pct: Optional[float]=None, val_pct: Optional[float]=None, config: Optional[dict]=None) -> 'SplitPlan'` L541
+  - `def split_data(data: Dict, train_pct: Optional[float]=None, val_pct: Optional[float]=None, keep_asset_test_separate: Optional[bool]=None, prefix_y: bool=True, mode: Optional[str]=None, config: Optional[dict]=None)…` L612
+  - `def split_data_with_calibration(data: Dict, carve, train_pct: Optional[float]=None, val_pct: Optional[float]=None, keep_asset_test_separate: Optional[bool]=None, prefix_y: bool=True, config: Optional[dict]=None) -> Tuple[dict, dic…` L736
+  - `def split_holdout(data: Dict, keep_asset_test_separate: Optional[bool]=None, prefix_y: bool=True, config: Optional[dict]=None, price_norm_meta: Optional[dict]=None)` L774
+  - `def build_leak_free_split(data: Dict, train_pct: Optional[float]=None, val_pct: Optional[float]=None, keep_asset_test_separate: Optional[bool]=None, config: Optional[dict]=None) -> Tuple[dict, dict, dict]` L810
+  - `def rolling_split_schedule(data: Dict, test_span=None, val_span=None, train_span=_UNSET, initial_train_span=_UNSET, step=None, max_windows: Optional[int]=None, config: Optional[dict]=None) -> List[Dict[str, pd.Timestamp]]` L845
+  - `def rolling_splits(data: Dict, test_span=None, val_span=None, train_span=_UNSET, initial_train_span=_UNSET, step=None, max_windows: Optional[int]=None, keep_asset_test_separate: Optional[bool]=None, prefix_y: bool=Tru…` L938
 
-### `data/split_plan.py` (89 lines)
+### `data/split_plan.py` (136 lines)
 - PURPOSE: SplitPlan: the time boundaries of ONE split (train / optional calibration / val / test / optional sealed holdout) and the embargo between them as one frozen object, with the masks it implies over sample timestamps and a validity check (rol…
-- TAGS: splitplan, split plan, plan masks, from_dates, embargo, role intervals, leakage control, hardening c6
-- PITFALLS: Intervals are (lo exclusive, hi inclusive) over the sample TIMESTAMP (window end); the embargo between two consecutive roles is lo_next - hi_prev >= embargo (checked by `check`). The default plan (no calibration) is exactly today's rule: train ts <= train_end | val train_end+embargo < ts <= val_end | test ts > val_end+embargo (and ts < holdout_start - embargo) | holdout ts >= holdout_start. Execu…
+- TAGS: splitplan, calibrationcarve, split plan, plan masks, from_dates, with_calibration, calibration split, calibration carve, train_tail, val_head, embargo, role intervals, leakage control, hardening c6
+- PITFALLS: Intervals are (lo exclusive, hi inclusive) over the sample TIMESTAMP (window end); the embargo between two consecutive roles is lo_next - hi_prev >= embargo (checked by `check`). `with_calibration` carves a calibration slice by TIME from the kept rows of its source ("train_tail": the last `share` of train, so train shrinks and an embargo opens between train and calibration; "val_head": the first…
+- DEPENDS: core
 - USED BY: split
 - API:
-  - `class SplitPlan` L14
-    - `.from_dates(cls, train_end, val_end, embargo, train_start=None, test_end=None, holdout_start=None)` L28
-    - `.val_end(self)` L34
-    - `.intervals(self) -> Dict[str, Tuple[Optional[object], Optional[object]]]` L37
-    - `.check(self)` L47
-    - `.masks(self, ts) -> Dict[str, object]` L71
+  - `class CalibrationCarve` L19
+  - `class SplitPlan` L32
+    - `.from_dates(cls, train_end, val_end, embargo, train_start=None, test_end=None, holdout_start=None)` L46
+    - `.val_end(self)` L52
+    - `.intervals(self) -> Dict[str, Tuple[Optional[object], Optional[object]]]` L55
+    - `.check(self, min_embargo=None)` L65
+    - `.masks(self, ts) -> Dict[str, object]` L91
+    - `.with_calibration(self, carve: CalibrationCarve, ts) -> 'SplitPlan'` L111
 
 ### `data/storage.py` (326 lines)
 - PURPOSE: Save/load the prepared dataset to/from mounted Drive: pkl.gz or npy_dir (memmap) formats, latest + timestamped copies.

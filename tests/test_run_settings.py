@@ -57,7 +57,7 @@ class DefaultsAreTheOldNotebookValues(unittest.TestCase):
             extra = set(got) - set(want)
             self.assertLessEqual(extra, {"fit_verbose", "early_stopping_patience", "split_dates", "model_tfs", "group_freq",
                                          "mn_quantiles", "mn_universe", "config_overrides", "suspended_targets",
-                                         "trivial_baseline", "seed", "calibration_source", "loss", "clip"}, section)
+                                         "trivial_baseline", "seed", "calibration_source", "loss", "clip", "calibration_split"}, section)
 
     def test_panel_presets_are_the_recorded_ones(self):
         ns = _ns()
@@ -72,7 +72,7 @@ class DefaultsAreTheOldNotebookValues(unittest.TestCase):
         sections = ns["RunSettings"].SECTIONS
         self.assertEqual(list(sections), ["project", "data", "target", "model", "train", "evaluation", "panel"])
         self.assertEqual({n: len(c.field_names()) for n, c in sections.items()},
-                         {"project": 1, "data": 7, "target": 5, "model": 3, "train": 13, "evaluation": 8, "panel": 20})
+                         {"project": 1, "data": 8, "target": 5, "model": 3, "train": 13, "evaluation": 8, "panel": 20})
 
 
 class Strictness(unittest.TestCase):

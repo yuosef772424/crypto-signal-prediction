@@ -8,6 +8,7 @@ import typing as _t
 from copy import deepcopy as _deepcopy
 
 from core.heads import HeadSet as _HeadSet
+from core.roles import CALIBRATION_CARVES as _CALIBRATION_CARVES
 from core.loss_plan import (DEFAULT_BALANCING as _DEFAULT_BALANCING, LOSS_BALANCERS as _LOSS_BALANCERS,
                             check_head_loss_terms as _check_head_loss_terms, check_report_heads as _check_report_heads,
                             check_sample_weighting as _check_sample_weighting, SAMPLE_WEIGHTINGS as _SAMPLE_WEIGHTINGS,
@@ -21,9 +22,8 @@ DATA_FORMATS = ("auto", "pkl.gz", "npy_dir")
 #: Post-hoc confidence calibration methods of the chicks report.
 CALIBRATION_METHODS = ("isotonic", "platt")
 #: Which split the post-hoc calibrators are fitted on (core/roles.py roles): "val" = today's behaviour (val is selection AND calibration);
-#: "calibration" = a split of its own (tail of train behind an embargo), NOT BUILT YET (audit C6, PR 6 follow-up): refused with NotImplementedError.
+#: "calibration" = a split of its own, carved by data.split_data_with_calibration (DataSettings.calibration_split must be set).
 CALIBRATION_SOURCES = ("val", "calibration")
-IMPLEMENTED_CALIBRATION_SOURCES = ("val",)
 #: Model config keys the run logic derives itself (workflow.run.plan_model); ModelSettings.config_overrides may not name them.
 _MODEL_OVERRIDES_OWNED_BY_RUN = ("price_targets", "head_types", "enforce_order")
 #: The panel model's ready-made setups; applied by PanelSettings.applied() (they override the fields they name).
@@ -124,6 +124,11 @@ class DataSettings(_SettingsSection):
     model_tfs: _t.Optional[tuple] = None
     #: Explicit time split {"train_end": "YYYY-MM-DD", "val_end": "YYYY-MM-DD"} instead of the sample shares (None = CONFIG / dataset).
     split_dates: _t.Optional[dict] = None
+    #: Opt-in calibration split: ``{"source": "train_tail" | "val_head", "share": 0 < share <= 0.5}`` (data.split_data_with_calibration): the last
+    #: ``share`` of train (or the first of val) becomes a split of its own, an embargo on both sides, role "calibration"; train (or val) shrinks.
+    #: None = no calibration split (train / val / test exactly as always). Not None changes the run folder name (run_dir_for: "_cal-<source>-<share>"):
+    #: a model trained on a smaller train is another model.
+    calibration_split: _t.Optional[dict] = None
 
     def __post_init__(self):
         _settings_check(isinstance(self.filename_base, str) and self.filename_base, "DataSettings.filename_base must be a non-empty str")
@@ -140,6 +145,15 @@ class DataSettings(_SettingsSection):
             _settings_check(isinstance(self.split_dates, dict) and set(self.split_dates) == {"train_end", "val_end"},
                    "DataSettings.split_dates must be {'train_end': ..., 'val_end': ...}")
             _settings_set(self, split_dates=dict(self.split_dates))
+        if self.calibration_split is not None:
+            cs = self.calibration_split
+            _settings_check(isinstance(cs, dict) and set(cs) == {"source", "share"},
+                   "DataSettings.calibration_split must be {'source': ..., 'share': ...} or None")
+            _settings_check(cs["source"] in _CALIBRATION_CARVES,
+                   f"DataSettings.calibration_split['source'] {cs['source']!r} unknown; known: {_CALIBRATION_CARVES}")
+            _settings_check(isinstance(cs["share"], (int, float)) and not isinstance(cs["share"], bool) and 0 < cs["share"] <= 0.5,
+                   f"DataSettings.calibration_split['share'] must be a number in (0, 0.5], got {cs['share']!r}")
+            _settings_set(self, calibration_split={"source": cs["source"], "share": float(cs["share"])})
 
 
 @_dc.dataclass(frozen=True)
@@ -349,7 +363,7 @@ class EvalSettings(_SettingsSection):
     #: Post-hoc confidence calibration (fit on val only, applied to test): the report prints ECE before/after.
     calibrate_confidence: bool = True
     calibration_method: str = "isotonic"
-    #: Split the calibrators are fitted on: "val" (default = what the run always did) | "calibration" (needs a calibration split; none exists yet).
+    #: Split the calibrators are fitted on: "val" (default = what the run always did) | "calibration" (needs DataSettings.calibration_split).
     calibration_source: str = "val"
     #: True = every asset and row of test enters the metrics.
     eval_all_rows: bool = True
@@ -369,11 +383,6 @@ class EvalSettings(_SettingsSection):
                f"EvalSettings.calibration_method {self.calibration_method!r} unknown; known: {CALIBRATION_METHODS}")
         _settings_check(self.calibration_source in CALIBRATION_SOURCES,
                f"EvalSettings.calibration_source {self.calibration_source!r} unknown; known: {CALIBRATION_SOURCES}")
-        if self.calibration_source not in IMPLEMENTED_CALIBRATION_SOURCES:
-            raise NotImplementedError(
-                f"EvalSettings.calibration_source={self.calibration_source!r}: no calibration split exists yet (hardening audit C6, PR 6 "
-                f"follow-up: carve the tail of train behind an embargo in data/split.py, stamp it role 'calibration'). Use "
-                f"{IMPLEMENTED_CALIBRATION_SOURCES[0]!r} (the default) until it is built.")
         _settings_check(isinstance(self.eval_all_rows, bool), "EvalSettings.eval_all_rows must be a bool")
         _settings_check(isinstance(self.out_dir, str) and self.out_dir, "EvalSettings.out_dir must be a non-empty str")
         _settings_check(isinstance(self.mn_quantiles, (list, tuple)) and len(self.mn_quantiles) > 0
@@ -484,6 +493,9 @@ class RunSettings:
         # head-dependent checks that need two sections: the plan's head names / the selection metric against the heads class_only builds
         self.train.check_against_heads(_HeadSet.default(_TARGET_COLUMNS, class_only=self.model.class_only))
         _check_sample_weighting(self.train.loss.sample_weighting, self.target.target_mode, "TrainSettings.loss.sample_weighting")
+        _settings_check(self.evaluation.calibration_source != "calibration" or self.data.calibration_split is not None,
+               "EvalSettings.calibration_source='calibration' needs a calibration split: set DataSettings.calibration_split "
+               "(e.g. {'source': 'train_tail', 'share': 0.1}); without it the calibrators are fitted on val ('val', the default)")
 
     @classmethod
     def from_dict(cls, d):
@@ -527,6 +539,9 @@ def run_dir_for(settings, reg_target_scale, model_tfs):
             # تجاوزات معمارية إضافية = معمارية أخرى: مجلد منفصل، بمفاتيح مرتّبة (حتمي)؛ {} لا يضيف شيئاً
             + "".join("_" + "".join(c if c.isalnum() else "-" for c in f"{k}={v!r}".replace(" ", ""))
                       for k, v in sorted(settings.model.config_overrides.items()))
+            # قسم معايرة مقتطع = train أقصر = نموذج آخر: مجلد منفصل؛ None لا يضيف شيئاً
+            + (f"_cal-{settings.data.calibration_split['source']}-{settings.data.calibration_split['share']:g}"
+               if settings.data.calibration_split is not None else "")
             # أهداف مدرَّبة غير القاعدة القديمة (None) = نموذج آخر: مجلد منفصل؛ None لا يضيف شيئاً
             + (("_susp-" + ("-".join(sorted(settings.target.suspended_targets)) or "none"))
                if settings.target.suspended_targets is not None else ""))

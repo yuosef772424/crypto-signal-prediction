@@ -500,10 +500,16 @@ def stamp_price_norm(data: Dict, split_or_assets: Dict, meta: Optional[Dict] = N
     return normalizer_for_data(data).stamp(data, split_or_assets, meta)
 
 
-def finish_price_norm(data: Dict, train: Dict, val: Dict, test: Dict):
-    """بعد تقسيم ``data``: يُلائم تطبيقه المسجَّل على ``train`` وحده (إن لزم) ويختم/يطبّق على الأقسام الثلاثة (test قد يكون
-    قاموس عملات). window_scale ← الأقسام كما هي. يُرجع ``(train, val, test)``."""
+def finish_price_norm_many(data: Dict, train: Dict, *others: Dict):
+    """:func:`finish_price_norm` لأي عدد من الأقسام التابعة: يُلائم التطبيع المسجَّل على ``train`` وحده (إن لزم) ثم يختم/يطبّق بحالته
+    على ``train`` وكل قسم في ``others`` (بالترتيب؛ test قد يكون قاموس عملات). يُرجع ``(train, *others)``."""
     nz = normalizer_for_data(data)
     state = nz.fit(train, feature_order=data['feature_order'], timeframes=data['timeframes'],
                    clip=PRICE_NORM_CLIP) if nz.fit_at_split(data) else None
-    return tuple(nz.stamp(data, sp, state) for sp in (train, val, test))
+    return tuple(nz.stamp(data, sp, state) for sp in (train,) + others)
+
+
+def finish_price_norm(data: Dict, train: Dict, val: Dict, test: Dict):
+    """بعد تقسيم ``data``: يُلائم تطبيقه المسجَّل على ``train`` وحده (إن لزم) ويختم/يطبّق على الأقسام الثلاثة (test قد يكون
+    قاموس عملات). window_scale ← الأقسام كما هي. يُرجع ``(train, val, test)``."""
+    return finish_price_norm_many(data, train, val, test)

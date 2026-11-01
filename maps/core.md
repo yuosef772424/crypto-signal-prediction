@@ -101,16 +101,16 @@
     - `.describe(self) -> list[dict[str, Any]]` L200
     - `.check_all(self) -> list[str]` L204
 
-### `core/roles.py` (109 lines)
+### `core/roles.py` (114 lines)
 - PURPOSE: The split ROLES declared once (tier 0, stdlib only): train / calibration / val / test / holdout (sealed), the additive role stamp every split carries (`split_role`), and the check a learned-state component runs before it fits (`require_rol…
 - TAGS: roles, split role, role stamp, calibration role, holdout sealed, require_role, stamp_role, role_of, roleerror, leakage control, fit on the wrong data, calibrator role check, tier 0
 - PITFALLS: The stamp is an ADDITIVE key (`split_role`) on a split dict (or on `DataFrame.attrs` for a flat table); arrays are never copied or touched (stamp_role returns a shallow copy). A `{asset: split}` dict (the shape of `test`) is never stamped on the container, only on each member (consumers iterate its values as splits); `role_of` of such a dict is the common role of its members (mixed roles raise).…
 - API:
-  - `class RoleError(ValueError)` L32
-  - `def check_role(role: Any) -> str` L36
-  - `def stamp_role(obj: Any, role: str)` L52
-  - `def role_of(obj: Any) -> str` L79
-  - `def require_role(obj: Any, allowed: Iterable[str], *, what: str, never: Iterable[str]=()) -> str` L101
+  - `class RoleError(ValueError)` L37
+  - `def check_role(role: Any) -> str` L41
+  - `def stamp_role(obj: Any, role: str)` L57
+  - `def role_of(obj: Any) -> str` L84
+  - `def require_role(obj: Any, allowed: Iterable[str], *, what: str, never: Iterable[str]=()) -> str` L106
 
 ### `core/schema.py` (56 lines)
 - PURPOSE: The data schema names shared by data, workflow, discovery, cross_asset and tools: the last_candles column order (LAST_COLUMNS, TS_COL, LAST_COLUMN_INDEX), its dtype, the price target columns and the target-mode names.

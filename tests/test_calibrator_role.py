@@ -362,16 +362,18 @@ class CalibrationSourceSettingTests(unittest.TestCase):
     def setUpClass(cls):
         cls.ns = _nbload.workflow_package().load_into({"__name__": "audit_nb"}, only=("settings",))
 
-    def test_default_is_val_and_calibration_is_not_built_yet(self):
-        E = self.ns["EvalSettings"]
+    def test_default_is_val_and_calibration_needs_a_calibration_split(self):
+        E, R = self.ns["EvalSettings"], self.ns["RunSettings"]
         self.assertEqual(E().calibration_source, "val")
         self.assertEqual(E(calibration_source="val"), E())
-        with self.assertRaisesRegex(NotImplementedError, "C6"):
-            E(calibration_source="calibration")                                  # no calibration split exists: refused, not faked
+        E(calibration_source="calibration")                                      # valid for the section; the run needs the split (PR 12)
         with self.assertRaises(ValueError):
             E(calibration_source="train")                                        # unknown: strict
-        with self.assertRaises(NotImplementedError):
-            self.ns["RunSettings"]().updated({"evaluation": {"calibration_source": "calibration"}})
+        with self.assertRaisesRegex(ValueError, "calibration_split"):
+            R().updated({"evaluation": {"calibration_source": "calibration"}})   # no calibration split configured: refused, not faked
+        ok = R().updated({"data": {"calibration_split": {"source": "train_tail", "share": 0.1}},
+                          "evaluation": {"calibration_source": "calibration"}})
+        self.assertEqual(ok.data.calibration_split, {"source": "train_tail", "share": 0.1})
 
 
 class RunChicksCalibrationTests(unittest.TestCase):

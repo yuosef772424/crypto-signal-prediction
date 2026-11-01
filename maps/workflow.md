@@ -153,7 +153,7 @@
   - `def retarget_splits(train_split, val_split, test_split, mode='return', targets=None, clip=None, center='median', group_freq=None, min_group=5, drop_small_groups=False, close_reg='abs_return', verbose=True, reg_target_s…` L146
   - `def entry_range_to_prices(last_close, high=None, low=None, close=None, close_reg='abs_return', p_close_up=None)` L234
 
-### `workflow/run.py` (581 lines)
+### `workflow/run.py` (615 lines)
 - PURPOSE: The steps of a main run as functions of (RunSettings, explicit inputs) -> outputs: load data, adapt CONFIG, split, retarget, plan and build the model, training config and datasets, train, prepare the chicks evaluation, run it, panel model,…
 - TAGS: run_main, load_dataset, apply_dataset_config, make_splits, retarget, plan_model, build_model, make_training_config, make_datasets, train_model, prepare_chicks, run_chicks, run_panel, run_reports, toolkit, datasetinfo, modelplan, chicksinputs, runresult, runsettings steps
 - PITFALLS: Steps read no notebook global: settings come as the first argument and everything else (the pipeline/model/trainer/chicks entry points = Toolkit.from_namespace(globals()), the loaded data, the splits, the derived facts DatasetInfo / ModelPlan / ChicksInputs) as explicit arguments. They still call the other workflow modules and the pipeline's own CONFIG-reading helpers late-bound in the shared nam…
@@ -161,27 +161,29 @@
 - USES: batches, candle_baseline, chicks_bridge, dataset_io, generalization, market_neutral, model_build, panel_bridge, retarget, selective_eval, settings, splits, training_config, verification
 - API:
   - `class Toolkit` L26
-    - `.from_namespace(cls, ns)` L54
-  - `class DatasetInfo` L63
-  - `class ModelPlan` L71
-  - `class ChicksInputs` L83
-  - `class RunResult` L92
-  - `def apply_project_config(settings, kit)` L114
-  - `def load_dataset(settings, kit)` L120
-  - `def apply_dataset_config(settings, dataset, kit)` L147
-  - `def make_splits(settings, dataset, info, kit)` L197
-  - `def retarget(settings, train, val, test, info)` L216
-  - `def plan_model(settings, dataset, info, kit)` L233
-  - `def build_model(plan, kit, summary=True)` L287
-  - `def make_training_config(settings, plan, info, val, kit)` L299
-  - `def make_datasets(main_config, train, val, info, *, settings)` L346
-  - `def train_model(settings, kit, *, model, model_builder, main_config, train_ds, val_ds, sample_batch)` L361
-  - `def prepare_chicks(settings, plan, info, test, kit)` L378
-  - `def calibration_split_of(eval_settings, val)` L423
-  - `def run_chicks(settings, kit, *, model, val, chicks, info)` L431
-  - `def run_panel(settings, kit, *, dataset, train, val, test, info, plan, model, model_builder, main_config, apply_preset=True)` L464
-  - `def run_reports(settings, which, kit, *, model, train, val, test, dataset, info, plan, chicks)` L506
-  - `def run_main(settings, kit, dataset=None, summary=True)` L563
+    - `.from_namespace(cls, ns)` L56
+  - `class DatasetInfo` L65
+  - `class ModelPlan` L73
+  - `class ChicksInputs` L85
+  - `class RunResult` L94
+  - `def apply_project_config(settings, kit)` L117
+  - `def load_dataset(settings, kit)` L123
+  - `def apply_dataset_config(settings, dataset, kit)` L150
+  - `def make_splits(settings, dataset, info, kit)` L200
+  - `def make_splits_with_calibration(settings, dataset, info, kit)` L210
+  - `def retarget(settings, train, val, test, info)` L238
+  - `def retarget_calibration(settings, train, calibration, info)` L252
+  - `def plan_model(settings, dataset, info, kit)` L261
+  - `def build_model(plan, kit, summary=True)` L315
+  - `def make_training_config(settings, plan, info, val, kit)` L327
+  - `def make_datasets(main_config, train, val, info, *, settings)` L374
+  - `def train_model(settings, kit, *, model, model_builder, main_config, train_ds, val_ds, sample_batch)` L389
+  - `def prepare_chicks(settings, plan, info, test, kit)` L406
+  - `def calibration_split_of(eval_settings, val, calibration=None)` L451
+  - `def run_chicks(settings, kit, *, model, val, chicks, info, calibration=None)` L463
+  - `def run_panel(settings, kit, *, dataset, train, val, test, info, plan, model, model_builder, main_config, apply_preset=True)` L496
+  - `def run_reports(settings, which, kit, *, model, train, val, test, dataset, info, plan, chicks)` L538
+  - `def run_main(settings, kit, dataset=None, summary=True)` L595
 
 ### `workflow/selective_eval.py` (293 lines)
 - PURPOSE: Section 7-b: selective evaluation (accuracy at confident slices, 2:1 trades): collect_signals, thresholds picked on val only, Wilson intervals, rr_trading_report.
@@ -200,7 +202,7 @@
   - `def rr_trading_report(val_df, test_df, rr=2.0, stop_mode='nig', stop_k=1.0, cost_pct=0.08, min_trades=200, quantiles=(0.5, 0.7, 0.8, 0.9, 0.95), target='close', seed=0, verbose=True)` L220
   - `def selective_evaluation(model=None, val_split=None, test_split=None, model_tf=None, target_acc=0.65, rr=2.0, stop_mode='nig', min_n=200, val_df=None, test_df=None, verbose=True, price_targets=None)` L270
 
-### `workflow/settings.py` (532 lines)
+### `workflow/settings.py` (547 lines)
 - PURPOSE: RunSettings: every setting of a main run (dataset, target mode, model options, training, evaluation, panel model) in one strict, frozen object whose defaults are the values main.ipynb always held; main.ipynb, tools/evaluate_trained_model.p…
 - TAGS: runsettings, settings, projectsettings, datasettings, targetsettings, modelsettings, trainsettings, losssettings, loss plan, loss weights, balancing, selection metric, early_stopping_monitor, evalsettings, panelsettings, target_mode, entry_close_reg, anti_memorization, class_only, run_main_training, panel_presets, run_dir_for, strict config, frozen dataclass
 - PITFALLS: Defaults must stay equal to the notebook values the golden test records (tests/golden_run_settings.json): change one only as a new experiment (its checkpoints live in a folder named after the settings, see run_dir_for). Unknown field names raise (constructor: TypeError; RunSettings.from_dict / .updated and every section's .updated: ValueError listing the known names), values are validated at cons…
@@ -209,19 +211,19 @@
 - API:
   - `class ProjectSettings(_SettingsSection)` L101
   - `class DataSettings(_SettingsSection)` L111
-  - `class TargetSettings(_SettingsSection)` L146
-  - `class ModelSettings(_SettingsSection)` L186
-  - `class LossSettings(_SettingsSection)` L214
-  - `class TrainSettings(_SettingsSection)` L261
-    - `.check_against_heads(self, heads)` L333
-  - `class EvalSettings(_SettingsSection)` L347
-  - `class PanelSettings(_SettingsSection)` L390
-    - `.applied(self)` L460
-  - `class RunSettings` L467
-    - `.from_dict(cls, d)` L489
-    - `.updated(self, changes)` L496
-    - `.to_dict(self)` L504
-  - `def run_dir_for(settings, reg_target_scale, model_tfs)` L508
+  - `class TargetSettings(_SettingsSection)` L160
+  - `class ModelSettings(_SettingsSection)` L200
+  - `class LossSettings(_SettingsSection)` L228
+  - `class TrainSettings(_SettingsSection)` L275
+    - `.check_against_heads(self, heads)` L347
+  - `class EvalSettings(_SettingsSection)` L361
+  - `class PanelSettings(_SettingsSection)` L399
+    - `.applied(self)` L469
+  - `class RunSettings` L476
+    - `.from_dict(cls, d)` L501
+    - `.updated(self, changes)` L508
+    - `.to_dict(self)` L516
+  - `def run_dir_for(settings, reg_target_scale, model_tfs)` L520
 
 ### `workflow/splits.py` (62 lines)
 - PURPOSE: Helpers over train/val/test splits: model input (single or multi-timeframe), per-split stamps (reg scale, target mode, entry close definition).
