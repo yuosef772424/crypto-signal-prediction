@@ -374,7 +374,7 @@ class ValidatorIsTheOnePlace(unittest.TestCase):
                 elif isinstance(r, dict) and isinstance(defaults[k], dict):
                     walk(r, defaults[k], f"{path}.{k}")
         walk(self.ns["_CONFIG_SCHEMA"], self.ns["TRAINER_DEFAULT_CONFIG"], "config")
-        self.assertEqual(sorted(extra), ["config.callbacks.class_baselines", "config.loss.loss_norm_beta",
+        self.assertEqual(sorted(extra), ["config.callbacks.class_baselines", "config.loss.curriculum", "config.loss.loss_norm_beta",
                                        "config.loss.loss_normalization", "config.optimizer.lr_schedule.total_epochs"])
 
     def test_build_config_calls_validate_config_and_nothing_else_validates(self):

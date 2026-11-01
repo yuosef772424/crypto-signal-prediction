@@ -148,7 +148,7 @@
 - PITFALLS: volnorm needs base_params (window IQR) in every part AND refuses logret_* datasets (retarget_splits guard: their targets are train-standardised and tied to the inputs); volret does not read base_params: it decodes the window's past closes from the stored close channel (X_<base_tf>[:, :, close_index], core.price_norm.input_close_logreturns: 'window_scale' and 'logret_std' only, 'close' must be a m…
 - DEPENDS: core, stats
 - USES: data/runtime, data/windows
-- USED BY: capacity, diagnostics, generalization, reports, run, selective_eval, wiring_selftest
+- USED BY: capacity, diagnostics, generalization, reports, run, selective_eval, training_config, wiring_selftest
 - API:
   - `def retarget_splits(train_split, val_split, test_split, mode='return', targets=None, clip=None, center='median', group_freq=None, min_group=5, drop_small_groups=False, close_reg='abs_return', verbose=True, reg_target_s…` L203
   - `def entry_range_to_prices(last_close, high=None, low=None, close=None, close_reg='abs_return', p_close_up=None)` L300
@@ -202,7 +202,7 @@
   - `def rr_trading_report(val_df, test_df, rr=2.0, stop_mode='nig', stop_k=1.0, cost_pct=0.08, min_trades=200, quantiles=(0.5, 0.7, 0.8, 0.9, 0.95), target='close', seed=0, verbose=True)` L220
   - `def selective_evaluation(model=None, val_split=None, test_split=None, model_tf=None, target_acc=0.65, rr=2.0, stop_mode='nig', min_n=200, val_df=None, test_df=None, verbose=True, price_targets=None)` L270
 
-### `workflow/settings.py` (547 lines)
+### `workflow/settings.py` (548 lines)
 - PURPOSE: RunSettings: every setting of a main run (dataset, target mode, model options, training, evaluation, panel model) in one strict, frozen object whose defaults are the values main.ipynb always held; main.ipynb, tools/evaluate_trained_model.p…
 - TAGS: runsettings, settings, projectsettings, datasettings, targetsettings, modelsettings, trainsettings, losssettings, loss plan, loss weights, balancing, selection metric, early_stopping_monitor, evalsettings, panelsettings, target_mode, entry_close_reg, anti_memorization, class_only, run_main_training, panel_presets, run_dir_for, strict config, frozen dataclass
 - PITFALLS: Defaults must stay equal to the notebook values the golden test records (tests/golden_run_settings.json): change one only as a new experiment (its checkpoints live in a folder named after the settings, see run_dir_for). Unknown field names raise (constructor: TypeError; RunSettings.from_dict / .updated and every section's .updated: ValueError listing the known names), values are validated at cons…
@@ -214,16 +214,16 @@
   - `class TargetSettings(_SettingsSection)` L160
   - `class ModelSettings(_SettingsSection)` L200
   - `class LossSettings(_SettingsSection)` L228
-  - `class TrainSettings(_SettingsSection)` L275
-    - `.check_against_heads(self, heads)` L347
-  - `class EvalSettings(_SettingsSection)` L361
-  - `class PanelSettings(_SettingsSection)` L399
-    - `.applied(self)` L469
-  - `class RunSettings` L476
-    - `.from_dict(cls, d)` L501
-    - `.updated(self, changes)` L508
-    - `.to_dict(self)` L516
-  - `def run_dir_for(settings, reg_target_scale, model_tfs)` L520
+  - `class TrainSettings(_SettingsSection)` L276
+    - `.check_against_heads(self, heads)` L348
+  - `class EvalSettings(_SettingsSection)` L362
+  - `class PanelSettings(_SettingsSection)` L400
+    - `.applied(self)` L470
+  - `class RunSettings` L477
+    - `.from_dict(cls, d)` L502
+    - `.updated(self, changes)` L509
+    - `.to_dict(self)` L517
+  - `def run_dir_for(settings, reg_target_scale, model_tfs)` L521
 
 ### `workflow/splits.py` (62 lines)
 - PURPOSE: Helpers over train/val/test splits: model input (single or multi-timeframe), per-split stamps (reg scale, target mode, entry close definition).
@@ -237,17 +237,20 @@
   - `def target_mode_of(split_or_dict)` L53
   - `def entry_close_reg_of(split_or_dict)` L59
 
-### `workflow/training_config.py` (87 lines)
+### `workflow/training_config.py` (115 lines)
 - PURPOSE: Bridge from model heads to trainer_framework targets: build_target_configs (true_key vs output_keys, derived from core.heads.HeadSet) and the naive majority-class baseline for val_accuracy.
 - TAGS: build_target_configs, with_head_loss_terms, head_terms, report_ic, sample_weights_for, sample weights, build_head_set, loss_weights, true_key, output_keys, label_smoothing, class_baselines, _naive_class_baseline, trainer targets
 - PITFALLS: Pipeline labels are +1/-1 (batches._to_unit_label converts to {0,1} at feed time); the names come from core/heads.py HeadSet (the one place where data keys and model output keys are tied together). Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipyn…
-- DEPENDS: core
+- DEPENDS: core, stats
+- USES: retarget
 - USED BY: run, wiring_selftest
 - API:
-  - `def build_head_set(price_targets, label_smoothing=0.0, class_only=False, loss_weights=None)` L11
-  - `def build_target_configs(price_targets, label_smoothing=0.0, class_only=False, loss_weights=None)` L22
-  - `def with_head_loss_terms(targets, head_terms, report_ic, heads)` L41
-  - `def sample_weights_for(split, main_config, name)` L59
+  - `def build_head_set(price_targets, label_smoothing=0.0, class_only=False, loss_weights=None)` L12
+  - `def build_target_configs(price_targets, label_smoothing=0.0, class_only=False, loss_weights=None)` L23
+  - `def with_head_loss_terms(targets, head_terms, report_ic, heads)` L42
+  - `def unclipped_abs_z(split, target='close')` L60
+  - `def sample_weights_for(split, main_config, name)` L68
+  - `def curriculum_rank(split, order, seed)` L91
 
 ### `workflow/verification.py` (177 lines)
 - PURPOSE: Section 7-d: one-call integrated verification (data integrity, naive baselines, confidence/trading, candle shape) with a single verdict table.

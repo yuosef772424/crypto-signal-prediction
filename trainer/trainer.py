@@ -26,6 +26,9 @@ regression أو classification أو خليط منها، مع موازنة تلق
 > وطبقة الموازنة معًا.
 """
 # @title 5) المدرّب العام (GenericTrainer)
+from core.loss_plan import CURRICULUM_RANK_KEY
+
+
 class GenericTrainer(tf.keras.Model):
     def __init__(self, model: tf.keras.Model, config: dict, **kwargs):
         super().__init__(**kwargs)
@@ -70,6 +73,7 @@ class GenericTrainer(tf.keras.Model):
         _loss_cfg = config["loss"]
         self.loss_normalization = _loss_cfg["loss_normalization"] if "loss_normalization" in _loss_cfg else "none"
         self.loss_norm_beta = float(_loss_cfg["loss_norm_beta"]) if "loss_norm_beta" in _loss_cfg else 0.98
+        self.curriculum = dict(_loss_cfg["curriculum"]) if "curriculum" in _loss_cfg else None
         self.loss_ema = ({t: tf.Variable(0.0, trainable=False, dtype=tf.float32, name=f"loss_ema_{t}") for t in self.target_names}
                           if self.loss_normalization == "ema" else {})
 
@@ -140,6 +144,12 @@ class GenericTrainer(tf.keras.Model):
             y_true_t = y[tcfg["true_key"]]
             entry = TASK_REGISTRY[tcfg["task_type"]]
             w_t = self._weight_for_target(sample_weight, t, tcfg)
+            if training and self.curriculum is not None:
+                # easy-to-hard: only the samples whose rank (0 = easiest, from the TRAIN labels) is within the epoch's fraction f(e) count
+                f = self.curriculum["f0"] + (1.0 - self.curriculum["f0"]) * tf.minimum(
+                    tf.cast(self.ckpt_epoch, tf.float32) / float(self.curriculum["full_at_epoch"]), 1.0)
+                keep = tf.cast(sample_weight[CURRICULUM_RANK_KEY] <= f, tf.float32)
+                w_t = keep if w_t is None else w_t * keep
             if w_t is not None:
                 if not entry["supports_sample_weight"]:
                     raise ValueError(

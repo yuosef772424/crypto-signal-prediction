@@ -4,7 +4,8 @@ TAGS:     build_target_configs, with_head_loss_terms, head_terms, report_ic, sam
 PITFALLS: Pipeline labels are +1/-1 (batches._to_unit_label converts to {0,1} at feed time); the names come from core/heads.py HeadSet (the one place where data keys and model output keys are tied together). Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cells 15 and 17 (section 5).
 """
 from core.heads import HeadSet as _HeadSet
-from core.loss_plan import (SAMPLE_WEIGHTINGS as _SAMPLE_WEIGHTINGS, check_head_loss_terms as _check_head_loss_terms,
+from stats.target_codec import CODECS as _CODECS, codec_name_for_mode as _codec_name_for_mode
+from core.loss_plan import (CURRICULUM_RANK_KEY, sample_weighting_parts as _sample_weighting_parts, SAMPLE_WEIGHTINGS as _SAMPLE_WEIGHTINGS, check_head_loss_terms as _check_head_loss_terms,
                             check_loss_weights as _check_loss_weights, check_report_heads as _check_report_heads)
 
 
@@ -56,22 +57,49 @@ def with_head_loss_terms(targets, head_terms, report_ic, heads):
 import numpy as np
 
 
+def unclipped_abs_z(split, target="close"):
+    """|target| in vol units WITHOUT the TargetSettings.clip (the codec's forward of the split's own mode on its price columns): what a
+    jump / curriculum rule must read (a clip at 4 hides every |z| > 4)."""
+    name = _codec_name_for_mode(split.get("target_mode"))
+    P = _price_columns([(None, split)], split["target_vol"].astype("float64") if "target_vol" in split else None)
+    return np.abs(_CODECS[name].forward(P, target, None))
+
+
 def sample_weights_for(split, main_config, name):
     """``{label key: float32 weights}`` of the regression heads of ``main_config`` (the task types of SAMPLE_WEIGHTINGS[name]) from
     ``split``'s OWN labels (call it with the TRAIN split only: the weights enter the training loss, never validation or selection).
     The trainer looks a head's weights up by its label key (GenericTrainer._weight_for_target); heads without an entry are unweighted."""
-    fn = _SAMPLE_WEIGHTINGS.get(name)
-    meta = _SAMPLE_WEIGHTINGS.entry(name).meta
     out = {}
-    for cfg in main_config["targets"].values():
-        if cfg["task_type"] in meta["task_types"]:
-            y = np.asarray(split["y"][cfg["true_key"]], dtype="float64")
-            w = np.asarray(fn(np.abs(y), clip=np.clip, where=np.where, **meta["params"]), dtype="float64")
-            if w.shape != y.shape or not np.all(np.isfinite(w)) or np.any(w < 0):
-                raise ValueError(f"sample weighting {name!r} gave invalid weights for {cfg['true_key']!r} (shape {w.shape} vs {y.shape}, "
-                                 f"finite and >= 0 required)")
-            out[cfg["true_key"]] = w.astype("float32")
-    return out
+    for part in _sample_weighting_parts(name):             # "a+b" = the product of a's and b's weights
+        fn = _SAMPLE_WEIGHTINGS.get(part)
+        meta = _SAMPLE_WEIGHTINGS.entry(part).meta
+        for cfg in main_config["targets"].values():
+            if cfg["task_type"] in meta["task_types"]:
+                y = np.asarray(split["y"][cfg["true_key"]], dtype="float64")
+                tname = cfg["true_key"][2:-4] if cfg["true_key"].startswith("y_") and cfg["true_key"].endswith("_reg") else None
+                score = unclipped_abs_z(split, tname) if meta["score"] == "unclipped_z" else np.abs(y)
+                w = np.asarray(fn(score, clip=np.clip, where=np.where, **meta["params"]), dtype="float64")
+                if w.shape != y.shape or not np.all(np.isfinite(w)) or np.any(w < 0):
+                    raise ValueError(f"sample weighting {part!r} gave invalid weights for {cfg['true_key']!r} (shape {w.shape} vs "
+                                     f"{y.shape}, finite and >= 0 required)")
+                out[cfg["true_key"]] = (out[cfg["true_key"]] * w) if cfg["true_key"] in out else w
+        if meta["curriculum"] is not None:
+            out[CURRICULUM_RANK_KEY] = curriculum_rank(split, meta["curriculum"]["order"], main_config["run"]["seed"])
+    return {k: v.astype("float32") for k, v in out.items()}
+
+
+def curriculum_rank(split, order, seed):
+    """Rank in [0, 1] of every TRAIN sample, 0 = first included: 'snr' = descending unclipped |close return| / vol (the easiest, clearest
+    moves first); 'random' = a seeded random permutation (the control: same sizes, no order)."""
+    n = len(split["last_candles"])
+    if order == "snr":
+        pos = np.empty(n)
+        pos[np.argsort(-unclipped_abs_z(split, "close"), kind="stable")] = np.arange(n)
+    elif order == "random":
+        pos = np.random.default_rng(int(seed)).permutation(n).astype("float64")
+    else:
+        raise ValueError(f"curriculum order {order!r}: 'snr' | 'random'")
+    return (pos + 1.0) / n
 
 
 def _naive_class_baseline(split, cfg):

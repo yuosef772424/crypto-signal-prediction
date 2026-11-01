@@ -354,7 +354,7 @@ def make_training_config(settings, plan, info, val, kit):
         # Kendall تبقى لرؤوس التصنيف فقط؛ رؤوس evidential (NLL قد تكون سالبة) تُستثنى افتراضياً في trainer_framework —
         # معها كانت الخسارة الكلية تنهار نحو -∞ (راجع ملاحظة القسم 4 هناك). الجدولان lambda_reg/lambda_calib قيمتاهما الابتدائيتان
         # من مثال trainer_framework نفسه — عدّلهما بعد مراقبة val_*_nig_pen. كلها من خطة الخسارة train.loss (core/loss_plan.py).
-        "loss": _trainer_loss_section(tr.loss.balancing, tr.loss.schedules, heads),
+        "loss": _trainer_loss_section(tr.loss.balancing, tr.loss.schedules, heads, tr.loss.sample_weighting),
         "callbacks": {
             # val_raw_loss (الافتراضي) = مجموع خسائر المهام بأوزانها الثابتة (بلا حدود Kendall المتعلَّمة): هدف التدريب نفسه، فتغيير وزن
             # يغيّر أيضاً أي حقبة «أفضل». مقياس مستقل عن الهدف (val_<head>_accuracy/mae/nig_base) يُختار بالاسم من SELECTION_METRICS.

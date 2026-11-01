@@ -258,7 +258,8 @@ class LossSettings(_SettingsSection):
 
     def __post_init__(self):
         _settings_check(isinstance(self.balancing, str), "LossSettings.balancing must be a str (a registered balancer name)")
-        _settings_check(self.sample_weighting is None or (isinstance(self.sample_weighting, str) and self.sample_weighting in _SAMPLE_WEIGHTINGS),
+        _settings_check(self.sample_weighting is None or (isinstance(self.sample_weighting, str)
+                                                          and all(p in _SAMPLE_WEIGHTINGS for p in self.sample_weighting.split("+"))),
                         f"LossSettings.sample_weighting {self.sample_weighting!r} unknown; registered: {list(_SAMPLE_WEIGHTINGS.names())} "
                         f"or None")
         try:

@@ -11,7 +11,8 @@ from typing import Any, Callable, Dict, Iterable, Mapping, NamedTuple, Optional,
 from core.heads import HeadSet
 from core.registry import Contract, Registry
 
-__all__ = ["LOSS_BALANCERS", "HEAD_LOSS_TERMS", "check_head_loss_terms", "check_report_heads", "SAMPLE_WEIGHTINGS", "check_sample_weighting", "SELECTION_METRICS", "SelectionChoice", "SCHEDULE_CURVES", "SUB_TERM_SCHEDULES", "DEFAULT_BALANCING",
+CURRICULUM_RANK_KEY = "__curriculum_rank__"   # the sample_weight dict entry carrying each TRAIN sample's curriculum rank (read by GenericTrainer by this key)
+__all__ = ["CURRICULUM_RANK_KEY", "sample_weighting_parts", "LOSS_BALANCERS", "HEAD_LOSS_TERMS", "check_head_loss_terms", "check_report_heads", "SAMPLE_WEIGHTINGS", "check_sample_weighting", "SELECTION_METRICS", "SelectionChoice", "SCHEDULE_CURVES", "SUB_TERM_SCHEDULES", "DEFAULT_BALANCING",
            "DEFAULT_SELECTION_METRIC", "check_loss_weights", "check_loss_schedules", "resolve_selection_metric", "trainer_loss_section"]
 
 #: curve names of a scheduled loss sub-term (trainer/schedules.py `_progress_curve`; trainer/config.py validates against this tuple).
@@ -144,6 +145,12 @@ def _check_sample_weighting(name, fn, meta):
     p = meta["params"]
     if not isinstance(p, dict) or not all(isinstance(k, str) and _finite_number(v) for k, v in p.items()):
         problems.append(f"params must be a dict of finite numbers, got {p!r}")
+    if meta["score"] not in ("label", "unclipped_z"):
+        problems.append(f"score must be 'label' (|clipped label|) or 'unclipped_z' (|log/simple return| / vol, no clip), got {meta['score']!r}")
+    cur = meta["curriculum"]
+    if cur is not None and not (isinstance(cur, dict) and cur.get("order") in ("snr", "random") and _finite_number(cur.get("f0"))
+                                and 0 < cur["f0"] <= 1 and isinstance(cur.get("full_at_epoch"), int) and cur["full_at_epoch"] >= 1):
+        problems.append(f"curriculum must be None or {{order: snr|random, f0 in (0,1], full_at_epoch: int >= 1}}, got {cur!r}")
     for k in ("target_modes", "task_types"):
         if not isinstance(meta[k], tuple) or not meta[k]:
             problems.append(f"{k} must be a non-empty tuple")
@@ -156,28 +163,65 @@ def _check_sample_weighting(name, fn, meta):
 #: target_modes = the target-mode bases whose labels are in the units the params assume (volnorm: |y| in window-volatility units).
 #: The trainer applies weights through its existing sample_weight path (tasks with supports_sample_weight), per head by label key.
 SAMPLE_WEIGHTINGS = Registry("sample weighting", Contract(
-    "sample weighting", required_meta=("params", "target_modes", "task_types", "description"), optional_meta=(),
+    "sample weighting", required_meta=("params", "target_modes", "task_types", "score", "curriculum", "description"), optional_meta=(),
     validator=_check_sample_weighting))
 SAMPLE_WEIGHTINGS.register("abs_target_clip", _abs_target_clip, version=1, params={"lo": 0.2, "hi": 2.0, "dead_zone": 0.3},
-                           target_modes=("volnorm",), task_types=("evidential", "regression"),
+                           target_modes=("volnorm",), task_types=("evidential", "regression"), score="label", curriculum=None,
                            description="w = clip(|z|, 0.2, 2) with w = 0.2 for |z| < 0.3: large moves weigh up to 10x a noise move")
 
 
+def _jump_downweight(abs_z, *, clip, where, k, w):
+    """w for samples whose UNCLIPPED |future return| / vol exceeds k (news / pump / hack jumps), 1 elsewhere: down-weighted, never dropped."""
+    return where(abs_z > k, w, 1.0)
+
+
+def _all_ones(abs_z, *, clip, where):
+    return where(abs_z >= 0.0, 1.0, 1.0)
+
+
+_VOL_MODES = ("volnorm", "volret")
+SAMPLE_WEIGHTINGS.register("jump_downweight", _jump_downweight, version=1, params={"k": 6.0, "w": 0.3},
+                           target_modes=_VOL_MODES, task_types=("evidential", "regression"), score="unclipped_z", curriculum=None,
+                           description="weight 0.3 for samples whose unclipped |return|/vol > 6 (event jumps), 1 elsewhere; from TRAIN labels, "
+                                       "training loss only; composable with a curriculum as 'jump_downweight+curriculum_snr' (product)")
+SAMPLE_WEIGHTINGS.register("curriculum_snr", _all_ones, version=1, params={}, target_modes=_VOL_MODES,
+                           task_types=("evidential", "regression"), score="unclipped_z",
+                           curriculum={"order": "snr", "f0": 0.3, "full_at_epoch": 20},
+                           description="easy-to-hard: epoch e trains (weight 1) on the top fraction f(e) of TRAIN samples by |return|/vol, f growing "
+                                       "linearly 0.3 -> 1.0 at epoch 20, the rest weight 0; validation never weighted")
+SAMPLE_WEIGHTINGS.register("curriculum_random", _all_ones, version=1, params={}, target_modes=_VOL_MODES,
+                           task_types=("evidential", "regression"), score="unclipped_z",
+                           curriculum={"order": "random", "f0": 0.3, "full_at_epoch": 20},
+                           description="CONTROL of curriculum_snr: the same size schedule f(e) with a random (seeded) order, to separate the "
+                                       "effect of the order from the effect of the subset size")
+
+
+def sample_weighting_parts(name: Any) -> list:
+    """The registered names of a sample weighting: ``None`` -> [], ``"a"`` -> ["a"], ``"a+b"`` -> ["a", "b"] (weights multiply)."""
+    return [] if name is None else str(name).split("+")
+
+
 def check_sample_weighting(name: Any, target_mode: Optional[str], what: str = "loss.sample_weighting") -> Optional[str]:
-    """None, or a registered SAMPLE_WEIGHTINGS name whose target_modes contain the base of ``target_mode`` (``"volnorm+relative"``
-    -> ``"volnorm"``); anything else raises ValueError."""
+    """None, or a registered SAMPLE_WEIGHTINGS name (or ``"a+b"``: their product) whose target_modes contain the base of ``target_mode``
+    (``"volnorm+relative"`` -> ``"volnorm"``); anything else raises ValueError. At most one curriculum per plan."""
     if name is None:
         return None
     if not isinstance(name, str):
         raise ValueError(f"{what} must be None or a registered name, got {name!r}")
-    try:
-        meta = SAMPLE_WEIGHTINGS.entry(name).meta
-    except ValueError as e:
-        raise ValueError(f"{what}: {e}") from None
+    parts = sample_weighting_parts(name)
     base = (target_mode or "").partition("+")[0]
-    if base not in meta["target_modes"]:
-        raise ValueError(f"{what} {name!r} assumes labels of target mode(s) {list(meta['target_modes'])} (its thresholds are in those "
-                         f"units); target_mode is {target_mode!r}")
+    n_curriculum = 0
+    for part in parts:
+        try:
+            meta = SAMPLE_WEIGHTINGS.entry(part).meta
+        except ValueError as e:
+            raise ValueError(f"{what}: {e}") from None
+        n_curriculum += meta["curriculum"] is not None
+        if base not in meta["target_modes"]:
+            raise ValueError(f"{what} {part!r} assumes labels of target mode(s) {list(meta['target_modes'])} (its thresholds are in those "
+                             f"units); target_mode is {target_mode!r}")
+    if n_curriculum > 1 or len(set(parts)) != len(parts):
+        raise ValueError(f"{what} {name!r}: a name twice or more than one curriculum")
     return name
 
 
@@ -256,11 +300,17 @@ def check_loss_schedules(schedules: Any, what: str = "loss.schedules") -> Dict[s
     return out
 
 
-def trainer_loss_section(balancing: str, schedules: Mapping[str, Mapping[str, Any]], heads: Optional[HeadSet] = None) -> dict:
-    """The trainer config ``loss`` section of a plan: the balancer's keys + ``schedules`` (a copy). An unknown balancer raises.
+def trainer_loss_section(balancing: str, schedules: Mapping[str, Mapping[str, Any]], heads: Optional[HeadSet] = None,
+                         sample_weighting: Optional[str] = None) -> dict:
+    """The trainer config ``loss`` section of a plan: the balancer's keys + ``schedules`` (a copy) + ``curriculum`` when the sample
+    weighting has a curriculum member. An unknown balancer raises.
     For the default plan this is exactly ``{"use_uncertainty_weighting": True, "schedules": {lambda_reg, lambda_calib}}``."""
     section = dict(LOSS_BALANCERS.get(balancing)(heads))
     section["schedules"] = {k: dict(v) for k, v in schedules.items()}
+    for part in sample_weighting_parts(sample_weighting):
+        cur = SAMPLE_WEIGHTINGS.entry(part).meta["curriculum"]
+        if cur is not None:
+            section["curriculum"] = {"f0": cur["f0"], "full_at_epoch": cur["full_at_epoch"]}
     return section
 
 

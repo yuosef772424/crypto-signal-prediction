@@ -371,6 +371,8 @@ _CONFIG_SCHEMA = {
         "uncertainty_weighting_exclude_task_types": _r_any,
         # optional keys (absent from the defaults = the old loss exactly): see GenericTrainer
         "loss_normalization": _r_enum("none", "ema"), "loss_norm_beta": _r_real(gt=0.0, lt=1.0),
+        # curriculum sample weighting (SAMPLE_WEIGHTINGS curriculum_*): {"f0": share trained at epoch 0, "full_at_epoch": epoch of the full set}
+        "curriculum": {"f0": _r_real(gt=0.0, lt=1.0001), "full_at_epoch": _r_int(ge=1)},
         "schedules": _r_any, "constraints": _r_any,
     },
     "optimizer": {
