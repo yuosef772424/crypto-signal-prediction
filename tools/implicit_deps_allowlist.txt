@@ -20,7 +20,6 @@ cross discovery/survey.py ta -> data/features.py
 cross workflow/capacity.py LAST_COLUMNS -> data/windows.py
 cross workflow/capacity.py TRAINER_REGISTRY -> trainer/checkpoints.py
 cross workflow/capacity.py _predict -> model/diagnostics.py
-cross workflow/capacity.py _spearman -> model/diagnostics.py
 cross workflow/capacity.py _unwrap_model -> model/diagnostics.py
 cross workflow/capacity.py build_config -> trainer/config.py
 cross workflow/capacity.py build_training_system -> trainer/system.py
@@ -100,4 +99,3 @@ notebook discovery/survey.py CATEGORY_HYPOTHESES
 notebook discovery/survey.py DUMMY_DF
 dup DEFAULT_CONFIG : data/defaults.py, trainer/config.py
 dup SMALL_ARRAY_BYTES : data/disk_backed.py, data/selftests.py
-dup _auc : model/diagnostics.py, workflow/generalization.py

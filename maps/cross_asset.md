@@ -68,48 +68,49 @@
 - PURPOSE: Evaluates any signals file (current model or panel) with the same metrics: AUC, daily IC, vol-controlled IC, +/-B bracket, market-neutral portfolio.
 - TAGS: evaluation, metrics, daily ic, partial ic, vol-quintile ic, market-neutral portfolio, bracket table, up_share, compare, summarize, signals file, train_labels
 - PITFALLS: Judge on test only (val is reference); relative targets are rebuilt from prices and must match retarget_splits(mode='relative'); previous-day vol uses shift(1) to avoid look-ahead.
+- DEPENDS: stats
 - API:
-  - `def train_labels(d, raw, target_mode=None)` L37
-  - `def prepare(df, group_ns=None, target_mode=None)` L66
-  - `def daily_ic(d, score, target='r', min_coins=10)` L94
-  - `def vol_quintile_ic(d, score, target='r', n_q=5, min_cell=5)` L100
-  - `def partial_ic(d, score, target='r', min_coins=10)` L110
+  - `def train_labels(d, raw, target_mode=None)` L39
+  - `def prepare(df, group_ns=None, target_mode=None)` L68
+  - `def daily_ic(d, score, target='r', min_coins=10)` L96
+  - `def vol_quintile_ic(d, score, target='r', n_q=5, min_cell=5)` L102
+  - `def partial_ic(d, score, target='r', min_coins=10)` L112
   - `def mn_portfolio(d, score, q=0.5, cost_pct=0.0, min_coins=20)` L120
   - `def bracket_table(d, score='p_up_close', B=0.05, first_touch=None, n_dec=10)` L147
   - `def summarize(val_df, test_df, first_touch=None, B=0.05, min_coins=10, group_ns=None, target_mode=None)` L172
   - `def compare(runs, first_touch=None, B=0.05, verbose=True, group_ns=None, target_mode=None)` L217
   - `def up_share_table(brackets)` L233
 
-### `cross_asset/selftest.py` (255 lines)
+### `cross_asset/selftest.py` (256 lines)
 - PURPOSE: Fast self-tests of the panel model on synthetic data (grouping, batching, masking, IC loss, short training and export), no Drive needed.
 - TAGS: selftest, unit tests, synthetic data, masking test, grouping test, ic loss test, run_panel_selftest, tests/test_cross_asset
-- DEPENDS: core
+- DEPENDS: core, stats
 - API:
   - `def synthetic_split(n_assets=30, n_days=60, seq_len=8, n_features=5, start_day=18000, seed=0, signal=0.0, name='syn', shuffle_rows=True, day_shift=0.0)` L36
   - `def test_grouping()` L77
   - `def test_batching()` L106
   - `def test_masking(encoder=None, seq_len=8, n_features=5)` L126
   - `def test_ic_loss()` L155
-  - `def test_training(encoder_builder=None, seq_len=8, n_features=5, epochs=None, strict=True)` L168
-  - `def run_panel_selftest(encoder_builder=None, seq_len=8, n_features=5, verbose=True, train=True, strict=True)` L236
+  - `def test_training(encoder_builder=None, seq_len=8, n_features=5, epochs=None, strict=True)` L169
+  - `def run_panel_selftest(encoder_builder=None, seq_len=8, n_features=5, verbose=True, train=True, strict=True)` L237
 
-### `cross_asset/train.py` (442 lines)
+### `cross_asset/train.py` (443 lines)
 - PURPOSE: Trains the panel model: per-day losses (BCE + Huber + optional daily IC term), resumable training loop, prediction and signal export.
 - TAGS: panel training, paneltrainer, panel_loss, ic loss, lr schedule, ema weights, early stopping, resume, export_signals, asym_score, day_pearson
 - PITFALLS: Resuming from a run_dir with no data fingerprint cannot verify the data is the same (warns); defaults mirror main's anti-memorization config, change them explicitly.
-- DEPENDS: core
+- DEPENDS: core, stats
 - API:
-  - `def lr_at_epoch(cfg, epoch)` L53
-  - `def robust_scales(yreg)` L71
-  - `def day_pearson(pred, target, day, n_days, min_n)` L80
-  - `def panel_loss(out, batch, cfg, reg_scale, targets=('high', 'low', 'close'))` L100
-  - `class PanelTrainer` L131
-    - `.__init__(self, model, cfg, run_dir, reg_scale, seq_len, n_features, fingerprint=None, verbose=True, data_fingerprint=None)` L140
-    - `.evaluate(self, ps, use_ema=True)` L211
-    - `.predict(self, ps, use_ema=False, groups=None)` L245
-    - `.load_best(self)` L309
-    - `.fit(self, train_ps, val_ps)` L313
-  - `def realized_return(ps)` L368
-  - `def asym_score(ps, mu)` L374
-  - `def group_ic(ps, score, target, min_n=10)` L391
-  - `def export_signals(ps, logit, mu, split_name, targets=('high', 'low', 'close'))` L403
+  - `def lr_at_epoch(cfg, epoch)` L54
+  - `def robust_scales(yreg)` L72
+  - `def day_pearson(pred, target, day, n_days, min_n)` L81
+  - `def panel_loss(out, batch, cfg, reg_scale, targets=('high', 'low', 'close'))` L101
+  - `class PanelTrainer` L132
+    - `.__init__(self, model, cfg, run_dir, reg_scale, seq_len, n_features, fingerprint=None, verbose=True, data_fingerprint=None)` L141
+    - `.evaluate(self, ps, use_ema=True)` L212
+    - `.predict(self, ps, use_ema=False, groups=None)` L246
+    - `.load_best(self)` L310
+    - `.fit(self, train_ps, val_ps)` L314
+  - `def realized_return(ps)` L369
+  - `def asym_score(ps, mu)` L375
+  - `def group_ic(ps, score, target, min_n=10)` L392
+  - `def export_signals(ps, logit, mu, split_name, targets=('high', 'low', 'close'))` L404

@@ -57,6 +57,10 @@ register_task_type("quantile", quantile_task_loss, ["pinball"])
   لـ Gaussian NLL؛ تطبيقها على NIG هنا اجتهاد غير موثَّق في الأدبيات — قيّمها تجريبيًا).
 - `huber_weight: 0.1` — يضيف خسارة Huber مباشرة على `mu` فلا يستطيع النموذج «تفسير» خطأ التوقع بتضخيم
   عدم اليقين بدل تحسين الدقة.
+- `ic_weight: 0.4` — حدّ خسارة مساعد مسجَّل (core/loss_plan.py HEAD_LOSS_TERMS، كود في BATCH_LOSS_TERMS): `-pearson(mu, y)` على الدفعة
+  (مجمّعة عبر العملات والأزمنة — الدفعات لا تحمل مفتاح وقت)، يُضاف إلى خسارة الهدف. 0.0 (الافتراضي) = لا حدّ = السلوك القديم تماماً.
+  دفعة ثابتة أو أوزان صفرية ⇒ 0 قيمةً وتدرّجاً (لا NaN).
+- `var_weight: 0.1` — حدّ مضاد للانكماش: `(std(mu) - std(y))²` على الدفعة؛ 0.0 = السلوك القديم. يُستخدم مع ic_weight لأن الارتباط لا يرى المقياس.
 - `alpha_floor_straight_through: True` — القصّ القديم `max(alpha, 1.0)` يقتل التدرّج تمامًا حين تكون
   `alpha<1` (شائع مع رأس `softplus` وحده). هذا الخيار يُبقي القيمة الأمامية كما هي لكنه يُمرّر التدرّج
   (straight-through estimator) بدل قتله — بديل أنظف هو تغيير رأس النموذج نفسه إلى `1+softplus(x)`.
@@ -65,20 +69,35 @@ register_task_type("quantile", quantile_task_loss, ["pinball"])
   إحصاءات التدريب المحفوظة، حتى تبقى checkpoints ونماذج قديمة صالحة دون تغيير في معناها.
 """
 # @title 3) سجلّ دوال الخسارة (Loss Registry)
-# TASK_REGISTRY (the dict itself) is created in trainer/config.py, which loads first: build_config validates task_type against it.
+from core.loss_plan import HEAD_LOSS_TERMS as _HEAD_LOSS_TERMS
+from stats import metrics as _stats_metrics
+from core.registry import ContractError as _ContractError
+
+# TASK_REGISTRY (a core.registry Registry with the task contract) is created in trainer/config.py, which loads first: build_config validates task_type against it.
 
 
 def register_task_type(name: str, fn: Callable, stat_keys: List[str], supports_sample_weight: bool = False,
-                       config_keys: Tuple[str, ...] = ()):
+                       config_keys: Tuple[str, ...] = (), version: int = 1, stream_stats: Optional[Dict[str, Tuple[Callable, Callable]]] = None):
     """سجّل نوع مهمة جديد.
     fn: (y_true, outputs, target_cfg, scheduled_vars) -> (loss, stats_dict)
     إن أعلنتَ supports_sample_weight=True فيجب أن تقبل fn وسيطًا إضافيًا sample_weight=None
     (وإلا فإعطاء sample_weight لهدف من هذا النوع يرفع خطأً صريحًا بدل أن يُتجاهل بصمت).
     config_keys: مفاتيح قاموس الهدف (غير المشتركة بين كل الأنواع) التي تقرؤها fn عبر target_cfg؛ build_config يرفض أي مفتاح
-    هدف غير مُعلَن هنا ولا في المشترك (true_key, task_type, output_keys, loss_weight, flood_level) — مصدر واحد لا قائمة ثانية."""
-    TASK_REGISTRY[name] = {"fn": fn, "stat_keys": list(stat_keys),
-                           "supports_sample_weight": bool(supports_sample_weight),
-                           "config_keys": tuple(config_keys)}
+    هدف غير مُعلَن هنا ولا في المشترك (true_key, task_type, output_keys, loss_weight, flood_level) — مصدر واحد لا قائمة ثانية.
+    stream_stats: {اسم: (فئة المتتبّع، دالة المدخلات)} لإحصاءات تُحسب على مجموعة التحقق كلها لا كمتوسط دفعات (مثل ic = ارتباط بيرسون
+    على كل val عبر stats.metrics): الفئة tf.keras.metrics.Metric تقبل update_state(x, y, sample_weight)، ودالة المدخلات (y_true, outputs, target_cfg) -> (x, y).
+    تُسجَّل في logs باسم `<هدف>_<اسم>` (و`val_` في التحقق) وتُفعَّل لهدف حين يكون `track_<اسم>` True في إعداده أو حين يكون
+    monitor الإيقاف المبكر هو `val_<هدف>_<اسم>`؛ غير مفعَّلة = لا متتبّع ولا مفتاح في logs (السلوك القديم).
+    التسجيل عبر core.registry: اسم مسجَّل مرتين يرفع DuplicateNameError، وعقد النوع (TASK_REGISTRY في config.py) يُفحص هنا لا وقت التدريب."""
+    for label, seq in (("stat_keys", stat_keys), ("config_keys", config_keys)):
+        if isinstance(seq, (str, bytes)):           # list("mae") would silently become ['m', 'a', 'e']
+            raise _ContractError(f"task {name!r}: {label} must be a list/tuple of names, not the string {seq!r}")
+    stream = dict(stream_stats or {})
+    entry = {"fn": fn, "stat_keys": list(stat_keys), "supports_sample_weight": supports_sample_weight,
+             "config_keys": tuple(config_keys), "stream_stats": tuple(stream), "stream_fns": stream}
+    TASK_REGISTRY.register(name, entry, version=version, stat_keys=entry["stat_keys"],
+                           supports_sample_weight=supports_sample_weight, config_keys=entry["config_keys"],
+                           stream_stats=entry["stream_stats"])
 
 
 # ───────────────────────────── مساعدات الأوزان ─────────────────────────────
@@ -95,6 +114,117 @@ def _wmean(x, w=None):
         return tf.reduce_mean(x)
     w = tf.cast(w, tf.float32)
     return tf.math.divide_no_nan(tf.reduce_sum(x * w), tf.reduce_sum(w))
+
+
+# ───────────────────────────── ارتباط بيرسون (IC): حدّ خسارة وإحصاء حقبة ─────────────────────────────
+_PEARSON_VAR_EPS = 1e-12      # تباين أصغر من هذا (دفعة ثابتة) = لا ارتباط: 0 لا NaN
+
+
+def batch_corr(pred, y, w=None, eps: float = _PEARSON_VAR_EPS):
+    """ارتباط بيرسون (مرجَّح بـ w إن وُجد) بين pred وy على الدفعة، قابل للاشتقاق. يُرجع 0 (قيمةً وتدرّجًا، لا NaN) إن كان مجموع الأوزان
+    صفرًا أو تباين أيٍّ منهما <= eps (دفعة ثابتة أو بحجم 1). حيلة «where مزدوجة»: المقام يُحسب من قيمة آمنة في الفرع غير المختار."""
+    pred, y = _flat(pred), _flat(y)
+    w = tf.ones_like(pred) if w is None else _flat(w)
+    sw = tf.reduce_sum(w)
+    sw_safe = tf.where(sw > 0.0, sw, tf.ones_like(sw))
+    mp = tf.reduce_sum(w * pred) / sw_safe
+    my = tf.reduce_sum(w * y) / sw_safe
+    dp, dy = pred - mp, y - my
+    vp = tf.reduce_sum(w * dp * dp) / sw_safe
+    vy = tf.reduce_sum(w * dy * dy) / sw_safe
+    cov = tf.reduce_sum(w * dp * dy) / sw_safe
+    ok = (sw > 0.0) & (vp > eps) & (vy > eps)
+    denom = tf.sqrt(tf.where(ok, vp * vy, tf.ones_like(vp)))
+    return tf.where(ok, cov / denom, tf.zeros_like(cov))
+
+
+def corr_loss_term(pred, y_true, w, target_cfg):
+    """حدّ الخسارة المساعد "ic": -pearson(mu, y) على الدفعة (مجمّعة عبر العملات والأزمنة — الدفعات لا تحمل مفتاح وقت؛ انظر
+    HEAD_LOSS_TERMS). الوزن ic_weight يضرب هذا الحدّ خارج الدالة."""
+    return -batch_corr(pred, y_true, w)
+
+
+def std_match_loss_term(pred, y_true, w, target_cfg):
+    """حدّ الخسارة المساعد "var" (ضدّ انكماش mu إلى ثابت): (std(mu) - std(y))² على الدفعة (مرجَّحًا بـ w). std بـ sqrt(var + 1e-12) كي
+    لا ينفجر التدرّج عند تباين صفري؛ مجموع أوزان صفري = 0."""
+    pred, y = _flat(pred), _flat(y_true)
+    w = tf.ones_like(pred) if w is None else _flat(w)
+    sw = tf.reduce_sum(w)
+    ok = sw > 0.0
+    sw_safe = tf.where(ok, sw, tf.ones_like(sw))
+
+    def _std(v):
+        m = tf.reduce_sum(w * v) / sw_safe
+        return tf.sqrt(tf.reduce_sum(w * tf.square(v - m)) / sw_safe + 1e-12)
+
+    return tf.where(ok, tf.square(_std(pred) - _std(y)), tf.zeros_like(sw))
+
+
+class EvalSetCorrelation(tf.keras.metrics.Metric):
+    """ارتباط على مجموعة التحقق كلها (لا متوسط ارتباطات الدفعات): يجمع (x, y) لكل دفعة تقييم في الذاكرة (tf.numpy_function — يعمل
+    داخل tf.function) ويحسب الرقم بالمالك الوحيد للمقاييس stats.metrics (pearson، سياسة NaN = drop_nonfinite، حالة متدهورة = 0.0 =
+    "لا إشارة"). يُصفَّر كل حقبة (reset_state). لا يُحدَّث أثناء التدريب (GenericTrainer لا يمرّر له دفعات التدريب ولا يعيده في logs
+    التدريب): مجموعة التدريب أكبر بكثير وقيمتها على نموذج يتغيّر داخل الحقبة لا تصلح لاختيار. كلفة result() خطّية في حجم ما جُمع
+    (تُستدعى كل خطوة تقييم). sample_weight مُتجاهَل: الاختيار على val غير مرجَّح (أوزان العيّنات للتدريب فقط).
+    TODO (بعد قرار المالك): rank-IC (stats.metrics.spearman) كلفته n·log n لكل خطوة؛ يحتاج حساباً عند نهاية الحقبة فقط."""
+
+    def __init__(self, name="ic", **kwargs):
+        super().__init__(name=name, **kwargs)
+        self._parts = []
+        self._cache = (0, 0.0)
+
+    def _append(self, x, y):
+        self._parts.append((np.asarray(x, "float64").reshape(-1), np.asarray(y, "float64").reshape(-1)))
+        return np.int64(len(self._parts))
+
+    def _value(self):
+        if len(self._parts) > 1:                 # one array per side, so the next call concatenates only the new batches
+            self._parts = [(np.concatenate([p[0] for p in self._parts]), np.concatenate([p[1] for p in self._parts]))]
+        n = len(self._parts[0][0]) if self._parts else 0
+        if n != self._cache[0]:
+            v = _stats_metrics.pearson(self._parts[0][0], self._parts[0][1], degenerate=0.0) if n else 0.0
+            self._cache = (n, float(v))
+        return np.float32(self._cache[1])
+
+    def update_state(self, x, y, sample_weight=None):
+        tf.numpy_function(self._append, [tf.cast(x, tf.float32), tf.cast(y, tf.float32)], tf.int64, stateful=True)
+
+    def result(self):
+        out = tf.numpy_function(self._value, [], tf.float32, stateful=True)
+        out.set_shape([])
+        return out
+
+    def reset_state(self):
+        self._parts = []
+        self._cache = (0, 0.0)
+
+
+#: حدود الخسارة المساعدة من نوع "batch" (HEAD_LOSS_TERMS في core/loss_plan.py = المفردات والمفاتيح؛ هنا الكود): اسم -> دالة
+#: (pred, y_true, w, target_cfg) -> قيمة قياسية لدفعة بلا وزن الحدّ (الوزن target_cfg[weight_key] يُضرب في _batch_loss_terms).
+BATCH_LOSS_TERMS = {"ic": corr_loss_term, "var": std_match_loss_term}
+
+
+def _check_batch_terms_declared():
+    declared = {entry.name for entry in _HEAD_LOSS_TERMS.entries() if entry.meta["kind"] == "batch"}
+    if declared != set(BATCH_LOSS_TERMS):
+        raise _ContractError(f"BATCH_LOSS_TERMS {sorted(BATCH_LOSS_TERMS)} differ from the batch terms core.loss_plan.HEAD_LOSS_TERMS "
+                             f"declares {sorted(declared)}: a term is declared there and implemented here, never one of the two")
+
+
+_check_batch_terms_declared()
+
+
+def _batch_loss_terms(task_type, target_cfg, pred, y_true, w):
+    """مجموع حدود الخسارة المساعدة من نوع "batch" المفعَّلة (وزنها > 0) لهذا الهدف؛ None إن لم يُفعَّل شيء — فلا يُضاف أي حدّ
+    (الافتراضي = السلوك القديم تمامًا). وزن سالب يرفضه build_config."""
+    total = None
+    for name, fn in BATCH_LOSS_TERMS.items():
+        meta = _HEAD_LOSS_TERMS.entry(name).meta
+        weight = float(target_cfg[meta["weight_key"]]) if meta["weight_key"] in target_cfg else 0.0
+        if task_type in meta["task_types"] and weight > 0.0:
+            term = weight * tf.cast(fn(pred, y_true, w, target_cfg), tf.float32)
+            total = term if total is None else total + term
+    return total
 
 
 def _wstd(x, w=None):
@@ -221,6 +351,9 @@ def evidential_task_loss(y_true, outputs, target_cfg, scheduled_vars, sample_wei
         per_sample = per_sample + huber_weight * (0.5 * tf.square(q) + delta * (a - q))
 
     total = _wmean(per_sample, w)
+    batch_terms = _batch_loss_terms("evidential", target_cfg, gamma, y_true, w)
+    if batch_terms is not None:
+        total = total + batch_terms
 
     aleatoric = beta / (alpha - 1.0 + 1e-6)
     epistemic = beta / (nu * (alpha - 1.0) + 1e-6)
@@ -253,6 +386,7 @@ register_task_type(
     supports_sample_weight=True,
     config_keys=("use_calibration_loss", "lambda_reg_var", "lambda_calib_var", "normalize_reg", "normalize_reg_stop_grad",
                  "beta_nll", "huber_weight", "huber_delta", "alpha_floor_straight_through"),
+    stream_stats={"ic": (EvalSetCorrelation, lambda y_true, outputs, cfg: (outputs[cfg["output_keys"]["mu"]], y_true))},
 )
 
 
@@ -276,11 +410,16 @@ def regression_task_loss(y_true, outputs, target_cfg, scheduled_vars, sample_wei
     else:  # mse (افتراضي)
         per = tf.square(error)
 
-    return _wmean(per, w), {"mae": _wmean(tf.abs(error), w)}
+    total = _wmean(per, w)
+    batch_terms = _batch_loss_terms("regression", target_cfg, y_pred, y_true, w)
+    if batch_terms is not None:
+        total = total + batch_terms
+    return total, {"mae": _wmean(tf.abs(error), w)}
 
 
 register_task_type("regression", regression_task_loss, ["mae"], supports_sample_weight=True,
-                   config_keys=("loss_fn", "huber_delta"))
+                   config_keys=("loss_fn", "huber_delta"),
+                   stream_stats={"ic": (EvalSetCorrelation, lambda y_true, outputs, cfg: (outputs[cfg["output_keys"]["pred"]], y_true))})
 
 
 # ───────────────────────────── classification ─────────────────────────────

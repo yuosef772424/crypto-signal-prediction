@@ -72,7 +72,7 @@ Documents:
   - `def discovery_package()` L64
   - `def load_pipeline(quiet=True)` L69
   - `def load_model(ns=None, quiet=True, selftests=False)` L78
-  - `def load_trainer(ns=None, quiet=True, smoke_test=False, kfold=False)` L89
+  - `def load_trainer(ns=None, quiet=True, smoke_test=False)` L89
   - `def load_evaluation(ns=None, exclude=(), quiet=True)` L101
   - `def exec_evaluation_module(name, ns, quiet=True)` L110
 
@@ -210,26 +210,43 @@ Documents:
   - `def auc_pair(aligned)` L90
 
 ## `docs/research/cards/`
-- Experiment card — E-liq-001: does telling the model how liquid the coin is (A) or removing illiquid… | 0 scripts, 4 md, 0 data files (0 B)
+- Experiment card — E-liq-001: does telling the model how liquid the coin is (A) or removing illiquid… | 0 scripts, 6 md, 0 data files (0 B)
 
 Documents:
 - `E-liq-001.md` — Experiment card — E-liq-001: does telling the model how liquid the coin is (A) or removing illiquid…
 - `E-norm-001.md` — Experiment card — E-norm-001: train NIG-TimeNet with price_norm_mode=logret_std vs window_scale
 - `E-norm-002.md` — Experiment card — E-norm-002: logret_std inputs without the model's per-window InstanceNorm
 - `E-rel-001.md` — Experiment card — E-rel-001: absolute vs within-timestamp relative target on the current 4h model l…
+- `E-tgt-002.md` — Experiment card — E-tgt-002: IC-aligned objective for the main model (volnorm target, clip 4, Huber…
+- `E-tgt-003.md` — Experiment card — E-tgt-003: proper scoring, decision utility, confidence and curriculum on top of…
 
 ## `docs/research/hardening/`
-- hardening/: root-cause audits of the codebase before a new experiment round | 0 scripts, 5 md, 1 data files (2 KB)
+- hardening/: root-cause audits of the codebase before a new experiment round | 1 scripts, 9 md, 2 data files (10 KB)
 
 Documents:
 - `README.md` — hardening/: root-cause audits of the codebase before a new experiment round
+- `STATUS.md` — Hardening — STATUS (handoff for a fresh session)
 - `audit_2026-10-31.md` — Hardening audit, 2026-10-31 (auditor: root-cause classes of fragility)
+- `data_prep_audit.md` — Data-preparation audit: what per-window normalization destroys (2026-11-01)
+- `external_decay_audit.md` — Audit of external "model staleness / rolling retrain" experiment (Perplexity, repo /home/user/crypt…
 - `external_research_prompts.md` — تعليمات بحث خارجي (لأداة البحث التي أنتجت `cryptoformer.zip`)
+- `open_defects.md` — Open code / pipeline defects (read-only sweep, 2026-11-01)
 - `proposal_cascaded_stages.md` — Proposal: cascaded / stacked training stages
 - `proposal_rolling_retrain.md` — Proposal: rolling-retrain study (does the market change enough to make the model random?)
 
+### `docs/research/hardening/data_prep_probe.py` (209 lines)
+- PURPOSE: data_prep_probe.py - what does the pipeline's per-window normalization destroy? (audit of data preparation, 2026-11-01) (from docstring)
+- DEPENDS: stats
+- API:
+  - `def load_frames(data_dir, start, interval='1h')` L39
+  - `def build(frames, horizon)` L51
+  - `def ridge_fit(Xtr, ytr, Xva, yva, alphas=...)` L74
+  - `def r2(y, p)` L91
+  - `def views(split, level_idx, other_idx)` L95
+  - `def main(argv=None)` L111
+
 Data / other files (counts only):
-- `.`: txt×1 — 2 KB
+- `.`: json×1, txt×1 — 10 KB
 
 ## `docs/research/notes/`
 - External research takeaways (2026-10-20) | 0 scripts, 3 md, 0 data files (0 B)

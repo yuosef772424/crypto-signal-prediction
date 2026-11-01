@@ -18,7 +18,7 @@ sys.path.insert(0, str(ROOT / "docs" / "research" / "audit"))
 import _nbload  # noqa: E402
 from core import constants, schema  # noqa: E402
 
-CODE_DIRS = ("core", "cross_asset", "tools", "data", "model", "trainer", "evaluation", "signal_eval", "workflow", "discovery")
+CODE_DIRS = ("core", "stats", "cross_asset", "tools", "data", "model", "trainer", "evaluation", "signal_eval", "workflow", "discovery")
 CORE_NAMES = {"LAST_COLUMNS", "LAST_COLUMN_INDEX", "TS_COL", "LAST_DTYPE", "TARGET_COLUMNS", "TARGET_MODES",
               "NO_RELATIVE_BASES", "ENTRY_CLOSE_REGS", "NIG_ALPHA_DEN_MIN"}
 
@@ -47,8 +47,9 @@ class SharedNamespacePointsAtCoreTests(unittest.TestCase):
 
     def test_evaluate_trained_model_choices_derive_from_core_and_equal_the_old_list(self):
         import evaluate_trained_model as etm
-        old = ("return", "return_close", "scaled", "magnitude", "volnorm", "relative", "return+relative",
-               "return_close+relative", "scaled+relative", "magnitude+relative", "volnorm+relative", "entry_range")
+        old = ("return", "return_close", "scaled", "magnitude", "volnorm", "volret", "relative", "return+relative",
+               "return_close+relative", "scaled+relative", "magnitude+relative", "volnorm+relative", "volret+relative",
+               "entry_range")                                  # the old list + the registered 'volret' (E-tgt-003)
         self.assertEqual(etm.TARGET_MODE_CHOICES, old)
         self.assertEqual(etm.ENTRY_CLOSE_REG_CHOICES, ("abs_return", "range_pos"))
 

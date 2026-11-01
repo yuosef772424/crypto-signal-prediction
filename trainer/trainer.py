@@ -26,6 +26,10 @@ regression أو classification أو خليط منها، مع موازنة تلق
 > وطبقة الموازنة معًا.
 """
 # @title 5) المدرّب العام (GenericTrainer)
+from core.loss_plan import CURRICULUM_RANK_KEY, UTILITY_STAMP_KEY
+from stats.target_codec import CODECS as _TARGET_CODECS
+
+
 class GenericTrainer(tf.keras.Model):
     def __init__(self, model: tf.keras.Model, config: dict, **kwargs):
         super().__init__(**kwargs)
@@ -65,6 +69,29 @@ class GenericTrainer(tf.keras.Model):
             UncertaintyWeightedLoss(self.kendall_task_names) if self.kendall_task_names else None
         )
 
+        # ── loss_normalization='ema' (LOSS_BALANCERS 'ema_norm'): كل خسارة رأس ÷ EMA لقيمتها المطلقة (stop-gradient) ثم × وزنها الثابت ──
+        # غير موجود/'none' = لا متغيّرات ولا قسمة = السلوك القديم تماماً. المتغيّرات داخل checkpoint فيستأنف التطبيع صحيحاً.
+        _loss_cfg = config["loss"]
+        self.loss_normalization = _loss_cfg["loss_normalization"] if "loss_normalization" in _loss_cfg else "none"
+        self.loss_norm_beta = float(_loss_cfg["loss_norm_beta"]) if "loss_norm_beta" in _loss_cfg else 0.98
+        self.curriculum = dict(_loss_cfg["curriculum"]) if "curriculum" in _loss_cfg else None
+        self.utility = dict(_loss_cfg["utility"]) if "utility" in _loss_cfg else None
+        if self.utility is not None:
+            if "lambda_utility" not in self.scheduled_vars:
+                raise ValueError("loss.utility needs the schedule 'lambda_utility' in loss.schedules (core.loss_plan.utility_plan writes both)")
+            if self.utility["head"] not in config["targets"]:
+                raise ValueError(f"loss.utility.head {self.utility['head']!r} is not a target: {list(config['targets'])}")
+            self.utility_tracker = tf.keras.metrics.Mean(name="utility_loss")
+        self.tcp = dict(_loss_cfg["tcp"]) if "tcp" in _loss_cfg else None
+        if self.tcp is not None:
+            if "lambda_tcp" not in self.scheduled_vars:
+                raise ValueError("loss.tcp needs the schedule 'lambda_tcp' in loss.schedules (core.loss_plan.tcp_plan writes both)")
+            if self.tcp["head"] not in config["targets"]:
+                raise ValueError(f"loss.tcp.head {self.tcp['head']!r} is not a target: {list(config['targets'])}")
+            self.tcp_tracker = tf.keras.metrics.Mean(name="tcp_brier")
+        self.loss_ema = ({t: tf.Variable(0.0, trainable=False, dtype=tf.float32, name=f"loss_ema_{t}") for t in self.target_names}
+                          if self.loss_normalization == "ema" else {})
+
         # ── قيود منطقية/فيزيائية اختيارية بين المخرجات ──
         self.constraints_cfg = config["loss"].get("constraints", [])
 
@@ -83,15 +110,57 @@ class GenericTrainer(tf.keras.Model):
             for key in TASK_REGISTRY[task_type]["stat_keys"]:
                 self._stat_trackers[f"{t}_{key}"] = tf.keras.metrics.Mean(name=f"{t}_{key}")
 
+        # إحصاءات مجموعة التحقق الكاملة (stream_stats، مثل ic = بيرسون stats.metrics على كل val): متتبّع فقط للهدف الذي طلبها
+        # (track_<اسم>) أو سمّاها monitor الإيقاف المبكر — بغير ذلك لا متتبّع ولا مفتاح جديد في logs (السلوك القديم). تُحدَّث في
+        # test_step فقط، ولا تظهر في logs التدريب (train_step يستبعدها) فيظهر val_<هدف>_<اسم> وحده.
+        monitor = self.config["callbacks"]["early_stopping"]["monitor"]
+        self._stream_inputs: Dict[str, Callable] = {}
+        for t, tcfg in self.config["targets"].items():
+            for sname, (tracker_cls, inputs_fn) in TASK_REGISTRY[tcfg["task_type"]]["stream_fns"].items():
+                key = f"{t}_{sname}"
+                if (f"track_{sname}" in tcfg and tcfg[f"track_{sname}"]) or monitor in (key, f"val_{key}"):
+                    self._stat_trackers[key] = tracker_cls(name=key)
+                    self._stream_inputs[key] = inputs_fn
+
         self._constraint_trackers = {
             c["name"]: tf.keras.metrics.Mean(name=f"constraint_{c['name']}")
             for c in self.constraints_cfg
         }
 
+    def _utility_loss(self, y, outputs):
+        """-mean(s * r - cost * |s|) / std(r): s = tanh(k * mu / (sigma + eps)) from the close head, r = the DECODED simple return of the
+        (clipped) label through the target codec (the one inverse: stats.target_codec). Units of the batch return std (stop-gradient), so
+        lambda_U is comparable to the O(1) head losses. sigma = the head's own scale: 'sigma' output, else the NIG aleatoric
+        sqrt(beta / (alpha - 1))."""
+        u = self.utility
+        tcfg = self.config["targets"][u["head"]]
+        keys = tcfg["output_keys"]
+        mu = _flat(outputs[keys["mu"]])
+        if "sigma" in keys:
+            sigma = _flat(outputs[keys["sigma"]])
+        else:
+            sigma = tf.sqrt(_flat(outputs[keys["beta"]]) / tf.maximum(_flat(outputs[keys["alpha"]]) - 1.0, 1e-2))
+        s = tf.tanh(u["k"] * mu / (sigma + u["eps"]))
+        stamps = {"target_vol": _flat(y[UTILITY_STAMP_KEY])} if UTILITY_STAMP_KEY in y else {}
+        r = _TARGET_CODECS[u["codec"]].inverse(_flat(y[tcfg["true_key"]]), stamps, {"scale": u["scale"]}, tf.math)
+        gain = s * r - u["cost"] * tf.abs(s)
+        return -tf.reduce_mean(gain) / (tf.stop_gradient(tf.math.reduce_std(r)) + 1e-8)
+
+    def _tcp_loss(self, y, outputs):
+        """Brier loss of the TCP confidence output against 1[mu * y > 0] (direction of the head's mu is right); the target is stop-gradient,
+        so the loss trains only the TCP head (its input is already stop-gradient in the model)."""
+        tcfg = self.config["targets"][self.tcp["head"]]
+        mu = tf.stop_gradient(_flat(outputs[tcfg["output_keys"]["mu"]]))
+        correct = tf.cast(mu * _flat(y[tcfg["true_key"]]) > 0.0, tf.float32)
+        p = _flat(outputs[self.tcp["output_key"]])
+        return tf.reduce_mean(tf.square(p - correct))
+
     @property
     def metrics(self):
         return (
-            [self.loss_tracker, self.raw_loss_tracker]
+            ([self.utility_tracker] if self.utility is not None else [])
+            + ([self.tcp_tracker] if self.tcp is not None else [])
+            + [self.loss_tracker, self.raw_loss_tracker]
             + list(self._target_loss_trackers.values())
             + list(self._stat_trackers.values())
             + list(self._constraint_trackers.values())
@@ -114,12 +183,18 @@ class GenericTrainer(tf.keras.Model):
         outputs = self.model(x, training=training)
 
         per_target_losses = {}
-        per_stat_values: Dict[str, tf.Tensor] = {}
+        per_stat_values: Dict[str, Any] = {}
 
         for t, tcfg in self.config["targets"].items():
             y_true_t = y[tcfg["true_key"]]
             entry = TASK_REGISTRY[tcfg["task_type"]]
             w_t = self._weight_for_target(sample_weight, t, tcfg)
+            if training and self.curriculum is not None:
+                # easy-to-hard: only the samples whose rank (0 = easiest, from the TRAIN labels) is within the epoch's fraction f(e) count
+                f = self.curriculum["f0"] + (1.0 - self.curriculum["f0"]) * tf.minimum(
+                    tf.cast(self.ckpt_epoch, tf.float32) / float(self.curriculum["full_at_epoch"]), 1.0)
+                keep = tf.cast(sample_weight[CURRICULUM_RANK_KEY] <= f, tf.float32)
+                w_t = keep if w_t is None else w_t * keep
             if w_t is not None:
                 if not entry["supports_sample_weight"]:
                     raise ValueError(
@@ -136,10 +211,22 @@ class GenericTrainer(tf.keras.Model):
             if training and flood is not None:
                 # Flooding: القيمة الأمامية تبقى ≥ b، والتدرّج يعكس اتجاهه تحت b (صعود بدل نزول)
                 raw_loss = tf.abs(raw_loss - float(flood)) + float(flood)
+            if self.loss_ema:
+                ema = self.loss_ema[t]
+                mag = tf.stop_gradient(tf.abs(raw_loss))
+                new = tf.where(ema > 0.0, self.loss_norm_beta * ema + (1.0 - self.loss_norm_beta) * mag, mag)
+                if training:
+                    ema.assign(new)
+                raw_loss = raw_loss / tf.maximum(tf.stop_gradient(new if training else tf.where(ema > 0.0, ema, mag)), 1e-8)
             w = self.loss_weights[t]
             per_target_losses[t] = raw_loss * w
             for k, v in stats.items():
                 per_stat_values[f"{t}_{k}"] = tf.cast(v, tf.float32)
+            for sname in TASK_REGISTRY[tcfg["task_type"]]["stream_stats"]:
+                key = f"{t}_{sname}"
+                if key in self._stream_inputs and not training:   # (x, y, sample_weight) for the val-set tracker, see _update_trackers
+                    x_s, y_s = self._stream_inputs[key](y_true_t, outputs, tcfg)
+                    per_stat_values[key] = (x_s, y_s, w_t)
 
         # القيود المنطقية لا تُرجَّح بـ sample_weight (دالتها تأخذ outputs فقط)
         per_constraint_values = {}
@@ -159,6 +246,14 @@ class GenericTrainer(tf.keras.Model):
             total_loss = raw_loss
 
         extra = constraint_total
+        if self.utility is not None:        # ADDED to the standard head losses; weight ramped 0 -> lambda_U by the schedule 'lambda_utility'
+            utility = self._utility_loss(y, outputs)
+            extra = extra + tf.cast(self.scheduled_vars["lambda_utility"], tf.float32) * utility
+            per_stat_values["__utility__"] = utility
+        if self.tcp is not None:            # the TCP head's own Brier loss; weight 0 until the schedule 'lambda_tcp' switches it on
+            tcp = self._tcp_loss(y, outputs)
+            extra = extra + tf.cast(self.scheduled_vars["lambda_tcp"], tf.float32) * tcp
+            per_stat_values["__tcp__"] = tcp
         if self.model.losses:
             extra = extra + tf.add_n([tf.cast(l, tf.float32) for l in self.model.losses])
         total_loss = total_loss + extra
@@ -172,11 +267,23 @@ class GenericTrainer(tf.keras.Model):
         self.raw_loss_tracker.update_state(raw_loss)
         for t, v in per_target_losses.items():
             self._target_loss_trackers[t].update_state(v)
+        if "__utility__" in per_stat_values:
+            self.utility_tracker.update_state(per_stat_values["__utility__"])
+        if "__tcp__" in per_stat_values:
+            self.tcp_tracker.update_state(per_stat_values["__tcp__"])
         for k, v in per_stat_values.items():
             if k in self._stat_trackers:
-                self._stat_trackers[k].update_state(v)
+                if isinstance(v, tuple):            # an epoch-level (stream) stat: update_state(x, y, sample_weight)
+                    self._stat_trackers[k].update_state(v[0], v[1], sample_weight=v[2])
+                else:
+                    self._stat_trackers[k].update_state(v)
         for name, v in per_constraint_values.items():
             self._constraint_trackers[name].update_state(v)
+
+    def fit(self, x=None, y=None, **kwargs):
+        # kept so BestModelTracker(weights_snapshot='ema_weights') can re-evaluate the EMA weights it saves on the SAME validation data
+        self.__dict__["_fit_validation_data"] = kwargs.get("validation_data")   # not an attribute assignment: Keras would track the dataset in checkpoints
+        return super().fit(x, y, **kwargs)
 
     def train_step(self, data):
         x, y, sample_weight = tf.keras.utils.unpack_x_y_sample_weight(data)
@@ -190,7 +297,7 @@ class GenericTrainer(tf.keras.Model):
         self.optimizer.apply_gradients(zip(grads, train_vars))
 
         self._update_trackers(total_loss, raw_loss, per_target, stats, constraints)
-        return {m.name: m.result() for m in self.metrics}
+        return {m.name: m.result() for m in self.metrics if m.name not in self._stream_inputs}   # val-set stats: test_step only
 
     def test_step(self, data):
         x, y, sample_weight = tf.keras.utils.unpack_x_y_sample_weight(data)

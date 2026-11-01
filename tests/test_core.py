@@ -30,7 +30,7 @@ class ValuesTests(unittest.TestCase):
         self.assertEqual(schema.TS_COL, 3)
         self.assertEqual(schema.LAST_DTYPE, "float64")
         self.assertEqual(schema.TARGET_COLUMNS, ("high", "low", "close"))
-        self.assertEqual(schema.TARGET_MODES, ("return", "return_close", "scaled", "magnitude", "volnorm", "entry_range"))
+        self.assertEqual(schema.TARGET_MODES, ("return", "return_close", "scaled", "magnitude", "volnorm", "entry_range", "volret"))
         self.assertEqual(schema.NO_RELATIVE_BASES, ("entry_range",))
         self.assertEqual(schema.ENTRY_CLOSE_REGS, ("abs_return", "range_pos"))
         self.assertEqual(constants.NIG_ALPHA_DEN_MIN, 1e-2)
@@ -54,6 +54,8 @@ class TierZeroTests(unittest.TestCase):
                 mods = ([a.name for a in node.names] if isinstance(node, ast.Import)
                         else [node.module or ""] if isinstance(node, ast.ImportFrom) and node.level == 0 else [])
                 for m in mods:
+                    if m.split(".")[0] == "core":       # core modules may import each other (tier 0 stays closed)
+                        continue
                     self.assertIn(m.split(".")[0], stdlib, f"{f.name} imports {m}")
 
     def test_importing_core_has_no_side_effects_and_loads_no_repo_package(self):

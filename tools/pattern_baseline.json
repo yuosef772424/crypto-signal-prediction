@@ -50,48 +50,21 @@
    "discovery/scanner.py": 1,
    "discovery/selftest.py": 2,
    "evaluation/legacy_uncertainty.py": 1,
-   "model/builder.py": 2,
-   "model/config.py": 1,
-   "model/selftests.py": 3,
    "trainer/example.py": 1,
-   "workflow/generalization.py": 1,
-   "workflow/reports.py": 1,
-   "workflow/retarget.py": 2,
-   "workflow/selective_eval.py": 1,
-   "workflow/wiring_selftest.py": 9
+   "workflow/retarget.py": 2
   },
   "metric-def-outside-stats": {
    "cross_asset/report.py": 3,
-   "cross_asset/train.py": 3,
-   "evaluation/targets.py": 1,
-   "evaluation/trust_calibration.py": 1,
-   "model/diagnostics.py": 2,
+   "cross_asset/train.py": 2,
    "signal_eval/core.py": 1,
    "tools/natr_range.py": 3,
    "tools/paired_compare.py": 1,
    "workflow/candle_baseline.py": 1,
-   "workflow/generalization.py": 1,
-   "workflow/market_neutral.py": 1,
-   "workflow/selective_eval.py": 1
+   "workflow/market_neutral.py": 1
   },
   "output-name-literal": {
-   "model/builder.py": 6,
-   "model/diagnostics.py": 18,
-   "model/heads.py": 4,
-   "model/layer_report.py": 3,
-   "model/selftests.py": 12,
-   "tools/bracket_eval.py": 1,
    "trainer/example.py": 20,
-   "trainer/smoke_test.py": 12,
-   "workflow/candle_baseline.py": 1,
-   "workflow/capacity.py": 1,
-   "workflow/chicks_bridge.py": 1,
-   "workflow/generalization.py": 2,
-   "workflow/permutation_control.py": 3,
-   "workflow/reports.py": 3,
-   "workflow/selective_eval.py": 7,
-   "workflow/training_config.py": 5,
-   "workflow/wiring_selftest.py": 1
+   "trainer/smoke_test.py": 12
   },
   "per-asset-model-call-loop": {
    "evaluation/all_assets.py": 1

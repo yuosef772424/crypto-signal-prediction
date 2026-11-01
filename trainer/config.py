@@ -2,7 +2,7 @@
 PURPOSE:  TRAINER_DEFAULT_CONFIG (alias DEFAULT_CONFIG; the trainer's single source of truth), deep_update, build_config (merge + validate_config, the ONE place that validates), config_fingerprint, model_signature.
 TAGS:     TRAINER_DEFAULT_CONFIG, DEFAULT_CONFIG, build_config, validate_config, _CONFIG_SCHEMA, strict config, deep_update, config_fingerprint, model_signature, VALID_TRAIN_MODES, trainer
           config
-PITFALLS: build_config validates through validate_config (aggregated ValueError): an unknown key at any level (with a did-you-mean), a non-finite / negative / non-number loss_weight, an unregistered task_type, a key of another task type, a schedule name (lambda_*_var, constraint weight_var) not defined in loss.schedules, an early-stopping monitor the trainer never logs, a knob that would be silently ignored. Every key of TRAINER_DEFAULT_CONFIG must have a rule in _CONFIG_SCHEMA (tests/test_config_strictness.py fails otherwise); keys a task type reads are declared at register_task_type(config_keys=...), never as a second list here. A default value is never changed by validation (tests/golden_trainer_configs.json pins the configs and fingerprints). The fingerprint decides whether a saved run may resume. Code here must use TRAINER_DEFAULT_CONFIG, never the bare DEFAULT_CONFIG: data/defaults.py binds a different DEFAULT_CONFIG (the pipeline's ~100 keys) and the two meet in main.ipynb's namespace. Executed
+PITFALLS: build_config validates through validate_config (aggregated ValueError): an unknown key at any level (with a did-you-mean), a non-finite / negative / non-number loss_weight, an unregistered task_type, a key of another task type, a schedule name (lambda_*_var, constraint weight_var) not defined in loss.schedules, an early-stopping monitor the trainer never logs, a knob that would be silently ignored. Every key of TRAINER_DEFAULT_CONFIG must have a rule in _CONFIG_SCHEMA (tests/test_config_strictness.py fails otherwise); keys a task type reads are declared at register_task_type(config_keys=...), never as a second list here; the keys of the per-head auxiliary loss terms (ic_weight, var_weight, huber_*) come from core.loss_plan.HEAD_LOSS_TERMS (_head_term_keys), so TASK_REGISTRY content (tests/golden_registry_contents.json) is unchanged. A default value is never changed by validation (tests/golden_trainer_configs.json pins the configs and fingerprints). The fingerprint decides whether a saved run may resume. Code here must use TRAINER_DEFAULT_CONFIG, never the bare DEFAULT_CONFIG: data/defaults.py binds a different DEFAULT_CONFIG (the pipeline's ~100 keys) and the two meet in main.ipynb's namespace. Executed
           into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other
           modules resolve at call time.
 
@@ -26,14 +26,69 @@ PITFALLS: build_config validates through validate_config (aggregated ValueError)
 """
 # @title 2) قاموس الإعدادات الافتراضي + دالة الدمج
 import difflib as _difflib
+import inspect as _inspect
 import math as _math
 import re as _re
 
+from core.loss_plan import HEAD_LOSS_TERMS as _HEAD_LOSS_TERMS, SCHEDULE_CURVES as _SCHEDULE_CURVES
+from core.registry import Contract as _Contract, Registry as _Registry
+
 VALID_TRAIN_MODES = ("auto", "new", "resume", "warm_start")
 
-#: name -> {"fn", "stat_keys", "supports_sample_weight"}: filled by register_task_type (trainer/tasks.py). Created here, in the module that loads
-#: before tasks.py, because build_config must know the registered task types (a forward reference to tasks.py would be an implicit dependency).
-TASK_REGISTRY: Dict[str, Dict[str, Any]] = {}
+def _check_task_entry(name, entry, meta):
+    """The task-type contract, checked AT REGISTRATION (register_task_type): a malformed registration fails here, not at trainer
+    build / training-step trace time. Returns the list of problems (empty = fine)."""
+    problems = []
+    fn = entry.get("fn") if isinstance(entry, dict) else None
+    if not callable(fn):
+        return [f"fn must be callable, got {fn!r}"]
+    try:
+        _inspect.signature(fn).bind(None, None, None, None)
+    except TypeError:
+        problems.append("fn must accept (y_true, outputs, target_cfg, scheduled_vars) positionally")
+    except ValueError:
+        pass                                    # a builtin without an introspectable signature: nothing to check
+    sk = meta["stat_keys"]
+    if not isinstance(sk, list) or not sk or not all(isinstance(k, str) and k.strip() for k in sk) or len(set(sk)) != len(sk):
+        problems.append(f"stat_keys must be a non-empty list of distinct non-empty strings, got {sk!r}")
+    ck = meta["config_keys"]
+    if not isinstance(ck, tuple) or not all(isinstance(k, str) and k.strip() for k in ck) or len(set(ck)) != len(ck):
+        problems.append(f"config_keys must be a tuple of distinct non-empty strings, got {ck!r}")
+    elif set(ck) & set(_COMMON_TARGET_KEYS):
+        problems.append(f"config_keys {sorted(set(ck) & set(_COMMON_TARGET_KEYS))} are common target keys (declared once, not per task type)")
+    if not isinstance(meta["supports_sample_weight"], bool):
+        problems.append(f"supports_sample_weight must be a bool, got {meta['supports_sample_weight']!r}")
+    elif meta["supports_sample_weight"]:
+        try:
+            _inspect.signature(fn).bind(None, None, None, None, sample_weight=None)
+        except TypeError:
+            problems.append("supports_sample_weight=True but fn does not accept a `sample_weight` keyword")
+        except ValueError:
+            pass
+    ss = meta["stream_stats"]
+    if not isinstance(ss, tuple) or not all(isinstance(k, str) and k.strip() for k in ss) or len(set(ss)) != len(ss):
+        problems.append(f"stream_stats must be a tuple of distinct non-empty strings, got {ss!r}")
+    else:
+        if set(ss) & set(meta["stat_keys"]):
+            problems.append(f"stream_stats {sorted(set(ss) & set(meta['stat_keys']))} are also stat_keys (a name has one owner)")
+        sf = entry.get("stream_fns")
+        if (not isinstance(sf, dict) or sorted(sf) != sorted(ss)
+                or not all(isinstance(v, tuple) and len(v) == 2 and all(callable(f) for f in v) for v in sf.values())):
+            problems.append("stream_fns must be a {name: (tracker class, inputs fn)} dict with exactly the stream_stats names")
+    for k in ("stat_keys", "supports_sample_weight", "config_keys"):
+        if entry.get(k) != meta[k]:
+            problems.append(f"entry[{k!r}] differs from the registered metadata")
+    return problems
+
+
+#: name -> {"fn", "stat_keys", "supports_sample_weight", "config_keys"}: filled by register_task_type (trainer/tasks.py). A core.registry
+#: Registry (duplicate name raises, an unknown name raises with a did-you-mean, the contract above is checked at registration);
+#: reads keep the dict pattern (TASK_REGISTRY[name]["stat_keys"], name in TASK_REGISTRY, .get / .items / .values). Created here, in the
+#: module that loads before tasks.py, because build_config must know the registered task types (a forward reference to tasks.py
+#: would be an implicit dependency).
+TASK_REGISTRY = _Registry("task", _Contract(
+    "task", required_meta=("stat_keys", "supports_sample_weight", "config_keys", "stream_stats"), optional_meta=(),
+    validator=_check_task_entry))
 
 TRAINER_DEFAULT_CONFIG: Dict[str, Any] = {
     # ─────────────────────────────────────────────────────────────
@@ -288,13 +343,14 @@ def _r_any(v):
     return None
 
 
-_SCHEDULE_NAMES = ("linear", "cosine", "exponential", "sqrt")
+_SCHEDULE_NAMES = _SCHEDULE_CURVES   # one list of curve names: core/loss_plan.py (the plan validates against it at settings construction)
 _LR_SCHEDULE_TYPES = ("constant", "cosine", "cosine_restarts")
 _COMMON_TARGET_KEYS = ("true_key", "task_type", "output_keys", "loss_weight", "flood_level")
 _TARGET_VALUE_RULES = {
     "true_key": _r_str, "task_type": _r_str, "loss_weight": _r_real(ge=0.0),
     "flood_level": _r_opt(_r_real(ge=0.0)),
     "use_calibration_loss": _r_bool, "lambda_reg_var": _r_str, "lambda_calib_var": _r_str,
+    "ic_weight": _r_real(ge=0.0), "var_weight": _r_real(ge=0.0), "track_ic": _r_bool,
     "normalize_reg": _r_bool, "normalize_reg_stop_grad": _r_bool, "alpha_floor_straight_through": _r_bool,
     "beta_nll": _r_real(ge=0.0), "huber_weight": _r_real(ge=0.0), "huber_delta": _r_real(gt=0.0),
     "label_smoothing": _r_real(ge=0.0, lt=1.0), "binary": _r_bool, "loss_fn": _r_enum("mse", "mae", "huber"),
@@ -313,6 +369,14 @@ _CONFIG_SCHEMA = {
     "loss": {
         "use_uncertainty_weighting": _r_bool,
         "uncertainty_weighting_exclude_task_types": _r_any,
+        # optional keys (absent from the defaults = the old loss exactly): see GenericTrainer
+        "loss_normalization": _r_enum("none", "ema"), "loss_norm_beta": _r_real(gt=0.0, lt=1.0),
+        # curriculum sample weighting (SAMPLE_WEIGHTINGS curriculum_*): {"f0": share trained at epoch 0, "full_at_epoch": epoch of the full set}
+        # decision-utility term (core.loss_plan.utility_plan): head, k, cost, eps, codec, scale; its weight is the schedule lambda_utility
+        "utility": {"head": _r_any, "k": _r_real(gt=0.0), "cost": _r_real(ge=0.0), "eps": _r_real(gt=0.0), "codec": _r_any,
+                    "scale": _r_real(gt=0.0)},
+        "tcp": {"head": _r_any, "output_key": _r_any},
+        "curriculum": {"f0": _r_real(gt=0.0, lt=1.0001), "full_at_epoch": _r_int(ge=1)},
         "schedules": _r_any, "constraints": _r_any,
     },
     "optimizer": {
@@ -368,15 +432,22 @@ def _expected_metric_names(cfg):
         if not isinstance(tcfg, dict):
             continue                    # خطؤه مُبلَّغ في _check_targets
         names.add(f"loss_{t}")
-        entry = TASK_REGISTRY.get(tcfg.get("task_type"))
+        entry = TASK_REGISTRY.get(tcfg.get("task_type"), None)
         if entry:
             names.update(f"{t}_{k}" for k in entry["stat_keys"])
+            names.update(f"{t}_{k}" for k in entry["stream_stats"])   # whole-epoch stats (val_<head>_ic): tracked when asked for
         if tcfg.get("task_type") == "classification":
             names.add("class_loss")
     for c in cfg["loss"]["constraints"]:
         if isinstance(c, dict) and isinstance(c.get("name"), str):
             names.add(f"constraint_{c['name']}")
     return names
+
+
+def _head_term_keys(task_type):
+    """Target keys of the auxiliary loss terms (core.loss_plan.HEAD_LOSS_TERMS) a head of ``task_type`` accepts: the term registry
+    is their one declaration (not a second list in register_task_type's config_keys)."""
+    return {k for e in _HEAD_LOSS_TERMS.entries() if task_type in e.meta["task_types"] for k in e.meta["options"]}
 
 
 def _check_targets(cfg, errs):
@@ -391,11 +462,12 @@ def _check_targets(cfg, errs):
             errs.append(f"{p}: must be a dict, got {type(tcfg).__name__}")
             continue
         ttype = tcfg.get("task_type")
-        entry = TASK_REGISTRY.get(ttype) if isinstance(ttype, str) else None
+        entry = TASK_REGISTRY.get(ttype, None) if isinstance(ttype, str) else None
         if "task_type" in tcfg and entry is None:
             errs.append(f"{p}.task_type: unregistered task type {ttype!r}; registered: {sorted(TASK_REGISTRY)} "
                         f"(register it with register_task_type first)")
-        known = set(_COMMON_TARGET_KEYS) | set(entry["config_keys"] if entry else ())
+        known = (set(_COMMON_TARGET_KEYS) | set(entry["config_keys"] if entry else ()) | _head_term_keys(ttype)
+                 | {f"track_{s}" for s in (entry["stream_stats"] if entry else ())})
         for k, v in tcfg.items():
             if k not in known:
                 if entry is None:
@@ -431,7 +503,8 @@ def _check_loss(cfg, errs):
     if not isinstance(sched, dict):
         errs.append(f"loss.schedules: must be a dict of name -> schedule, got {type(sched).__name__}")
         sched = {}
-    sched_schema = {"start": _r_real(), "end": _r_real(), "warmup_epochs": _r_int(ge=0), "schedule": _r_enum(*_SCHEDULE_NAMES)}
+    sched_schema = {"start": _r_real(), "end": _r_real(), "warmup_epochs": _r_int(ge=0), "schedule": _r_enum(*_SCHEDULE_NAMES),
+                    "delay_epochs": _r_int(ge=0)}
     for pname, pcfg in sched.items():
         p = f"loss.schedules[{pname!r}]"
         if not isinstance(pname, str) or not pname:
@@ -481,6 +554,13 @@ def _check_callbacks(cfg, errs):
             lossy = base in ("loss", "raw_loss", "class_loss") or base.startswith(("loss_", "constraint_")) or base.endswith("_mae")
             if lossy and mode != "min":
                 errs.append(f"callbacks.early_stopping.mode: monitor {mon!r} is an error/loss (smaller is better), mode must be 'min'")
+            stream = {f"{t}_{k}" for t, tc in cfg["targets"].items() if isinstance(tc, dict)
+                      for k in (TASK_REGISTRY[tc["task_type"]]["stream_stats"] if tc.get("task_type") in TASK_REGISTRY else ())}
+            if base in stream and not mon.startswith("val_"):
+                errs.append(f"callbacks.early_stopping.monitor: {mon!r} is a validation-set statistic (not logged on training "
+                            f"batches); use 'val_{base}'")
+            if base.endswith("_ic") and mode != "max":
+                errs.append(f"callbacks.early_stopping.mode: monitor {mon!r} is a correlation (larger is better), mode must be 'max'")
             if base.endswith("_accuracy") and mode != "max":
                 errs.append(f"callbacks.early_stopping.mode: monitor {mon!r} is an accuracy (larger is better), mode must be 'max'")
     if es["weights_snapshot"] == "ema_weights" and cfg["optimizer"]["use_ema"] is False:

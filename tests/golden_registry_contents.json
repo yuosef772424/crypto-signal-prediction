@@ -1,0 +1,80 @@
+{
+ "_what": "Registry CONTENT captured from origin/master 3a74a8f (plain dicts, before the core.registry migration) by the same canon() as tests/test_registry_contracts.py; the migrated registries must reproduce it exactly (per-name content and the per-kind sha256 of its canonical JSON).",
+ "fingerprint": {
+  "head": "c4d409a28eded2f0",
+  "normalizer": "82b575a41b5a0d73",
+  "sample_filter": "4f53cda18c2baa0c",
+  "task": "8c36a65e3a7378ef"
+ },
+ "head": {
+  "binary_classification": {
+   "fn": "build_binary_classification_head"
+  },
+  "multiclass_classification": {
+   "fn": "build_multiclass_classification_head"
+  }
+ },
+ "normalizer": {
+  "logret_sigma": {
+   "cls": "LogretSigma",
+   "supports_cross_sectional": false
+  },
+  "logret_std": {
+   "cls": "LogretStd",
+   "supports_cross_sectional": false
+  },
+  "window_scale": {
+   "cls": "WindowScale",
+   "supports_cross_sectional": true
+  }
+ },
+ "sample_filter": [],
+ "task": {
+  "classification": {
+   "config_keys": [
+    "binary",
+    "label_smoothing"
+   ],
+   "fn": "classification_task_loss",
+   "stat_keys": [
+    "accuracy"
+   ],
+   "supports_sample_weight": true
+  },
+  "evidential": {
+   "config_keys": [
+    "use_calibration_loss",
+    "lambda_reg_var",
+    "lambda_calib_var",
+    "normalize_reg",
+    "normalize_reg_stop_grad",
+    "beta_nll",
+    "huber_weight",
+    "huber_delta",
+    "alpha_floor_straight_through"
+   ],
+   "fn": "evidential_task_loss",
+   "stat_keys": [
+    "nig_base",
+    "nig_pen",
+    "mae",
+    "aleatoric",
+    "epistemic",
+    "confidence",
+    "calib_loss"
+   ],
+   "supports_sample_weight": true
+  },
+  "regression": {
+   "config_keys": [
+    "loss_fn",
+    "huber_delta"
+   ],
+   "fn": "regression_task_loss",
+   "stat_keys": [
+    "mae"
+   ],
+   "supports_sample_weight": true
+  }
+ }
+}

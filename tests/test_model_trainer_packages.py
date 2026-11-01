@@ -27,7 +27,7 @@ MODEL_PUBLIC = ("build_model_fn", "build_nig_timenet_v2", "MODEL_CONFIG", "ANTI_
                 "model_health_verdicts", "layer_probe_report", "layer_compare_report", "random_init_copy")
 TRAINER_PUBLIC = ("build_training_system", "build_config", "DEFAULT_CONFIG", "GenericTrainer", "TASK_REGISTRY",
                   "register_task_type", "CheckpointManager", "BestModelTracker", "TrainingDiagnostics",
-                  "with_sample_index", "build_lr_schedule_fn", "ensemble_predict_evidential", "run_kfold_training")
+                  "with_sample_index", "build_lr_schedule_fn", "ensemble_predict_evidential")
 
 PACKAGES = (("model", model_loader, "model_v2 (1).ipynb"), ("trainer", trainer_loader, "trainer_framework_v2.ipynb"))
 
@@ -127,7 +127,7 @@ class ModelNamespaceTests(unittest.TestCase):
 class TrainerNamespaceTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.ns = _nbload.load_trainer(kfold=True)
+        cls.ns = _nbload.load_trainer()
 
     def test_public_api(self):
         for name in TRAINER_PUBLIC:
@@ -152,10 +152,28 @@ class TrainerNamespaceTests(unittest.TestCase):
         for kind in ("evidential", "regression", "classification"):
             self.assertIn(kind, ns["TASK_REGISTRY"])
 
-    def test_default_excludes_kfold_and_smoke_test(self):
+    def test_default_excludes_the_smoke_test(self):
         ns = _nbload.load_trainer()
-        self.assertNotIn("run_kfold_training", ns)
+        self.assertNotIn("smoke_config", ns)
         self.assertIn("ensemble_predict_evidential", ns)
+
+    def test_kfold_is_gone_and_nothing_references_it(self):
+        """trainer/kfold.py (index-based purged walk-forward, `embargo` ignored, no caller; audit C6 / PR 12) was removed, not fixed: samples
+        are ordered coin by coin, so an index fold is a block of coins, not a period. Walk-forward = data/split.py `rolling_splits` (SplitPlan).
+        The two names must not come back in any code file (the correct splitter is a SplitPlan, never an index range)."""
+        import trainer
+        self.assertNotIn("kfold", trainer._loader.MODULES)
+        self.assertFalse(os.path.exists(os.path.join(ROOT, "trainer", "kfold.py")))
+        banned = ("purged_walk_forward_splits", "run_kfold_training")
+        offenders = []
+        for top in ("core", "stats", "cross_asset", "tools", "data", "model", "trainer", "evaluation", "signal_eval", "workflow", "discovery",
+                    "research", os.path.join("docs", "research")):
+            for dirpath, _, files in os.walk(os.path.join(ROOT, top)):
+                for f in files:
+                    if f.endswith(".py"):
+                        text = open(os.path.join(dirpath, f), encoding="utf-8").read()
+                        offenders += [f"{os.path.join(dirpath, f)}: {b}" for b in banned if b in text]
+        self.assertEqual(offenders, [])
 
 
 if __name__ == "__main__":

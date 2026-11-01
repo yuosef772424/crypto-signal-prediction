@@ -22,3 +22,12 @@ import pandas as pd
 
 T = TypeVar('T')
 R = TypeVar('R')
+
+
+def pandas_tf(tf):
+    """اسم فريم بصيغة يقبلها pandas بلا تحذير: ``'1d'`` ← ``'1D'`` (Pandas4Warning: ``'d'`` مهجورة وستُزال)؛ كل اسم آخر (``'4h'``، ``'15m'``،
+    ``'1D'``) يُرجَع كما هو. القيمة نفسها (``Timedelta('1d') == Timedelta('1D')``، و``resample('1d')`` = ``resample('1D')``)، فلا يتغيّر ناتج؛
+    أسماء الفريمات المخزَّنة في البيانات والإعدادات لا تُمسّ — الصيغة تُطبَّق عند تمريرها إلى pandas فقط."""
+    if isinstance(tf, str) and len(tf) > 1 and tf.endswith('d') and tf[:-1].isdigit():
+        return tf[:-1] + 'D'
+    return tf

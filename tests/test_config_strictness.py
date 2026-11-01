@@ -39,7 +39,7 @@ import numpy as np  # noqa: E402
 import _nbload  # noqa: E402
 
 GOLDEN_PATH = os.path.join(ROOT, "tests", "golden_trainer_configs.json")
-CODE_PACKAGES = ("core", "cross_asset", "tools", "data", "model", "trainer", "evaluation", "signal_eval", "workflow", "discovery")
+CODE_PACKAGES = ("core", "stats", "cross_asset", "tools", "data", "model", "trainer", "evaluation", "signal_eval", "workflow", "discovery")
 
 #: PIPELINE_DEFAULT_CONFIG keys that no code package reads (quoted-string scan below). The audit listed 19 (+ target_loss_weights,
 #: which IS read: data/heads.py); the scan also finds model_name, use_decomposition and top_k, whose names occur in the code only as
@@ -324,7 +324,7 @@ class MutationTable(unittest.TestCase):
                 self.build(copy.deepcopy(user))
             self.assertIn("did you mean 'quantiles'", str(cm.exception))
         finally:
-            reg.pop("quantile_x", None)
+            reg.unregister("quantile_x")
         user = good_config()
         user["targets"]["q"] = {"true_key": "y_q", "task_type": "quantile_x", "output_keys": {"q": "y_q"}}
         with self.assertRaises(ValueError) as cm:
@@ -363,7 +363,8 @@ class ValidatorIsTheOnePlace(unittest.TestCase):
         self.assertEqual(missing, [], "a TRAINER_DEFAULT_CONFIG key without a rule in _CONFIG_SCHEMA is an accepted-but-unchecked key")
 
     def test_every_rule_has_a_default(self):
-        """No rule names a key the defaults do not have, except the declared late-bound ones (class_baselines is added from val)."""
+        """No rule names a key the defaults do not have, except the declared late-bound ones (class_baselines is added from val; the OPTIONAL
+        loss keys of registered balancers/terms are absent from the defaults so the default config and its golden fingerprint stay unchanged)."""
         extra = []
 
         def walk(rules, defaults, path):
@@ -373,7 +374,9 @@ class ValidatorIsTheOnePlace(unittest.TestCase):
                 elif isinstance(r, dict) and isinstance(defaults[k], dict):
                     walk(r, defaults[k], f"{path}.{k}")
         walk(self.ns["_CONFIG_SCHEMA"], self.ns["TRAINER_DEFAULT_CONFIG"], "config")
-        self.assertEqual(sorted(extra), ["config.callbacks.class_baselines", "config.optimizer.lr_schedule.total_epochs"])
+        self.assertEqual(sorted(extra), ["config.callbacks.class_baselines", "config.loss.curriculum", "config.loss.loss_norm_beta",
+                                       "config.loss.loss_normalization", "config.loss.tcp", "config.loss.utility",
+                                       "config.optimizer.lr_schedule.total_epochs"])
 
     def test_build_config_calls_validate_config_and_nothing_else_validates(self):
         calls = []
@@ -434,13 +437,14 @@ def runsettings_user_configs(ns):
         ("patience", {"train": {"early_stopping_patience": 7}}, P2, 1.0, ("1h",)),
         ("train_new", {"train": {"train_mode": "new", "epochs": 3, "batch_size": 32}}, P2, 1.0, ("1h",)),
         ("train_resume", {"train": {"train_mode": "resume"}}, P2, 1.0, ("1h",)),
-        ("no_kendall", {"train": {"use_uncertainty_weighting": False}}, P2, 1.0, ("1h",)),
-        ("no_kendall_am_off", {"train": {"use_uncertainty_weighting": False}, "model": {"anti_memorization": False}}, P2, 1.0, ("1h",)),
+        ("no_kendall", {"train": {"loss": {"balancing": "static"}}}, P2, 1.0, ("1h",)),
+        ("no_kendall_am_off", {"train": {"loss": {"balancing": "static"}}, "model": {"anti_memorization": False}}, P2, 1.0, ("1h",)),
         ("monitor_class_loss", {"train": {"early_stopping_monitor": "val_class_loss"}}, P2, 1.0, ("1h",)),
         ("monitor_val_loss", {"train": {"early_stopping_monitor": "val_loss"}}, P2, 1.0, ("1h",)),
         ("monitor_accuracy_max", {"train": {"early_stopping_monitor": "val_high_class_accuracy", "early_stopping_mode": "max"}}, P2, 1.0, ("1h",)),
-        ("lambda_schedules", {"train": {"lambda_reg": {"start": 0.0, "end": 0.2, "warmup_epochs": 9, "schedule": "sqrt"},
-                                        "lambda_calib": {"start": 0.01, "end": 0.01, "warmup_epochs": 0, "schedule": "linear"}}}, P2, 1.0, ("1h",)),
+        ("lambda_schedules", {"train": {"loss": {"schedules": {
+            "lambda_reg": {"start": 0.0, "end": 0.2, "warmup_epochs": 9, "schedule": "sqrt"},
+            "lambda_calib": {"start": 0.01, "end": 0.01, "warmup_epochs": 0, "schedule": "linear"}}}}}, P2, 1.0, ("1h",)),
         ("label_smoothing_zero", {"train": {"anti_memorization_label_smoothing": 0.0}}, P2, 1.0, ("1h",)),
         ("label_smoothing_03", {"train": {"anti_memorization_label_smoothing": 0.3}}, P2, 1.0, ("1h",)),
         ("anti_memorization_trainer_override", {"train": {"anti_memorization_trainer": {"optimizer": {"lr_initial": 1e-4}}}}, P2, 1.0, ("1h",)),

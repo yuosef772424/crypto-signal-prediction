@@ -7,5 +7,7 @@ Modules:
   schema     last_candles columns and indexes, target price columns, target-mode names
   constants  numeric constants shared by model and evaluation (NIG alpha floor)
   registry   generic Registry/Contract primitive: register by name with a declared contract, duplicate/unknown names raise
+  roles      split roles (train / calibration / val / test / holdout), the role stamp and the role check of learned-state components
+  prediction_schema  the PredictionTable column names (required columns, time columns, key, head-output prefix)
   seeds      seed_everything(seed): the one place python/numpy/TF are seeded (framework seeder injected by the caller; core stays stdlib-only)
 """

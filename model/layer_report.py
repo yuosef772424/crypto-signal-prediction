@@ -17,6 +17,8 @@ cmp_  = layer_compare_report(model, X_te, y_te)             # صائب مقاب�
 cmp_["table"]; cmp_["features"]; print("\n".join(cmp_["verdict"]))
 ```
 """
+from stats.metrics import auc as stats_auc, spearman as stats_spearman
+
 # ═══════════════════════════════════════════════════════════════════════════
 # 🧅 تقرير الطبقات — أين تظهر المعلومة وأين تضيع، وأيّ طبقة تفرّق بين التنبؤ الصائب والخاطئ؟
 # ═══════════════════════════════════════════════════════════════════════════
@@ -24,6 +26,8 @@ cmp_["table"]; cmp_["features"]; print("\n".join(cmp_["verdict"]))
 #   cmp   = layer_compare_report(model, X_test, y_test)                       # صائب مقابل خاطئ لكل طبقة (بلا إعادة تدريب)
 # كل إحصاءة تأتي مع **أثر الحجم + عدم/خط أساس**: (أ) نفس الإحصاءة على تسميات/تجميع مخلوط، (ب) نسخة عشوائية التهيئة من
 # النموذج نفسه. «فرق» لا يُرفع علماً إلا إن تجاوز الاثنين — فنموذج عشوائي التهيئة لا يُعلَّم (اختبار في tests/).
+from core.heads import (head_name as _head_name, label_key as _label_key, output_name as _output_name,
+                        parse_output_name as _parse_output_name)
 
 
 def random_init_copy(model, seed=0):
@@ -62,17 +66,21 @@ def _head_specs(model, y):
     outs = list(model.output) if isinstance(model.output, dict) else []
     specs = []
     for k in outs:
-        if k.endswith("_class_logits"):
-            t = k[2:-len("_class_logits")]
-            if f"y_{t}_class" in y:
-                specs.append((f"{t}_class", f"y_{t}_class", "class"))
-        elif k.startswith("y_") and f"{k}_nu" in outs and f"{k}_reg" in y:
-            specs.append((f"{k[2:]}_reg", f"{k}_reg", "reg"))
+        try:
+            t, role = _parse_output_name(k)
+        except ValueError:                       # not a model output name of a registered head kind
+            continue
+        if role == "logits":
+            if _label_key(t, "class") in y:
+                specs.append((_head_name(t, "class"), _label_key(t, "class"), "class"))
+        elif role == "mu" and _output_name(t, "nu") in outs and _label_key(t, "reg") in y:
+            specs.append((_head_name(t, "reg"), _label_key(t, "reg"), "reg"))
     return specs
 
 
 def _metric(kind, y, s):
-    return _auc(y > 0, s) if kind == "class" else _spearman(s, y)
+    return (stats_auc(y > 0, s, nan_policy="legacy_rank_skipna") if kind == "class"
+            else stats_spearman(s, y, nan_policy="propagate", min_n=3))
 
 
 def layer_probe_report(model, X_train, y_train, X_val, y_val, max_train=2000, max_val=2000, ridge=10.0, n_null=5,
@@ -172,9 +180,9 @@ def _correct_flags(out, ys, specs):
         t = h.rsplit("_", 1)[0]
         if kd == "class":
             lab = np.asarray(ys[k]).reshape(-1) > 0
-            flags[h] = (out[f"y_{t}_class_logits"].reshape(-1) >= 0.5) == lab
+            flags[h] = (out[_output_name(t, "logits")].reshape(-1) >= 0.5) == lab
         else:
-            err = np.abs(np.asarray(ys[k], dtype=np.float64).reshape(-1) - out[f"y_{t}"].reshape(-1))
+            err = np.abs(np.asarray(ys[k], dtype=np.float64).reshape(-1) - out[_output_name(t, "mu")].reshape(-1))
             flags[h] = err <= np.median(err)
     return flags
 
@@ -201,7 +209,7 @@ def _group_stats(Zs, good, folds):
         if ga.all() or (~ga).all() or gb.all() or (~gb).all():
             continue
         wv = Zs[a][ga].mean(0) - Zs[a][~ga].mean(0)
-        aucs.append(_auc(gb, Zs[b] @ wv))
+        aucs.append(stats_auc(gb, Zs[b] @ wv, nan_policy="legacy_rank_skipna"))
     return d, (float(np.mean(aucs)) if aucs else float("nan"))
 
 

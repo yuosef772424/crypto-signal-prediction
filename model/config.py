@@ -17,6 +17,9 @@ PITFALLS: MODEL_CONFIG is a live dict mutated by main.ipynb (MODEL_CONFIG['head_
 * `ANTI_MEMORIZATION_CONFIG` (PR #7): إعداد أصغر ومُنظَّم يُدمَج فوق `MODEL_CONFIG` —
   `build_model_fn(seq_len, n_features, config=ANTI_MEMORIZATION_CONFIG)`، أو `ANTI_MEMORIZATION = True` في main.
 """
+from core.heads import HeadSet as _HeadSet
+from core.schema import TARGET_COLUMNS as _TARGET_COLUMNS
+
 MODEL_CONFIG = dict(
     d_model=128,
     num_layers=4,
@@ -33,14 +36,10 @@ MODEL_CONFIG = dict(
     use_instance_norm=True,
     use_decomposition=True,
     use_linear_path=True,
-    price_targets=("high", "low", "close"),
+    price_targets=_TARGET_COLUMNS,
     # رأسا تصنيف وانحدار معاً لكل هدف — يطابق enabled_heads الافتراضي في
-    # خط الأنابيب. عطّل التصنيف بإعادة هذا لـ DEFAULT_HEAD_TYPES (نسخة).
-    head_types={
-        "high": ["nig_regression", "binary_classification"],
-        "low": ["nig_regression", "binary_classification"],
-        "close": ["nig_regression", "binary_classification"],
-    },
+    # خط الأنابيب (مشتقّ من HeadSet.default، المصدر الوحيد). عطّل التصنيف بإعادة هذا لـ DEFAULT_HEAD_TYPES (نسخة).
+    head_types=_HeadSet.default(_TARGET_COLUMNS).head_types(),
     enforce_order=True,
     head_hidden=128,
     nu_min=0.1,
@@ -58,6 +57,8 @@ MODEL_CONFIG = dict(
     linear_path_l2=1e-4,
     level_passthrough=False,
     level_norm=None,
+    tcp_head=False,   # False = النموذج القديم بايتاً ببايت | True: رأس ثقة TCP (مخرج tcp_close؛ انظر core.loss_plan.TCP_OUTPUT_KEY)
+    mu_skip=None,   # None = النموذج القديم بايتاً ببايت | "unc_gated": مسار تخطٍّ متعلَّم على mu مُبوَّب بعدم اليقين المعرفي (انظر build_nig_timenet_v2)
 )
 
 # ── إعداد مقاومة الحفظ (PR #7، «RL_gru») — يُدمَج فوق MODEL_CONFIG عبر

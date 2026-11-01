@@ -35,8 +35,12 @@ def _progress_curve(p: float, schedule: str) -> float:
     return p  # linear
 
 
-def schedule_value(start: float, end: float, warmup_epochs: int, schedule: str, epoch: int) -> float:
-    """قيمة معامل مجدول عند حقبة معيّنة — دالة محضة في رقم الحقبة (هذا ما يجعل الاستئناف آمنًا)."""
+def schedule_value(start: float, end: float, warmup_epochs: int, schedule: str, epoch: int, delay_epochs: int = 0) -> float:
+    """قيمة معامل مجدول عند حقبة معيّنة — دالة محضة في رقم الحقبة (هذا ما يجعل الاستئناف آمنًا). delay_epochs (الافتراضي 0 = الجدول
+    القديم): تبقى القيمة `start` حتى تلك الحقبة ثم تبدأ الرحلة نحو `end` خلال warmup_epochs."""
+    if epoch < int(delay_epochs):
+        return start
+    epoch = epoch - int(delay_epochs)
     warmup_epochs = max(int(warmup_epochs), 0)
     if warmup_epochs == 0 or epoch >= warmup_epochs:
         return end
@@ -47,8 +51,10 @@ class ParamScheduler(tf.keras.callbacks.Callback):
     """جدولة عامة لأي tf.Variable — تُستخدم لأي معامل مجدول عرّفته في config['loss']['schedules']"""
 
     def __init__(self, var: tf.Variable, start: float, end: float, warmup_epochs: int,
-                 schedule: str = "linear", label: Optional[str] = None, log_every: int = 5, verbose: int = 1):
+                 schedule: str = "linear", label: Optional[str] = None, log_every: int = 5, verbose: int = 1,
+                 delay_epochs: int = 0):
         super().__init__()
+        self.delay_epochs = int(delay_epochs)
         self.var = var
         self.start = start
         self.end = end
@@ -59,7 +65,7 @@ class ParamScheduler(tf.keras.callbacks.Callback):
         self.verbose = verbose
 
     def value_at(self, epoch: int) -> float:
-        return schedule_value(self.start, self.end, self.warmup_epochs, self.schedule, epoch)
+        return schedule_value(self.start, self.end, self.warmup_epochs, self.schedule, epoch, self.delay_epochs)
 
     def on_epoch_begin(self, epoch, logs=None):
         new_value = self.value_at(epoch)
@@ -73,7 +79,8 @@ def apply_schedules(trainer, config: dict, epoch: int):
     كي يرى أي evaluate() أو استدلال قبل التدريب القيم الصحيحة، لا قيم البداية."""
     for pname, pcfg in config["loss"].get("schedules", {}).items():
         trainer.scheduled_vars[pname].assign(schedule_value(
-            pcfg["start"], pcfg["end"], pcfg.get("warmup_epochs", 0), pcfg.get("schedule", "linear"), epoch))
+            pcfg["start"], pcfg["end"], pcfg.get("warmup_epochs", 0), pcfg.get("schedule", "linear"), epoch,
+            pcfg["delay_epochs"] if "delay_epochs" in pcfg else 0))
 
 
 def cosine_warm_restarts(epoch, lr_initial, lr_min, cycle_length=10, cycle_mult=1.5):

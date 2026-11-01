@@ -13,6 +13,11 @@ from copy import deepcopy as _deepcopy
 
 import numpy as np
 
+from core.heads import HeadSet as _HeadSet
+from core.loss_plan import (resolve_selection_metric as _resolve_selection_metric, trainer_loss_section as _trainer_loss_section,
+                            utility_plan as _utility_plan, tcp_plan as _tcp_plan)
+from stats.target_codec import codec_name_for_mode as _codec_name_for_mode
+from core.roles import role_of as _role_of
 from core.seeds import seed_everything
 
 #: The reports run_reports knows, in the order the evaluation tool runs them by default.
@@ -30,6 +35,7 @@ class Toolkit:
     load_data_from_drive: _t.Callable
     load_dataset_dir: _t.Callable
     split_data: _t.Callable
+    split_data_with_calibration: _t.Callable   # opt-in calibration split (DataSettings.calibration_split)
     build_model_fn: _t.Callable           # model package
     anti_memorization_config: dict        # model package: the architecture overrides of ModelSettings.anti_memorization
     model_config: dict                    # model package: MODEL_CONFIG (its keys = the valid ModelSettings.config_overrides names)
@@ -41,7 +47,8 @@ class Toolkit:
 
     #: field -> the name it has in the notebook namespace
     NAMES = {"config": "CONFIG", "update_config": "update_config", "load_data_from_drive": "load_data_from_drive",
-             "load_dataset_dir": "load_dataset_dir", "split_data": "split_data", "build_model_fn": "build_model_fn",
+             "load_dataset_dir": "load_dataset_dir", "split_data": "split_data",
+             "split_data_with_calibration": "split_data_with_calibration", "build_model_fn": "build_model_fn",
              "anti_memorization_config": "ANTI_MEMORIZATION_CONFIG", "model_config": "MODEL_CONFIG",
              "build_config": "build_config",
              "deep_update": "deep_update", "build_training_system": "build_training_system",
@@ -62,6 +69,7 @@ class DatasetInfo:
     model_tf: str             # the base timeframe (the first of model_tfs): targets, last_candles and the grid come from it
     model_tfs: tuple          # timeframes fed to the model; one = the old single-array model, more = one encoder branch each
     reg_target_scale: float   # y_*_reg = return x this (100 in 1h_s8); old files without the key = 1.0
+    close_index: _t.Optional[int] = None   # position of 'close' among the model's features (None = not a model input): target_mode 'volret' decodes the window's past closes from this channel
 
 
 @_dc.dataclass(frozen=True)
@@ -103,6 +111,7 @@ class RunResult:
     callbacks: _t.Any
     history: _t.Any
     chicks: ChicksInputs
+    calibration: _t.Any = None   # the calibration split (role "calibration") when DataSettings.calibration_split is set, else None
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -188,26 +197,47 @@ def apply_dataset_config(settings, dataset, kit):
           f"{dataset['window_sizes'][model_tf] if len(model_tfs) == 1 else {tf: dataset['window_sizes'][tf] for tf in model_tfs}}"
           f" — الأفق: {CONFIG['forecast_horizon']} — stride: {CONFIG['stride']}"
           f" — تطبيع الأسعار: {CONFIG['price_norm_mode']}")
-    return DatasetInfo(model_tf=model_tf, model_tfs=tuple(model_tfs), reg_target_scale=reg_target_scale)
+    _fo = list(dataset.get("feature_order", ()))
+    return DatasetInfo(model_tf=model_tf, model_tfs=tuple(model_tfs), reg_target_scale=reg_target_scale,
+                       close_index=_fo.index("close") if "close" in _fo else None)
 
 
 def make_splits(settings, dataset, info, kit):
-    """القسم ٣: التقسيم الزمني train/val/test، ويُختم كل قسم بمقياس الأهداف (المستهلكون: chicks، collect_signals، اللوحة)."""
+    """القسم ٣: التقسيم الزمني train/val/test، ويُختم كل قسم بمقياس الأهداف (المستهلكون: chicks، collect_signals، اللوحة).
+    مع ``DataSettings.calibration_split`` يرفع ValueError: قسم المعايرة يُرجعه :func:`make_splits_with_calibration` (لا يُسقَط بصمت)."""
+    if settings.data.calibration_split is not None:
+        raise ValueError("DataSettings.calibration_split is set: use make_splits_with_calibration (it returns the calibration split "
+                         "as well); make_splits returns (train, val, test) and would drop it")
+    train, _, val, test = make_splits_with_calibration(settings, dataset, info, kit)
+    return train, val, test
+
+
+def make_splits_with_calibration(settings, dataset, info, kit):
+    """القسم ٣ مع قسم معايرة اختياري: ``(train, calibration, val, test)``؛ ``calibration`` = None حين ``DataSettings.calibration_split``
+    None (والأقسام الثلاثة الأخرى هي ما يُرجعه :func:`make_splits` دائماً). عند ضبطه يُقتطع قسم المعايرة بـ data.split_data_with_calibration
+    (ذيل train أو رأس val، عزل على الجانبين، دور 'calibration')."""
     if settings.data.split_dates:           # تقسيم زمني صريح فوق CONFIG/البيانات (وسيط --split-dates في أداة التقييم)
         sd = settings.data.split_dates
         kit.update_config({"split_dates": {"train_end": sd["train_end"], "val_end": sd["val_end"]}})
         print(f"📅 تقسيم زمني صريح: train ≤ {sd['train_end']} | val ≤ {sd['val_end']} | test بعده (مع فجوة العزل)", flush=True)
-    train, val, test = kit.split_data(dataset, config=kit.config)
+    cs = settings.data.calibration_split
+    if cs is None:
+        train, val, test = kit.split_data(dataset, config=kit.config)
+        calibration = None
+    else:
+        train, calibration, val, test = kit.split_data_with_calibration(dataset, cs, config=kit.config)
     # split_data لا ينقل مفاتيح البيانات الوصفية، فيُختم كل قسم بمقياسه — المستهلكون (chicks، collect_signals، اللوحة)
     # يقرؤونه من القسم نفسه.
-    for _s in (train, val, test):
+    for _s in (train, val, test) + (() if calibration is None else (calibration,)):
         for _m in _split_members(_s):
             _m["reg_target_scale"] = info.reg_target_scale
     for _tf in list(info.model_tfs)[1:]:
         print(f"سياق {_tf}: train {train[f'X_{_tf}'].shape} | val {val[f'X_{_tf}'].shape} — نوع X: {train[f'X_{_tf}'].dtype}")
     print("train:", train[f"X_{info.model_tf}"].shape, "| val:", val[f"X_{info.model_tf}"].shape,
           "| test assets:", list(test.keys()) if isinstance(test, dict) and all(isinstance(v, dict) and "y" in v for v in test.values()) else test[f"X_{info.model_tf}"].shape)
-    return train, val, test
+    if calibration is not None:
+        print("calibration:", calibration[f"X_{info.model_tf}"].shape)
+    return train, calibration, val, test
 
 
 def retarget(settings, train, val, test, info):
@@ -216,12 +246,19 @@ def retarget(settings, train, val, test, info):
     t = settings.target
     if t.target_mode:
         train, val, test = retarget_splits(train, val, test, mode=t.target_mode, reg_target_scale=info.reg_target_scale,
-                                           close_reg=t.entry_close_reg, group_freq=t.group_freq)
+                                           close_reg=t.entry_close_reg, group_freq=t.group_freq, clip=t.clip,
+                                           base_tf=info.model_tf, close_index=info.close_index)
     elif _split_parts(train)[0][1].get("target_mode") not in (None, "return"):
         # عودة إلى None بعد تجربة وضع آخر في نفس الجلسة: نعيد أهداف خط الأنابيب ('return')
         train, val, test = retarget_splits(train, val, test, mode="return", reg_target_scale=info.reg_target_scale,
                                            close_reg=t.entry_close_reg, group_freq=t.group_freq)
     return train, val, test
+
+
+def retarget_calibration(settings, train, calibration, info):
+    """قسم المعايرة بوضع الهدف نفسه الذي يُعطيه :func:`retarget` لـ train/val/test (retarget_splits يعالج كل قسم على حدة وعتبة train وحدها):
+    ``train`` الأصلي (قبل retarget) يُمرَّر كما هو. يُرجع قسم المعايرة الجديد."""
+    return retarget(settings, train, calibration, calibration, info)[1]
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -276,8 +313,7 @@ def plan_model(settings, dataset, info, kit):
     # رؤوس النموذج للأهداف المفعّلة فقط (بلا رأس close المعلّق). class_only: رؤوس التصنيف وحدها (بلا NIG/الثقة) — تجربة لمعرفة هل
     # تعدّد الخسائر يشتّت النموذج؛ خلايا التقييم التي تحتاج رؤوس الانحدار (chicks، الأسعار المتوقعة، الإشارات) تُتخطّى فيه.
     overrides.update(price_targets=tuple(price_targets),
-                     head_types={t: (["binary_classification"] if settings.model.class_only
-                                     else ["nig_regression", "binary_classification"]) for t in price_targets})
+                     head_types=_HeadSet.default(price_targets, class_only=settings.model.class_only).head_types())
     return ModelPlan(price_targets=tuple(price_targets), suspended_targets=tuple(suspended), model_overrides=overrides,
                      seq_len=seq_len, n_features=n_features, model_seq_len=model_seq_len, model_n_features=model_n_features)
 
@@ -294,12 +330,29 @@ def build_model(plan, kit, summary=True):
 # ═══════════════════════════════════════════════════════════════════════════
 # القسم ٥: التدريب
 # ═══════════════════════════════════════════════════════════════════════════
+def _loss_section_with_utility(settings, heads, info):
+    """The trainer `loss` section of the plan; with LossSettings.utility also the section `utility` and the schedule `lambda_utility`."""
+    tr = settings.train
+    section = _trainer_loss_section(tr.loss.balancing, tr.loss.schedules, heads, tr.loss.sample_weighting)
+    if tr.loss.utility:
+        codec = _codec_name_for_mode(settings.target.target_mode)
+        section["utility"], section["schedules"]["lambda_utility"] = _utility_plan(tr.loss.utility, codec, info.reg_target_scale)
+    if tr.loss.tcp:
+        section["tcp"], section["schedules"]["lambda_tcp"] = _tcp_plan(tr.loss.tcp)
+    return section
+
+
 def make_training_config(settings, plan, info, val, kit):
     """القسم ٥: إعداد المدرّب (trainer_framework) من الإعدادات: مجلد التشغيل، الأهداف (true_key ↔ output_keys)، الخسائر، الإيقاف
     المبكر، وخطوط الأساس الساذجة لكل رأس تصنيف على val. يُرجع main_config."""
     tr = settings.train
     _am = settings.model.anti_memorization
     class_only = settings.model.class_only
+    # the loss plan (train.loss) is the only route of a loss weight / the balancing / the sub-term schedules into the trainer config,
+    # and the monitor is resolved against the heads actually trained (unknown head / metric / mode raise here, not hours into a run)
+    heads = build_head_set(list(plan.price_targets), class_only=class_only,
+                           label_smoothing=tr.anti_memorization_label_smoothing if _am else 0.0, loss_weights=tr.loss.weights)
+    selection = _resolve_selection_metric(tr.early_stopping_monitor, heads, tr.early_stopping_mode)
     main_config = kit.build_config(kit.deep_update({
         "run": {
             # لكل وضع هدف (القسم ٣-ب) مجلده، فلا يُستأنف نموذج دُرِّب على هدف آخر؛ ومقاومة الحفظ تغيّر المعمارية
@@ -311,24 +364,15 @@ def make_training_config(settings, plan, info, val, kit):
             # None = the trainer's default seed: the key is then absent (the config the trainer gets is the one it always got)
             **({"seed": tr.seed} if tr.seed is not None else {}),
         },
-        "targets": {k: v for k, v in build_target_configs(
-                        list(plan.price_targets),
-                        label_smoothing=tr.anti_memorization_label_smoothing if _am else 0.0).items()
-                    if not (class_only and v["task_type"] != "classification")},
-        "loss": {
-            # Kendall تبقى لرؤوس التصنيف فقط؛ رؤوس evidential (NLL قد تكون سالبة) تُستثنى افتراضياً في
-            # trainer_framework — معها كانت الخسارة الكلية تنهار نحو -∞ (راجع ملاحظة القسم 4 هناك).
-            "use_uncertainty_weighting": tr.use_uncertainty_weighting,
-            "schedules": {
-                # قيمتان ابتدائيتان من مثال trainer_framework نفسه — عدّلهما بعد مراقبة val_*_nig_pen.
-                "lambda_reg": _deepcopy(tr.lambda_reg),
-                "lambda_calib": _deepcopy(tr.lambda_calib),
-            },
-        },
+        "targets": with_head_loss_terms(heads.target_configs(), tr.loss.head_terms, tr.loss.report_ic, heads),
+        # Kendall تبقى لرؤوس التصنيف فقط؛ رؤوس evidential (NLL قد تكون سالبة) تُستثنى افتراضياً في trainer_framework —
+        # معها كانت الخسارة الكلية تنهار نحو -∞ (راجع ملاحظة القسم 4 هناك). الجدولان lambda_reg/lambda_calib قيمتاهما الابتدائيتان
+        # من مثال trainer_framework نفسه — عدّلهما بعد مراقبة val_*_nig_pen. كلها من خطة الخسارة train.loss (core/loss_plan.py).
+        "loss": _loss_section_with_utility(settings, heads, info),
         "callbacks": {
-            # val_raw_loss = مجموع خسائر المهام بأوزانها الثابتة (بلا حدود Kendall المتعلَّمة)، فلا يتحسّن
-            # إلا بتحسّن حقيقي على val. val_loss يتغيّر أيضاً لأن log_var نفسها تتعلّم.
-            "early_stopping": {"monitor": tr.early_stopping_monitor, "mode": tr.early_stopping_mode},
+            # val_raw_loss (الافتراضي) = مجموع خسائر المهام بأوزانها الثابتة (بلا حدود Kendall المتعلَّمة): هدف التدريب نفسه، فتغيير وزن
+            # يغيّر أيضاً أي حقبة «أفضل». مقياس مستقل عن الهدف (val_<head>_accuracy/mae/nig_base) يُختار بالاسم من SELECTION_METRICS.
+            "early_stopping": {"monitor": selection.monitor, "mode": selection.mode},
         },
     }, _deepcopy(tr.anti_memorization_trainer) if _am else {}))
 
@@ -345,13 +389,16 @@ def make_training_config(settings, plan, info, val, kit):
     return main_config
 
 
-def make_datasets(main_config, train, val, info):
-    """القسم ٥: ``(train_ds, val_ds, sample_batch)`` — دفعات خلط كامل للتدريب، وبالترتيب لـ val."""
+def make_datasets(main_config, train, val, info, *, settings):
+    """القسم ٥: ``(train_ds, val_ds, sample_batch)`` — دفعات خلط كامل للتدريب، وبالترتيب لـ val. ``settings.train.loss.sample_weighting``
+    (None = لا أوزان = الدفعات القديمة) يضيف أوزان عيّنات من تسميات train وحدها لدفعات التدريب فقط؛ val تبقى بلا أوزان."""
     tfs = list(info.model_tfs)
     # البذرة قبل بناء مجموعة التدريب: shuffle بُنيت قبل ضبط البذرة العامة لا يمكن إعادة إنتاج ترتيبها (التدقيق C3). نفس البذرة ⇒ نفس ترتيب الدفعات.
     seed = main_config["run"]["seed"]
     seed_everything(seed, framework_seed_fn=tf.keras.utils.set_random_seed)
-    train_ds = make_shuffled_dataset(model_x(train, tfs), _y_for(train, main_config), main_config["run"]["batch_size"], seed=seed)
+    sw_name = settings.train.loss.sample_weighting
+    train_ds = make_shuffled_dataset(model_x(train, tfs), _y_for(train, main_config), main_config["run"]["batch_size"], seed=seed,
+                                     sample_weight=sample_weights_for(train, main_config, sw_name) if sw_name is not None else None)
     val_ds = make_eval_dataset(model_x(val, tfs), _y_for(val, main_config), main_config["run"]["batch_size"])
     sample_batch = next(iter(train_ds))
     return train_ds, val_ds, sample_batch
@@ -419,7 +466,19 @@ def prepare_chicks(settings, plan, info, test, kit):
                         eval_target_specs=specs)
 
 
-def run_chicks(settings, kit, *, model, val, chicks, info):
+def calibration_split_of(eval_settings, val, calibration=None):
+    """القسم الذي تُلائَم عليه معايِرات الثقة: ``EvalSettings.calibration_source`` ("val" الافتراضي = ما كان يحدث دائماً؛ "calibration" =
+    قسم المعايرة الحقيقي من :func:`make_splits_with_calibration`، ويرفع ValueError إن لم يُمرَّر). دور القسم المختوم يقرؤه المعاير بنفسه
+    (core.roles): قسم بدور غير مسموح يرفضه Calibrator.fit."""
+    if eval_settings.calibration_source == "val":
+        return val
+    if calibration is None:
+        raise ValueError("calibration_source='calibration' needs the calibration split: pass calibration=<split from make_splits_with_calibration> "
+                         "(DataSettings.calibration_split must be set)")
+    return calibration
+
+
+def run_chicks(settings, kit, *, model, val, chicks, info, calibration=None):
     """القسم ٦: تقرير chicks الكامل (tearsheet + الدلالة الإحصائية) على test. يُرجع ``full_results`` أو None إن تُخطّي القسم."""
     if chicks.test_dict is None:    # القسم ٦ يُتخطّى إن كانت أهداف test غير مدعومة (انظر build_chicks_test_dict)
         print(f"⏭️ القسم ٦ متخطّى — أهداف test غير مدعومة في chicks (target_mode={settings.target.target_mode!r})")
@@ -430,8 +489,9 @@ def run_chicks(settings, kit, *, model, val, chicks, info):
     # 'confidence'. calibrate_confidence=False أو calibration_method="platt" لتغييرها. eval_all_rows=True: كل عملات وصفوف test.
     val_dict = None
     if e.calibrate_confidence:
+        cal_split = calibration_split_of(e, val, calibration)     # الدور يُقرأ من ختم القسم (split_role) ويُفحص في Calibrator.fit
         try:
-            val_dict = build_chicks_test_dict({"VAL": val}, tfs, chicks_targets=chicks.chicks_targets)
+            val_dict = build_chicks_test_dict({"VAL": cal_split}, tfs, chicks_targets=chicks.chicks_targets)
         except Exception as _e:   # noqa: BLE001 — المعايرة اختيارية، لا تُسقط التقييم
             print(f"⚠️ تعذّر بناء val للمعايرة ({type(_e).__name__}: {_e}) — يُكمَل بلا معايرة")
     return kit.run_full_analysis(
@@ -444,6 +504,7 @@ def run_chicks(settings, kit, *, model, val, chicks, info):
         eval_all_rows=e.eval_all_rows,
         val_dict=val_dict,
         calibration_method=e.calibration_method,
+        calibration_role=(_role_of(cal_split) if val_dict is not None else None),
     )
 
 
@@ -556,15 +617,17 @@ def run_main(settings, kit, dataset=None, summary=True):
     if dataset is None:
         dataset = load_dataset(settings, kit)
     info = apply_dataset_config(settings, dataset, kit)
-    train, val, test = make_splits(settings, dataset, info, kit)
+    train, calibration, val, test = make_splits_with_calibration(settings, dataset, info, kit)
+    if calibration is not None:             # بوضع الهدف نفسه؛ من train الأصلي قبل retarget
+        calibration = retarget_calibration(settings, train, calibration, info)
     train, val, test = retarget(settings, train, val, test, info)
     plan = plan_model(settings, dataset, info, kit)
     model_builder, model = build_model(plan, kit, summary=summary)
     main_config = make_training_config(settings, plan, info, val, kit)
-    train_ds, val_ds, sample_batch = make_datasets(main_config, train, val, info)
+    train_ds, val_ds, sample_batch = make_datasets(main_config, train, val, info, settings=settings)
     model, trainer, callbacks, history = train_model(settings, kit, model=model, model_builder=model_builder, main_config=main_config,
                                                      train_ds=train_ds, val_ds=val_ds, sample_batch=sample_batch)
     chicks = prepare_chicks(settings, plan, info, test, kit)
     return RunResult(dataset=dataset, info=info, train=train, val=val, test=test, plan=plan, model_builder=model_builder, model=model,
                      main_config=main_config, train_ds=train_ds, val_ds=val_ds, trainer=trainer, callbacks=callbacks, history=history,
-                     chicks=chicks)
+                     chicks=chicks, calibration=calibration)

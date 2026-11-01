@@ -174,6 +174,7 @@ def build_dataset_live(
     max_workers: Optional[int] = None,
     config: Optional[dict] = None,
     price_norm_meta: Optional[dict] = None,
+    level_meta: Optional[dict] = None,
     **kwargs,
 ) -> Dict:
     """يبني مجموعة بيانات حيّة من Binance Futures — عبر **نفس**
@@ -197,12 +198,16 @@ def build_dataset_live(
         price_norm_meta: حالة التطبيع المُلائمة على train (``train['price_norm_meta']``) — إلزامي لـ
             ``price_norm_mode='logret_std' | 'logret_sigma'`` (يرفع ``ValueError`` بدونه قبل أي جلب) ويُتجاهل في
             'window_scale'/'pct_change'؛ تُطبَّق بالصيغة نفسها في المسار التاريخي (``Normalizer.prepare_live``).
+        level_meta: حالة قناة المستوى المُلائمة على train (``train['level_meta']``) — إلزامي حين ``CONFIG['level_channel']`` مفعَّل (يرفع
+            ``ValueError`` بدونه قبل أي جلب) ويُهمَل حين تُطفأ؛ تُطبَّق عبر ``LevelChannel.prepare_live`` بالصيغة نفسها للمسار التاريخي.
         **kwargs: أي معامل آخر يقبله ``build_dataset_from_loader`` (مثل
             ``targets``، ``forecast_horizon``...) يمرَّر كما هو.
     """
     config = CONFIG if config is None else config
     nz = normalizer_for_mode(price_norm_mode(config))
     nz.check_live_state(price_norm_meta)       # logret_*: إحصاءات train المخزَّنة إلزامية (قبل أي جلب)
+    if level_channel_settings(config) is not None and level_meta is None:     # قناة المستوى: حالة train إلزامية (قبل أي جلب)
+        raise ValueError("CONFIG['level_channel'] مفعَّل: مرّر level_meta = train['level_meta'] (إحصاءات train وحدها)")
     tf_order = kwargs.get('tf_order') or config['tf_order']
     window_sizes = kwargs.get('window_sizes') or config['window_sizes']
     forecast_horizon = kwargs.get('forecast_horizon') or config['forecast_horizon']
@@ -237,6 +242,8 @@ def build_dataset_live(
     # العيّنة الحقيقية المطلوبة (مركزها آخر شمعة حقيقية) هي التي تسبقها مباشرة.
     n_contaminated = _live_contamination_len(tf_order)
     dataset = nz.prepare_live(drop_tail_per_asset(raw, n_contaminated), price_norm_meta)
+    if level_channel_unfitted(dataset):
+        dataset = get_level_channel(dataset['level_channel']['component']).prepare_live(dataset, level_meta)
 
     # ✅ شبكة أمان: الدفعة الصورية شموع مسطّحة تماماً (high=low=close) بالبناء —
     # حالة تكاد تستحيل في بيانات سوق حقيقية. إن ظهرت رغم الحذف أعلاه، هذا

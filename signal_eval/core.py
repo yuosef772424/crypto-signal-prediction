@@ -15,6 +15,9 @@ PITFALLS: Independent of rolling_splits/dataset shapes by design (tested on synt
 
 الإجابة المباشرة على "أفضل من الصدفة؟" — لا الاكتفاء برقم IC مجرَّد.
 """
+from stats.metrics import pearson as stats_pearson, spearman as stats_spearman
+
+
 def compute_ic(predictions: np.ndarray, actuals: np.ndarray,
                method: str = "spearman", min_samples: int = 10) -> float:
     """معامل الارتباط بين تنبؤات فرضية والعوائد الفعلية المحقَّقة.
@@ -51,14 +54,9 @@ def compute_ic(predictions: np.ndarray, actuals: np.ndarray,
             f"{min_samples}. IC على عدد بهذا الصغر رقم عشوائي لا يُعتمَد عليه.")
 
     p, a = predictions[mask], actuals[mask]
-    if np.std(p) < 1e-12 or np.std(a) < 1e-12:
-        return 0.0
-
-    if method == "spearman":
-        p = pd.Series(p).rank().to_numpy()
-        a = pd.Series(a).rank().to_numpy()
-    corr = np.corrcoef(p, a)[0, 1]
-    return float(corr) if np.isfinite(corr) else 0.0
+    corr_fn = stats_spearman if method == "spearman" else stats_pearson
+    # "لا إشارة" = 0.0 صراحةً (تباين صفري أو ارتباط غير منتهٍ)؛ التعريف الوحيد للارتباط في stats/metrics.py
+    return corr_fn(p, a, nan_policy="drop_nonfinite", min_n=1, var_tol=1e-12, degenerate=0.0)
 
 
 # ══════════════════════════════════════════════════════════════════════════

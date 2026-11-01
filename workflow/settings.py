@@ -1,18 +1,31 @@
 """
 PURPOSE:  RunSettings: every setting of a main run (dataset, target mode, model options, training, evaluation, panel model) in one strict, frozen object whose defaults are the values main.ipynb always held; main.ipynb, tools/evaluate_trained_model.py and the tests build it and hand it to the workflow/run.py steps.
-TAGS:     RunSettings, settings, ProjectSettings, DataSettings, TargetSettings, ModelSettings, TrainSettings, EvalSettings, PanelSettings, TARGET_MODE, ENTRY_CLOSE_REG, ANTI_MEMORIZATION, CLASS_ONLY, RUN_MAIN_TRAINING, PANEL_PRESETS, run_dir_for, strict config, frozen dataclass
-PITFALLS: Defaults must stay equal to the notebook values the golden test records (tests/golden_run_settings.json): change one only as a new experiment (its checkpoints live in a folder named after the settings, see run_dir_for). Unknown field names raise (constructor: TypeError; RunSettings.from_dict / .updated and every section's .updated: ValueError listing the known names), values are validated at construction (target mode, data format, positive epochs...). A panel preset overrides the panel fields only through PanelSettings.applied(), exactly as the old PANEL_PRESET cell line did after the other PANEL_ lines. Dict-valued fields are copied on construction; treat every settings object as read-only. Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own); only core/ names are used.
+TAGS:     RunSettings, settings, ProjectSettings, DataSettings, TargetSettings, ModelSettings, TrainSettings, LossSettings, loss plan, loss weights, balancing, selection metric, early_stopping_monitor, EvalSettings, PanelSettings, TARGET_MODE, ENTRY_CLOSE_REG, ANTI_MEMORIZATION, CLASS_ONLY, RUN_MAIN_TRAINING, PANEL_PRESETS, run_dir_for, strict config, frozen dataclass
+PITFALLS: Defaults must stay equal to the notebook values the golden test records (tests/golden_run_settings.json): change one only as a new experiment (its checkpoints live in a folder named after the settings, see run_dir_for). Unknown field names raise (constructor: TypeError; RunSettings.from_dict / .updated and every section's .updated: ValueError listing the known names), values are validated at construction (target mode, data format, positive epochs...). Loss weights, task balancing and the lambda_reg / lambda_calib schedules reach the trainer config ONLY through TrainSettings.loss (LossSettings, validated at construction against core.heads / core.loss_plan: unknown head, balancer or selection metric raise; the old use_uncertainty_weighting / lambda_reg / lambda_calib fields moved there and their old names raise with a pointer; anti_memorization_trainer may not carry targets / loss / the monitor); the best-epoch metric is a registered selection metric (early_stopping_monitor + the metric's own mode). A panel preset overrides the panel fields only through PanelSettings.applied(), exactly as the old PANEL_PRESET cell line did after the other PANEL_ lines. Dict-valued fields are copied on construction; treat every settings object as read-only. Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own); only core/ names are used.
 """
 import dataclasses as _dc
 import typing as _t
 from copy import deepcopy as _deepcopy
 
-from core.schema import ENTRY_CLOSE_REGS as _ENTRY_CLOSE_REGS, NO_RELATIVE_BASES as _NO_RELATIVE_BASES, TARGET_MODES as _TARGET_MODES
+from core.heads import HeadSet as _HeadSet
+from core.roles import CALIBRATION_CARVES as _CALIBRATION_CARVES
+from stats.target_codec import codec_name_for_mode as _codec_name_for_mode
+from core.loss_plan import (DEFAULT_BALANCING as _DEFAULT_BALANCING, LOSS_BALANCERS as _LOSS_BALANCERS,
+                            check_head_loss_terms as _check_head_loss_terms, check_report_heads as _check_report_heads,
+                            check_sample_weighting as _check_sample_weighting, SAMPLE_WEIGHTINGS as _SAMPLE_WEIGHTINGS,
+                            check_utility as _check_utility, check_tcp as _check_tcp,
+                            check_loss_schedules as _check_loss_schedules, check_loss_weights as _check_loss_weights,
+                            resolve_selection_metric as _resolve_selection_metric)
+from core.schema import (ENTRY_CLOSE_REGS as _ENTRY_CLOSE_REGS, NO_RELATIVE_BASES as _NO_RELATIVE_BASES, TARGET_COLUMNS as _TARGET_COLUMNS,
+                         TARGET_MODES as _TARGET_MODES)
 
 #: Formats of the saved dataset file accepted by the pipeline's loader (data/storage.py).
 DATA_FORMATS = ("auto", "pkl.gz", "npy_dir")
 #: Post-hoc confidence calibration methods of the chicks report.
 CALIBRATION_METHODS = ("isotonic", "platt")
+#: Which split the post-hoc calibrators are fitted on (core/roles.py roles): "val" = today's behaviour (val is selection AND calibration);
+#: "calibration" = a split of its own, carved by data.split_data_with_calibration (DataSettings.calibration_split must be set).
+CALIBRATION_SOURCES = ("val", "calibration")
 #: Model config keys the run logic derives itself (workflow.run.plan_model); ModelSettings.config_overrides may not name them.
 _MODEL_OVERRIDES_OWNED_BY_RUN = ("price_targets", "head_types", "enforce_order")
 #: The panel model's ready-made setups; applied by PanelSettings.applied() (they override the fields they name).
@@ -51,21 +64,29 @@ def _target_mode_problem(mode):
 class _SettingsSection:
     """Base of the settings sections: strict construction from a dict and strict partial update (unknown name = error)."""
 
+    #: names that moved to another place: ``{old name: where it lives now}``; an unknown-name error says where (never a silent alias).
+    _MOVED: dict = {}
+
     @classmethod
     def field_names(cls):
         return tuple(f.name for f in _dc.fields(cls))
 
     @classmethod
+    def _unknown_message(cls, unknown):
+        moved = "".join(f"; {k!r} moved to {cls._MOVED[k]}" for k in unknown if k in cls._MOVED)
+        return f"{cls.__name__}: unknown setting(s) {unknown}; known: {list(cls.field_names())}{moved}"
+
+    @classmethod
     def from_dict(cls, d):
         _settings_check(isinstance(d, dict), f"{cls.__name__}.from_dict: a dict is required, got {type(d).__name__}")
         unknown = sorted(set(d) - set(cls.field_names()))
-        _settings_check(not unknown, f"{cls.__name__}: unknown setting(s) {unknown}; known: {list(cls.field_names())}")
+        _settings_check(not unknown, cls._unknown_message(unknown))
         return cls(**d)
 
     def updated(self, **changes):
         """A copy with ``changes`` applied (strict names, re-validated)."""
         unknown = sorted(set(changes) - set(self.field_names()))
-        _settings_check(not unknown, f"{type(self).__name__}: unknown setting(s) {unknown}; known: {list(self.field_names())}")
+        _settings_check(not unknown, self._unknown_message(unknown))
         return _dc.replace(self, **changes)
 
     def to_dict(self):
@@ -105,6 +126,11 @@ class DataSettings(_SettingsSection):
     model_tfs: _t.Optional[tuple] = None
     #: Explicit time split {"train_end": "YYYY-MM-DD", "val_end": "YYYY-MM-DD"} instead of the sample shares (None = CONFIG / dataset).
     split_dates: _t.Optional[dict] = None
+    #: Opt-in calibration split: ``{"source": "train_tail" | "val_head", "share": 0 < share <= 0.5}`` (data.split_data_with_calibration): the last
+    #: ``share`` of train (or the first of val) becomes a split of its own, an embargo on both sides, role "calibration"; train (or val) shrinks.
+    #: None = no calibration split (train / val / test exactly as always). Not None changes the run folder name (run_dir_for: "_cal-<source>-<share>"):
+    #: a model trained on a smaller train is another model.
+    calibration_split: _t.Optional[dict] = None
 
     def __post_init__(self):
         _settings_check(isinstance(self.filename_base, str) and self.filename_base, "DataSettings.filename_base must be a non-empty str")
@@ -121,12 +147,21 @@ class DataSettings(_SettingsSection):
             _settings_check(isinstance(self.split_dates, dict) and set(self.split_dates) == {"train_end", "val_end"},
                    "DataSettings.split_dates must be {'train_end': ..., 'val_end': ...}")
             _settings_set(self, split_dates=dict(self.split_dates))
+        if self.calibration_split is not None:
+            cs = self.calibration_split
+            _settings_check(isinstance(cs, dict) and set(cs) == {"source", "share"},
+                   "DataSettings.calibration_split must be {'source': ..., 'share': ...} or None")
+            _settings_check(cs["source"] in _CALIBRATION_CARVES,
+                   f"DataSettings.calibration_split['source'] {cs['source']!r} unknown; known: {_CALIBRATION_CARVES}")
+            _settings_check(isinstance(cs["share"], (int, float)) and not isinstance(cs["share"], bool) and 0 < cs["share"] <= 0.5,
+                   f"DataSettings.calibration_split['share'] must be a number in (0, 0.5], got {cs['share']!r}")
+            _settings_set(self, calibration_split={"source": cs["source"], "share": float(cs["share"])})
 
 
 @_dc.dataclass(frozen=True)
 class TargetSettings(_SettingsSection):
     """Target mode on the same data (section 3-b); None = the pipeline's own targets."""
-    #: "return" | "return_close" | "scaled" | "magnitude" | "volnorm" | "entry_range" | "relative" | "<mode>+relative"
+    #: "return" | "return_close" | "scaled" | "magnitude" | "volnorm" | "entry_range" | "volret" | "relative" | "<mode>+relative"
     target_mode: _t.Optional[str] = None
     #: The close regression of entry_range: "abs_return" | "range_pos".
     entry_close_reg: str = "abs_return"
@@ -138,6 +173,10 @@ class TargetSettings(_SettingsSection):
     #: targets raise in workflow.run.plan_model. Not None changes the run folder name (run_dir_for: "_susp-none" / "_susp-<names>").
     #: A JSON round-trip gives a list: it is normalised to a tuple.
     suspended_targets: _t.Optional[tuple] = None
+    #: Clip (+-, in target units) of the regression targets that retarget_splits recomputes for ``target_mode``. None = the mode's
+    #: old default (10 for scaled / volnorm / volret, 1 for the others: workflow/retarget.py _DEFAULT_CLIP). Needs a target_mode (the pipeline's
+    #: own targets are not recomputed); not None changes the run folder name (run_dir_for: "_clip<value>").
+    clip: _t.Optional[float] = None
 
     def __post_init__(self):
         if self.suspended_targets is not None:
@@ -151,6 +190,12 @@ class TargetSettings(_SettingsSection):
         _settings_check(self.entry_close_reg in _ENTRY_CLOSE_REGS,
                f"TargetSettings.entry_close_reg {self.entry_close_reg!r} unknown; known: {_ENTRY_CLOSE_REGS}")
         _settings_check(self.group_freq is None or isinstance(self.group_freq, str), "TargetSettings.group_freq must be a str or None")
+        if self.clip is not None:
+            _settings_check(isinstance(self.clip, (int, float)) and not isinstance(self.clip, bool) and 0 < self.clip < float("inf"),
+                            f"TargetSettings.clip must be None or a finite number > 0, got {self.clip!r}")
+            _settings_check(self.target_mode is not None, "TargetSettings.clip needs a target_mode (it clips the targets retarget_splits "
+                                                          "recomputes; the pipeline's own targets are not recomputed)")
+            _settings_set(self, clip=float(self.clip))
 
 
 @_dc.dataclass(frozen=True)
@@ -176,9 +221,75 @@ class ModelSettings(_SettingsSection):
         _settings_set(self, config_overrides=_deepcopy(self.config_overrides))
 
 
+def _default_schedules():
+    return {"lambda_reg": {"start": 0.0, "end": 0.05, "warmup_epochs": 5, "schedule": "linear"},
+            "lambda_calib": {"start": 0.0, "end": 0.1, "warmup_epochs": 5, "schedule": "cosine"}}
+
+
+@_dc.dataclass(frozen=True)
+class LossSettings(_SettingsSection):
+    """The loss plan: the ONLY way a loss weight, the task balancing or a loss sub-term schedule reaches the trainer config
+    (workflow.run.make_training_config derives ``targets[*].loss_weight`` and ``loss`` from it; the free-form
+    ``anti_memorization_trainer`` merge may no longer carry them). The defaults are what the notebook always trained with."""
+    #: Static per-head loss weight ``{head name: weight}`` (names of core.heads.HeadSet: ``high_reg``, ``close_class``...; an unknown
+    #: head raises, at RunSettings construction and again against the real heads in make_training_config). {} = every head 1.0 (the
+    #: trainer default, nothing written to the config). Under ``balancing="kendall"`` a classification head's weight is partly absorbed
+    #: by its learned log-variance: use "static" to compare weights cleanly.
+    weights: dict = _dc.field(default_factory=dict)
+    #: Task balancing, a registered name of core.loss_plan.LOSS_BALANCERS: "kendall" (learned weights on the classification heads: what
+    #: ``use_uncertainty_weighting=True`` always was, the default) | "static" (fixed weights only).
+    balancing: str = _DEFAULT_BALANCING
+    #: The scheduled loss sub-terms (core.loss_plan.SUB_TERM_SCHEDULES): the evidence-regularizer weight ``lambda_reg`` and the
+    #: confidence-calibration weight ``lambda_calib``, each ``{start, end, warmup_epochs, schedule}``. Both must be named (a missing one
+    #: would switch its term off silently); off = ``start == end == 0``. Initial values from trainer_framework's own example: adjust
+    #: after watching ``val_*_nig_pen``.
+    schedules: dict = _dc.field(default_factory=_default_schedules)
+    #: Per-head auxiliary loss terms ``{head name: {option: value}}`` (core.loss_plan.HEAD_LOSS_TERMS): ``huber_weight`` / ``huber_delta``
+    #: (Huber on mu next to the NIG loss) and ``ic_weight`` (-pearson(mu, y) over the batch; pooled across coins and times: batches carry
+    #: no timestamp key). {} = no term = the old loss exactly; an option left out keeps the trainer default (0.0 = off). An unknown head /
+    #: option, or a term the head's task type does not accept, raises.
+    head_terms: dict = _dc.field(default_factory=dict)
+    #: Heads whose val IC (``val_<head>_ic``, Pearson over the full val set, stats.metrics) is logged although it is not the selection monitor (the
+    #: monitor's own head is always logged). () = nothing extra is logged = the old logs.
+    report_ic: tuple = ()
+    #: Training sample weights of the regression heads, a registered name of core.loss_plan.SAMPLE_WEIGHTINGS ("abs_target_clip":
+    #: w = clip(|z|, 0.2, 2), 0.2 inside |z| < 0.3; needs target_mode "volnorm"), computed from each TRAIN sample's own label and applied
+    #: to the training loss only (val loss and selection metrics unweighted). None = no weights = the old batches. Not None changes the
+    #: run folder name (run_dir_for: "_sw-<name>").
+    sample_weighting: _t.Optional[str] = None
+    #: Decision-utility term (core.loss_plan.UTILITY_DEFAULTS): ``{}`` = off = the old loss exactly; ``{"weight": lambda_U, "k": 1.0,
+    #: "cost": 0.0008, "warmup_epochs": 10, "ramp_epochs": 10}``: position s = tanh(k mu / sigma) of the close head, gain = s r - cost |s|
+    #: with r the DECODED return (target codec), loss -mean(gain)/std(r) ADDED to the head losses with weight 0 for warmup_epochs then
+    #: ramped linearly to lambda_U over ramp_epochs. Needs a target mode with a return decode (return / volnorm / volret / relative).
+    utility: dict = _dc.field(default_factory=dict)
+    #: TCP confidence head (core.loss_plan.TCP_DEFAULTS): ``{}`` = off = the old loss exactly; ``{"weight": 0.1, "warmup_epochs": 10}``: Brier
+    #: loss of the head ``tcp_close`` (an MLP on stop_gradient(trunk features)) against stop_gradient(1[mu_close * y_close > 0]), weight 0
+    #: for warmup_epochs then ``weight``. Needs ``ModelSettings.config_overrides["tcp_head"] = True`` (the model builds the head).
+    tcp: dict = _dc.field(default_factory=dict)
+
+    def __post_init__(self):
+        _settings_check(isinstance(self.balancing, str), "LossSettings.balancing must be a str (a registered balancer name)")
+        _settings_check(self.sample_weighting is None or (isinstance(self.sample_weighting, str)
+                                                          and all(p in _SAMPLE_WEIGHTINGS for p in self.sample_weighting.split("+"))),
+                        f"LossSettings.sample_weighting {self.sample_weighting!r} unknown; registered: {list(_SAMPLE_WEIGHTINGS.names())} "
+                        f"or None")
+        try:
+            _LOSS_BALANCERS.get(self.balancing)
+        except ValueError as e:
+            raise ValueError(f"LossSettings.balancing: {e}") from None
+        _settings_set(self, utility=_check_utility(self.utility, None, "LossSettings.utility"), tcp=_check_tcp(self.tcp, "LossSettings.tcp"))
+        _settings_set(self, weights=_check_loss_weights(self.weights, _HeadSet.default(_TARGET_COLUMNS), "LossSettings.weights"),
+                      schedules=_check_loss_schedules(self.schedules, "LossSettings.schedules"),
+                      head_terms=_check_head_loss_terms(self.head_terms, _HeadSet.default(_TARGET_COLUMNS), "LossSettings.head_terms"),
+                      report_ic=_check_report_heads(self.report_ic, _HeadSet.default(_TARGET_COLUMNS), "ic", "LossSettings.report_ic"))
+
+
 @_dc.dataclass(frozen=True)
 class TrainSettings(_SettingsSection):
     """Training of the main model (section 5)."""
+    _MOVED = {"use_uncertainty_weighting": "train.loss.balancing ('kendall' = True, 'static' = False)",
+              "lambda_reg": "train.loss.schedules['lambda_reg']", "lambda_calib": "train.loss.schedules['lambda_calib']"}
+
     #: False = build everything but do not train (the permutation control trains its own models).
     run_main_training: bool = True
     #: Base of the training folder; run_dir_for appends the target mode / scale / architecture so a saved model is never resumed
@@ -195,14 +306,18 @@ class TrainSettings(_SettingsSection):
     early_stopping_patience: _t.Optional[int] = None
     #: Keras fit verbosity (1 = progress bar, 2 = one line per epoch, 0 = silent).
     fit_verbose: int = 1
-    #: Kendall weighting of the classification heads (evidential heads are excluded by the trainer).
-    use_uncertainty_weighting: bool = True
-    lambda_reg: dict = _dc.field(default_factory=lambda: {"start": 0.0, "end": 0.05, "warmup_epochs": 5, "schedule": "linear"})
-    lambda_calib: dict = _dc.field(default_factory=lambda: {"start": 0.0, "end": 0.1, "warmup_epochs": 5, "schedule": "cosine"})
-    #: Early stopping / best-model monitor: the raw loss (task losses with fixed weights), not the Kendall-weighted one.
+    #: The loss plan (static head weights, task balancing, sub-term schedules). A dict is turned into a LossSettings (strict).
+    #: ``settings.train.loss.updated(weights={...})`` changes one part of it; ``train.updated(loss={...})`` replaces the whole plan.
+    loss: LossSettings = _dc.field(default_factory=LossSettings)
+    #: Early stopping / best-model monitor = the SELECTION METRIC, a registered name of core.loss_plan.SELECTION_METRICS: ``val_raw_loss``
+    #: (default: task losses with their weights + penalties = the training objective, so a weight or lambda change also changes which
+    #: epoch is "best"), ``val_loss``, ``val_class_loss``, or an objective-independent per-head metric ``val_<head>_accuracy`` /
+    #: ``val_<head>_mae`` / ``val_<head>_nig_base`` / ``val_<head>_ic`` (val-set Pearson of a regression head, mode "max") (needs the
+    #: matching early_stopping_mode).
     early_stopping_monitor: str = "val_raw_loss"
     early_stopping_mode: str = "min"
     #: Merged over the trainer settings when ModelSettings.anti_memorization is on (PR #7, docs/research/anti_memorization_pr7.md §10-c).
+    #: It may not carry loss weights / the loss section (train.loss) or the monitor (early_stopping_monitor): those have one route each.
     anti_memorization_trainer: dict = _dc.field(default_factory=lambda: {
         "optimizer": {"lr_initial": 3e-4, "weight_decay": 0.05, "ema_warmup": True, "ema_window_epochs": 1.0},
         "callbacks": {"early_stopping": {"weights_snapshot": "ema_weights"}},
@@ -221,15 +336,38 @@ class TrainSettings(_SettingsSection):
         _settings_check(self.early_stopping_patience is None or (_settings_is_int(self.early_stopping_patience) and self.early_stopping_patience > 0),
                "TrainSettings.early_stopping_patience must be a positive int or None")
         _settings_check(_settings_is_int(self.fit_verbose) and self.fit_verbose in (0, 1, 2), "TrainSettings.fit_verbose must be 0, 1 or 2")
-        _settings_check(isinstance(self.use_uncertainty_weighting, bool), "TrainSettings.use_uncertainty_weighting must be a bool")
-        for name in ("lambda_reg", "lambda_calib", "anti_memorization_trainer"):
-            _settings_check(isinstance(getattr(self, name), dict), f"TrainSettings.{name} must be a dict")
-            _settings_set(self, **{name: _deepcopy(getattr(self, name))})
+        if isinstance(self.loss, dict):
+            _settings_set(self, loss=LossSettings.from_dict(self.loss))
+        _settings_check(isinstance(self.loss, LossSettings),
+               f"TrainSettings.loss must be a LossSettings (or a dict of its fields), got {type(self.loss).__name__}")
+        _settings_check(isinstance(self.anti_memorization_trainer, dict), "TrainSettings.anti_memorization_trainer must be a dict")
+        _settings_set(self, anti_memorization_trainer=_deepcopy(self.anti_memorization_trainer))
+        _am = self.anti_memorization_trainer
+        _settings_check(not ({"targets", "loss"} & set(_am)),
+               "TrainSettings.anti_memorization_trainer may not carry 'targets' / 'loss' (loss weights, balancing and schedules are set "
+               "through train.loss only)")
+        _am_es = (_am.get("callbacks") or {}).get("early_stopping") or {}
+        _settings_check(not (isinstance(_am_es, dict) and {"monitor", "mode"} & set(_am_es)),
+               "TrainSettings.anti_memorization_trainer may not carry callbacks.early_stopping.monitor / mode (the selection metric is "
+               "set through train.early_stopping_monitor / early_stopping_mode only)")
         _settings_check(self.early_stopping_mode in ("min", "max"), "TrainSettings.early_stopping_mode must be 'min' or 'max'")
         _settings_check(isinstance(self.early_stopping_monitor, str), "TrainSettings.early_stopping_monitor must be a str")
         _settings_check(isinstance(self.anti_memorization_label_smoothing, (int, float))
                and 0.0 <= self.anti_memorization_label_smoothing < 1.0,
                "TrainSettings.anti_memorization_label_smoothing must be in [0, 1)")
+        self.check_against_heads(_HeadSet.default(_TARGET_COLUMNS))
+
+    def check_against_heads(self, heads):
+        """The head-dependent checks of the plan and the selection metric against a HeadSet: every weighted head exists, the monitor is a
+        registered selection metric of an existing head and its mode is the metric's. Raises ValueError. (Construction runs it against
+        every default head; RunSettings against the heads of its class_only; make_training_config against the heads actually trained.)"""
+        _check_loss_weights(self.loss.weights, heads, "TrainSettings.loss.weights")
+        _check_head_loss_terms(self.loss.head_terms, heads, "TrainSettings.loss.head_terms")
+        _check_report_heads(self.loss.report_ic, heads, "ic", "TrainSettings.loss.report_ic")
+        try:
+            _resolve_selection_metric(self.early_stopping_monitor, heads, self.early_stopping_mode)
+        except ValueError as e:
+            raise ValueError(f"TrainSettings.early_stopping_monitor: {e}") from None
 
 
 @_dc.dataclass(frozen=True)
@@ -238,6 +376,8 @@ class EvalSettings(_SettingsSection):
     #: Post-hoc confidence calibration (fit on val only, applied to test): the report prints ECE before/after.
     calibrate_confidence: bool = True
     calibration_method: str = "isotonic"
+    #: Split the calibrators are fitted on: "val" (default = what the run always did) | "calibration" (needs DataSettings.calibration_split).
+    calibration_source: str = "val"
     #: True = every asset and row of test enters the metrics.
     eval_all_rows: bool = True
     out_dir: str = "analysis_outputs"
@@ -254,6 +394,8 @@ class EvalSettings(_SettingsSection):
         _settings_check(isinstance(self.calibrate_confidence, bool), "EvalSettings.calibrate_confidence must be a bool")
         _settings_check(self.calibration_method in CALIBRATION_METHODS,
                f"EvalSettings.calibration_method {self.calibration_method!r} unknown; known: {CALIBRATION_METHODS}")
+        _settings_check(self.calibration_source in CALIBRATION_SOURCES,
+               f"EvalSettings.calibration_source {self.calibration_source!r} unknown; known: {CALIBRATION_SOURCES}")
         _settings_check(isinstance(self.eval_all_rows, bool), "EvalSettings.eval_all_rows must be a bool")
         _settings_check(isinstance(self.out_dir, str) and self.out_dir, "EvalSettings.out_dir must be a non-empty str")
         _settings_check(isinstance(self.mn_quantiles, (list, tuple)) and len(self.mn_quantiles) > 0
@@ -361,6 +503,20 @@ class RunSettings:
         for name, cls in self.SECTIONS.items():
             if not isinstance(getattr(self, name), cls):
                 raise TypeError(f"RunSettings.{name} must be a {cls.__name__}, got {type(getattr(self, name)).__name__}")
+        # head-dependent checks that need two sections: the plan's head names / the selection metric against the heads class_only builds
+        self.train.check_against_heads(_HeadSet.default(_TARGET_COLUMNS, class_only=self.model.class_only))
+        _check_sample_weighting(self.train.loss.sample_weighting, self.target.target_mode, "TrainSettings.loss.sample_weighting")
+        _settings_check(bool(self.train.loss.tcp) == bool("tcp_head" in self.model.config_overrides and self.model.config_overrides["tcp_head"]),
+               "TrainSettings.loss.tcp and ModelSettings.config_overrides['tcp_head'] go together: the loss trains the head the model builds "
+               "(set both, or neither)")
+        if self.train.loss.utility:      # a mode without a TargetCodec has no return decode: refuse at construction, not mid-run
+            try:
+                _codec_name_for_mode(self.target.target_mode)
+            except ValueError as e:
+                raise ValueError(f"TrainSettings.loss.utility needs a target mode with a return decode: {e}") from None
+        _settings_check(self.evaluation.calibration_source != "calibration" or self.data.calibration_split is not None,
+               "EvalSettings.calibration_source='calibration' needs a calibration split: set DataSettings.calibration_split "
+               "(e.g. {'source': 'train_tail', 'share': 0.1}); without it the calibrators are fitted on val ('val', the default)")
 
     @classmethod
     def from_dict(cls, d):
@@ -390,6 +546,12 @@ def run_dir_for(settings, reg_target_scale, model_tfs):
             + (f"_{tm}" if tm else "")
             # تعريف close في entry_range جزء من الهدف: تعريف آخر = مجلد آخر
             + (f"_{settings.target.entry_close_reg}" if tm == "entry_range" else "")
+            # قصّ آخر للهدف = هدف آخر: مجلد آخر؛ None (قصّ الوضع الافتراضي) لا يضيف شيئاً
+            + (f"_clip{settings.target.clip:g}" if settings.target.clip is not None else "")
+            # أوزان عيّنات التدريب = هدف تدريب آخر (لا تظهر في بصمة إعداد المدرّب): مجلد آخر؛ None لا يضيف شيئاً
+            + (f"_sw-{settings.train.loss.sample_weighting}" if settings.train.loss.sample_weighting is not None else "")
+            + (f"_util{settings.train.loss.utility['weight']:g}" if settings.train.loss.utility else "")
+            + (f"_tcp{settings.train.loss.tcp['weight']:g}" if settings.train.loss.tcp else "")
             # هدف بمقياس آخر (reg_target_scale من البيانات) = مجلد آخر: لا يُستأنف نموذج دُرِّب على عوائد خام
             + (f"_s{reg_target_scale:g}" if reg_target_scale != 1.0 else "")
             + ("_am" if settings.model.anti_memorization else "")
@@ -400,6 +562,9 @@ def run_dir_for(settings, reg_target_scale, model_tfs):
             # تجاوزات معمارية إضافية = معمارية أخرى: مجلد منفصل، بمفاتيح مرتّبة (حتمي)؛ {} لا يضيف شيئاً
             + "".join("_" + "".join(c if c.isalnum() else "-" for c in f"{k}={v!r}".replace(" ", ""))
                       for k, v in sorted(settings.model.config_overrides.items()))
+            # قسم معايرة مقتطع = train أقصر = نموذج آخر: مجلد منفصل؛ None لا يضيف شيئاً
+            + (f"_cal-{settings.data.calibration_split['source']}-{settings.data.calibration_split['share']:g}"
+               if settings.data.calibration_split is not None else "")
             # أهداف مدرَّبة غير القاعدة القديمة (None) = نموذج آخر: مجلد منفصل؛ None لا يضيف شيئاً
             + (("_susp-" + ("-".join(sorted(settings.target.suspended_targets)) or "none"))
                if settings.target.suspended_targets is not None else ""))

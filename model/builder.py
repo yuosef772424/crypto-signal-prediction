@@ -1,15 +1,38 @@
 """
 PURPOSE:  build_nig_timenet_v2: the model architecture builder (+ DEFAULT_HEAD_TYPES).
 TAGS:     build_nig_timenet_v2, DEFAULT_HEAD_TYPES, encoder, multi-timeframe, anti-memorization options, model builder
-PITFALLS: Every anti-memorization option defaults to the OLD behaviour exactly, so older checkpoints still load.
+PITFALLS: Every anti-memorization option defaults to the OLD behaviour exactly, so older checkpoints still load. The nig_regression output names come from the HeadKind in core/heads.py (never spell y_<t>_nu etc. here); the model's outputs are listed nig heads first, then the other heads per target (HeadSet.output_names is per head: compare sorted).
           Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from
           other modules resolve at call time.
 
 ## 8) بناء النموذج
 """
+from core.heads import HEAD_KINDS as _HEAD_KINDS, y_name as _y_name
+from core.schema import TARGET_COLUMNS as _TARGET_COLUMNS
+from core.loss_plan import TCP_OUTPUT_KEY as _TCP_OUTPUT_KEY
+
+
+def _nig_outputs(target):
+    """{دور المخرج: اسمه} لرأس nig_regression لهذا الهدف، من HeadKind المسجَّل في core/heads.py (المصدر الوحيد للأسماء)."""
+    return {role: _y_name(target, suffix) for role, suffix in _HEAD_KINDS["nig_regression"].outputs.items()}
+
+
 # احتياطي build_nig_timenet_v2 الداخلي فقط، لاستدعاء مباشر بلا head_types ولا
 # عبر MODEL_CONFIG (الذي يحدّد فعلياً تصنيفاً+انحداراً معاً — انظر MODEL_CONFIG أدناه).
-DEFAULT_HEAD_TYPES = {"high": ["nig_regression"], "low": ["nig_regression"], "close": ["nig_regression"]}
+DEFAULT_HEAD_TYPES = {t: ["nig_regression"] for t in _TARGET_COLUMNS}
+
+
+#: the registered values of the optional mu skip residual (None = the old model exactly).
+MU_SKIPS = (None, "unc_gated")
+
+
+def unc_gate_model(model):
+    """A sub-model returning the uncertainty gates ``{target: (B, 1)}`` of a model built with ``mu_skip='unc_gated'`` (to inspect their
+    distribution and their correlation with |error|); raises if the model has no such gates."""
+    gates = {l.name[len("unc_gate_"):]: l.output for l in model.layers if l.name.startswith("unc_gate_")}
+    if not gates:
+        raise ValueError("this model has no uncertainty gates (built without mu_skip='unc_gated')")
+    return tf.keras.Model(model.inputs, gates)
 
 
 def build_nig_timenet_v2(
@@ -18,12 +41,12 @@ def build_nig_timenet_v2(
     patch_len=4, stride=2, kernel_sizes=(3, 5, 9, 17), max_rel_pos=16,
     dropout=0.1, attn_dropout=0.0, causal=False, window=None,
     use_instance_norm=True, use_decomposition=True, use_linear_path=True,
-    price_targets=("high", "low", "close"), head_types=None,
+    price_targets=_TARGET_COLUMNS, head_types=None,
     enforce_order=True, head_hidden=128,
     nu_min=0.1, alpha_min=2.0, beta_min=0.01, unc_max=20.0,
     class_head_hidden=64, n_classes=3,
     norm_eps=1e-4, input_clip=None, stats_mode="full", input_noise_std=0.0, feature_dropout=0.0,
-    linear_path_l2=1e-4, level_passthrough=False, level_norm=None,
+    linear_path_l2=1e-4, level_passthrough=False, level_norm=None, mu_skip=None, tcp_head=False,
     encoder="transformer", level_film=False, architecture="fused", fusion="concat", level_hidden=64,
     n_coins=0, coin_emb_dim=4, coin_emb_l2=1e-3,
     name="nig_timenet_v2",
@@ -73,6 +96,8 @@ def build_nig_timenet_v2(
                   عملة لم تُرَ في التدريب تبقى صفراً (= «عملة متوسّطة»). ⚠️ معرِّف عملة صريح = قناة حفظ محتملة
                   بالتعريف؛ لذلك L2 وdropout عليه، ويُقاس بالتسميات المخلوطة قبل أي اعتماد.
     """
+    if mu_skip not in MU_SKIPS:
+        raise ValueError(f"mu_skip: {' | '.join(map(repr, MU_SKIPS))} — لا {mu_skip!r}")
     head_types = head_types or DEFAULT_HEAD_TYPES
     head_cfg = dict(
         dropout=dropout, class_head_hidden=class_head_hidden, n_classes=n_classes,
@@ -212,8 +237,23 @@ def build_nig_timenet_v2(
     for t in nig_targets:
         nig = NIGHead(head_hidden, dropout, nu_min, alpha_min, beta_min, name=f"nig_{t}")
         raw_nig[t] = nig(h)  # (mu_raw, nu, alpha, beta)
+        if mu_skip == "unc_gated":
+            # مسار تخطٍّ متعلَّم على mu (من UltimateNIGLayer القديم): skip = Dense(128, swish)(MHA(query = متوسط الميزات عبر الزمن، key = value = المدخل))،
+            # unc_gate = sigmoid(Dense(1)(stop_gradient(epistemic)))، mu = mu + unc_gate * skip[:, 0, 0:1]. stop_gradient على epistemic: البوّابة
+            # تقرأ عدم اليقين ولا تستطيع دفعه (الخسارة لا تصل epistemic عبرها)؛ وmu وحده يتلقّى تدرّج المسار.
+            mu_raw, nu_t, alpha_t, beta_t = raw_nig[t]
+            feat_in = inputs if tfs is None else inputs_by_tf[tfs[0]]
+            n_feat = int(feat_in.shape[-1])
+            query = layers.Lambda(lambda x: tf.reduce_mean(x, axis=1, keepdims=True), name=f"skip_query_{t}")(feat_in)
+            attn = layers.MultiHeadAttention(num_heads=4, key_dim=max(4, n_feat // 4), name=f"skip_attn_{t}")(query, feat_in, feat_in)
+            skip = layers.Dense(128, activation="swish", name=f"skip_fc_{t}")(attn)
+            skip_mu = layers.Lambda(lambda x: x[:, 0, 0:1], name=f"skip_mu_{t}")(skip)
+            epi_src, _ = NIGUncertainty(unc_max=unc_max, name=f"skip_unc_{t}")([nu_t, alpha_t, beta_t])
+            gate = layers.Dense(1, activation="sigmoid", name=f"unc_gate_{t}")(layers.Lambda(tf.stop_gradient, name=f"skip_sg_{t}")(epi_src))
+            mu_gated = layers.Add(name=f"mu_skip_add_{t}")([mu_raw, layers.Multiply(name=f"mu_skip_gated_{t}")([gate, skip_mu])])
+            raw_nig[t] = (mu_gated, nu_t, alpha_t, beta_t)
 
-    apply_order = enforce_order and {"high", "low", "close"}.issubset(nig_targets)
+    apply_order = enforce_order and set(_TARGET_COLUMNS).issubset(nig_targets)
     if apply_order:
         mu_h, mu_c, mu_l = OrderedMeans(name="ordered_means")(
             [raw_nig["close"][0], raw_nig["high"][0], raw_nig["low"][0]])
@@ -226,10 +266,10 @@ def build_nig_timenet_v2(
         _, nu, alpha, beta = raw_nig[t]
         epi, ale = NIGUncertainty(unc_max=unc_max, name=f"unc_{t}")([nu, alpha, beta])
         conf = ConfidenceHead(name=f"conf_{t}")([h, nu, alpha, beta])
-        outputs.update({
-            f"y_{t}": mus[t], f"y_{t}_nu": nu, f"y_{t}_alpha": alpha, f"y_{t}_beta": beta,
-            f"y_{t}_epistemic": epi, f"y_{t}_aleatoric": ale, f"y_{t}_confidence": conf,
-        })
+        # أسماء المخرجات من core.heads (HeadKind nig_regression)، لا من نصوص هنا: نفس الترتيب ونفس الأسماء تماماً
+        names = _nig_outputs(t)
+        outputs.update({names["mu"]: mus[t], names["nu"]: nu, names["alpha"]: alpha, names["beta"]: beta,
+                        names["epistemic"]: epi, names["aleatoric"]: ale, names["confidence"]: conf})
 
     # -- كل أنواع الرؤوس الأخرى (تصنيف، ...): مستقلّة لكل هدف، عبر السجلّ --
     for t in price_targets:
@@ -237,6 +277,15 @@ def build_nig_timenet_v2(
             if head_type == "nig_regression":
                 continue
             outputs.update(build_head_outputs(head_type, h, t, head_cfg))
+
+    if tcp_head:
+        # رأس ثقة TCP: MLP صغير على stop_gradient(ميزات الجذع) يتنبأ P(sign(mu_close) == sign(y_close)) (خسارة Brier في المدرّب، core.loss_plan
+        # .TCP_OUTPUT_KEY)؛ لا يدفع الجذع ولا mu. مفتاح المخرج بلا بادئة y_ فلا يقرؤه أي مستهلك يحلّل أسماء الرؤوس.
+        if "close" not in nig_targets:
+            raise ValueError("tcp_head=True needs a 'close' NIG head")
+        tcp_in = layers.Lambda(tf.stop_gradient, name="tcp_sg")(h)
+        tcp_h = layers.Dense(32, activation="swish", name="tcp_fc")(tcp_in)
+        outputs[_TCP_OUTPUT_KEY] = layers.Dense(1, activation="sigmoid", name="tcp_prob")(tcp_h)
 
     model_inputs = list(inputs_by_tf.values()) if tfs is not None else [inputs]
     return Model(model_inputs + [coin_in] if n_coins else (model_inputs if tfs is not None else inputs),

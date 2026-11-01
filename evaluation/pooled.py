@@ -3,6 +3,10 @@ PURPOSE:  The ONE batched evaluation predict path (lifted from workflow/pooling.
 TAGS:     pooling, predict_pooled_raw, pool_x, pool_test_dict, predict_pooled_batch_by_asset, _pool_by_asset, slice_by_asset, asset_bounds, latest_table_from_raw, one model call, batched evaluation, performance
 PITFALLS: Every per-asset evaluation site (test_all_assets_v4, predict_latest_all_assets, predict_pooled_batch_by_asset, workflow's classification_accuracy_report) must go through this module instead of calling the model once per asset: 500 coins x one tiny predict call each was ~50x slower than one pooled call. The model is independent of batch composition (no BatchNorm in inference), so pooled raw outputs equal the per-asset ones up to float reduction order (rtol 1e-5); decode / evaluate / table code is numpy-only and unchanged. asset_bounds = [{'name', 'start', 'end'}] (same format as the pipeline's rolling_splits / build_dataset_live). Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
 """
+from core.schema import TS_COL as _TS_COL
+from stats.prediction_table import build_table as _build_prediction_table, write_table as _write_prediction_table
+
+
 def _pool_by_asset(per_asset_arrays: dict, order=None):
     """يدمج {أصل: مصفوفة} في مصفوفة واحدة + قائمة asset_bounds (نفس تنسيق
     `rolling_splits`/`build_dataset_live` في خط الأنابيب) — أساس بسيط لدمج
@@ -128,3 +132,21 @@ def predict_pooled_batch_by_asset(model, pooled, model_tf, target_specs=None, n_
         print(f"\n🚀 دُفعة واحدة مدمجة ({len(pooled['asset_bounds'])} أصل، استدعاء نموذج واحد فقط):")
         print_latest_table(result, legend=True)
     return result
+
+
+def write_prediction_table(spec, test_dict, raw_by_asset, names):
+    """يكتب مخرجات النموذج الخام (``raw_by_asset`` من slice_by_asset) كـ PredictionTable واحد بترتيب ``names`` (stats/prediction_table.py،
+    ``spec`` = PredictionTableSpec): صف لكل (أصل، طابع) بأعمدة prediction_made_at / label_available_at / train_end / fold / role /
+    identity_hash ومخرجات الرؤوس ``out_<مفتاح>``. اختياري: بلا spec لا يُستدعى. يُرجع مسار الملف؛ مخالفة العقد ترفع PredictionTableError."""
+    names = list(names)
+    no_ts = [a for a in names if test_dict[a].get('last_candles') is None]
+    if no_ts:
+        raise ValueError(f"prediction_table needs last_candles (its timestamp column) on every asset; missing on {no_ts[:5]}")
+    ts = np.concatenate([np.asarray(test_dict[a]['last_candles'])[:, _TS_COL] for a in names])
+    assets = np.concatenate([np.full(len(test_dict[a]['last_candles']), a, dtype=object) for a in names])
+    keys = list(raw_by_asset[names[0]])
+    outputs = {k: np.concatenate([np.asarray(raw_by_asset[a][k]).reshape(len(raw_by_asset[a][k]), -1) for a in names]) for k in keys}
+    table = _build_prediction_table(asset=assets, timestamp=ts, outputs=outputs, split_role=spec.split_role, train_end=spec.train_end,
+                                    fold=spec.fold, identity_hash=spec.identity_hash, horizon_bars=spec.horizon_bars,
+                                    timeframe=spec.timeframe)
+    return _write_prediction_table(spec.path, table, spec.meta)

@@ -72,6 +72,9 @@ def add_features(data, config: Optional[dict] = None) -> pd.DataFrame:
     if config.get("use_custom_features", True):
         df = add_custom_features(df, config=config)
 
+    # قناة المستوى الجانبية (CONFIG['level_channel']، مُطفأة افتراضياً: لا أعمدة جديدة ولا تغيّر) — أعمدة LVL_* سببية، تُقيَّس على train عند التقسيم
+    df = add_level_features(df, config=config)
+
     for ind in static_indicators:
         if ind == 'cross_value':
             df.ta.cross_value(value=50, append=True)

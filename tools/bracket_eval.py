@@ -29,6 +29,7 @@ _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)   # core/ sits next to tools/ (the script is imported with only tools/ on the path)
 from core.schema import LAST_COLUMNS  # noqa: E402,F401  columns of the pipeline's last_candles array (single source: core/schema.py)
+from core.heads import output_name  # noqa: E402  the model output keys (single source: core/heads.py)
 COST_RT = 0.0014                                    # 0.07% per side taker, as in the edge-discovery studies
 
 
@@ -65,11 +66,11 @@ def frame_from_split(split, preds: Optional[Dict[str, np.ndarray]] = None, reg_s
     if preds is not None:
         n = len(df)
         get = lambda k: _first_col(preds[k])[:n] if k in preds else None  # noqa: E731
-        p = get(f'y_{class_head}_class_logits')
+        p = get(output_name(class_head, 'logits'))
         if p is not None:
             df['p_up'] = p
         for t, anchor in (('high', 'last_high'), ('low', 'last_low'), ('close', 'last_close')):
-            r = get(f'y_{t}')
+            r = get(output_name(t, 'mu'))
             if r is not None:
                 df[f'pred_{t}'] = df[anchor] * (1.0 + r / float(reg_scale))
     if extra is not None:

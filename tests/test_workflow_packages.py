@@ -109,7 +109,7 @@ class PackageStructureTests(unittest.TestCase):
 
     def test_workflow_names_shadow_only_the_known_notebook_name(self):
         """Loading workflow/ after the %run notebooks must not silently replace a name they define (the old notebook shadowed
-        `_auc` the same way: main's cell 7-g came after the model_v2 %run)."""
+        `_auc` the same way: main's cell 7-g came after the model_v2 %run; since stats/ both `_auc` defs are gone, so no name is shadowed)."""
         defined = {}
         # the %run notebooks are runners now: their definitions live in these packages
         for pkg in ("data", "model", "trainer", "evaluation"):
@@ -123,7 +123,7 @@ class PackageStructureTests(unittest.TestCase):
             for n in ast.parse(workflow_loader.module_path(m).read_text(encoding="utf-8")).body:
                 if isinstance(n, (ast.FunctionDef, ast.ClassDef)):
                     mine.setdefault(n.name, m)
-        self.assertEqual(sorted(set(mine) & set(defined)), ["_auc"], {k: (mine[k], defined[k]) for k in set(mine) & set(defined)})
+        self.assertEqual(sorted(set(mine) & set(defined)), [], {k: (mine[k], defined[k]) for k in set(mine) & set(defined)})
 
 
 class RunnerNotebookTests(unittest.TestCase):

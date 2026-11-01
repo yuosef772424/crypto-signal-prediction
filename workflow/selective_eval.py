@@ -5,6 +5,10 @@ PITFALLS: Every threshold is chosen on val and judged on test. Uses LAST_COLUMNS
 """
 import numpy as np
 import pandas as pd
+from core.heads import label_key as _label_key, output_name as _output_name
+from core.schema import TARGET_COLUMNS as _TARGET_COLUMNS
+
+from stats.metrics import wilson_interval
 
 _LC = {name: i for i, name in enumerate(LAST_COLUMNS)}
 
@@ -43,23 +47,23 @@ def collect_signals(model, split_or_dict, model_tf, batch_size=1024, outputs=Non
         "fut_high": lc[:, _LC["future_high_max"]], "fut_low": lc[:, _LC["future_low_min"]],
     })
     for t in price_targets:
-        if f"y_{t}" not in o:
+        if _output_name(t, "mu") not in o:
             continue
-        nu, alpha, beta = o[f"y_{t}_nu"], o[f"y_{t}_alpha"], o[f"y_{t}_beta"]
+        nu, alpha, beta = o[_output_name(t, "nu")], o[_output_name(t, "alpha")], o[_output_name(t, "beta")]
         # مخرجات النموذج بوحدة الهدف (عائد × المقياس) — mu_/wst_ أدناه عائد؛ مقياس كل هدف مختوم (close في entry_range = 1)
         scale = reg_scale_of(split_or_dict, t)
-        df[f"mu_{t}"] = o[f"y_{t}"] / scale
+        df[f"mu_{t}"] = o[_output_name(t, "mu")] / scale
         df[f"wst_{t}"] = np.sqrt(beta * (1.0 + nu) / (nu * alpha)) / scale   # عرض Student-t (بوحدات العائد)
-        if f"y_{t}_confidence" in o:
-            df[f"conf_{t}"] = o[f"y_{t}_confidence"]
-        if f"y_{t}_class_logits" in o:
-            df[f"p_up_{t}"] = o[f"y_{t}_class_logits"]           # احتمال بعد sigmoid
+        if _output_name(t, "confidence") in o:
+            df[f"conf_{t}"] = o[_output_name(t, "confidence")]
+        if _output_name(t, "logits") in o:
+            df[f"p_up_{t}"] = o[_output_name(t, "logits")]           # احتمال بعد sigmoid
     if mode == "entry_range":
         # mu_* مقادير غير سالبة من سعر الدخول (mu_close موقع [0,1] مع range_pos)؛ اتجاه close من p_up_close (القسم ٣-ب)
         close_reg = entry_close_reg_of(split_or_dict)
         px = entry_range_to_prices(df["entry"].to_numpy(), close_reg=close_reg,
                                    p_close_up=df["p_up_close"].to_numpy() if "p_up_close" in df else None,
-                                   **{t: df[f"mu_{t}"].to_numpy() for t in ("high", "low", "close") if f"mu_{t}" in df})
+                                   **{t: df[f"mu_{t}"].to_numpy() for t in _TARGET_COLUMNS if f"mu_{t}" in df})
         df["pred_high"], df["pred_low"] = px.get("high", np.nan), px.get("low", np.nan)
         for k in ("close", "close_up", "close_down"):
             if k in px:
@@ -73,8 +77,8 @@ def collect_signals(model, split_or_dict, model_tf, batch_size=1024, outputs=Non
     if mode == "entry_range":
         # تسميات التدريب نفسها — report.summarize يقيس AUC عليها
         for t in price_targets:
-            if f"y_{t}_class" in split["y"]:
-                df[f"y_{t}_class"] = (np.asarray(split["y"][f"y_{t}_class"]).ravel() > 0).astype(int)
+            if _label_key(t, "class") in split["y"]:
+                df[_label_key(t, "class")] = (np.asarray(split["y"][_label_key(t, "class")]).ravel() > 0).astype(int)
     return df
 
 
@@ -94,16 +98,6 @@ def direction_scores(df, target="close"):
             agree = out["class_margin"][0] == side
             out["agree_margin"] = (side, np.where(agree, out["class_margin"][1], -np.inf))
     return out
-
-
-def wilson_interval(k, n, z=1.96):
-    if n == 0:
-        return (np.nan, np.nan)
-    p = k / n
-    d = 1 + z * z / n
-    c = (p + z * z / (2 * n)) / d
-    h = z * np.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d
-    return (c - h, c + h)
 
 
 def selective_curve(score, correct, n_bins=10):
@@ -134,7 +128,7 @@ def pick_threshold(score, correct, target_acc=0.65, min_n=200):
 
 def _subset_stats(df, mask, correct):
     n, k = int(mask.sum()), int(correct[mask].sum())
-    lo, hi = wilson_interval(k, n)
+    lo, hi = wilson_interval(k, n, clip=False)   # الصيغة الخام بلا قصّ إلى [0, 1] كما كانت
     return {"n": n, "n_dates": int(df.loc[mask, "timestamp"].nunique()),
             "coverage": n / max(len(df), 1), "accuracy": k / n if n else np.nan,
             "wilson_lo": lo, "wilson_hi": hi}

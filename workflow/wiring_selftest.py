@@ -5,11 +5,14 @@ PITFALLS: run_wiring_selftest(kit) reads no notebook global (kit = workflow.run.
 """
 import dataclasses
 
+from core.heads import label_key as _label_key, output_name as _output_name
+from core.schema import TARGET_COLUMNS as _TARGET_COLUMNS
+
 
 def run_wiring_selftest(kit, verbose=True):
     """kit: workflow.run.Toolkit (يوفّر مواصفات الفكّ الافتراضية في chicks)؛ لا شيء يُقرأ من نطاق الدفتر."""
     # أهداف بيانات الاختبار الوهمية (high/low/close بمقياس 1) ومواصفات فكّها تُبنى هنا
-    price_targets = ("high", "low", "close")
+    price_targets = _TARGET_COLUMNS
     eval_specs = [dataclasses.replace(s, relative_to_entry=True, reg_scale=1.0) for s in kit.default_price_targets]
     # يثبّت التحويل نفسه أولاً — تأكيد حتمي بمعزل عن عشوائية التدريب
     assert _to_unit_label(np.array([-1.0, 1.0])).tolist() == [0.0, 1.0], "_to_unit_label خاطئة"
@@ -24,15 +27,15 @@ def run_wiring_selftest(kit, verbose=True):
         last_close = 100 + rng.normal(size=(n,)) * 5
         last_high = last_close + np.abs(rng.normal(size=(n,)))
         last_low = last_close - np.abs(rng.normal(size=(n,)))
-        ret = {t: rng.normal(scale=0.01, size=(n,)).astype("float32") for t in ("high", "low", "close")}
+        ret = {t: rng.normal(scale=0.01, size=(n,)).astype("float32") for t in _TARGET_COLUMNS}
         # ترميز خط الأنابيب الحقيقي هو +1.0/-1.0 (اتجاه)، لا {0,1} — القسم ٠.٤
-        cls = {t: (rng.integers(0, 2, size=(n,)).astype("float32") * 2 - 1) for t in ("high", "low", "close")}
+        cls = {t: (rng.integers(0, 2, size=(n,)).astype("float32") * 2 - 1) for t in _TARGET_COLUMNS}
         last_candles = np.stack([
             last_high, last_low, last_close, np.arange(n).astype("float64"),
             last_close * (1 + ret["close"]), last_low * (1 + ret["low"]), last_high * (1 + ret["high"]),
         ], axis=1)
-        y = {f"y_{t}_reg": v for t, v in ret.items()}
-        y.update({f"y_{t}_class": v for t, v in cls.items()})
+        y = {_label_key(t, "reg"): v for t, v in ret.items()}
+        y.update({_label_key(t, "class"): v for t, v in cls.items()})
         return {
             f"X_{tf_name}": X,
             "y": y,
@@ -47,7 +50,7 @@ def run_wiring_selftest(kit, verbose=True):
     fake_config = build_config({
         "run": {"run_dir": "/tmp/_wiring_selftest_run", "epochs": 1, "batch_size": 32,
                 "verbose": 0, "train_mode": "new"},
-        "targets": build_target_configs(("high", "low", "close")),
+        "targets": build_target_configs(_TARGET_COLUMNS),
         # build_target_configs names the lambda_reg / lambda_calib schedules: declare them (constant 0 = the regularizer and the
         # confidence calibration stay off, exactly what a missing schedule used to mean silently - the self-test checks wiring, not loss)
         "loss": {"schedules": {"lambda_reg": {"start": 0.0, "end": 0.0}, "lambda_calib": {"start": 0.0, "end": 0.0}}},
@@ -67,7 +70,7 @@ def run_wiring_selftest(kit, verbose=True):
     fake_model = fake_trainer.model
 
     # التحقّق أن أهداف التصنيف فعلياً دخلت التدريب (مقياس accuracy مُسجَّل لكل منها)
-    for t in ("high", "low", "close"):
+    for t in _TARGET_COLUMNS:
         assert any(k.startswith(f"{t}_class") and "accuracy" in k for k in fake_history.history), (
             f"لا مقياس accuracy لهدف {t}_class — رأس التصنيف لم يُدرَّب فعلياً")
 
@@ -78,7 +81,7 @@ def run_wiring_selftest(kit, verbose=True):
             f"X_{tf_name}": split[f"X_{tf_name}"],
             "base_params": np.stack([last_close, last_close], axis=1).astype("float32"),
             "last_candles": split["last_candles"],
-            "y": {t: split["y"][f"y_{t}_reg"] for t in ("high", "low", "close")},
+            "y": {t: split["y"][_label_key(t, "reg")] for t in _TARGET_COLUMNS},
         }
 
     results = run_full_analysis(
@@ -118,7 +121,7 @@ def run_wiring_selftest(kit, verbose=True):
     assert "مستوى" in aud_lvl.loc[0, "flags"] and (aud_lvl.loc[1:, "flags"] == "✅").all()
     gap = generalization_gap_report(fake_model, fake_train, fake_val, fake_test, model_tf=tf_name, verbose=False,
                                     price_targets=price_targets)
-    assert set(gap["verdicts"]) == {"high", "low", "close"}
+    assert set(gap["verdicts"]) == set(_TARGET_COLUMNS)
     assert {"train", "val", "test", "gap_train_val"} <= set(gap["table"].columns)
 
     # تغيير الهدف (القسم ٣-ب): الأوضاع الأخرى تمرّ عبر ٧-ب و٧-د بلا استثناء، وتُتخطّى أجزاء 'return' بوضوح
@@ -150,10 +153,10 @@ def run_wiring_selftest(kit, verbose=True):
     from sklearn.metrics import accuracy_score
     for asset, split in fake_test_dict.items():
         out = fake_model(split[f"X_{tf_name}"], training=False)
-        for t in ("high", "low", "close"):
-            y_true = _to_unit_label(np.asarray(fake_test[asset]["y"][f"y_{t}_class"]))
+        for t in _TARGET_COLUMNS:
+            y_true = _to_unit_label(np.asarray(fake_test[asset]["y"][_label_key(t, "class")]))
             assert set(np.unique(y_true).tolist()) <= {0.0, 1.0}, "التحويل لم ينتج {0,1}"
-            y_prob = out[f"y_{t}_class_logits"].numpy().ravel()
+            y_prob = out[_output_name(t, "logits")].numpy().ravel()
             accuracy_score(y_true, (y_prob >= 0.5).astype("float32"))  # لا يرفع استثناءً يكفي هنا
 
     # متعدّد الفريمات: نفس المسار بفريمين (tf_name أساسي + سياق 4h): تغذية بقاموس، تدريب حقبة، chicks، دفعة مدمجة، إشارات
@@ -167,7 +170,7 @@ def run_wiring_selftest(kit, verbose=True):
     two_config = build_config({
         "run": {"run_dir": "/tmp/_wiring_selftest_run_2tf", "epochs": 1, "batch_size": 32,
                 "verbose": 0, "train_mode": "new"},
-        "targets": build_target_configs(("high", "low", "close")),
+        "targets": build_target_configs(_TARGET_COLUMNS),
         # build_target_configs names the lambda_reg / lambda_calib schedules: declare them (constant 0 = the regularizer and the
         # confidence calibration stay off, exactly what a missing schedule used to mean silently - the self-test checks wiring, not loss)
         "loss": {"schedules": {"lambda_reg": {"start": 0.0, "end": 0.0}, "lambda_calib": {"start": 0.0, "end": 0.0}}},

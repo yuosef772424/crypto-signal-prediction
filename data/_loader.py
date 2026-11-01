@@ -19,9 +19,9 @@ REPO_ROOT = PACKAGE_DIR.parent
 
 #: Load order = the order of the cells these modules were extracted from (crypto_data_pipeline_v6.ipynb).
 MODULES = (
-    "common", "drive", "defaults", "runtime", "heads", "custom", "features", "normalize", "normalizers", "align", "windows",
+    "common", "drive", "defaults", "runtime", "heads", "custom", "level_channel", "features", "normalize", "normalizers", "align", "windows",
     "diagnostics", "parallel", "sources", "market_context", "cross_sectional_features", "checkpoints", "disk_backed",
-    "pipeline", "cross_sectional_norm", "split", "binance_client", "funding_oi", "phase2", "live", "storage",
+    "pipeline", "cross_sectional_norm", "split_plan", "split", "binance_client", "funding_oi", "phase2", "live", "storage",
     "selftests", "presets",
 )
 

@@ -8,6 +8,7 @@ import dataclasses
 import numpy as np
 
 from core.schema import LAST_COLUMN_INDEX as _LAST_COLUMN_INDEX
+from core.heads import label_key as _label_key, output_name as _output_name
 #: فهرس آخر إغلاق في last_candles (سعر الدخول) — من core/schema.py لا من الدفتر.
 LAST_CLOSE_COL = _LAST_COLUMN_INDEX["last_close"]
 # أوضاع القسم ٣-ب التي تبقى «عائداً نسبة لآخر سعر من نفس النوع» — وهو ما تفكّه EVAL_TARGET_SPECS. في relative يُطرح
@@ -35,10 +36,10 @@ def build_chicks_test_dict(pipeline_test, model_tf, reg_target_mode=None, chicks
         if split.get("target_mode") in _RELATIVE_MODES:
             last_candles = np.array(last_candles, dtype="float64", copy=True)
             for t, (fut_col, last_col) in _FUTURE_OF.items():
-                if f"y_{t}_reg" in split["y"]:
+                if _label_key(t, "reg") in split["y"]:
                     last_candles[:, LAST_COLUMNS.index(fut_col)] = (
                         last_candles[:, LAST_COLUMNS.index(last_col)]
-                        * (1.0 + np.asarray(split["y"][f"y_{t}_reg"], dtype="float64") / reg_scale_of(split)))
+                        * (1.0 + np.asarray(split["y"][_label_key(t, "reg")], dtype="float64") / reg_scale_of(split)))
         if reg_target_mode == "return":
             last_close = last_candles[:, LAST_CLOSE_COL]
             base_params_eval = np.stack([last_close, last_close], axis=1).astype("float32")
@@ -48,7 +49,7 @@ def build_chicks_test_dict(pipeline_test, model_tf, reg_target_mode=None, chicks
             **{f"X_{tf}": split[f"X_{tf}"] for tf in _tfs_of(model_tf)},
             "base_params": base_params_eval,
             "last_candles": last_candles,
-            "y": {t: split["y"][f"y_{t}_reg"] for t in chicks_targets},
+            "y": {t: split["y"][_label_key(t, "reg")] for t in chicks_targets},
         }
     return out
 
@@ -60,11 +61,11 @@ def entry_range_target_spec(s, test):
     chicks يقرأ P(صعود) من مخرَج رأس التصنيف. class_key لكل رأس = 'y_{هدف}_class_logits' (احتمال بعد sigmoid رغم الاسم): يُقرأ كخاصية p_up
     لتحليل الأنماط إن وُجد في النموذج، ويُلزَم فقط لاتجاه close."""
     _range_pos = entry_close_reg_of(test) == "range_pos"
-    _cls = dict(class_key=f"y_{s.name}_class_logits")
+    _cls = dict(class_key=_output_name(s.name, "logits"))
     if s.name == "close" and _range_pos:
-        return dataclasses.replace(s, price_index=2, entry_col=2, range_of=("high", "low"), **_cls)
+        return dataclasses.replace(s, price_index=LAST_CLOSE_COL, entry_col=LAST_CLOSE_COL, range_of=("high", "low"), **_cls)
     if s.name == "close":
-        return dataclasses.replace(s, relative_to_entry=True, price_index=2, entry_col=2,
+        return dataclasses.replace(s, relative_to_entry=True, price_index=LAST_CLOSE_COL, entry_col=LAST_CLOSE_COL,
                                    reg_scale=reg_scale_of(test, "close"), signed_by_class=True, **_cls)
-    return dataclasses.replace(s, relative_to_entry=True, price_index=2, entry_col=2,
+    return dataclasses.replace(s, relative_to_entry=True, price_index=LAST_CLOSE_COL, entry_col=LAST_CLOSE_COL,
                                reg_scale=(-1.0 if s.name == "low" else 1.0) * reg_scale_of(test, s.name), **_cls)

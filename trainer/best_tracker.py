@@ -133,6 +133,29 @@ class BestModelTracker(tf.keras.callbacks.Callback):
         mapping = {id(v): av for v, av in zip(self.trainer.trainable_variables, shadow)}
         return [(mapping[id(w)].numpy() if id(w) in mapping else w.numpy()) for w in self.base_model.weights]
 
+    def _validated_snapshot_value(self, raw_value: float) -> float:
+        """weights_snapshot='ema_weights': the weights that get SAVED are the EMA ones, but Keras logged ``raw_value`` for the RAW weights,
+        so the 'best' that was restored was never validated (measured: logged val_raw_loss 3.46495, the saved weights re-evaluated 3.54691).
+        Here the EMA weights are swapped in and the monitor is re-evaluated on the validation data the trainer's fit received; THAT value
+        replaces the raw one in every comparison, history and best_meta.json. Raw snapshot (the default) = ``raw_value`` untouched."""
+        ema_values = self._snapshot_weights()
+        if ema_values is None:
+            return raw_value
+        val = getattr(self.trainer, "_fit_validation_data", None)
+        key = self.monitor[4:] if self.monitor.startswith("val_") else self.monitor
+        if val is None:
+            raise ValueError("weights_snapshot='ema_weights' needs validation data: call trainer.fit(..., validation_data=...)")
+        raw_weights = self.base_model.get_weights()
+        self.base_model.set_weights(ema_values)
+        try:
+            res = self.trainer.evaluate(val, verbose=0, return_dict=True)
+        finally:
+            self.base_model.set_weights(raw_weights)
+        if key not in res:
+            raise ValueError(f"weights_snapshot='ema_weights': the re-evaluation did not log {key!r} (logged: {sorted(res)})")
+        self._last_raw_monitor = raw_value
+        return float(res[key])
+
     def _save_best(self):
         ema_values = self._snapshot_weights()
         if ema_values is not None:
@@ -148,6 +171,8 @@ class BestModelTracker(tf.keras.callbacks.Callback):
             atomic_write_json(self.best_meta_path, {
                 "best": self.best, "best_epoch": self.best_epoch, "monitor": self.monitor, "mode": self.mode,
                 "smoothing": self.smoothing, "weights_snapshot": self.weights_snapshot,
+                # ema_weights: "best" is the monitor of the SAVED (EMA) weights, re-evaluated; the raw-weights value Keras logged is kept apart
+                "raw_monitor_at_best": getattr(self, "_last_raw_monitor", None),
                 "saved_at": time.strftime("%Y-%m-%d %H:%M:%S")})
         finally:
             if ema_values is not None:
@@ -157,6 +182,7 @@ class BestModelTracker(tf.keras.callbacks.Callback):
         current = (logs or {}).get(self.monitor)
         if current is None or not np.isfinite(current):
             return
+        current = self._validated_snapshot_value(float(current)) if self.weights_snapshot == "ema_weights" else current
         smoothed = self._smooth(float(current))
 
         if self._is_better(smoothed):

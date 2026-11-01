@@ -7,6 +7,9 @@ import copy
 import shutil
 import tempfile
 
+from core.heads import output_name as _output_name
+from stats.metrics import auc as stats_auc, spearman as stats_spearman
+
 
 def _split_asset_ids(split):
     """رقم الأصل لكل صف: split['asset_ids'] إن وُجد، وإلا يُستنتج من انخفاض الطابع الزمني (split_data يرصّ عملةً عملة زمنياً)."""
@@ -80,7 +83,8 @@ def _head_targets(y):
 
 
 def _skill(kind, yv, s):
-    return _auc(np.asarray(yv) > 0, s) if kind == "class" else _spearman(s, np.asarray(yv, dtype="float64"))
+    return (stats_auc(np.asarray(yv) > 0, s) if kind == "class"
+            else stats_spearman(s, np.asarray(yv, dtype="float64"), nan_policy="propagate", min_n=3))
 
 
 def _se_null(kind, yv):
@@ -143,7 +147,10 @@ def _select_cols(X, cols):
 
 def _capacity_fit(builder, X, y, Xv, yv, epochs, seed, config=None, batch_size=None):
     """تدريب سريع بنفس مسار main (build_training_system) في مجلد مؤقّت: حقب ثابتة بلا إيقاف مبكر ولا استعادة «الأفضل» على val
-    (فلا تدخل val في اختيار الحقبة — مقياس val نظيف)، ثم يُحذف المجلد."""
+    (فلا تدخل val في اختيار الحقبة — مقياس val نظيف)، ثم يُحذف المجلد.
+    ⚠️ النموذج المُقيَّم هو أوزان الحقبة الأخيرة لا الأفضل (restore_best_weights=False عن قصد)؛ ومع optimizer فيه EMA (مقاومة الحفظ) يُبدّل Keras
+    أوزان EMA مكان الخام عند نهاية fit، فهي أوزان EMA للحقبة الأخيرة. weights_snapshot='ema_weights' يعيد تقييم EMA على val كل حقبة (D1) لكنه لا يختار
+    بها شيئاً هنا: القياس يبقى «ما بعد عدد ثابت من الحقب»، متّسقاً بين الأذرع."""
     cfg = copy.deepcopy(_required(config, "config"))
     d = tempfile.mkdtemp(prefix="capacity_")
     cfg["run"].update({"run_dir": d, "mirror_dir": None, "epochs": epochs, "train_mode": "new", "seed": seed, "verbose": 0})
@@ -166,7 +173,7 @@ def _model_skills(model, X, y, heads, batch_size=512):
     res = {}
     for h, k, kd in heads:
         t = h.rsplit("_", 1)[0]
-        key = f"y_{t}_class_logits" if kd == "class" else f"y_{t}"
+        key = _output_name(t, "logits" if kd == "class" else "mu")
         if key in out:
             res[h] = _skill(kd, y[k], out[key].reshape(len(y[k]), -1)[:, 0])
     return res

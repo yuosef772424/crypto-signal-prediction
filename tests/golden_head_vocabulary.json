@@ -1,0 +1,730 @@
+{
+ "meta": {
+  "note": "Recorded from the code BEFORE core/heads.py existed. Never re-record on code that uses HeadSet.",
+  "recorded_from_commit": "6c30e22"
+ },
+ "one_epoch_history": {
+  "class_loss": [
+   1.7225127816200256
+  ],
+  "high_class_accuracy": [
+   0.5347222089767456
+  ],
+  "high_reg_aleatoric": [
+   0.7371699213981628
+  ],
+  "high_reg_calib_loss": [
+   0.03830902278423309
+  ],
+  "high_reg_confidence": [
+   0.4600987434387207
+  ],
+  "high_reg_epistemic": [
+   0.926484227180481
+  ],
+  "high_reg_mae": [
+   0.813248872756958
+  ],
+  "high_reg_nig_base": [
+   1.5596938133239746
+  ],
+  "high_reg_nig_pen": [
+   4.311384201049805
+  ],
+  "learning_rate": [
+   9.999999747378752e-05
+  ],
+  "loss": [
+   4.290075302124023
+  ],
+  "loss_high_class": [
+   0.8888484239578247
+  ],
+  "loss_high_reg": [
+   1.5596938133239746
+  ],
+  "loss_low_class": [
+   0.8336643576622009
+  ],
+  "loss_low_reg": [
+   1.752224326133728
+  ],
+  "low_class_accuracy": [
+   0.5069444179534912
+  ],
+  "low_reg_aleatoric": [
+   0.5033738017082214
+  ],
+  "low_reg_calib_loss": [
+   0.04682576283812523
+  ],
+  "low_reg_confidence": [
+   0.4859621226787567
+  ],
+  "low_reg_epistemic": [
+   1.0799607038497925
+  ],
+  "low_reg_mae": [
+   0.8496510982513428
+  ],
+  "low_reg_nig_base": [
+   1.752224326133728
+  ],
+  "low_reg_nig_pen": [
+   3.9861881732940674
+  ],
+  "raw_loss": [
+   5.151399612426758
+  ],
+  "val_class_loss": [
+   1.5138718485832214
+  ],
+  "val_high_class_accuracy": [
+   0.53125
+  ],
+  "val_high_reg_aleatoric": [
+   0.44513633847236633
+  ],
+  "val_high_reg_calib_loss": [
+   0.03512142226099968
+  ],
+  "val_high_reg_confidence": [
+   0.5313898921012878
+  ],
+  "val_high_reg_epistemic": [
+   0.5230060815811157
+  ],
+  "val_high_reg_mae": [
+   0.5203089118003845
+  ],
+  "val_high_reg_nig_base": [
+   1.0908743143081665
+  ],
+  "val_high_reg_nig_pen": [
+   2.3967177867889404
+  ],
+  "val_loss": [
+   3.2684688568115234
+  ],
+  "val_loss_high_class": [
+   0.7722318768501282
+  ],
+  "val_loss_high_reg": [
+   1.0908743143081665
+  ],
+  "val_loss_low_class": [
+   0.7416399717330933
+  ],
+  "val_loss_low_reg": [
+   1.303979516029358
+  ],
+  "val_low_class_accuracy": [
+   0.5234375
+  ],
+  "val_low_reg_aleatoric": [
+   0.39445164799690247
+  ],
+  "val_low_reg_calib_loss": [
+   0.050939612090587616
+  ],
+  "val_low_reg_confidence": [
+   0.5128569006919861
+  ],
+  "val_low_reg_epistemic": [
+   0.6897273659706116
+  ],
+  "val_low_reg_mae": [
+   0.6097146272659302
+  ],
+  "val_low_reg_nig_base": [
+   1.303979516029358
+  ],
+  "val_low_reg_nig_pen": [
+   2.6817290782928467
+  ],
+  "val_raw_loss": [
+   4.025660514831543
+  ]
+ },
+ "output_names_by_combo": {
+  "[[\"close\"], {\"close\": [\"nig_regression\", \"binary_classification\"]}]": [
+   "y_close",
+   "y_close_nu",
+   "y_close_alpha",
+   "y_close_beta",
+   "y_close_epistemic",
+   "y_close_aleatoric",
+   "y_close_confidence",
+   "y_close_class_logits"
+  ],
+  "[[\"high\", \"low\", \"close\"], {\"close\": [\"binary_classification\"], \"high\": [\"binary_classification\"], \"low\": [\"binary_classification\"]}]": [
+   "y_high_class_logits",
+   "y_low_class_logits",
+   "y_close_class_logits"
+  ],
+  "[[\"high\", \"low\", \"close\"], {\"close\": [\"nig_regression\", \"binary_classification\"], \"high\": [\"nig_regression\", \"binary_classification\"], \"low\": [\"nig_regression\", \"binary_classification\"]}]": [
+   "y_high",
+   "y_high_nu",
+   "y_high_alpha",
+   "y_high_beta",
+   "y_high_epistemic",
+   "y_high_aleatoric",
+   "y_high_confidence",
+   "y_low",
+   "y_low_nu",
+   "y_low_alpha",
+   "y_low_beta",
+   "y_low_epistemic",
+   "y_low_aleatoric",
+   "y_low_confidence",
+   "y_close",
+   "y_close_nu",
+   "y_close_alpha",
+   "y_close_beta",
+   "y_close_epistemic",
+   "y_close_aleatoric",
+   "y_close_confidence",
+   "y_high_class_logits",
+   "y_low_class_logits",
+   "y_close_class_logits"
+  ],
+  "[[\"high\", \"low\"], {\"high\": [\"binary_classification\"], \"low\": [\"binary_classification\"]}]": [
+   "y_high_class_logits",
+   "y_low_class_logits"
+  ],
+  "[[\"high\", \"low\"], {\"high\": [\"nig_regression\", \"binary_classification\"], \"low\": [\"nig_regression\", \"binary_classification\"]}]": [
+   "y_high",
+   "y_high_nu",
+   "y_high_alpha",
+   "y_high_beta",
+   "y_high_epistemic",
+   "y_high_aleatoric",
+   "y_high_confidence",
+   "y_low",
+   "y_low_nu",
+   "y_low_alpha",
+   "y_low_beta",
+   "y_low_epistemic",
+   "y_low_aleatoric",
+   "y_low_confidence",
+   "y_high_class_logits",
+   "y_low_class_logits"
+  ],
+  "[[\"low\", \"close\"], {\"close\": [\"nig_regression\", \"binary_classification\"], \"low\": [\"nig_regression\", \"binary_classification\"]}]": [
+   "y_low",
+   "y_low_nu",
+   "y_low_alpha",
+   "y_low_beta",
+   "y_low_epistemic",
+   "y_low_aleatoric",
+   "y_low_confidence",
+   "y_close",
+   "y_close_nu",
+   "y_close_alpha",
+   "y_close_beta",
+   "y_close_epistemic",
+   "y_close_aleatoric",
+   "y_close_confidence",
+   "y_low_class_logits",
+   "y_close_class_logits"
+  ]
+ },
+ "variants": {
+  "am_off": {
+   "combo": "[[\"high\", \"low\"], {\"high\": [\"nig_regression\", \"binary_classification\"], \"low\": [\"nig_regression\", \"binary_classification\"]}]",
+   "head_types": {
+    "high": [
+     "nig_regression",
+     "binary_classification"
+    ],
+    "low": [
+     "nig_regression",
+     "binary_classification"
+    ]
+   },
+   "price_targets": [
+    "high",
+    "low"
+   ],
+   "targets_sha": "8db4031c42382f5a0e66f05cae94d2a32dc42d2f30b3dae39498ef8780a5d0f1"
+  },
+  "anti_memorization_trainer_override": {
+   "combo": "[[\"high\", \"low\"], {\"high\": [\"nig_regression\", \"binary_classification\"], \"low\": [\"nig_regression\", \"binary_classification\"]}]",
+   "head_types": {
+    "high": [
+     "nig_regression",
+     "binary_classification"
+    ],
+    "low": [
+     "nig_regression",
+     "binary_classification"
+    ]
+   },
+   "price_targets": [
+    "high",
+    "low"
+   ],
+   "targets_sha": "81a46c12f321b6217571e65b1bdd7c2d371ec158e7bca499bc2a854ed6e798ac"
+  },
+  "class_only": {
+   "combo": "[[\"high\", \"low\"], {\"high\": [\"binary_classification\"], \"low\": [\"binary_classification\"]}]",
+   "head_types": {
+    "high": [
+     "binary_classification"
+    ],
+    "low": [
+     "binary_classification"
+    ]
+   },
+   "price_targets": [
+    "high",
+    "low"
+   ],
+   "targets_sha": "b986cbe6832b7fc477044572114c4cc1e2d8c15bacbd0a2c23c4309aa81abffe"
+  },
+  "class_only_am_off": {
+   "combo": "[[\"high\", \"low\"], {\"high\": [\"binary_classification\"], \"low\": [\"binary_classification\"]}]",
+   "head_types": {
+    "high": [
+     "binary_classification"
+    ],
+    "low": [
+     "binary_classification"
+    ]
+   },
+   "price_targets": [
+    "high",
+    "low"
+   ],
+   "targets_sha": "36b4c2a897aaac36df3deb502c16a93516daabecf3b882737b0e77af8b6e7adf"
+  },
+  "config_overrides": {
+   "combo": "[[\"high\", \"low\"], {\"high\": [\"nig_regression\", \"binary_classification\"], \"low\": [\"nig_regression\", \"binary_classification\"]}]",
+   "head_types": {
+    "high": [
+     "nig_regression",
+     "binary_classification"
+    ],
+    "low": [
+     "nig_regression",
+     "binary_classification"
+    ]
+   },
+   "price_targets": [
+    "high",
+    "low"
+   ],
+   "targets_sha": "81a46c12f321b6217571e65b1bdd7c2d371ec158e7bca499bc2a854ed6e798ac"
+  },
+  "default": {
+   "combo": "[[\"high\", \"low\"], {\"high\": [\"nig_regression\", \"binary_classification\"], \"low\": [\"nig_regression\", \"binary_classification\"]}]",
+   "head_types": {
+    "high": [
+     "nig_regression",
+     "binary_classification"
+    ],
+    "low": [
+     "nig_regression",
+     "binary_classification"
+    ]
+   },
+   "price_targets": [
+    "high",
+    "low"
+   ],
+   "targets_sha": "81a46c12f321b6217571e65b1bdd7c2d371ec158e7bca499bc2a854ed6e798ac"
+  },
+  "label_smoothing_03": {
+   "combo": "[[\"high\", \"low\"], {\"high\": [\"nig_regression\", \"binary_classification\"], \"low\": [\"nig_regression\", \"binary_classification\"]}]",
+   "head_types": {
+    "high": [
+     "nig_regression",
+     "binary_classification"
+    ],
+    "low": [
+     "nig_regression",
+     "binary_classification"
+    ]
+   },
+   "price_targets": [
+    "high",
+    "low"
+   ],
+   "targets_sha": "a9cd9b397230123419e497f36e311f9f916dca8e5853d29efafc9f019f6ec348"
+  },
+  "label_smoothing_zero": {
+   "combo": "[[\"high\", \"low\"], {\"high\": [\"nig_regression\", \"binary_classification\"], \"low\": [\"nig_regression\", \"binary_classification\"]}]",
+   "head_types": {
+    "high": [
+     "nig_regression",
+     "binary_classification"
+    ],
+    "low": [
+     "nig_regression",
+     "binary_classification"
+    ]
+   },
+   "price_targets": [
+    "high",
+    "low"
+   ],
+   "targets_sha": "8db4031c42382f5a0e66f05cae94d2a32dc42d2f30b3dae39498ef8780a5d0f1"
+  },
+  "lambda_schedules": {
+   "combo": "[[\"high\", \"low\"], {\"high\": [\"nig_regression\", \"binary_classification\"], \"low\": [\"nig_regression\", \"binary_classification\"]}]",
+   "head_types": {
+    "high": [
+     "nig_regression",
+     "binary_classification"
+    ],
+    "low": [
+     "nig_regression",
+     "binary_classification"
+    ]
+   },
+   "price_targets": [
+    "high",
+    "low"
+   ],
+   "targets_sha": "81a46c12f321b6217571e65b1bdd7c2d371ec158e7bca499bc2a854ed6e798ac"
+  },
+  "no_kendall": {
+   "combo": "[[\"high\", \"low\"], {\"high\": [\"nig_regression\", \"binary_classification\"], \"low\": [\"nig_regression\", \"binary_classification\"]}]",
+   "head_types": {
+    "high": [
+     "nig_regression",
+     "binary_classification"
+    ],
+    "low": [
+     "nig_regression",
+     "binary_classification"
+    ]
+   },
+   "price_targets": [
+    "high",
+    "low"
+   ],
+   "targets_sha": "81a46c12f321b6217571e65b1bdd7c2d371ec158e7bca499bc2a854ed6e798ac"
+  },
+  "scenario/default_1tf": {
+   "combo": "[[\"high\", \"low\"], {\"high\": [\"nig_regression\", \"binary_classification\"], \"low\": [\"nig_regression\", \"binary_classification\"]}]",
+   "head_types": {
+    "high": [
+     "nig_regression",
+     "binary_classification"
+    ],
+    "low": [
+     "nig_regression",
+     "binary_classification"
+    ]
+   },
+   "price_targets": [
+    "high",
+    "low"
+   ],
+   "targets_sha": "81a46c12f321b6217571e65b1bdd7c2d371ec158e7bca499bc2a854ed6e798ac"
+  },
+  "scenario/entry_range_abs_two_tf": {
+   "combo": "[[\"high\", \"low\"], {\"high\": [\"nig_regression\", \"binary_classification\"], \"low\": [\"nig_regression\", \"binary_classification\"]}]",
+   "head_types": {
+    "high": [
+     "nig_regression",
+     "binary_classification"
+    ],
+    "low": [
+     "nig_regression",
+     "binary_classification"
+    ]
+   },
+   "price_targets": [
+    "high",
+    "low"
+   ],
+   "targets_sha": "81a46c12f321b6217571e65b1bdd7c2d371ec158e7bca499bc2a854ed6e798ac"
+  },
+  "scenario/entry_range_pos_class_only": {
+   "combo": "[[\"high\", \"low\"], {\"high\": [\"nig_regression\", \"binary_classification\"], \"low\": [\"nig_regression\", \"binary_classification\"]}]",
+   "head_types": {
+    "high": [
+     "nig_regression",
+     "binary_classification"
+    ],
+    "low": [
+     "nig_regression",
+     "binary_classification"
+    ]
+   },
+   "price_targets": [
+    "high",
+    "low"
+   ],
+   "targets_sha": "81a46c12f321b6217571e65b1bdd7c2d371ec158e7bca499bc2a854ed6e798ac"
+  },
+  "scenario/magnitude_two_tf": {
+   "combo": "[[\"high\", \"low\"], {\"high\": [\"nig_regression\", \"binary_classification\"], \"low\": [\"nig_regression\", \"binary_classification\"]}]",
+   "head_types": {
+    "high": [
+     "nig_regression",
+     "binary_classification"
+    ],
+    "low": [
+     "nig_regression",
+     "binary_classification"
+    ]
+   },
+   "price_targets": [
+    "high",
+    "low"
+   ],
+   "targets_sha": "81a46c12f321b6217571e65b1bdd7c2d371ec158e7bca499bc2a854ed6e798ac"
+  },
+  "scenario/relative_group_am_off": {
+   "combo": "[[\"high\", \"low\"], {\"high\": [\"nig_regression\", \"binary_classification\"], \"low\": [\"nig_regression\", \"binary_classification\"]}]",
+   "head_types": {
+    "high": [
+     "nig_regression",
+     "binary_classification"
+    ],
+    "low": [
+     "nig_regression",
+     "binary_classification"
+    ]
+   },
+   "price_targets": [
+    "high",
+    "low"
+   ],
+   "targets_sha": "81a46c12f321b6217571e65b1bdd7c2d371ec158e7bca499bc2a854ed6e798ac"
+  },
+  "scenario/return_trained_holdout": {
+   "combo": "[[\"high\", \"low\"], {\"high\": [\"nig_regression\", \"binary_classification\"], \"low\": [\"nig_regression\", \"binary_classification\"]}]",
+   "head_types": {
+    "high": [
+     "nig_regression",
+     "binary_classification"
+    ],
+    "low": [
+     "nig_regression",
+     "binary_classification"
+    ]
+   },
+   "price_targets": [
+    "high",
+    "low"
+   ],
+   "targets_sha": "81a46c12f321b6217571e65b1bdd7c2d371ec158e7bca499bc2a854ed6e798ac"
+  },
+  "suspended_high": {
+   "combo": "[[\"low\", \"close\"], {\"close\": [\"nig_regression\", \"binary_classification\"], \"low\": [\"nig_regression\", \"binary_classification\"]}]",
+   "head_types": {
+    "close": [
+     "nig_regression",
+     "binary_classification"
+    ],
+    "low": [
+     "nig_regression",
+     "binary_classification"
+    ]
+   },
+   "price_targets": [
+    "low",
+    "close"
+   ],
+   "targets_sha": "e4761be3d155050e3c8f8ad79c36f29035085eeb15cbe9b0d571d7e8fd31a563"
+  },
+  "suspended_high_low": {
+   "combo": "[[\"close\"], {\"close\": [\"nig_regression\", \"binary_classification\"]}]",
+   "head_types": {
+    "close": [
+     "nig_regression",
+     "binary_classification"
+    ]
+   },
+   "price_targets": [
+    "close"
+   ],
+   "targets_sha": "327442cb9f5fde2f2041389d0aa6e0d94d42367919f48e84c3316cd355bf4086"
+  },
+  "suspended_nothing": {
+   "combo": "[[\"high\", \"low\", \"close\"], {\"close\": [\"nig_regression\", \"binary_classification\"], \"high\": [\"nig_regression\", \"binary_classification\"], \"low\": [\"nig_regression\", \"binary_classification\"]}]",
+   "head_types": {
+    "close": [
+     "nig_regression",
+     "binary_classification"
+    ],
+    "high": [
+     "nig_regression",
+     "binary_classification"
+    ],
+    "low": [
+     "nig_regression",
+     "binary_classification"
+    ]
+   },
+   "price_targets": [
+    "high",
+    "low",
+    "close"
+   ],
+   "targets_sha": "a69366b37a66106d29455e1bda4e85a8edc3c8e4639ecc0eba020a3283640bb9"
+  },
+  "suspended_nothing_class_only": {
+   "combo": "[[\"high\", \"low\", \"close\"], {\"close\": [\"binary_classification\"], \"high\": [\"binary_classification\"], \"low\": [\"binary_classification\"]}]",
+   "head_types": {
+    "close": [
+     "binary_classification"
+    ],
+    "high": [
+     "binary_classification"
+    ],
+    "low": [
+     "binary_classification"
+    ]
+   },
+   "price_targets": [
+    "high",
+    "low",
+    "close"
+   ],
+   "targets_sha": "0b0ccc79fc6223ffcdcbb4e26560b7659d74f4350025844d49e31e5a135d5a89"
+  },
+  "target_entry_range": {
+   "combo": "[[\"high\", \"low\", \"close\"], {\"close\": [\"nig_regression\", \"binary_classification\"], \"high\": [\"nig_regression\", \"binary_classification\"], \"low\": [\"nig_regression\", \"binary_classification\"]}]",
+   "head_types": {
+    "close": [
+     "nig_regression",
+     "binary_classification"
+    ],
+    "high": [
+     "nig_regression",
+     "binary_classification"
+    ],
+    "low": [
+     "nig_regression",
+     "binary_classification"
+    ]
+   },
+   "price_targets": [
+    "high",
+    "low",
+    "close"
+   ],
+   "targets_sha": "a69366b37a66106d29455e1bda4e85a8edc3c8e4639ecc0eba020a3283640bb9"
+  },
+  "target_entry_range_abs": {
+   "combo": "[[\"high\", \"low\", \"close\"], {\"close\": [\"nig_regression\", \"binary_classification\"], \"high\": [\"nig_regression\", \"binary_classification\"], \"low\": [\"nig_regression\", \"binary_classification\"]}]",
+   "head_types": {
+    "close": [
+     "nig_regression",
+     "binary_classification"
+    ],
+    "high": [
+     "nig_regression",
+     "binary_classification"
+    ],
+    "low": [
+     "nig_regression",
+     "binary_classification"
+    ]
+   },
+   "price_targets": [
+    "high",
+    "low",
+    "close"
+   ],
+   "targets_sha": "a69366b37a66106d29455e1bda4e85a8edc3c8e4639ecc0eba020a3283640bb9"
+  },
+  "target_entry_range_class_only": {
+   "combo": "[[\"high\", \"low\", \"close\"], {\"close\": [\"binary_classification\"], \"high\": [\"binary_classification\"], \"low\": [\"binary_classification\"]}]",
+   "head_types": {
+    "close": [
+     "binary_classification"
+    ],
+    "high": [
+     "binary_classification"
+    ],
+    "low": [
+     "binary_classification"
+    ]
+   },
+   "price_targets": [
+    "high",
+    "low",
+    "close"
+   ],
+   "targets_sha": "0b0ccc79fc6223ffcdcbb4e26560b7659d74f4350025844d49e31e5a135d5a89"
+  },
+  "target_magnitude": {
+   "combo": "[[\"high\", \"low\"], {\"high\": [\"nig_regression\", \"binary_classification\"], \"low\": [\"nig_regression\", \"binary_classification\"]}]",
+   "head_types": {
+    "high": [
+     "nig_regression",
+     "binary_classification"
+    ],
+    "low": [
+     "nig_regression",
+     "binary_classification"
+    ]
+   },
+   "price_targets": [
+    "high",
+    "low"
+   ],
+   "targets_sha": "81a46c12f321b6217571e65b1bdd7c2d371ec158e7bca499bc2a854ed6e798ac"
+  },
+  "target_relative": {
+   "combo": "[[\"high\", \"low\"], {\"high\": [\"nig_regression\", \"binary_classification\"], \"low\": [\"nig_regression\", \"binary_classification\"]}]",
+   "head_types": {
+    "high": [
+     "nig_regression",
+     "binary_classification"
+    ],
+    "low": [
+     "nig_regression",
+     "binary_classification"
+    ]
+   },
+   "price_targets": [
+    "high",
+    "low"
+   ],
+   "targets_sha": "81a46c12f321b6217571e65b1bdd7c2d371ec158e7bca499bc2a854ed6e798ac"
+  },
+  "target_return": {
+   "combo": "[[\"high\", \"low\"], {\"high\": [\"nig_regression\", \"binary_classification\"], \"low\": [\"nig_regression\", \"binary_classification\"]}]",
+   "head_types": {
+    "high": [
+     "nig_regression",
+     "binary_classification"
+    ],
+    "low": [
+     "nig_regression",
+     "binary_classification"
+    ]
+   },
+   "price_targets": [
+    "high",
+    "low"
+   ],
+   "targets_sha": "81a46c12f321b6217571e65b1bdd7c2d371ec158e7bca499bc2a854ed6e798ac"
+  },
+  "two_timeframes": {
+   "combo": "[[\"high\", \"low\"], {\"high\": [\"nig_regression\", \"binary_classification\"], \"low\": [\"nig_regression\", \"binary_classification\"]}]",
+   "head_types": {
+    "high": [
+     "nig_regression",
+     "binary_classification"
+    ],
+    "low": [
+     "nig_regression",
+     "binary_classification"
+    ]
+   },
+   "price_targets": [
+    "high",
+    "low"
+   ],
+   "targets_sha": "81a46c12f321b6217571e65b1bdd7c2d371ec158e7bca499bc2a854ed6e798ac"
+  }
+ }
+}

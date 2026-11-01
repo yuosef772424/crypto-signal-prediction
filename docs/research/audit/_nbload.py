@@ -86,13 +86,13 @@ def load_model(ns=None, quiet=True, selftests=False):
     return ns
 
 
-def load_trainer(ns=None, quiet=True, smoke_test=False, kfold=False):
+def load_trainer(ns=None, quiet=True, smoke_test=False):
     """The generic trainer (package trainer/, ex trainer_framework_v2.ipynb) in a shared namespace, without its
-    load-time smoke test (a real tiny training) and without the optional K-Fold module unless asked for. Same code path
+    load-time smoke test (a real tiny training) unless asked for. Same code path
     as the runner notebook: trainer.load_into(namespace)."""
     ns = {"__name__": "audit_nb"} if ns is None else ns
     ns.setdefault("__name__", "audit_nb")
-    exclude = tuple(m for m, keep in (("smoke_test", smoke_test), ("kfold", kfold)) if not keep)
+    exclude = () if smoke_test else ("smoke_test",)
     with (contextlib.redirect_stdout(io.StringIO()) if quiet else contextlib.nullcontext()):
         _repo_package("trainer").load_into(ns, exclude=exclude)
     return ns

@@ -28,7 +28,7 @@ ROOT = Path(__file__).resolve().parent.parent
 BASELINE_PATH = "tools/pattern_baseline.json"
 BASELINE_VERSION = 1
 
-CODE_PACKAGES = ("core", "cross_asset", "tools", "data", "model", "trainer", "evaluation", "signal_eval", "workflow",
+CODE_PACKAGES = ("core", "stats", "cross_asset", "tools", "data", "model", "trainer", "evaluation", "signal_eval", "workflow",
                  "discovery")
 SKIP_DIRS = {".git", "__pycache__", ".ipynb_checkpoints", ".claude"}
 _ALL_CODE = tuple(f"{p}/**/*.py" for p in CODE_PACKAGES) + tuple(f"{p}/*.py" for p in CODE_PACKAGES)
@@ -328,8 +328,8 @@ _CONFIG_PKGS = tuple(f"{p}/**/*.py" for p in ("cross_asset", "data", "model", "t
 RULES: tuple[Rule, ...] = (
     Rule("output-name-literal", "C1",
          "Model output keys (`y_{t}_class_logits`, `..._nu/_alpha/_beta/_confidence/_epistemic/_aleatoric`) are spelled "
-         "in many files; one owner (a future core/heads.py) must format them. Counts string literals/f-strings.",
-         exclude=_NOT_SELF, matcher=match_output_name_literal),
+         "in many files; one owner (core/heads.py, excluded from this rule) formats them. Counts string literals/f-strings.",
+         exclude=_NOT_SELF + ("core/heads.py",), matcher=match_output_name_literal),
     Rule("hlc-target-tuple", "C1",
          "The literal ('high','low','close') repeated instead of core.schema.TARGET_COLUMNS.",
          exclude=_NOT_SELF + ("core/schema.py",), matcher=match_hlc_target_tuple),
@@ -340,7 +340,7 @@ RULES: tuple[Rule, ...] = (
     Rule("target-mode-branch", "C4",
          "`mode == '<target mode>'` / `startswith('entry_range')` outside the component that owns target modes "
          "(a future TargetCodec): every new mode otherwise edits N modules.",
-         exclude=_NOT_SELF + ("core/schema.py",), matcher=match_target_mode_branch),
+         exclude=_NOT_SELF + ("core/schema.py", "stats/target_codec.py"), matcher=match_target_mode_branch),
     Rule("seed-literal", "C3",
          "Integer seed literals at call sites (`default_rng(42)`, `set_random_seed(0)`, `seed=7`): seeds must be one "
          "setting threaded from one place (multi-seed runs, run identity). In-package self-tests / smoke tests are not scanned.",

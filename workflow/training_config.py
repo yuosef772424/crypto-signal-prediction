@@ -1,43 +1,105 @@
 """
-PURPOSE:  Bridge from model heads to trainer_framework targets: build_target_configs (true_key vs output_keys) and the naive majority-class baseline for val_accuracy.
-TAGS:     build_target_configs, true_key, output_keys, label_smoothing, class_baselines, _naive_class_baseline, trainer targets
-PITFALLS: Pipeline labels are +1/-1 (batches._to_unit_label converts to {0,1} at feed time); this is the only place where data keys and model output keys are tied together. Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cells 15 and 17 (section 5).
+PURPOSE:  Bridge from model heads to trainer_framework targets: build_target_configs (true_key vs output_keys, derived from core.heads.HeadSet) and the naive majority-class baseline for val_accuracy.
+TAGS:     build_target_configs, with_head_loss_terms, head_terms, report_ic, sample_weights_for, sample weights, build_head_set, loss_weights, true_key, output_keys, label_smoothing, class_baselines, _naive_class_baseline, trainer targets
+PITFALLS: Pipeline labels are +1/-1 (batches._to_unit_label converts to {0,1} at feed time); the names come from core/heads.py HeadSet (the one place where data keys and model output keys are tied together). Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cells 15 and 17 (section 5).
 """
-def build_target_configs(price_targets, label_smoothing=0.0):
+from core.heads import HeadSet as _HeadSet
+from stats.target_codec import CODECS as _CODECS, codec_name_for_mode as _codec_name_for_mode
+from core.loss_plan import (CURRICULUM_RANK_KEY, sample_weighting_parts as _sample_weighting_parts, SAMPLE_WEIGHTINGS as _SAMPLE_WEIGHTINGS, check_head_loss_terms as _check_head_loss_terms,
+                            check_loss_weights as _check_loss_weights, check_report_heads as _check_report_heads)
+
+
+def build_head_set(price_targets, label_smoothing=0.0, class_only=False, loss_weights=None):
+    """The HeadSet a run trains: today's heads for ``price_targets`` with the loss plan's static weights applied
+    (``loss_weights`` = ``RunSettings.train.loss.weights``, ``{head name: weight}``; an unknown head raises). The one place
+    ``train.loss`` weights enter a head (``HeadSet.with_loss_weights``); build_target_configs and the selection-metric check
+    both read it."""
+    heads = _HeadSet.default(price_targets, class_only=class_only, label_smoothing=label_smoothing)
+    if not loss_weights:
+        return heads
+    return heads.with_loss_weights(_check_loss_weights(loss_weights, heads, "loss weights of the plan (train.loss.weights)"))
+
+
+def build_target_configs(price_targets, label_smoothing=0.0, class_only=False, loss_weights=None):
     """يبني قسم targets لإعداد trainer_framework — رأسا انحدار وتصنيف معاً
-    لكل هدف، مطابقة لِما ينتجه build_model_fn الآن افتراضياً. مفاتيح القاموس
-    (مثلاً 'high_reg'/'high_class') أسماء تعسّفية لِـ trainer فقط، لا تُقرأ
-    من أي مكان آخر.
+    لكل هدف، مطابقة لِما ينتجه build_model_fn الآن افتراضياً (class_only: رؤوس
+    التصنيف وحدها). مشتقّ من ``core.heads.HeadSet.default`` — المصدر الوحيد لأسماء
+    الرؤوس ومفاتيح المخرجات والتسميات وأوزان الخسارة (plan_model يشتقّ منه
+    head_types أيضاً)؛ مفاتيح القاموس (مثلاً 'high_reg'/'high_class') أسماء الرؤوس.
+
+    الانحدار: منظِّم الأدلة (lambda_reg) ومعايرة رأس الثقة (lambda_calib) — جدولاهما في main_config؛ بلاهما
+    lambda_reg=0 ورأس conf_* لا يصله أي تدرّج (تحذير "Gradients do not exist for conf_*") فتبقى
+    y_{t}_confidence التي تعرضها chicks أوزاناً عشوائية غير مُدرَّبة (يضيفهما HeadKind nig_regression).
 
     label_smoothing: لرؤوس التصنيف (مقاومة الحفظ، PR #7) — تسمية اتجاه عائد شبه صفري ضجيج خالص، وبلا تنعيم
-    تدفع BCE النموذجَ لحفظها بثقة كاملة."""
-    cfg = {}
-    for t in price_targets:
-        cfg[f"{t}_reg"] = {
-            "true_key": f"y_{t}_reg",
-            "task_type": "evidential",
-            "output_keys": {
-                "mu": f"y_{t}", "nu": f"y_{t}_nu", "alpha": f"y_{t}_alpha",
-                "beta": f"y_{t}_beta", "confidence": f"y_{t}_confidence",
-            },
-            # منظِّم الأدلة (lambda_reg) ومعايرة رأس الثقة (lambda_calib) — جدولاهما في main_config.
-            # بلاهما: lambda_reg=0 (لا شيء يمنع تضخيم الدليل على التدريب)، ورأس conf_* لا يصله أي
-            # تدرّج إطلاقاً (تحذير "Gradients do not exist for conf_*") فتبقى y_{t}_confidence
-            # التي تعرضها chicks أوزاناً عشوائية غير مُدرَّبة.
-            "use_calibration_loss": True,
-            "lambda_reg_var": "lambda_reg",
-            "lambda_calib_var": "lambda_calib",
-        }
-        cfg[f"{t}_class"] = {
-            "true_key": f"y_{t}_class",
-            "task_type": "classification",
-            "binary": True,
-            "output_keys": {"logits": f"y_{t}_class_logits"},
-            "label_smoothing": label_smoothing,
-        }
-    return cfg
+    تدفع BCE النموذجَ لحفظها بثقة كاملة.
+
+    loss_weights: أوزان الخسارة الثابتة {اسم الرأس: وزن} من خطة الخسارة (RunSettings.train.loss.weights)؛ رأس مجهول يرفع
+    ValueError؛ None/{} = الأوزان الافتراضية (لا يُكتب loss_weight)."""
+    return build_head_set(price_targets, label_smoothing, class_only, loss_weights).target_configs()
+
+
+def with_head_loss_terms(targets, head_terms, report_ic, heads):
+    """``targets`` (HeadSet.target_configs()) plus the per-head auxiliary loss terms of the plan (``train.loss.head_terms``,
+    ``{head: {huber_weight|huber_delta|ic_weight: value}}``) and ``track_ic: True`` for the heads of ``train.loss.report_ic``.
+    Both empty (the default) = ``targets`` unchanged, so the config and its fingerprint are the old ones. Returns a new dict; an unknown
+    head, an option the head's task type does not accept or a bad value raises (core.loss_plan.check_head_loss_terms / check_report_heads)."""
+    terms = _check_head_loss_terms(head_terms, heads, "loss terms of the plan (train.loss.head_terms)")
+    reported = _check_report_heads(report_ic, heads, "ic", "train.loss.report_ic")
+    out = {h: dict(cfg) for h, cfg in targets.items()}
+    for h, opts in terms.items():
+        out[h].update(opts)
+    for h in reported:
+        out[h]["track_ic"] = True
+    return out
+
 
 import numpy as np
+
+
+def unclipped_abs_z(split, target="close"):
+    """|target| in vol units WITHOUT the TargetSettings.clip (the codec's forward of the split's own mode on its price columns): what a
+    jump / curriculum rule must read (a clip at 4 hides every |z| > 4)."""
+    name = _codec_name_for_mode(split.get("target_mode"))
+    P = _price_columns([(None, split)], split["target_vol"].astype("float64") if "target_vol" in split else None)
+    return np.abs(_CODECS[name].forward(P, target, None))
+
+
+def sample_weights_for(split, main_config, name):
+    """``{label key: float32 weights}`` of the regression heads of ``main_config`` (the task types of SAMPLE_WEIGHTINGS[name]) from
+    ``split``'s OWN labels (call it with the TRAIN split only: the weights enter the training loss, never validation or selection).
+    The trainer looks a head's weights up by its label key (GenericTrainer._weight_for_target); heads without an entry are unweighted."""
+    out = {}
+    for part in _sample_weighting_parts(name):             # "a+b" = the product of a's and b's weights
+        fn = _SAMPLE_WEIGHTINGS.get(part)
+        meta = _SAMPLE_WEIGHTINGS.entry(part).meta
+        for cfg in main_config["targets"].values():
+            if cfg["task_type"] in meta["task_types"]:
+                y = np.asarray(split["y"][cfg["true_key"]], dtype="float64")
+                tname = cfg["true_key"][2:-4] if cfg["true_key"].startswith("y_") and cfg["true_key"].endswith("_reg") else None
+                score = unclipped_abs_z(split, tname) if meta["score"] == "unclipped_z" else np.abs(y)
+                w = np.asarray(fn(score, clip=np.clip, where=np.where, **meta["params"]), dtype="float64")
+                if w.shape != y.shape or not np.all(np.isfinite(w)) or np.any(w < 0):
+                    raise ValueError(f"sample weighting {part!r} gave invalid weights for {cfg['true_key']!r} (shape {w.shape} vs "
+                                     f"{y.shape}, finite and >= 0 required)")
+                out[cfg["true_key"]] = (out[cfg["true_key"]] * w) if cfg["true_key"] in out else w
+        if meta["curriculum"] is not None:
+            out[CURRICULUM_RANK_KEY] = curriculum_rank(split, meta["curriculum"]["order"], main_config["run"]["seed"])
+    return {k: v.astype("float32") for k, v in out.items()}
+
+
+def curriculum_rank(split, order, seed):
+    """Rank in [0, 1] of every TRAIN sample, 0 = first included: 'snr' = descending unclipped |close return| / vol (the easiest, clearest
+    moves first); 'random' = a seeded random permutation (the control: same sizes, no order)."""
+    n = len(split["last_candles"])
+    if order == "snr":
+        pos = np.empty(n)
+        pos[np.argsort(-unclipped_abs_z(split, "close"), kind="stable")] = np.arange(n)
+    elif order == "random":
+        pos = np.random.default_rng(int(seed)).permutation(n).astype("float64")
+    else:
+        raise ValueError(f"curriculum order {order!r}: 'snr' | 'random'")
+    return (pos + 1.0) / n
 
 
 def _naive_class_baseline(split, cfg):

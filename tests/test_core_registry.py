@@ -164,6 +164,57 @@ class ContractTests(unittest.TestCase):
             Registry("a", Contract("b"))
 
 
+class MappingProtocolTests(unittest.TestCase):
+    """Read access behaves like the dict a registry replaces; writes go through register/unregister only."""
+
+    def _reg(self):
+        r = Registry("t")
+        r.register("a", 10, version=1)
+        r.register("b", 20, version=2)
+        return r
+
+    def test_getitem_returns_the_object_and_unknown_raises_keyerror_with_hint(self):
+        r = self._reg()
+        self.assertEqual(r["a"], 10)
+        with self.assertRaises(KeyError) as cm:
+            r["aa"]
+        self.assertIsInstance(cm.exception, UnknownNameError)
+        self.assertIn("Did you mean 'a'", str(cm.exception))
+
+    def test_get_with_default_matches_dict_get_and_without_default_still_raises(self):
+        r = self._reg()
+        self.assertEqual(r.get("a"), 10)
+        self.assertIsNone(r.get("zz", None))
+        self.assertEqual(r.get("zz", 7), 7)
+        self.assertEqual(r.get("a", 7), 10)
+        with self.assertRaises(UnknownNameError):
+            r.get("zz")
+
+    def test_keys_values_items_iteration_in_registration_order(self):
+        r = self._reg()
+        self.assertEqual(r.keys(), ["a", "b"])
+        self.assertEqual(r.values(), [10, 20])
+        self.assertEqual(r.items(), [("a", 10), ("b", 20)])
+        self.assertEqual(list(r), ["a", "b"])
+        self.assertEqual(sorted(r), ["a", "b"])
+        self.assertEqual(dict(r), {"a": 10, "b": 20})
+        self.assertEqual([(e.name, e.version) for e in r.entries()], [("a", 1), ("b", 2)])
+        self.assertIn("a", r)
+        self.assertNotIn("c", r)
+
+    def test_item_assignment_and_deletion_are_refused(self):
+        r = self._reg()
+        with self.assertRaises(TypeError) as cm:
+            r["c"] = 1
+        self.assertIn("register(", str(cm.exception))
+        with self.assertRaises(TypeError):
+            del r["a"]
+        with self.assertRaises(TypeError):
+            r["a"] = 1                      # an overwrite is refused too, not only a new name
+        self.assertEqual(r["a"], 10)
+        self.assertFalse(hasattr(r, "pop"))
+
+
 class TierZeroTests(unittest.TestCase):
     def test_registry_imports_only_stdlib(self):
         tree = ast.parse((ROOT / "core" / "registry.py").read_text(encoding="utf-8"))

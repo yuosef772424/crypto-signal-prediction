@@ -17,14 +17,16 @@
   - `def module_path(name: str) -> Path` L38
   - `def load_into(ns: dict, exclude=()) -> dict` L45
 
-### `model/builder.py` (243 lines)
+### `model/builder.py` (292 lines)
 - PURPOSE: build_nig_timenet_v2: the model architecture builder (+ DEFAULT_HEAD_TYPES).
 - TAGS: build_nig_timenet_v2, default_head_types, encoder, multi-timeframe, anti-memorization options, model builder
-- PITFALLS: Every anti-memorization option defaults to the OLD behaviour exactly, so older checkpoints still load. Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
+- PITFALLS: Every anti-memorization option defaults to the OLD behaviour exactly, so older checkpoints still load. The nig_regression output names come from the HeadKind in core/heads.py (never spell y_<t>_nu etc. here); the model's outputs are listed nig heads first, then the other heads per target (HeadSet.output_names is per head: compare sorted). Executed into the one shared model namespace by model/_loa…
+- DEPENDS: core
 - USES: decomposition, heads, input_norm, nig_layers, patches, readout, transformer
 - USED BY: config
 - API:
-  - `def build_nig_timenet_v2(seq_len, n_features, d_model=128, num_layers=4, num_heads=4, num_kv_heads=2, patch_len=4, stride=2, kernel_sizes=(3, 5, 9, 17), max_rel_pos=16, dropout=0.1, attn_dropout=0.0, causal=False, window=No…` L15
+  - `def unc_gate_model(model)` L29
+  - `def build_nig_timenet_v2(seq_len, n_features, d_model=128, num_layers=4, num_heads=4, num_kv_heads=2, patch_len=4, stride=2, kernel_sizes=(3, 5, 9, 17), max_rel_pos=16, dropout=0.1, attn_dropout=0.0, causal=False, window=No…` L38
 
 ### `model/common.py` (13 lines)
 - PURPOSE: Shared imports (numpy, tensorflow, keras layers) and the `register` decorator (keras serializable, package 'nigts').
@@ -32,14 +34,15 @@
 - PITFALLS: `register` must exist before any layer module runs; the registered name is 'nigts>ClassName', so renaming a class breaks saved models. Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
 - USED BY: decomposition, input_norm, nig_layers, patches, readout, transformer
 
-### `model/config.py` (95 lines)
+### `model/config.py` (96 lines)
 - PURPOSE: MODEL_CONFIG, ANTI_MEMORIZATION_CONFIG and build_model_fn, the entry point used by main.ipynb.
 - TAGS: model_config, anti_memorization_config, build_model_fn, head_types, model config
 - PITFALLS: MODEL_CONFIG is a live dict mutated by main.ipynb (MODEL_CONFIG['head_types'] = ...); build_model_fn reads it at call time. Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: core
 - USES: builder
 - USED BY: selftests, workflow/wiring_selftest
 - API:
-  - `def build_model_fn(seq_len, n_features, config=None)` L87
+  - `def build_model_fn(seq_len, n_features, config=None)` L88
 
 ### `model/decomposition.py` (49 lines)
 - PURPOSE: CausalMultiScaleDecomp: causal multi-scale trend/residual split (no future leakage).
@@ -55,26 +58,28 @@
     - `.compute_output_shape(self, input_shape)` L45
     - `.get_config(self)` L48
 
-### `model/diagnostics.py` (701 lines)
+### `model/diagnostics.py` (699 lines)
 - PURPOSE: On-demand model diagnostics: diagnose_model, model_health_verdicts, print_verdicts (+ DIAG_SECTIONS, HEALTH_THRESHOLDS).
 - TAGS: diagnose_model, model_health_verdicts, print_verdicts, diag_sections, health_thresholds, model health, activations, attention
 - PITFALLS: Runs nothing at load; only on explicit call. Verdict thresholds live in HEALTH_THRESHOLDS. Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: core, stats
 - USED BY: layer_report, workflow/capacity, workflow/diagnostics
 - API:
-  - `def diagnose_model(model, X, y=None, sections=DIAG_SECTIONS, max_n=512, batch_size=256, seed=0, feature_names=None, sensitivity='grad_x_input', top_k=10, floor_tol=0.1, verbose=False)` L330
-  - `def model_health_verdicts(rep, recorder_stats=None, thresholds=None)` L563
-  - `def print_verdicts(v, title='🩺 تقرير صحّة النموذج')` L695
+  - `def diagnose_model(model, X, y=None, sections=DIAG_SECTIONS, max_n=512, batch_size=256, seed=0, feature_names=None, sensitivity='grad_x_input', top_k=10, floor_tol=0.1, verbose=False)` L325
+  - `def model_health_verdicts(rep, recorder_stats=None, thresholds=None)` L561
+  - `def print_verdicts(v, title='🩺 تقرير صحّة النموذج')` L693
 
-### `model/heads.py` (72 lines)
+### `model/heads.py` (103 lines)
 - PURPOSE: HEAD_REGISTRY: pluggable output heads (register_head_type, build_head_outputs, binary/multiclass classification heads).
 - TAGS: head_registry, register_head_type, build_head_outputs, binary_classification, multiclass_classification, head types
-- PITFALLS: An unregistered head type raises (no silent default); this is the single place to add a new output type. Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
+- PITFALLS: An unregistered head type raises (no silent default); this is the single place to add a new output type. HEAD_REGISTRY is a core.registry Registry: registering a name twice raises DuplicateNameError (a notebook cell that re-registers must unregister first), the builder must accept (h, target, cfg), and writes are register_head_type only (HEAD_REGISTRY[name] = fn raises TypeError). Executed into t…
+- DEPENDS: core
 - USED BY: builder
 - API:
-  - `def register_head_type(name)` L26
-  - `def build_head_outputs(head_type, h, target, cfg)` L34
-  - `def build_binary_classification_head(h, target, cfg)` L46
-  - `def build_multiclass_classification_head(h, target, cfg)` L59
+  - `def register_head_type(name, version=1)` L48
+  - `def build_head_outputs(head_type, h, target, cfg)` L56
+  - `def build_binary_classification_head(h, target, cfg)` L75
+  - `def build_multiclass_classification_head(h, target, cfg)` L89
 
 ### `model/input_norm.py` (89 lines)
 - PURPOSE: InstanceNorm (RevIN-style per-window normalisation with stats path) and SymLog level passthrough.
@@ -95,17 +100,18 @@
     - `.compute_output_shape(self, input_shape)` L85
     - `.get_config(self)` L88
 
-### `model/layer_report.py` (318 lines)
+### `model/layer_report.py` (326 lines)
 - PURPOSE: Per-layer reports on a trained model: layer_probe_report, layer_compare_report, random_init_copy.
 - TAGS: layer_probe_report, layer_probe_verdict, layer_compare_report, random_init_copy, per-layer probe
 - PITFALLS: Needs a TRAINED model plus its random-init twin (random_init_copy); depends on diagnostics.py helpers. Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: core, stats
 - USES: diagnostics
 - USED BY: workflow/diagnostics
 - API:
-  - `def random_init_copy(model, seed=0)` L29
-  - `def layer_probe_report(model, X_train, y_train, X_val, y_val, max_train=2000, max_val=2000, ridge=10.0, n_null=5, n_rand=1, seed=0, batch_size=256, z_min=3.0, rand_margin=0.02)` L78
-  - `def layer_probe_verdict(df)` L144
-  - `def layer_compare_report(model, X, y, heads=None, max_n=1500, n_perm=30, n_rand=3, min_group=30, margin_auc=0.03, margin_d=0.0, margin_feat=0.25, rand_mult=1.5, seed=0, batch_size=256, verbose=False)` L208
+  - `def random_init_copy(model, seed=0)` L33
+  - `def layer_probe_report(model, X_train, y_train, X_val, y_val, max_train=2000, max_val=2000, ridge=10.0, n_null=5, n_rand=1, seed=0, batch_size=256, z_min=3.0, rand_margin=0.02)` L86
+  - `def layer_probe_verdict(df)` L152
+  - `def layer_compare_report(model, X, y, heads=None, max_n=1500, n_perm=30, n_rand=3, min_group=30, margin_auc=0.03, margin_d=0.0, margin_feat=0.25, rand_mult=1.5, seed=0, batch_size=256, verbose=False)` L216
 
 ### `model/nig_layers.py` (108 lines)
 - PURPOSE: Raw NIG head layers: NIGHead, OrderedMeans, NIGUncertainty, ConfidenceHead (+ NIG_ALPHA_DEN_MIN).
@@ -177,9 +183,10 @@
 - PURPOSE: run_model_selftests: data-free self-test of registry, head expansion and full save/load; defined here, run by tools/run_self_tests.run_self_tests.
 - TAGS: run_model_selftests, self-test, selftest, smoke, head registry, save load
 - PITFALLS: Loading only defines it (no call at module level). load_into(ns, exclude=('selftests',)) still skips it. Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: core
 - USES: config, input_norm
 - API:
-  - `def run_model_selftests(verbose: bool=True) -> bool` L16
+  - `def run_model_selftests(verbose: bool=True) -> bool` L20
 
 ### `model/transformer.py` (149 lines)
 - PURPOSE: Transformer block parts: RMSNorm, RelativeGQAttention (GQA + relative bias), SwiGLU, TransformerBlock.

@@ -13,6 +13,10 @@ PITFALLS: Loading only defines it (no call at module level). load_into(ns, exclu
 استدعاء لاحق لـ`build_model_fn`**، للتأكّد أن `model.save(...)` يكفي وحده
 (لا حاجة لإعادة البناء ثم `load_weights` فقط).
 """
+from core.heads import HeadSet as _HeadSet, output_name as _output_name
+from core.schema import TARGET_COLUMNS as _TARGET_COLUMNS
+
+
 def run_model_selftests(verbose: bool = True) -> bool:
     seq_len, n_features = 32, 38
     batch = 4
@@ -22,27 +26,23 @@ def run_model_selftests(verbose: bool = True) -> bool:
     #    الافتراضي في خط الأنابيب) — 21 مخرج NIG + 3 احتمالات تصنيف ثنائي
     model_default = build_model_fn(seq_len, n_features)
     out = model_default(x, training=False)
-    expected_default = set()
-    for t in ("high", "low", "close"):
-        expected_default |= {f"y_{t}", f"y_{t}_nu", f"y_{t}_alpha", f"y_{t}_beta",
-                              f"y_{t}_epistemic", f"y_{t}_aleatoric", f"y_{t}_confidence",
-                              f"y_{t}_class_logits"}
+    expected_default = set(_HeadSet.default(_TARGET_COLUMNS).output_names())   # the declaration (core/heads.py), not a copy of it
     assert set(out.keys()) == expected_default, (set(out.keys()), expected_default)
     for k, v in out.items():
         assert v.shape == (batch, 1), f"{k}: {v.shape}"
-    for t in ("high", "low", "close"):
-        p = out[f"y_{t}_class_logits"].numpy()
-        assert np.all((p >= 0.0) & (p <= 1.0)), f"y_{t}_class_logits ليست احتمالات صالحة: {p}"
+    for t in _TARGET_COLUMNS:
+        p = out[_output_name(t, "logits")].numpy()
+        assert np.all((p >= 0.0) & (p <= 1.0)), f"{_output_name(t, 'logits')} ليست احتمالات صالحة: {p}"
 
     # 2) high>=close>=low يجب أن يصمد فعلياً (enforce_order) — بمعزل عن التصنيف
     h, c, l = out["y_high"].numpy(), out["y_close"].numpy(), out["y_low"].numpy()
     assert np.all(h >= c - 1e-5) and np.all(c >= l - 1e-5), "OrderedMeans لم يحفظ الترتيب"
 
     # 3) تعطيل التصنيف بالكامل عبر config — يعيد سلوك النسخة السابقة تماماً
-    reg_only = {t: ["nig_regression"] for t in ("high", "low", "close")}
+    reg_only = {t: ["nig_regression"] for t in _TARGET_COLUMNS}
     model_reg_only = build_model_fn(seq_len, n_features, config={"head_types": reg_only})
     out_reg_only = model_reg_only(x, training=False)
-    assert not any(k.endswith("_class_logits") for k in out_reg_only), "تعطيل التصنيف لم يُطبَّق"
+    assert not any(k == _output_name(t, "logits") for t in _TARGET_COLUMNS for k in out_reg_only), "تعطيل التصنيف لم يُطبَّق"
     assert len(out_reg_only) == 21
 
     # 4) توسعة إضافية بلا لمس كود المعمارية: رأس متعدّد فئات فوق ما هو مُفعَّل أصلاً
@@ -52,8 +52,8 @@ def run_model_selftests(verbose: bool = True) -> bool:
     model_ext = build_model_fn(seq_len, n_features,
                                 config={"head_types": extended_heads, "n_classes": 3})
     out_ext = model_ext(x, training=False)
-    assert out_ext["y_close_class_logits"].shape == (batch, 3), "الرأس متعدّد الفئات لم يظهر بالشكل الصحيح"
-    probs = out_ext["y_close_class_logits"].numpy()
+    assert out_ext[_output_name("close", "logits")].shape == (batch, 3), "الرأس متعدّد الفئات لم يظهر بالشكل الصحيح"
+    probs = out_ext[_output_name("close", "logits")].numpy()
     assert np.allclose(probs.sum(axis=-1), 1.0, atol=1e-4), "مخرج multiclass ليس توزيع احتمالات (softmax)"
 
     # 5) نوع رأس غير مسجَّل يرفع خطأً واضحاً لا فشلاً صامتاً

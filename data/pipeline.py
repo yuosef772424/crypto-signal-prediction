@@ -210,6 +210,8 @@ class _Accumulator:
         # وحدة الأعمدة السعرية في X (غيابها = 'window_scale'): decode_price_window يقرؤها من هنا.
         # (logret_std: X/y_*_reg خام حتى يُلائم split_data الإحصاءات على train وحده؛ logret_sigma: لا إحصاءات مُلائمة.)
         out.update(normalizer_for_mode(price_norm_mode(config)).dataset_fields(config, features, list(self.tf_order)))
+        # قناة المستوى (CONFIG['level_channel']، مُطفأة افتراضياً ← {}): X يحمل أعمدة LVL_* خاماً حتى يُلائم التقسيم حالة train.
+        out.update(level_channel_dataset_fields(config))
         # الشروط التي اختيرت بها العيّنات (غيابها = كل العيّنات).
         if config.get('sample_filters'):
             out['sample_filters'] = deepcopy(list(config['sample_filters']))

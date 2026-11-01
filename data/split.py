@@ -1,7 +1,7 @@
 """
 PURPOSE:  Time-based train/val/test split with an embargo gap: global_time (default) or per_asset, holdout, leak-free and rolling splits.
-TAGS:     split, split_data, embargo, holdout, split_dates, global_time, per_asset, rolling_splits, build_leak_free_split, compute_global_cutoff
-PITFALLS: per_asset leaks when coins' histories differ in length; global_time is the default. The embargo is a time gap covering the largest window plus the horizon. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+TAGS:     split, split_data, embargo, holdout, split_dates, global_time, per_asset, rolling_splits, build_leak_free_split, compute_global_cutoff, split_role, stamp_split_roles, label_end, stamp_label_end, label_end_values, SplitPlan, resolve_split_plan, split_data_with_calibration, CalibrationCarve
+PITFALLS: Every split also carries `label_end` (additive int64-ns array per sample = timestamp + forecast_horizon x base-tf bar, the last bar its label reads; stamp_label_end, one producer path `_finish_splits`; the arrays of a split are unchanged, pinned by tests/golden_split_arrays.json). Every split is stamped with its role (additive key `split_role`: train/val/test, holdout for split_holdout; core/roles.py; `test` as {asset: split} is stamped per member); `calibration` exists ONLY through split_data_with_calibration(data, CalibrationCarve(...)) (opt-in, global_time only, returns 4 splits, train shrinks by `share` for train_tail); split_data alone still has val as selection AND calibration. per_asset leaks when coins' histories differ in length; global_time is the default. The embargo is a time gap covering the largest window plus the horizon. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
 
 ## 16) التقسيم الزمني train/val/test (`split.py` سابقاً)
 """
@@ -48,6 +48,54 @@ Y_PREFIX = 'y_'
 #: أوضاع التقسيم المدعومة.
 SPLIT_MODES = ('global_time', 'per_asset')
 
+from core import roles as _split_roles   # أدوار الأقسام (core/roles.py: train/calibration/val/test/holdout)
+from core.schema import LABEL_END_KEY as _LABEL_END_KEY   # مفتاح label_end الإضافي على كل قسم
+
+
+def stamp_split_roles(train: dict, val: dict, test: dict):
+    """يختم كل قسم بدوره (مفتاح ``split_role`` مضاف فقط؛ المصفوفات لا تُنسخ ولا تُمسّ): train→'train'، val→'val'، test→'test'
+    (قاموس عملات: يُختم كل عضو لا الحاوية). المستهلك ذو الحالة المتعلَّمة (معاير…) يفحص الدور قبل الملاءمة (core.roles.require_role).
+    قسم ``calibration`` يختمه :func:`split_data_with_calibration` (اختياري)؛ بدونه ``val`` هو المعايرة والاختيار معاً (بند التدقيق C6)."""
+    return (_split_roles.stamp_role(train, _split_roles.TRAIN), _split_roles.stamp_role(val, _split_roles.VAL),
+            _split_roles.stamp_role(test, _split_roles.TEST))
+
+
+def label_end_values(data: Dict, last_candles, config: Optional[dict] = None) -> np.ndarray:
+    """``label_end`` لكل صف من ``last_candles`` (int64 نانوثانية UTC): طابع آخر شمعة تقرؤها التسمية = ``timestamp + forecast_horizon ×
+    مدة الفريم الأساسي``. هذا ما يفحصه ``windows.py`` بالضبط (``base_index[end + horizon] - base_index[end] == horizon × bar``)؛
+    القيم من ``data['forecast_horizon']`` / ``data['base_tf']`` أولاً ثم CONFIG (كما في embargo_candles)."""
+    config = CONFIG if config is None else config
+    horizon = int(data.get('forecast_horizon', config['forecast_horizon']))
+    bar_ns = int(_tf_to_timedelta(data.get('base_tf', config['base_tf'])).value)
+    return np.asarray(last_candles)[:, TS_COL].astype('int64') + horizon * bar_ns
+
+
+def stamp_label_end(data: Dict, split_or_assets: Dict, config: Optional[dict] = None) -> Dict:
+    """نسخة سطحية من القسم (أو من كل عضو في قاموس عملات) بمفتاح ``label_end`` المضاف (:func:`label_end_values`)؛ مصفوفات القسم لا تُنسخ
+    ولا تُمسّ. قسم يحمل المفتاح مسبقاً يرفع خطأ (لا تغيير صامت لما حُسب)."""
+    if 'y' not in split_or_assets and all(isinstance(v, dict) for v in split_or_assets.values()):
+        return type(split_or_assets)((k, stamp_label_end(data, v, config)) for k, v in split_or_assets.items())
+    if _LABEL_END_KEY in split_or_assets:
+        raise ValueError(f"القسم يحمل '{_LABEL_END_KEY}' مسبقاً؛ لا يُعاد ختمه")
+    out = dict(split_or_assets)
+    out[_LABEL_END_KEY] = label_end_values(data, split_or_assets['last_candles'], config)
+    return out
+
+
+def _finish_splits(data: Dict, train: Dict, val: Dict, test: Dict, config: Optional[dict] = None, calibration: Optional[Dict] = None):
+    """خاتمة كل مُنتِج للأقسام: تقييس السعر على train (finish_price_norm) ← ``label_end`` ← ختم الأدوار. الترتيب والمفاتيح في مكان واحد.
+    ``calibration`` (اختياري، من :func:`split_data_with_calibration`): قسم المعايرة يأخذ حالة تقييس train نفسها ويُختم 'calibration'؛ يُرجَع
+    ``(train, calibration, val, test)`` بدل ``(train, val, test)``."""
+    if calibration is None:
+        train, val, test = finish_price_norm(data, train, val, test)
+        train, val, test = finish_level_channel(data, train, val, test)      # مُطفأة افتراضياً: الأقسام كما هي
+        train, val, test = (stamp_label_end(data, sp, config) for sp in (train, val, test))
+        return stamp_split_roles(train, val, test)
+    train, calibration, val, test = (stamp_label_end(data, sp, config)
+                                     for sp in finish_level_channel_many(data, *finish_price_norm_many(data, train, calibration, val, test)))
+    train, val, test = stamp_split_roles(train, val, test)
+    return train, _split_roles.stamp_role(calibration, _split_roles.CALIBRATION), val, test
+
 
 def embargo_candles(data: Dict, config: Optional[dict] = None) -> int:
     """طول فجوة العزل **بالشموع** — الأساس الذي تُشتق منه بقية الصيغ."""
@@ -86,7 +134,7 @@ def embargo_size(data: Dict, config: Optional[dict] = None) -> int:
 
 def _tf_to_timedelta(tf: str) -> pd.Timedelta:
     """``'4h'`` → ``Timedelta('4h')``. يقبل صيغ pandas المعتادة (``1D``, ``15T``...)."""
-    return pd.Timedelta(tf)
+    return pd.Timedelta(pandas_tf(tf))
 
 
 def embargo_duration(data: Dict, config: Optional[dict] = None) -> pd.Timedelta:
@@ -491,29 +539,47 @@ def _take_per_asset(data, mask, timeframes, targets):
     return out, skipped
 
 
-def _split_global_time(data, train_pct, val_pct, keep_asset_test_separate,
-                       timeframes, targets, config):
-    """تقسيم بحدود زمنية مطلقة مشتركة بين كل العملات."""
-    ts = sample_timestamps(data)
+def resolve_split_plan(data: Dict, train_pct: Optional[float] = None, val_pct: Optional[float] = None,
+                       config: Optional[dict] = None) -> 'SplitPlan':
+    """:class:`SplitPlan` (data/split_plan.py) الافتراضية للتقسيم ``global_time``: حدّا :func:`resolve_split_dates` وفجوة
+    :func:`embargo_duration` وبداية الـholdout المختوم. المرجع الوحيد للأقنعة: ``split_data`` تستعمله، وكل مستهلك (اختبار نقاء الأقسام،
+    قسم المعايرة) يطلبه من هنا بدل إعادة اشتقاق الحدود."""
+    config = CONFIG if config is None else config
+    train_pct = config['train_pct'] if train_pct is None else train_pct
+    val_pct = config['val_pct'] if val_pct is None else val_pct
     train_end, val_end = resolve_split_dates(data, train_pct, val_pct, config)
     gap = embargo_duration(data, config)
-
-    train_mask = ts <= train_end
-    val_mask = (ts > train_end + gap) & (ts <= val_end)
-    test_mask = ts > val_end + gap
     hs = resolve_holdout_start(config)
-    if hs is not None:
-        if hs <= val_end + gap:
-            raise ValueError(
-                f"❌ holdout_start={hs:%Y-%m-%d %H:%M} لا يقع بعد val_end + العزل ({(val_end + gap):%Y-%m-%d %H:%M}): "
-                f"الـholdout المختوم لا يجوز أن يتداخل مع val. قدّم split_dates أو أخّر holdout_start.")
-        test_mask = test_mask & (ts < hs - gap)        # فجوة العزل نفسها قبل الـholdout
+    if hs is not None and hs <= val_end + gap:
+        raise ValueError(
+            f"❌ holdout_start={hs:%Y-%m-%d %H:%M} لا يقع بعد val_end + العزل ({(val_end + gap):%Y-%m-%d %H:%M}): "
+            f"الـholdout المختوم لا يجوز أن يتداخل مع val. قدّم split_dates أو أخّر holdout_start.")
+    return SplitPlan.from_dates(train_end, val_end, gap, holdout_start=hs)
+
+
+def _split_global_time(data, train_pct, val_pct, keep_asset_test_separate,
+                       timeframes, targets, config, carve=None):
+    """تقسيم بحدود زمنية مطلقة مشتركة بين كل العملات. ``carve`` (CalibrationCarve، اختياري): يُقتطع قسم معايرة من ذيل train أو رأس val
+    بعزل على الجانبين فيُرجَع ``(train, calibration, val, test)``؛ بدونه ``(train, val, test)`` كما كان."""
+    ts = sample_timestamps(data)
+    plan = resolve_split_plan(data, train_pct, val_pct, config)
+    if carve is not None:
+        plan = plan.with_calibration(carve, ts)
+    train_end, val_end, gap, hs = plan.train_end, plan.val_end, plan.embargo, plan.holdout_start
+    # الأقنعة من الخطة: train ≤ train_end | val بعد train_end+عزل | test بعد val_end+عزل (وقبل holdout_start − عزل) — نفس المقارنات
+    # التي كانت هنا يدوياً (tests/golden_split_arrays.json)
+    masks = plan.masks(ts)
+    train_mask, val_mask, test_mask = masks['train'], masks['val'], masks['test']
 
     train = _take(data, train_mask, timeframes, targets)
     val = _take(data, val_mask, timeframes, targets)
+    cal_mask = masks.get('calibration')
+    calibration = None if cal_mask is None else _take(data, cal_mask, timeframes, targets)
 
     print(f"📊 تقسيم زمني مشترك (عزل={gap}):")
     print(f"   train ≤ {train_end:%Y-%m-%d}          : {int(train_mask.sum()):,}")
+    if cal_mask is not None:
+        print(f"   calibration ({carve.source}, {carve.share:.0%}) ≤ {plan.calibration[1]:%Y-%m-%d}: {int(cal_mask.sum()):,}")
     print(f"   val   ≤ {val_end:%Y-%m-%d}          : {int(val_mask.sum()):,}")
     print(f"   test  >  {(val_end + gap):%Y-%m-%d}"
           + (f" و< {(hs - gap):%Y-%m-%d %H:%M}" if hs is not None else "          ")
@@ -523,12 +589,14 @@ def _split_global_time(data, train_pct, val_pct, keep_asset_test_separate,
         print(f"   🔒 holdout ≥ {hs:%Y-%m-%d}         : {n_hold:,} مختوم — خارج كل الأقسام وكل ملفات الإشارات "
               f"(يُفتح مرة واحدة عند الإصدار: open_holdout=True ثم split_holdout)")
 
-    _assert_split_sizes({'train': int(train_mask.sum()), 'val': int(val_mask.sum()),
-                         'test': int(test_mask.sum())}, config, gap, train_end, val_end)
+    sizes = {'train': int(train_mask.sum()), 'val': int(val_mask.sum()), 'test': int(test_mask.sum())}
+    if cal_mask is not None:
+        sizes['calibration'] = int(cal_mask.sum())
+    _assert_split_sizes(sizes, config, gap, train_end, val_end)
 
     if not keep_asset_test_separate:
         test = _take(data, test_mask, timeframes, targets)
-        return train, val, test
+        return (train, val, test) if calibration is None else (train, calibration, val, test)
 
     # test مفصول لكل عملة — نتقاطع قناع الزمن مع نطاق كل عملة
     test, skipped = _take_per_asset(data, np.asarray(test_mask), timeframes, targets)
@@ -539,7 +607,7 @@ def _split_global_time(data, train_pct, val_pct, keep_asset_test_separate,
         print(f"   ℹ️ {len(skipped)} عملة بلا عيّنات اختبار (تاريخها ينتهي قبل "
               f"{(val_end + gap):%Y-%m-%d}): {skipped[:6]}"
               f"{'...' if len(skipped) > 6 else ''}")
-    return train, val, test
+    return (train, val, test) if calibration is None else (train, calibration, val, test)
 
 
 def split_data(
@@ -587,7 +655,7 @@ def split_data(
             else:
                 for asset_split in test.values():
                     add_y_prefix(asset_split)
-        return finish_price_norm(data, train, val, test)     # logret_*: تقييس على train وحده؛ غيره: بلا مساس
+        return _finish_splits(data, train, val, test, config)   # logret_*: تقييس على train وحده؛ غيره: بلا مساس
 
     timeframes: List[str] = data['timeframes']
     targets: List[str] = data['targets']
@@ -663,18 +731,58 @@ def split_data(
             for asset_split in test.values():
                 add_y_prefix(asset_split)
 
-    return finish_price_norm(data, train, val, test)
+    return _finish_splits(data, train, val, test, config)
+
+
+def split_data_with_calibration(
+    data: Dict,
+    carve,
+    train_pct: Optional[float] = None,
+    val_pct: Optional[float] = None,
+    keep_asset_test_separate: Optional[bool] = None,
+    prefix_y: bool = True,
+    config: Optional[dict] = None,
+) -> Tuple[dict, dict, dict, dict]:
+    """:func:`split_data` (global_time) مع قسم معايرة حقيقي: ``(train, calibration, val, test)`` — اختياري صريح، الافتراضي القديم
+    ``split_data`` بلا تغيير. ``carve`` = :class:`CalibrationCarve` (data/split_plan.py) أو قاموسه ``{'source', 'share'}``: ``train_tail`` يقتطع آخر ``share`` من عيّنات train
+    (فيقصر train ويُفتح عزل بينه وبين المعايرة) أو ``val_head`` أول ``share`` من val؛ العزل (نافذة + أفق) على جانبي القسم، فلا تقرأ
+    عيّنة معايرة تسمية عيّنة تدريب ولا العكس. قسم المعايرة مدموج (كـ val) ومختوم بدور ``'calibration'``؛ يأخذ حالة تقييس train نفسها.
+    ``per_asset`` غير مدعوم (يسرّب أصلاً): يرفع ValueError."""
+    if isinstance(carve, dict):             # {"source": ..., "share": ...} = DataSettings.calibration_split (unknown keys raise)
+        carve = CalibrationCarve(**carve)
+    if not isinstance(carve, CalibrationCarve):
+        raise TypeError(f"carve must be a CalibrationCarve or its dict, got {type(carve).__name__}")
+    config = CONFIG if config is None else config
+    train_pct = config['train_pct'] if train_pct is None else train_pct
+    val_pct = config['val_pct'] if val_pct is None else val_pct
+    if keep_asset_test_separate is None:
+        keep_asset_test_separate = config['keep_asset_test_separate']
+    if config.get('split_mode') not in (None, 'global_time'):     # None = الافتراضي global_time كما في split_data
+        raise ValueError(f"قسم المعايرة يتطلّب split_mode='global_time' (حدّ زمني مشترك)؛ '{config.get('split_mode')}' غير مدعوم")
+    train, calibration, val, test = _split_global_time(
+        data, train_pct, val_pct, keep_asset_test_separate, data['timeframes'], data['targets'], config, carve=carve)
+    if prefix_y:
+        for sp in (train, calibration, val):
+            add_y_prefix(sp)
+        if isinstance(test, dict) and 'y' in test:
+            add_y_prefix(test)
+        else:
+            for asset_split in test.values():
+                add_y_prefix(asset_split)
+    return _finish_splits(data, train, val, test, config, calibration=calibration)
 
 
 def split_holdout(data: Dict,
                   keep_asset_test_separate: Optional[bool] = None,
                   prefix_y: bool = True,
                   config: Optional[dict] = None,
-                  price_norm_meta: Optional[dict] = None):
+                  price_norm_meta: Optional[dict] = None,
+                  level_meta: Optional[dict] = None):
     """عيّنات الـholdout المختوم (``ts ≥ holdout_start``) بنفس شكل ``test`` من :func:`split_data`.
 
     ``price_norm_meta``: لبيانات 'logret_std' (غير مُلائمة) إحصاءات train (``train['price_norm_meta']``) — إلزامي، فلا
-    يُلائَم شيء على الـholdout.
+    يُلائَم شيء على الـholdout. ``level_meta``: لبيانات بقناة مستوى (``CONFIG['level_channel']``) حالة train (``train['level_meta']``) — إلزامي
+    حينها، لا يُلائَم شيء على الـholdout أيضاً؛ بلا قناة مستوى يُهمَل.
     مقفلة افتراضياً: ترفع ``PermissionError`` ما لم يكن ``config['open_holdout'] is True``. الـholdout يُفتح مرة
     واحدة عند الإصدار؛ كل تقييم عليه يُسجَّل (PROTOCOL.md: «opened once, at release»)."""
     config = CONFIG if config is None else config
@@ -695,9 +803,12 @@ def split_holdout(data: Dict,
         if prefix_y:
             for sp in out.values():
                 add_y_prefix(sp)
-        return stamp_price_norm(data, out, price_norm_meta)
+        return _split_roles.stamp_role(stamp_label_end(data, stamp_level_channel(data, stamp_price_norm(data, out, price_norm_meta), level_meta), config),
+                                       _split_roles.HOLDOUT)
     out = _take(data, mask, timeframes, targets)
-    return stamp_price_norm(data, add_y_prefix(out) if prefix_y else out, price_norm_meta)
+    return _split_roles.stamp_role(
+        stamp_label_end(data, stamp_level_channel(data, stamp_price_norm(data, add_y_prefix(out) if prefix_y else out, price_norm_meta), level_meta), config),
+        _split_roles.HOLDOUT)
 
 
 def build_leak_free_split(data: Dict,
@@ -861,9 +972,8 @@ def rolling_splits(data: Dict, test_span=None, val_span=None,
 
     out: List[Tuple[dict, dict, dict]] = []
     for i, w in enumerate(schedule, 1):
-        train_mask = np.asarray((ts > w['train_start']) & (ts <= w['train_end']))
-        val_mask = np.asarray((ts > w['train_end'] + gap) & (ts <= w['val_end']))
-        test_mask = np.asarray((ts > w['val_end'] + gap) & (ts <= w['test_end']))
+        masks = SplitPlan.from_dates(w['train_end'], w['val_end'], gap, train_start=w['train_start'], test_end=w['test_end']).masks(ts)
+        train_mask, val_mask, test_mask = (np.asarray(masks[r]) for r in ('train', 'val', 'test'))
 
         sizes = {'train': int(train_mask.sum()), 'val': int(val_mask.sum()),
                 'test': int(test_mask.sum())}
@@ -893,7 +1003,7 @@ def rolling_splits(data: Dict, test_span=None, val_span=None,
             else:
                 for asset_split in test.values():
                     add_y_prefix(asset_split)
-        train, val, test = finish_price_norm(data, train, val, test)   # لكل نافذة إحصاءات train نافذتها وحدها
+        train, val, test = _finish_splits(data, train, val, test, config)   # لكل نافذة إحصاءات train نافذتها وحدها
 
         if verbose:
             print(f"🔁 نافذة {i}/{len(schedule)}: "

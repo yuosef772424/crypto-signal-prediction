@@ -18,10 +18,17 @@ PITFALLS: The unit is the TIMESTAMP: coin-time rows are never resampled or count
 """
 import argparse
 import math
+import os
+import sys
 from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
+
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)   # stats/ sits next to tools/ (this module is imported with only tools/ on the path)
+from stats.metrics import pearson  # noqa: E402
 
 LOSSES = ("abs", "sq", "precomputed")
 BOOT_KINDS = ("stationary", "moving")
@@ -325,9 +332,10 @@ def _ic_series(df, ts_col, y_col, pred_col, min_assets):
         if len(g) < min_assets:
             continue
         a, b = g["_ry"].to_numpy(), g["_rp"].to_numpy()
-        if a.std() == 0 or b.std() == 0:
+        r = pearson(a, b, nan_policy="propagate", min_n=1)   # Pearson of the in-timestamp ranks; a constant side -> NaN -> skipped
+        if np.isnan(r):
             continue
-        out[t] = float(np.corrcoef(a, b)[0, 1])
+        out[t] = r
     return pd.Series(out, dtype="float64")
 
 
