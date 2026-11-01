@@ -308,7 +308,8 @@ class EvaluateHeadsTests(unittest.TestCase):
 
 class TierOneTests(unittest.TestCase):
     def test_stats_imports_only_core_and_numeric_libraries(self):
-        allowed = {"numpy", "pandas", "scipy", "core", "__future__"}
+        # numeric libraries + core + the standard library (stats/prediction_table.py writes csv / json); any other third-party or repo package fails
+        allowed = {"numpy", "pandas", "scipy", "core", "__future__"} | set(sys.stdlib_module_names)
         for f in sorted((ROOT / "stats").glob("*.py")):
             for node in ast.walk(ast.parse(f.read_text(encoding="utf-8"))):
                 mods = ([a.name for a in node.names] if isinstance(node, ast.Import)

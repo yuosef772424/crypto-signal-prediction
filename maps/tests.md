@@ -1004,7 +1004,7 @@
   - `class MinRunHoursJobTests(unittest.TestCase)` L283
     - (2 methods)
 
-### `tests/test_stats_metrics.py` (356 lines)
+### `tests/test_stats_metrics.py` (357 lines)
 - PURPOSE: stats/ (Tier 1): one implementation per metric with an explicit tie/NaN policy (hardening audit C7, PR 10). (from docstring)
 - DEPENDS: core, stats, tools
 - API:
