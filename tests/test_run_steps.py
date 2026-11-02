@@ -41,8 +41,10 @@ def _dataset(two_tf, holdout):
 
 def settings_for(ns, sc, run_dir):
     """The RunSettings of a recorded scenario (the old notebook globals / evaluate_trained_model patches, as settings)."""
+    # suspended_targets=None: the OLD rule (close suspended outside entry_range) the golden fingerprints of the old cells were recorded with;
+    # the project default is () since 2026-11-02 (tests/test_suspended_targets.py pins that)
     upd = {"target": {"target_mode": sc.get("target_mode"), "entry_close_reg": sc.get("entry_close_reg", "abs_return"),
-                      "group_freq": sc.get("group_freq")},
+                      "group_freq": sc.get("group_freq"), "suspended_targets": None},
            "model": {"anti_memorization": sc.get("anti_memorization", True), "class_only": sc.get("class_only", False)},
            "data": {"model_tfs": sc.get("model_tfs")},
            "train": {"run_main_training": bool(sc.get("train")), "run_dir": run_dir, "fit_verbose": 0}}
@@ -218,13 +220,15 @@ class StepContracts(unittest.TestCase):
     def test_plan_model_rules(self):
         ns, kit, settings, ds, info = self._loaded()
         p = ns["plan_model"](settings, ds, info, kit)
-        self.assertEqual((p.price_targets, p.suspended_targets), (("high", "low"), ("close",)))
+        self.assertEqual((p.price_targets, p.suspended_targets), (("high", "low", "close"), ()))          # default: every target
+        old = ns["plan_model"](self.S().updated({"target": {"suspended_targets": None}}), ds, info, kit)
+        self.assertEqual((old.price_targets, old.suspended_targets), (("high", "low"), ("close",)))        # None: the old rule
         self.assertEqual((p.seq_len, p.n_features, p.model_seq_len), (16, 18, 16))
         self.assertFalse(p.model_overrides["enforce_order"])
         e = ns["plan_model"](self.S().updated({"target": {"target_mode": "entry_range"}}), ds, info, kit)
         self.assertEqual((e.price_targets, e.suspended_targets), (("high", "low", "close"), ()))
         c = ns["plan_model"](self.S().updated({"model": {"class_only": True, "anti_memorization": False}}), ds, info, kit)
-        self.assertEqual(c.model_overrides["head_types"], {"high": ["binary_classification"], "low": ["binary_classification"]})
+        self.assertEqual(c.model_overrides["head_types"], {t: ["binary_classification"] for t in ("high", "low", "close")})
         self.assertNotIn("d_model", c.model_overrides)                           # no anti-memorization architecture
         self.assertIn("d_model", p.model_overrides)
         # a real_price-mode data file (reg_target_mode != return) keeps OrderedMeans only for the pipeline's own targets

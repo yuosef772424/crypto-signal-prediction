@@ -132,12 +132,15 @@ class TargetSettings(_SettingsSection):
     entry_close_reg: str = "abs_return"
     #: Width of the cross-section group of the +relative modes (e.g. "1D", "4h", "32h"); None = the exact timestamp.
     group_freq: _t.Optional[str] = None
-    #: Which price targets of CONFIG['targets'] the model does NOT train / evaluate. None = the old rule exactly (close suspended unless
-    #: target_mode starts with "entry_range"); () = train every target (close gets nig_regression + binary_classification heads, or the
-    #: classification head only with ModelSettings.class_only); a tuple of names = suspend exactly those. Unknown names or suspending all
-    #: targets raise in workflow.run.plan_model. Not None changes the run folder name (run_dir_for: "_susp-none" / "_susp-<names>").
+    #: Which price targets of CONFIG['targets'] the model does NOT train / evaluate. Default () (owner decision 2026-11-02) = train every
+    #: target: close gets nig_regression + binary_classification heads (or the classification head only with ModelSettings.class_only).
+    #: None = the OLD rule exactly (close suspended unless target_mode starts with "entry_range"): use it to resume or evaluate a model
+    #: trained before this default changed (high/low heads only); a tuple of names = suspend exactly those. Unknown names or suspending
+    #: all targets raise in workflow.run.plan_model. A non-None value changes the run folder name (run_dir_for: "_susp-none" /
+    #: "_susp-<names>"). To resume / evaluate a model trained before the default changed (including an entry_range one, whose
+    #: architecture is the same but whose folder had no suffix) set None: the old rule and the old folder name.
     #: A JSON round-trip gives a list: it is normalised to a tuple.
-    suspended_targets: _t.Optional[tuple] = None
+    suspended_targets: _t.Optional[tuple] = ()
 
     def __post_init__(self):
         if self.suspended_targets is not None:

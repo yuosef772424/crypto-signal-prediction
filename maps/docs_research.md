@@ -220,7 +220,7 @@ Documents:
 - `E-rel-001.md` — Experiment card — E-rel-001: absolute vs within-timestamp relative target on the current 4h model l…
 
 ## `docs/research/hardening/`
-- hardening/: root-cause audits of the codebase before a new experiment round | 0 scripts, 7 md, 3 data files (11 KB)
+- hardening/: root-cause audits of the codebase before a new experiment round | 0 scripts, 8 md, 3 data files (20 KB)
 
 Documents:
 - `PLAN_2026-11.md` — Execution plan 2026-11 (owner request, 2026-11-02)
@@ -228,11 +228,12 @@ Documents:
 - `STATUS.md` — STATUS: hardening + execution plan 2026-11
 - `audit_2026-10-31.md` — Hardening audit, 2026-10-31 (auditor: root-cause classes of fragility)
 - `external_research_prompts.md` — تعليمات بحث خارجي (لأداة البحث التي أنتجت `cryptoformer.zip`)
+- `profile_2026-11.md` — Run profile 2026-11 (S03 evidence, S04 candidates)
 - `proposal_cascaded_stages.md` — Proposal: cascaded / stacked training stages
 - `proposal_rolling_retrain.md` — Proposal: rolling-retrain study (does the market change enough to make the model random?)
 
 Data / other files (counts only):
-- `.`: csv×2, txt×1 — 11 KB
+- `.`: csv×2, txt×1 — 20 KB
 
 ## `docs/research/notes/`
 - External research takeaways (2026-10-20) | 0 scripts, 3 md, 0 data files (0 B)
@@ -243,7 +244,7 @@ Documents:
 - `pr13_restructuring_history.md` — PR #13 restructuring: history facts (evil merges, move+modify commits, verbatim extraction)
 
 ## `docs/research/plan/`
-- Colab runner: one click per experiment | 0 scripts, 21 md, 6 data files (547 KB)
+- Colab runner: one click per experiment | 0 scripts, 22 md, 6 data files (547 KB)
 
 Documents:
 - `COLAB_RUNNER.md` — Colab runner: one click per experiment
@@ -265,6 +266,7 @@ Documents:
 - `decisions/D-010-dead-coins-amendment.md` — D-010: R0 lock amendment, dead coins in the sealed buckets
 - `decisions/D-011-screening-kernel-dormant.md` — D-011: screening kernel (`LAB_DESIGN.md` rev. 2), accepted in principle and DORMANT
 - `decisions/D-012-system-improves-over-time.md` — D-012: development friction is a bottleneck too; shared namespace goes gradually; models plug in by…
+- `decisions/D-013-default-changes-s03.md` — D-013: three default changes from the S03 profiling (close is a default target, prediction batch 20…
 - `decisions/README.md` — Owner decisions (ADR style)
 - `lock/README.md` — Lock: sealed-holdout specification (phase R0)
 

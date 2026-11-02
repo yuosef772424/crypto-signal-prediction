@@ -137,6 +137,7 @@
 - bootstrap: tools/drive_sync
 - bootstrap month blocks: norm_probe/run_norm_probe
 - bot2 get_range_forecast: tools/natr_range
+- bottleneck: tools/profile_run
 - bracket: tools/bracket_eval
 - bracket table: cross_asset/report
 - break attempt: edge_discovery/17_h07_break
@@ -175,7 +176,7 @@
 - bundle: tools/colab_runner
 - buy and hold: edge_discovery/14_holdout
 - buy and hold benchmark: edge_discovery/16_h07_oos
-- calibration: tools/natr_range
+- calibration: tools/natr_range, tools/signal_diagnostics
 - calibration report: natr_range/run_natr_range
 - calibration_report: evaluation/trust_calibration
 - callback: trainer/snapshot
@@ -232,10 +233,10 @@
 - coin categories: data/defaults
 - coinmetrics: edge_discovery/16_h07_oos, edge_discovery/20_onchain
 - coins_by_category: data/defaults
-- colab: data/drive, edge_discovery/25_image_cnn, tools/colab_bridge, tools/colab_runner, tools/colab_smoke, tools/data_manifest … (+2)
+- colab: data/drive, edge_discovery/25_image_cnn, tools/colab_bridge, tools/colab_runner, tools/colab_smoke, tools/data_manifest … (+3)
 - colab cell: tools/data_manifest_colab_cell, tools/fetch_history_colab_cell
 - colab disconnect: trainer/epoch_callbacks
-- colab job: natr_range/run_natr_calibrate, natr_range/run_natr_confirm, natr_range/run_natr_confirm_forward, natr_range/run_natr_rolling, tools/stale_bars_colab_job, tools/trim_dead_tails_colab_job
+- colab job: natr_range/run_natr_calibrate, natr_range/run_natr_confirm, natr_range/run_natr_confirm_forward, natr_range/run_natr_rolling, tools/profile_run, tools/stale_bars_colab_job … (+1)
 - colab-queue: tools/colab_runner
 - colab-results: tools/colab_runner
 - collect_run_identity: trainer/identity
@@ -252,7 +253,7 @@
 - compute_loss: trainer/trainer
 - compute_trading_performance_metrics: evaluation/tearsheet
 - concat_splits: signal_eval/integration
-- confidence: evaluation/trust_calibration, workflow/selective_eval
+- confidence: evaluation/trust_calibration, tools/signal_diagnostics, workflow/selective_eval
 - confidencehead: model/nig_layers
 - config: data/__init__, data/runtime
 - config default: tools/check_patterns
@@ -294,6 +295,7 @@
 - crossassetblock: cross_asset/model
 - crypto_data_pipeline_v6: data/__init__
 - csv: tools/fetch_history_csv_concurrent
+- cuda: tools/gpu_diag
 - cumulative r: indicator_strategy/charts
 - custom features: data/custom
 - custom_feature_names: data/custom
@@ -328,7 +330,7 @@
 - decile: signal_eval/core
 - decile correction: natr_range/run_natr_calibrate, natr_range/run_natr_rolling
 - decile long-short: edge_discovery/18_h13_pr7_signal
-- decile table: workflow/market_neutral
+- decile table: tools/signal_diagnostics, workflow/market_neutral
 - decile_spread: signal_eval/core
 - decision metric: strategy_discovery/forward
 - decision tree: evaluation/patterns
@@ -369,6 +371,7 @@
 - diagnose_data_vs_configs: data/diagnostics
 - diagnose_feature_availability: data/diagnostics
 - diagnose_model: model/diagnostics
+- diagnosis: tools/gpu_diag
 - diagnostic: edge_discovery/23_chart_rules_gross
 - diagnostics: data/diagnostics, workflow/diagnostics
 - diagnostics callback: trainer/training_diagnostics
@@ -614,7 +617,8 @@
 - global_time: data/split
 - golden: tests/run_fixture
 - google drive: data/drive
-- gpu: trainer/perf
+- gpu: tools/gpu_diag, trainer/perf
+- gpu memory: tools/profile_run
 - gqa: model/transformer
 - gradient boosting: h07_volsizing/01_volsizing
 - grid: edge_discovery/21_range_fade
@@ -713,11 +717,13 @@
 - infer_feature_columns: data/features
 - inference: data/live, trainer/ensemble
 - information coefficient: signal_eval/core
+- informative signal: tools/signal_diagnostics
 - inject: tools/nb_cells
 - input fingerprint: tools/data_manifest
 - input normalisation: model/input_norm
 - input normalization: norm_probe/run_norm_probe
 - input patterns: evaluation/io_patterns
+- input pipeline: tools/profile_run
 - input_clip: model/input_norm
 - inside bar: edge_discovery/22_chart_rules
 - instancenorm: model/input_norm
@@ -889,6 +895,7 @@
 - media.githubusercontent: tools/fetch_crypto_dataset
 - memmap: data/disk_backed, data/storage, workflow/batches
 - memorization: workflow/generalization
+- memory: tools/profile_run
 - memory growth: trainer/perf
 - metric definition: tools/check_patterns
 - metrics: cross_asset/report, evaluation/metrics, trainer/metrics
@@ -993,6 +1000,7 @@
 - num_patches: model/patches
 - numba: edge_discovery/21_range_fade, edge_discovery/22_chart_rules
 - numpy: model/common
+- nvidia-smi: tools/gpu_diag
 - ohlc: tools/fetch_crypto_dataset
 - ohlcv: data/features
 - oi change: edge_discovery/features
@@ -1060,6 +1068,7 @@
 - pattern ratchet: tools/check_patterns
 - pct_change: data/normalize
 - pct_change_overrides: data/presets
+- peak rss: tools/profile_run
 - per-asset predict loop: tools/check_patterns
 - per-coin consistency: indicator_strategy/screen
 - per-coin events: edge_discovery/events
@@ -1072,7 +1081,7 @@
 - per_window: signal_eval/windows
 - performance: evaluation/pooled, trainer/perf
 - permutation control: workflow/permutation_control
-- permutation test: evaluation/io_patterns, signal_eval/core
+- permutation test: evaluation/io_patterns, signal_eval/core, tools/signal_diagnostics
 - permutation_baseline: signal_eval/core
 - perturbation: tests/test_no_lookahead
 - phase 0: signal_eval/__init__
@@ -1083,6 +1092,7 @@
 - pin bar: edge_discovery/22_chart_rules
 - pinball: natr_range/run_natr_range
 - pinball loss: tools/natr_range
+- pip: tools/gpu_diag
 - pipeline: data/pipeline
 - pipeline package: data/_loader
 - pipeline_default_config: data/defaults
@@ -1133,6 +1143,8 @@
 - print_trade_selection: evaluation/trade_selection
 - print_verdicts: model/diagnostics
 - process_windows: data/normalize
+- profile: tools/profile_run
+- profiler: tools/profile_run
 - profit factor: indicator_strategy/screen
 - profit target: hedge_recovery/sim2
 - projectsettings: workflow/settings
@@ -1254,7 +1266,7 @@
 - rsi2 pullback: strategy_discovery/grid
 - rsi_zone: tools/gate_features
 - rule_cpos: workflow/candle_baseline
-- run contract: gate_features/run_gate001, natr_range/run_natr_confirm, natr_range/run_natr_range, tools/colab_runner, tools/colab_smoke, tools/stale_bars_colab_job … (+1)
+- run contract: gate_features/run_gate001, natr_range/run_natr_confirm, natr_range/run_natr_range, tools/colab_runner, tools/colab_smoke, tools/gpu_diag … (+3)
 - run fixture: tests/run_fixture
 - run identity: core/seeds, trainer/identity
 - run_batch_and_register: discovery/__init__, discovery/batch_runner
@@ -1268,7 +1280,7 @@
 - run_integrity_diagnostics: evaluation/integrity
 - run_kfold_training: trainer/kfold
 - run_label_permutation_control: workflow/permutation_control
-- run_main: workflow/run
+- run_main: tools/profile_run, workflow/run
 - run_main_training: workflow/settings
 - run_model_selftests: model/selftests, tools/run_self_tests
 - run_panel: workflow/run
@@ -1289,6 +1301,7 @@
 - runresult: workflow/run
 - runsettings: tests/run_fixture, tools/evaluate_trained_model, tools/settings_catalog, workflow/settings
 - runsettings steps: workflow/run
+- s03: tools/gpu_diag, tools/profile_run, tools/signal_diagnostics
 - safe load: discovery/axis_loader
 - salt: tools/build_lock
 - sample size guard: strategy_discovery/oos, strategy_discovery/survivor_checks
@@ -1353,6 +1366,7 @@
 - signal_eval package: signal_eval/_loader
 - signal_evaluation_axis: discovery/axis_loader
 - signal_significance_report: evaluation/tearsheet
+- signals csv: tools/signal_diagnostics
 - signals file: cross_asset/report
 - signatures: tools/build_map
 - significance: strategy_discovery/significance
@@ -1375,7 +1389,7 @@
 - softmax: evaluation/decode
 - source github/drive: tools/data_manifest_colab_cell, tools/fetch_history_colab_cell
 - sources: data/sources
-- spearman: signal_eval/core
+- spearman: signal_eval/core, tools/signal_diagnostics
 - speirsy11: tools/fetch_crypto_dataset
 - spill: data/disk_backed
 - split: data/split
@@ -1402,6 +1416,7 @@
 - stats: edge_discovery/tsbt
 - stats_mode: model/input_norm
 - std_ic: signal_eval/windows
+- steps per second: tools/profile_run
 - stop loss: edge_discovery/13_listing_stops, tools/bracket_eval
 - storage: data/storage
 - stress test: edge_discovery/17_h07_break
@@ -1465,6 +1480,8 @@
 - tempfile: signal_eval/registry_selftests
 - template: trainer/example
 - tensorflow: model/common
+- tensorflow-cpu: tools/gpu_diag
+- tensorflow[and-cuda]: tools/gpu_diag
 - test: indicator_strategy/test_final
 - test auc: edge_discovery/26_h19_generalization
 - test_all_assets: evaluation/all_assets
@@ -1474,7 +1491,7 @@
 - tests: tests/run_fixture
 - tests/test_cross_asset: cross_asset/selftest
 - tf: core/timeframe
-- tf.data: workflow/batches
+- tf.data: tools/profile_run, workflow/batches
 - tf.keras.model subclass: trainer/trainer
 - threads: data/parallel
 - tier 0: core/__init__, core/registry, core/seeds, core/timeframe
@@ -1486,6 +1503,7 @@
 - timeframe: core/timeframe
 - timeframe resample: indicator_strategy/engine, tools/trade_engine
 - timestamps: evaluation/latest_table
+- timing callback: tools/profile_run
 - token: tools/colab_runner
 - token language: edge_discovery/28_token_decompose
 - tokens: edge_discovery/27_repr_info, tools/build_map
@@ -1544,7 +1562,7 @@
 - two-level holdout: tools/build_lock
 - typevar: data/common
 - typing: data/common, signal_eval/common
-- uncertainty: evaluation/legacy_uncertainty
+- uncertainty: evaluation/legacy_uncertainty, tools/signal_diagnostics
 - uncertainty floor: core/constants
 - uncertaintyweightedloss: trainer/task_weighting
 - unchecked setting: tools/settings_catalog
@@ -1588,6 +1606,7 @@
 - volume donchian: strategy_discovery/survivor_checks
 - vwap: data/funding_oi
 - walk-forward: trainer/kfold
+- wall time: tools/profile_run
 - warm_start: trainer/checkpoints, trainer/smoke_test
 - wavelet: edge_discovery/27_repr_info
 - weights: tools/evaluate_trained_model
@@ -1604,10 +1623,11 @@
 - windowscale: data/normalizers
 - wiring: workflow/wiring_selftest
 - with_sample_index: trainer/training_diagnostics
+- within-asset correlation: tools/signal_diagnostics
 - within_day: workflow/permutation_control
 - workflow: workflow/__init__
 - workflow package: workflow/_loader
-- workflow.run steps: tools/evaluate_trained_model
+- workflow.run steps: tools/evaluate_trained_model, tools/profile_run
 - wr: tools/gate_features
 - xla: trainer/perf
 - y_ target head names: tools/check_patterns

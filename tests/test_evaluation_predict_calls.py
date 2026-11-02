@@ -24,6 +24,7 @@ import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 import tensorflow as tf  # noqa: E402
 
+from core.schema import PREDICT_BATCH_SIZE  # noqa: E402
 import run_fixture as rf  # noqa: E402
 import test_run_steps as trs  # noqa: E402
 
@@ -367,7 +368,7 @@ class PooledPathEqualsPerCoinPath(unittest.TestCase):
         pts, model_tf = list(res.plan.price_targets), res.info.model_tfs
         cm = CountingModel(res.model)
         new = self.ns["classification_accuracy_report"](cm, res.test, pts, model_tf)
-        self.assertEqual(cm.calls, math.ceil(sum(len(d["base_params"]) for d in res.test.values()) / 256))
+        self.assertEqual(cm.calls, math.ceil(sum(len(d["base_params"]) for d in res.test.values()) / PREDICT_BATCH_SIZE))
         assert_close_tree(self, new, legacy_classification_report(res.model, res.test, pts, model_tf, self.ns),
                           "entry_range_class_only", "classification_accuracy_report")
 
@@ -377,7 +378,7 @@ class PooledPathEqualsPerCoinPath(unittest.TestCase):
             total = sum(len(d["base_params"]) for d in td.values())
             cm = CountingModel(model)
             rf._quiet(self.ns["test_all_assets_v4"], cm, td, tfs, specs, verbose=False, n_display=0)
-            self.assertEqual(cm.calls, math.ceil(total / 256), mode)
+            self.assertEqual(cm.calls, math.ceil(total / PREDICT_BATCH_SIZE), mode)        # the default evaluation batch (core.schema)
 
     @classmethod
     def tearDownClass(cls):

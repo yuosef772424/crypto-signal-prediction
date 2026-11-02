@@ -3,6 +3,8 @@ PURPOSE:  The ONE batched evaluation predict path (lifted from workflow/pooling.
 TAGS:     pooling, predict_pooled_raw, pool_x, pool_test_dict, predict_pooled_batch_by_asset, _pool_by_asset, slice_by_asset, asset_bounds, latest_table_from_raw, one model call, batched evaluation, performance
 PITFALLS: Every per-asset evaluation site (test_all_assets_v4, predict_latest_all_assets, predict_pooled_batch_by_asset, workflow's classification_accuracy_report) must go through this module instead of calling the model once per asset: 500 coins x one tiny predict call each was ~50x slower than one pooled call. The model is independent of batch composition (no BatchNorm in inference), so pooled raw outputs equal the per-asset ones up to float reduction order (rtol 1e-5); decode / evaluate / table code is numpy-only and unchanged. asset_bounds = [{'name', 'start', 'end'}] (same format as the pipeline's rolling_splits / build_dataset_live). Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
 """
+from core.schema import PREDICT_BATCH_SIZE            # حجم دفعة التوقع (المصدر الوحيد: core/schema.py)
+
 def _pool_by_asset(per_asset_arrays: dict, order=None):
     """يدمج {أصل: مصفوفة} في مصفوفة واحدة + قائمة asset_bounds (نفس تنسيق
     `rolling_splits`/`build_dataset_live` في خط الأنابيب) — أساس بسيط لدمج
@@ -73,7 +75,7 @@ def pool_test_dict(test_dict, model_tf, n_per_asset=None, names=None, with_y=Tru
     return pooled, y_true_pooled
 
 
-def predict_pooled_raw(model, pooled, timeframes, target_specs=None, batch_size: int = 256, unc_max=None):
+def predict_pooled_raw(model, pooled, timeframes, target_specs=None, batch_size: int = PREDICT_BATCH_SIZE, unc_max=None):
     """**استدعاء النموذج الوحيد** لكل الأصول معاً: دفعات ثابتة الحجم على المدخلات المدمجة (``pooled['X_<tf>']``، من
     pool_x/pool_test_dict أو من extract_last_batch). يُرجع ``(raw, specs)``: raw = مخرج predict_batch_v4 الخام لكل الصفوف
     المدمجة (يُقسَّم لكل أصل بـ slice_by_asset)، وspecs = TargetSpec المحلولة من النموذج."""

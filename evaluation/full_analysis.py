@@ -11,12 +11,14 @@ PITFALLS: Tests exclude this module on the general load and exec it explicitly (
 # 🚀 الدالة الرئيسية الموحّدة v2: كل التحليلات + الرسوم + إدارة المخرجات
 # ═══════════════════════════════════════════════════════════════════════════
 
+from core.schema import PREDICT_BATCH_SIZE            # حجم دفعة التوقع (المصدر الوحيد: core/schema.py)
+
 def run_full_analysis(
     model,
     test_dict: Dict,
     timeframes: List[str],
     target_specs: List['TargetSpec'],
-    batch_size: int = 256,
+    batch_size: int = PREDICT_BATCH_SIZE,
     range_frac: float = 0.2,
     batch_analysis_size: int = 100,
     out_dir: str = DEFAULT_OUTPUT_DIR,

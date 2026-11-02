@@ -241,9 +241,10 @@ def plan_model(settings, dataset, info, kit):
     n_features_by_tf = {tf: n_features for tf in model_tfs}
     model_seq_len = seq_lens if len(model_tfs) > 1 else seq_len
     model_n_features = n_features_by_tf if len(model_tfs) > 1 else n_features
-    # ⏸️ close معلّق مؤقتاً: اتجاه الإغلاق بلا معلومة قابلة للتنبؤ (test AUC ≈ 0.544 ≈ خط الأساس)، فيُدرَّب النموذج
-    # ويُقيَّم على high/low فقط. خط الأنابيب ما زال يحسب y_close_* — إعادته = إفراغ هذه القائمة، بلا إعادة بناء بيانات.
-    # entry_range (القسم ٣-ب): close ليس اتجاهاً بل موقع الإغلاق داخل المدى المحقَّق [0,1]، فيُفعَّل (قرار المستخدم).
+    # الأهداف المعلّقة (TargetSettings.suspended_targets): الافتراضي () = كل الأهداف (high, low, close) — قرار المالك 2026-11-02؛ كان close معلّقاً
+    # لأن اتجاه الإغلاق بلا معلومة قابلة للتنبؤ (test AUC ≈ 0.544 ≈ خط الأساس). None = القاعدة القديمة حرفياً: close معلّق خارج entry_range
+    # (لاستئناف/تقييم نموذج دُرِّب على high/low فقط). خط الأنابيب يحسب y_close_* دائماً.
+    # entry_range (القسم ٣-ب): close ليس اتجاهاً بل موقع الإغلاق داخل المدى المحقَّق [0,1].
     entry_range = str(settings.target.target_mode or "").startswith("entry_range")
     suspended = settings.target.suspended_targets
     if suspended is None:

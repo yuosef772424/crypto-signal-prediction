@@ -17,6 +17,8 @@ PITFALLS: Tests exclude this module on the general load and exec it explicitly (
 #   • الأهداف تُمرَّر كنصوص أو TargetSpec؛ والأهداف غير المطلوبة تُتجاهل.
 # ═══════════════════════════════════════════════════════════════════════════
 
+from core.schema import PREDICT_BATCH_SIZE            # حجم دفعة التوقع (المصدر الوحيد: core/schema.py)
+
 def summarize_verification(verification_df: pd.DataFrame) -> pd.DataFrame:
     """يجمع تقارير verify_decoding لكل الأصول في صف واحد لكل هدف."""
     if verification_df is None or verification_df.empty:
@@ -136,7 +138,7 @@ def test_all_assets_v4(
     target_specs,
     verbose: bool = True,
     n_display: int = 1,
-    batch_size: int = 256,
+    batch_size: int = PREDICT_BATCH_SIZE,
     range_frac: float = 0.2,
     min_samples_per_asset: int = 20,
     run_verification: bool = True,
@@ -362,7 +364,7 @@ def calculate_aggregated_metrics_v4(results_df: pd.DataFrame, target_specs) -> D
 
 # دالة قديمة تبقى للتوافق الخلفي (تقبل الآن نصوصاً أو TargetSpec)
 def test_all_assets(model, test_dict, timeframes, targets, verbose=True, n_display=1,
-                     batch_size=256, range_frac=0.2):
+                     batch_size=PREDICT_BATCH_SIZE, range_frac=0.2):
     """(نسخة سابقة - محفوظة للتوافق)"""
     specs = resolve_targets(targets)
     result = test_all_assets_v4(model, test_dict, timeframes, specs, verbose, n_display,

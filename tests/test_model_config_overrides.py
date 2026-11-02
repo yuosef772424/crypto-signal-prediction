@@ -68,14 +68,15 @@ class ConfigOverrides(unittest.TestCase):
 
     def test_folder_name(self):
         run_dir_for = self.ns["run_dir_for"]
-        base = run_dir_for(self.S(), 1.0, ("1h",))
-        self.assertEqual(run_dir_for(self.S().updated({"model": {"config_overrides": {}}}), 1.0, ("1h",)), base)
-        a = self.S().updated({"model": {"config_overrides": {"use_instance_norm": False, "d_model": 32}}})
-        b = self.S().updated({"model": {"config_overrides": {"d_model": 32, "use_instance_norm": False}}})
+        s0 = self.S().updated({"target": {"suspended_targets": None}})     # the old rule: the "_susp-..." suffix comes last and is tested elsewhere
+        base = run_dir_for(s0, 1.0, ("1h",))
+        self.assertEqual(run_dir_for(s0.updated({"model": {"config_overrides": {}}}), 1.0, ("1h",)), base)
+        a = s0.updated({"model": {"config_overrides": {"use_instance_norm": False, "d_model": 32}}})
+        b = s0.updated({"model": {"config_overrides": {"d_model": 32, "use_instance_norm": False}}})
         self.assertNotEqual(run_dir_for(a, 1.0, ("1h",)), base)
         self.assertTrue(run_dir_for(a, 1.0, ("1h",)).startswith(base))
         self.assertEqual(run_dir_for(a, 1.0, ("1h",)), run_dir_for(b, 1.0, ("1h",)))
-        c = self.S().updated({"model": {"config_overrides": {"d_model": 64}}})
+        c = s0.updated({"model": {"config_overrides": {"d_model": 64}}})
         self.assertNotEqual(run_dir_for(c, 1.0, ("1h",)), run_dir_for(a, 1.0, ("1h",)))
 
     def test_roundtrip(self):

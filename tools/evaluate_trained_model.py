@@ -3,7 +3,7 @@ PURPOSE:  Evaluates a model trained in main.ipynb without Drive or training: bui
           workflow/run.py steps (no notebook text is patched); also runs the panel model (--panel).
 TAGS:     evaluate trained model, eval CLI, RunSettings, workflow.run steps, weights, target-mode, split-dates, panel
           evaluation, gap report, market-neutral portfolio
-PITFALLS: --target-mode must match the mode the weights were trained with (the training folder name carries it: ..._relative_am).
+PITFALLS: --target-mode must match the mode the weights were trained with (the training folder name carries it: ..._relative_am). The default targets are high+low+close (owner decision 2026-11-02); weights trained before it (high/low heads only) need --suspended-targets OLD.
           The four runner notebooks (pipeline, model_v2, trainer, chicks) are executed like Colab's %run (Drive/%cd cells skipped), so a
           run pays their self-tests; main.ipynb itself is never read. Reports run in the current directory = --out.
 
@@ -102,6 +102,10 @@ def build_parser():
     ap.add_argument("--entry-close-reg", default=None, choices=ENTRY_CLOSE_REG_CHOICES, metavar="REG",
                     help=f"target.entry_close_reg في main (مع --target-mode entry_range)، أحد {ENTRY_CLOSE_REG_CHOICES}. "
                          "بلا الخيار = abs_return")
+    ap.add_argument("--suspended-targets", default=None, metavar="OLD|NAMES",
+                    help="target.suspended_targets في main. بلا الخيار = الافتراضي الحالي (كل الأهداف: high+low+close). OLD = القاعدة القديمة "
+                         "(close معلّق خارج entry_range) لأوزان دُرِّبت على high/low فقط؛ أو أسماء مفصولة بفواصل تُعلَّق (مثلاً close)",
+                    )
     ap.add_argument("--group-freq", default=None,
                     help="عرض مجموعة الطوابع المقطعية (مثلاً 32h) لـ +relative (group_freq في retarget_splits) ولنموذج "
                          "اللوحة (day_ns) معاً — لبيانات لا تتطابق طوابع عملاتها. None = الطابع الدقيق / يوم UTC")
@@ -149,6 +153,9 @@ def build_settings(a, settings_cls, invoke_cwd=None, ns=None):
            "data": {}, "train": {"run_main_training": bool(a.train)}}
     if a.entry_close_reg:
         upd["target"]["entry_close_reg"] = a.entry_close_reg
+    if a.suspended_targets:
+        upd["target"]["suspended_targets"] = None if a.suspended_targets.upper() == "OLD" else tuple(
+            t.strip() for t in a.suspended_targets.split(",") if t.strip())
     if a.model_tfs:
         upd["data"]["model_tfs"] = tuple(t.strip() for t in a.model_tfs.split(",") if t.strip())
     if a.split_dates:

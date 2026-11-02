@@ -414,7 +414,10 @@ def runsettings_user_configs(ns):
     tests/golden_run_settings.json), on stub inputs (a val split with +-1 labels, a plan with price targets). Plus the re-built
     config of each (capacity / permutation control feed the built config back) and the capacity-style patch of it."""
     from test_run_steps import settings_for
-    S = ns["RunSettings"]
+    # suspended_targets=None: the OLD rule. The recorded configs predate the all-targets default (2026-11-02), which adds "_susp-none" to run_dir for
+    # every default RunSettings; the variant "suspended_targets" below sets () explicitly, as it always did.
+    def S():
+        return ns["RunSettings"]().updated({"target": {"suspended_targets": None}})
     seen = []
     kit = types.SimpleNamespace(
         build_config=lambda uc: (seen.append(copy.deepcopy(uc)), ns["build_config"](uc))[1], deep_update=ns["deep_update"])

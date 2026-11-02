@@ -145,7 +145,9 @@ class Strictness(unittest.TestCase):
 class RunDir(unittest.TestCase):
     def test_folder_name_follows_the_settings(self):
         ns = _ns()
-        S = ns["RunSettings"]
+
+        def S():                      # the old rule: this test pins the other suffixes; the suspended_targets one is in test_suspended_targets
+            return ns["RunSettings"]().updated({"target": {"suspended_targets": None}})
         base = "/content/drive/MyDrive/training_runs/crypto_model_v1"
         f = ns["run_dir_for"]
         self.assertEqual(f(S(), 1.0, ("1D",)), base + "_am")
@@ -162,7 +164,8 @@ class RunDir(unittest.TestCase):
         for name, sc in GOLDEN["scenarios"].items():
             a = sc["scenario"]
             s = ns["RunSettings"]().updated({
-                "target": {"target_mode": a.get("target_mode"), "entry_close_reg": a.get("entry_close_reg", "abs_return")},
+                "target": {"target_mode": a.get("target_mode"), "entry_close_reg": a.get("entry_close_reg", "abs_return"),
+                           "suspended_targets": None},     # the old rule: the recorded folders predate the all-targets default
                 "model": {"anti_memorization": a.get("anti_memorization", True), "class_only": a.get("class_only", False)},
                 "train": {"run_dir": "<WORK>/run" if a.get("train") else GOLDEN["defaults"]["train"]["run_dir"]}})
             got = ns["run_dir_for"](s, sc["reg_target_scale"], sc["model_tfs"])      # the recorder trained in <work>/run

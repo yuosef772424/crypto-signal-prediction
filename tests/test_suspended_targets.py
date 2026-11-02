@@ -1,5 +1,5 @@
-"""TargetSettings.suspended_targets: None = the old rule (close suspended outside entry_range) and the old folder name; () trains close
-too and it reaches the model heads and the chicks evaluation inputs; unknown names / suspending everything raise; a non-None value
+"""TargetSettings.suspended_targets: the DEFAULT is () (owner decision 2026-11-02): close is trained in every mode and reaches the model
+heads and the chicks evaluation inputs; None = the old rule (close suspended outside entry_range) and the old folder name; unknown names / suspending everything raise; a non-None value
 changes the folder name; it composes with ModelSettings.config_overrides.
     python -m pytest tests/test_suspended_targets.py -q
 """
@@ -37,12 +37,20 @@ class SuspendedTargets(unittest.TestCase):
         info = rf._quiet(self.ns["apply_dataset_config"], s, ds, self.kit)
         return s, ds, info, self.ns["plan_model"](s, ds, info, self.kit)
 
-    def test_none_is_the_old_rule(self):
+    def test_the_default_trains_close_in_every_mode(self):
         s, _, _, p = self._plan()
+        self.assertEqual(s.target.suspended_targets, ())
+        self.assertEqual((p.price_targets, p.suspended_targets), (("high", "low", "close"), ()))
+        self.assertEqual(p.model_overrides["head_types"]["close"], ["nig_regression", "binary_classification"])
+        e = self._plan(target={"target_mode": "entry_range"})[3]
+        self.assertEqual((e.price_targets, e.suspended_targets), (("high", "low", "close"), ()))
+
+    def test_none_is_the_old_rule(self):
+        s, _, _, p = self._plan(target={"suspended_targets": None})
         self.assertIsNone(s.target.suspended_targets)
         self.assertEqual((p.price_targets, p.suspended_targets), (("high", "low"), ("close",)))
         self.assertNotIn("close", p.model_overrides["head_types"])
-        e = self._plan(target={"target_mode": "entry_range"})[3]
+        e = self._plan(target={"target_mode": "entry_range", "suspended_targets": None})[3]
         self.assertEqual((e.price_targets, e.suspended_targets), (("high", "low", "close"), ()))
 
     def test_empty_trains_close_and_reaches_the_model_and_chicks(self):
@@ -74,10 +82,14 @@ class SuspendedTargets(unittest.TestCase):
 
     def test_folder_name(self):
         f = self.ns["run_dir_for"]
+        old = f(self.S().updated({"target": {"suspended_targets": None}}), 1.0, ("1h",))      # the pre-2026-11-02 default folder
         base = f(self.S(), 1.0, ("1h",))
-        self.assertEqual(f(self.S().updated({"target": {"suspended_targets": None}}), 1.0, ("1h",)), base)
-        none = f(self.S().updated({"target": {"suspended_targets": ()}}), 1.0, ("1h",))
-        self.assertEqual(none, base + "_susp-none")
+        self.assertEqual(base, old + "_susp-none")                                           # the default architecture has close heads: new folder
+        self.assertEqual(f(self.S().updated({"target": {"suspended_targets": ()}}), 1.0, ("1h",)), base)
+        er = {"target_mode": "entry_range"}                    # an old entry_range folder is reached with suspended_targets=None
+        self.assertEqual(f(self.S().updated({"target": dict(er)}), 1.0, ("1h",)),
+                         f(self.S().updated({"target": dict(er, suspended_targets=None)}), 1.0, ("1h",)) + "_susp-none")
+        base0, base = base, old                                                              # the rest compares with the old-rule folder name
         a = f(self.S().updated({"target": {"suspended_targets": ("low", "close")}}), 1.0, ("1h",))
         b = f(self.S().updated({"target": {"suspended_targets": ("close", "low")}}), 1.0, ("1h",))
         self.assertEqual(a, base + "_susp-close-low")

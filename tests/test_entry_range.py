@@ -660,12 +660,13 @@ class EntryRangeConsumerTests(unittest.TestCase):
         self.assertEqual(set(ENTRY_CLOSE_REG_CHOICES), set(REGS))
 
     def test_suspended_targets_follow_mode(self):
-        """القسم ٤ (plan_model): close مُفعَّل في entry_range (مقدار|موقع)، ومعلّق في غيره (اتجاه)."""
+        """القسم ٤ (plan_model): suspended_targets=None = القاعدة القديمة: close مُفعَّل في entry_range (مقدار|موقع)، ومعلّق في غيره (اتجاه).
+        الافتراضي الحالي () يُفعّله في كل الأوضاع (tests/test_suspended_targets.py)."""
         ns = _load_workflow(dict(_ns()))
         info = ns["DatasetInfo"](model_tf="1h", model_tfs=("1h",), reg_target_scale=1.0)
         kit = _kit(ns, config={"targets": ["high", "low", "close"]}, anti_memorization_config={})
         for mode, want in ((None, ("high", "low")), ("return", ("high", "low")), ("entry_range", ("high", "low", "close"))):
-            settings = ns["RunSettings"]().updated({"target": {"target_mode": mode}})
+            settings = ns["RunSettings"]().updated({"target": {"target_mode": mode, "suspended_targets": None}})
             plan = _quiet(ns["plan_model"], settings, {"window_sizes": {"1h": 32}, "feature_order": ["a"]}, info, kit)
             self.assertEqual(plan.price_targets, want, mode)
             self.assertEqual(plan.suspended_targets, () if mode == "entry_range" else ("close",), mode)
