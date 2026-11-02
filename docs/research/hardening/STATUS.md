@@ -8,8 +8,8 @@ strict `build_config`, persisted run identity + `TrainSettings.seed`.
 
 | Step | Title | State | PR / job | Note |
 |---|---|---|---|---|
-| S01 | Registry adoption (PR 5) | PR open | #60 | 4 registries = `core.registry.Registry` (dict-style reads via `view`); fingerprint sha256 pinned in `tests/test_registry_adoption.py`; `TASK_REGISTRY.get(x)` now needs a default |
-| S02 | pandas 4 deprecation fix | todo | | |
+| S01 | Registry adoption (PR 5) | merged | #60 | 4 registries = `core.registry.Registry` (dict-style reads via `view`); fingerprint sha256 pinned in `tests/test_registry_adoption.py`; `TASK_REGISTRY.get(x)` now needs a default |
+| S02 | pandas 4 deprecation fix | PR open | | `core/timeframe.normalize_tf` (`1d`->`1D`, `1w`->`1W`, else unchanged) is the one fixer; used by 5 `data/` modules; Binance `1d` interval untouched (other vocabulary); `1H`/compound `1d12h` not covered |
 | S03 | Run profiler + Colab `profile-001` | todo | | |
 | S04 | Bottleneck fixes | todo | | needs S03 results |
 | S03b | Development-friction audit | todo | | goal 8 (D-012) |
