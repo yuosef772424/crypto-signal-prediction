@@ -14,6 +14,7 @@ from copy import deepcopy as _deepcopy
 import numpy as np
 
 from core.seeds import seed_everything
+from core.timeframe import normalize_tf
 
 #: The reports run_reports knows, in the order the evaluation tool runs them by default.
 REPORTS = ("gap", "verification", "market_neutral", "candle", "chicks", "signals")
@@ -469,8 +470,8 @@ def run_panel(settings, kit, *, dataset, train, val, test, info, plan, model, mo
         if _v:
             _panel_train_cfg[_k] = _v
     _panel_day_ns = (group_ns_for(info.model_tf, kit.config.get("stride", 1)) if p.group == "auto"
-                     else pd.Timedelta(p.group).value if p.group else None)
-    print(f"🧩 المجموعة المقطعية: {pd.Timedelta(_panel_day_ns or 86_400 * 10**9)} | أهداف: {list(plan.price_targets)} | "
+                     else pd.Timedelta(normalize_tf(p.group)).value if p.group else None)
+    print(f"🧩 المجموعة المقطعية: {pd.Timedelta(_panel_day_ns or 86_400 * 10**9, unit='ns')} | أهداف: {list(plan.price_targets)} | "
           f"حقب {_panel_train_cfg.get('epochs')} صبر {_panel_train_cfg.get('patience')} | مراقبة {p.monitor}", flush=True)
 
     _panel_root = p.run_root or (main_config["run"]["run_dir"] + "_panel")

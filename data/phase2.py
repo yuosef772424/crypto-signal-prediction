@@ -3,6 +3,8 @@ PURPOSE:  Phase-2 glue: locates tools/intraday_features.py, resolves the phase2_
 TAGS:     phase 2, phase2_data, intraday_features, 15m, futures metrics, require_phase2_data, resolve_phase2_toggles, module_dirs
 PITFALLS: tools/intraday_features.py is looked up under the repo root that holds data/ first (independent of cwd), then cwd, then phase2_data['module_dirs']. All arithmetic lives in tools/intraday_features.py (tested by tests/test_intraday_features.py); this module only finds paths, toggles, caches and fills neutrally. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
 """
+
+from core.timeframe import normalize_tf
 # ══════════════════════════════════════════════════════════════════════════
 # المرحلة ٢: أرشيف Binance الكامل (شموع 15m + تمويل + OI + futures_metrics)
 # ══════════════════════════════════════════════════════════════════════════
@@ -197,7 +199,7 @@ def _phase2_intraday_aligned(symbol: str, index, tf: str, config: dict) -> Optio
     if daily is None:
         return None
     mod = _phase2_module(config)
-    return mod.align_daily_to_bars(daily, index, tf, pd.Timedelta(_phase2_cfg(config).get('max_age', '1D')))
+    return mod.align_daily_to_bars(daily, index, tf, pd.Timedelta(normalize_tf(_phase2_cfg(config).get('max_age', '1D'))))
 
 
 def _phase2_slot_features(dfs: Dict[str, pd.DataFrame], symbol: str, config: dict,
@@ -284,7 +286,7 @@ def _add_funding_oi_features_phase2(dfs: Dict[str, pd.DataFrame], symbol: str, c
     mod = _phase2_module(config)
     fr_raw, oi_raw, met_raw = _phase2_futures_frames(symbol, config)
     p2 = _phase2_cfg(config)
-    max_age = pd.Timedelta(p2.get('max_age', '1D'))
+    max_age = pd.Timedelta(normalize_tf(p2.get('max_age', '1D')))
     z_win = int((config.get('funding_rate') or {}).get('zscore_window', 90))
     oi_k = int((config.get('open_interest') or {}).get('change_period', 1))
     met_cols = futures_metrics_columns(config)

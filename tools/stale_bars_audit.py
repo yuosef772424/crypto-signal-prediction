@@ -27,6 +27,10 @@ from typing import Dict, Mapping, Optional, Tuple
 
 import numpy as np
 import pandas as pd
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)   # core/ sits next to tools/ (the script is imported with only tools/ on the path)
+from core.timeframe import normalize_tf  # noqa: E402
 
 OHLC = ("open", "high", "low", "close")
 OHLCV_AGG = {"open": "first", "high": "max", "low": "min", "close": "last", "volume": "sum"}
@@ -50,7 +54,7 @@ def check_min_run_hours(hours) -> float:
 def bar_hours(timeframe) -> float:
     """Hours in one bar of a fixed-length pandas offset string ('15m', '1h', '4h', '1D')."""
     try:
-        h = pd.Timedelta(str(timeframe)).total_seconds() / 3600.0
+        h = pd.Timedelta(normalize_tf(str(timeframe))).total_seconds() / 3600.0
     except (ValueError, TypeError) as e:
         raise ValueError(f"timeframe {timeframe!r} is not a fixed-length offset") from e
     if not h > 0:
@@ -244,7 +248,7 @@ def load_ohlcv(path: str, timeframe: Optional[str] = None) -> pd.DataFrame:
     df = df[~df.index.isna()].sort_index()
     df = df[~df.index.duplicated(keep="last")]
     if timeframe:
-        df = df.resample(timeframe).agg(OHLCV_AGG)
+        df = df.resample(normalize_tf(timeframe)).agg(OHLCV_AGG)
         df = df[df["close"].notna()]
     return df
 

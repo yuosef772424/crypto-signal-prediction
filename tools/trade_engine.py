@@ -11,6 +11,13 @@ PITFALLS: Indicators at bar t use closes up to t; signals at bar t fill at the O
 """
 import numpy as np
 import pandas as pd
+import os
+import sys
+
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)   # core/ sits next to tools/ (the script is imported with only tools/ on the path)
+from core.timeframe import normalize_tf  # noqa: E402
 
 COST = 0.0012            # round trip per trade (as in the earlier studies)
 ATR_STOP = 2.0           # stop distance in ATR14 units (card default)
@@ -22,7 +29,7 @@ def load(path, tf):
     """1h OHLCV -> tf bars (UTC, left-labelled). tf in {'4h', '1d'}."""
     df = pd.read_parquet(path).sort_index()
     rule = {"4h": "4h", "1d": "1D"}[tf]
-    out = df.resample(rule, label="left", closed="left").agg(
+    out = df.resample(normalize_tf(rule), label="left", closed="left").agg(
         {"open": "first", "high": "max", "low": "min", "close": "last", "volume": "sum"}).dropna(subset=["close"])
     return out
 

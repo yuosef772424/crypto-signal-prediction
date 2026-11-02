@@ -5,6 +5,7 @@ PITFALLS: (side, q) are picked on val only; the full test grid is shown for tran
 """
 import numpy as np
 import pandas as pd
+from core.timeframe import normalize_tf
 
 _MN_SIDES = ("long_short", "short_only", "long_only", "rank_weighted", "rank_weighted_vol")
 
@@ -257,7 +258,7 @@ def market_neutral_report(model, train_split, val_split, test_split, model_tf=No
     test_df = test_df if test_df is not None else collect_signals(model, test_split, model_tf, price_targets=price_targets)
     if score not in val_df:
         raise KeyError(f"الدرجة {score!r} غير موجودة — المتاح: {[c for c in val_df if c.startswith(('p_up_', 'mu_', 'conf_'))]}")
-    horizon_ns = pd.Timedelta(_tfs_of(model_tf)[0]).value * int(CONFIG.get("forecast_horizon", 1))
+    horizon_ns = pd.Timedelta(normalize_tf(_tfs_of(model_tf)[0])).value * int(CONFIG.get("forecast_horizon", 1))
     args = (uni, quantiles, sides, cost_pct, min_assets, n_boot, seed, horizon_ns, min_per_leg, cost_model)
     results = {}
     grid, chosen, extra, series = _mn_evaluate(val_df, test_df, score, *args)

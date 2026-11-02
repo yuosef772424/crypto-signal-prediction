@@ -450,29 +450,30 @@
   - `def identity_checks(row, tol=0.0001)` L141
   - `def insufficient_history(observed_value, n_candles, length)` L180
 
-### `tools/intraday_features.py` (442 lines)
+### `tools/intraday_features.py` (448 lines)
 - PURPOSE: Phase-2 features from the full Binance archive (15m candles + funding + OI + metrics), aligned causally for crypto_data_pipeline_v6.
 - TAGS: intraday features, phase 2, 15m, funding features, oi features, long/short ratio, taker ratio, availability mask, max_age, causal alignment
 - PITFALLS: Look-ahead: metrics/OI rows are known only at stamp + period (not at the stamp); funding event at tau is available only after tau; values older than max_age become NaN + mask 0; delisted rows have zero OI -> NaN.
+- DEPENDS: core
 - API:
-  - `def epoch_unit(values: np.ndarray) -> str` L62
-  - `def to_utc_index(values) -> pd.DatetimeIndex` L78
-  - `def as_utc(index) -> pd.DatetimeIndex` L106
-  - `def tf_to_timedelta(tf: str) -> pd.Timedelta` L117
-  - `def find_file(directory: Union[str, Path, None], symbol: str, pattern: str='{name}.csv.gz') -> Optional[Path]` L126
-  - `def read_klines(path: Union[str, Path]) -> pd.DataFrame` L147
-  - `def read_archive(path: Union[str, Path], cols: Optional[Sequence[str]]=None) -> pd.DataFrame` L168
-  - `def infer_period(index, default: pd.Timedelta=pd.Timedelta('1h')) -> pd.Timedelta` L184
-  - `def asof_values(avail_ns: np.ndarray, values: np.ndarray, bar_close_ns: np.ndarray, max_age: Optional[pd.Timedelta]=None) -> np.ndarray` L198
-  - `def window_agg(avail_ns: np.ndarray, values: np.ndarray, bar_close_ns: np.ndarray, window: pd.Timedelta, how: str='sum') -> np.ndarray` L218
-  - `def bar_closes(bar_index, bar_len: Union[str, pd.Timedelta]) -> np.ndarray` L234
-  - `def align_daily_to_bars(daily: pd.DataFrame, bar_index, bar_len: Union[str, pd.Timedelta], max_age: pd.Timedelta=DAY) -> pd.DataFrame` L240
-  - `def daily_intraday_features(k: pd.DataFrame, bar: str='15min', min_coverage: float=0.75, trades_z_window: int=30, topk: int=4, hourly_for_eff_hhi: bool=True) -> pd.DataFrame` L251
-  - `def funding_bar_features(fr: Optional[pd.DataFrame], bar_index, bar_len: Union[str, pd.Timedelta], zscore_window: int=90, max_age: pd.Timedelta=DAY) -> pd.DataFrame` L344
-  - `def oi_bar_features(oi: Optional[pd.Series], bar_index, bar_len: Union[str, pd.Timedelta], change_bars: int=1, period: Optional[pd.Timedelta]=None, max_age: pd.Timedelta=DAY) -> pd.DataFrame` L375
-  - `def metrics_bar_features(met: Optional[pd.DataFrame], bar_index, bar_len: Union[str, pd.Timedelta], period: Optional[pd.Timedelta]=None, max_age: pd.Timedelta=DAY) -> pd.DataFrame` L395
-  - `def load_intraday_daily(root: Union[str, Path], symbol: str, subdir: str='history_15m', pattern: str='{name}.csv.gz', **kw) -> Optional[pd.DataFrame]` L427
-  - `def fill_neutral(frame: pd.DataFrame, flag_cols: Iterable[str]=()) -> pd.DataFrame` L436
+  - `def epoch_unit(values: np.ndarray) -> str` L68
+  - `def to_utc_index(values) -> pd.DatetimeIndex` L84
+  - `def as_utc(index) -> pd.DatetimeIndex` L112
+  - `def tf_to_timedelta(tf: str) -> pd.Timedelta` L123
+  - `def find_file(directory: Union[str, Path, None], symbol: str, pattern: str='{name}.csv.gz') -> Optional[Path]` L132
+  - `def read_klines(path: Union[str, Path]) -> pd.DataFrame` L153
+  - `def read_archive(path: Union[str, Path], cols: Optional[Sequence[str]]=None) -> pd.DataFrame` L174
+  - `def infer_period(index, default: pd.Timedelta=pd.Timedelta('1h')) -> pd.Timedelta` L190
+  - `def asof_values(avail_ns: np.ndarray, values: np.ndarray, bar_close_ns: np.ndarray, max_age: Optional[pd.Timedelta]=None) -> np.ndarray` L204
+  - `def window_agg(avail_ns: np.ndarray, values: np.ndarray, bar_close_ns: np.ndarray, window: pd.Timedelta, how: str='sum') -> np.ndarray` L224
+  - `def bar_closes(bar_index, bar_len: Union[str, pd.Timedelta]) -> np.ndarray` L240
+  - `def align_daily_to_bars(daily: pd.DataFrame, bar_index, bar_len: Union[str, pd.Timedelta], max_age: pd.Timedelta=DAY) -> pd.DataFrame` L246
+  - `def daily_intraday_features(k: pd.DataFrame, bar: str='15min', min_coverage: float=0.75, trades_z_window: int=30, topk: int=4, hourly_for_eff_hhi: bool=True) -> pd.DataFrame` L257
+  - `def funding_bar_features(fr: Optional[pd.DataFrame], bar_index, bar_len: Union[str, pd.Timedelta], zscore_window: int=90, max_age: pd.Timedelta=DAY) -> pd.DataFrame` L350
+  - `def oi_bar_features(oi: Optional[pd.Series], bar_index, bar_len: Union[str, pd.Timedelta], change_bars: int=1, period: Optional[pd.Timedelta]=None, max_age: pd.Timedelta=DAY) -> pd.DataFrame` L381
+  - `def metrics_bar_features(met: Optional[pd.DataFrame], bar_index, bar_len: Union[str, pd.Timedelta], period: Optional[pd.Timedelta]=None, max_age: pd.Timedelta=DAY) -> pd.DataFrame` L401
+  - `def load_intraday_daily(root: Union[str, Path], symbol: str, subdir: str='history_15m', pattern: str='{name}.csv.gz', **kw) -> Optional[pd.DataFrame]` L433
+  - `def fill_neutral(frame: pd.DataFrame, flag_cols: Iterable[str]=()) -> pd.DataFrame` L442
 
 ### `tools/natr_range.py` (475 lines)
 - PURPOSE: Calibrated next-bar range forecast from NATR_14 (phase R3, card E-natr-001): causal NATR and next-range targets (range, up and down excursion, percent of the decision close), an exact pooled quantile regression log(range_{t+1}) = a + b log…
@@ -546,29 +547,30 @@
   - `def collect_tests(ns)` L28
   - `def run_self_tests(ns, echo=print)` L35
 
-### `tools/stale_bars_audit.py` (295 lines)
+### `tools/stale_bars_audit.py` (299 lines)
 - PURPOSE: Audit (and mask) stale bars of per-coin OHLCV frames: the last real trade, the flat/zero-volume tail of a delisted or dead coin, runs of identical OHLC with zero volume, and the share of target rows (close(t+h)/close(t)-1) that come from s…
 - TAGS: stale bars, delisted coins, dead coins, forward-fill, zero volume, flat bars, exact-zero targets, close_reg, zero share, last real trade, stale_bars, data quality audit, survivorship
 - PITFALLS: "Real trade" = volume > 0 AND a price change (high > low, or close != previous close). A bar with volume > 0 and no price change is NOT stale (genuine zero return of an illiquid live coin); it only counts as stale if it lies in the dead tail. A tail shorter than min_run is NOT dropped (a live coin's last few flat bars). Dropping uses the whole coin history (last real trade), so it is a dataset-cl…
+- DEPENDS: core
 - API:
-  - `def check_min_run(min_run) -> int` L35
-  - `def check_min_run_hours(hours) -> float` L42
-  - `def bar_hours(timeframe) -> float` L50
-  - `def min_run_from_hours(hours, timeframe) -> int` L61
-  - `def resolve_min_run(cfg, timeframe=None) -> int` L71
-  - `def flat_zero_volume(df: pd.DataFrame) -> np.ndarray` L87
-  - `def real_trade_mask(df: pd.DataFrame) -> np.ndarray` L94
-  - `def tail_start(df: pd.DataFrame) -> int` L112
-  - `def stale_bar_mask(df: pd.DataFrame, min_run: int) -> np.ndarray` L118
-  - `def stale_row_mask(stale: np.ndarray, horizon: int) -> np.ndarray` L136
-  - `def derive_min_run(frames: Mapping[str, pd.DataFrame], quantile: float=0.99, floor: int=2) -> int` L146
-  - `def audit_coin(df: pd.DataFrame, name: str, *, min_run: int, horizon: int, splits: Mapping[str, Tuple[pd.Timestamp, pd.Timestamp]])` L160
-  - `def audit_frames(frames: Mapping[str, pd.DataFrame], *, min_run: int, horizon: int, splits: Mapping[str, Tuple[pd.Timestamp, pd.Timestamp]])` L203
-  - `def pool_splits(splits_df: pd.DataFrame) -> pd.DataFrame` L214
-  - `def split_bounds(frames: Mapping[str, pd.DataFrame], horizon: int, train_pct: float=0.8, val_pct: float=0.1)` L226
-  - `def load_ohlcv(path: str, timeframe: Optional[str]=None) -> pd.DataFrame` L235
-  - `def load_dir(data_dir: str, timeframe: Optional[str]=None, max_coins: Optional[int]=None) -> Dict[str, pd.DataFrame]` L252
-  - `def main(argv=None) -> int` L262
+  - `def check_min_run(min_run) -> int` L39
+  - `def check_min_run_hours(hours) -> float` L46
+  - `def bar_hours(timeframe) -> float` L54
+  - `def min_run_from_hours(hours, timeframe) -> int` L65
+  - `def resolve_min_run(cfg, timeframe=None) -> int` L75
+  - `def flat_zero_volume(df: pd.DataFrame) -> np.ndarray` L91
+  - `def real_trade_mask(df: pd.DataFrame) -> np.ndarray` L98
+  - `def tail_start(df: pd.DataFrame) -> int` L116
+  - `def stale_bar_mask(df: pd.DataFrame, min_run: int) -> np.ndarray` L122
+  - `def stale_row_mask(stale: np.ndarray, horizon: int) -> np.ndarray` L140
+  - `def derive_min_run(frames: Mapping[str, pd.DataFrame], quantile: float=0.99, floor: int=2) -> int` L150
+  - `def audit_coin(df: pd.DataFrame, name: str, *, min_run: int, horizon: int, splits: Mapping[str, Tuple[pd.Timestamp, pd.Timestamp]])` L164
+  - `def audit_frames(frames: Mapping[str, pd.DataFrame], *, min_run: int, horizon: int, splits: Mapping[str, Tuple[pd.Timestamp, pd.Timestamp]])` L207
+  - `def pool_splits(splits_df: pd.DataFrame) -> pd.DataFrame` L218
+  - `def split_bounds(frames: Mapping[str, pd.DataFrame], horizon: int, train_pct: float=0.8, val_pct: float=0.1)` L230
+  - `def load_ohlcv(path: str, timeframe: Optional[str]=None) -> pd.DataFrame` L239
+  - `def load_dir(data_dir: str, timeframe: Optional[str]=None, max_coins: Optional[int]=None) -> Dict[str, pd.DataFrame]` L256
+  - `def main(argv=None) -> int` L266
 
 ### `tools/stale_bars_colab_job.py` (109 lines)
 - PURPOSE: Colab run-contract entry that runs tools/stale_bars_audit.py on the Drive history (history_15m) at several timeframes: per-coin tail lengths, coins flagged dead, and the exact-zero close-return share per split with CONFIG['stale_bars'] OFF…
@@ -589,18 +591,19 @@
   - `def write_csv(rows, path)` L161
   - `def main(argv=None)` L168
 
-### `tools/trade_engine.py` (179 lines)
+### `tools/trade_engine.py` (186 lines)
 - PURPOSE: Shared trade engine for the strategy-discovery studies: loads 1h spot OHLCV and resamples it to 4h / 1d, computes the indicators (EMA, RSI, MACD, Bollinger, ADX/DI, ATR, Donchian), builds named signals from triggers plus optional gates, an…
 - TAGS: trade engine, indicator screen, rsi, macd, bollinger breakout, adx trend, donchian, ema200 pullback, atr stop, r multiple, timeframe resample, trade simulator, gate, regime, cost in r, shared tool
 - PITFALLS: Indicators at bar t use closes up to t; signals at bar t fill at the OPEN of bar t+1. Stop is checked before target inside a bar (conservative); a gap through the stop fills at the open. One position per coin at a time. Wilder smoothing is ewm(alpha=1/n), an approximation of the textbook recursion. The indicator_strategy copy is left unchanged on purpose.
+- DEPENDS: core
 - API:
-  - `def load(path, tf)` L21
-  - `def indicators(df)` L30
-  - `def triggers(d)` L64
-  - `def gates(d)` L79
-  - `def build_signal(d, trigger, gate_names=())` L90
-  - `def simulate(d, long, short, tf, atr_stop=ATR_STOP, atr_tgt=ATR_TGT, cost=COST, max_bars=None)` L108
-  - `def metrics(t)` L154
+  - `def load(path, tf)` L28
+  - `def indicators(df)` L37
+  - `def triggers(d)` L71
+  - `def gates(d)` L86
+  - `def build_signal(d, trigger, gate_names=())` L97
+  - `def simulate(d, long, short, tf, atr_stop=ATR_STOP, atr_tgt=ATR_TGT, cost=COST, max_bars=None)` L115
+  - `def metrics(t)` L161
 
 ### `tools/trim_dead_tails.py` (272 lines)
 - PURPOSE: Trim the dead (zero-volume) tail of each coin's 15m history file IN PLACE (delisted / migrated coins are padded with flat zero-volume bars up to the end of the data). The removed rows are saved to <data_dir>_tails/<same file name> (same fo…

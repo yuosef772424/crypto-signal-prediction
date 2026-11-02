@@ -29,6 +29,8 @@ PITFALLS: The last row per coin has real features but a dummy target; never eval
 الحقيقية (بلا هدف صالح) الجاهزة للاستدلال الفعلي. `extract_last_batch`
 أدناه يستخلص هذا الصف الأخير لكل عملة من أي مجموعة بيانات مُجهَّزة.
 """
+
+from core.timeframe import normalize_tf
 # @title
 def _live_pad_length(tf_order: List[str], window_sizes: Dict[str, int],
                      forecast_horizon: int, download_interval: str) -> int:
@@ -40,7 +42,7 @@ def _live_pad_length(tf_order: List[str], window_sizes: Dict[str, int],
     tf_order[0]) وهامش تلوّث أكبر فريم كلاهما لوحدة ``download_interval``
     قبل جمعهما، لا افتراض أنهما نفس الوحدة كما كان سابقاً.
     """
-    ratios = [max(1, int(np.ceil(pd.Timedelta(tf) / pd.Timedelta(download_interval))))
+    ratios = [max(1, int(np.ceil(pd.Timedelta(normalize_tf(tf)) / pd.Timedelta(normalize_tf(download_interval)))))
              for tf in tf_order]
     base_ratio = ratios[0]      # عدد شموع download_interval في شمعة واحدة من tf_order[0]
     return forecast_horizon * base_ratio + max(ratios)
@@ -56,7 +58,7 @@ def _pad_with_dummy_tail(df: pd.DataFrame, download_interval: str, n: int) -> pd
     if len(df) == 0 or n <= 0:
         return df
     last_close = float(df['close'].iloc[-1])
-    step = pd.Timedelta(download_interval if download_interval != "1D" else "1d")
+    step = pd.Timedelta(normalize_tf(download_interval))
     future_idx = df.index[-1] + step * np.arange(1, n + 1)
     dummy = pd.DataFrame(
         {'open': last_close, 'high': last_close, 'low': last_close,
@@ -78,7 +80,7 @@ def _auto_live_limit(tf_order: List[str], window_sizes: Dict[str, int],
     بسهولة). القصّ الوحيد المتبقي الآن هو التاريخ الفعلي المتاح للعملة نفسها
     (تتولّاه fetch_data بإرجاع ما توفّر لا خطأ).
     """
-    ratios = {tf: max(1, int(np.ceil(pd.Timedelta(tf) / pd.Timedelta(download_interval))))
+    ratios = {tf: max(1, int(np.ceil(pd.Timedelta(normalize_tf(tf)) / pd.Timedelta(normalize_tf(download_interval)))))
              for tf in tf_order}
     biggest_span = max(
         (window_sizes[tf] + LIVE_FEATURE_WARMUP) * ratios[tf] for tf in tf_order
@@ -93,7 +95,7 @@ def _live_contamination_len(tf_order: List[str]) -> int:
     ``download_interval``: فريم الجلب لا يُغيّر عدد نوافذ *النموذج* المتضرّرة،
     فقط عدد شموع *التحميل* الصورية اللازمة لتوليدها (انظر _live_pad_length).
     """
-    ratios = [max(1, int(np.ceil(pd.Timedelta(tf) / pd.Timedelta(tf_order[0]))))
+    ratios = [max(1, int(np.ceil(pd.Timedelta(normalize_tf(tf)) / pd.Timedelta(normalize_tf(tf_order[0])))))
              for tf in tf_order]
     return max(ratios)
 

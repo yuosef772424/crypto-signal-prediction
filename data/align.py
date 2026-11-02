@@ -14,6 +14,8 @@ PITFALLS: A higher-TF window must end on a bar already closed at t (higher_tf_of
 معلومات من المستقبل.
 """
 
+from core.timeframe import normalize_tf
+
 def _higher_tf_closed(config: Optional[dict] = None) -> bool:
     """هل الفريمات الأعلى بوضع 'closed' (انظر CONFIG['higher_tf_mode'])؟ ومعناها: شموع مغلقة عند زمن العيّنة فقط."""
     config = CONFIG if config is None else config
@@ -31,12 +33,12 @@ def _keep_full_bars(frame: pd.DataFrame, base_index: pd.DatetimeIndex, tf: str, 
     لماذا: ``resample(...).agg`` يبني شمعة 4h من ثلاث شموع 1h إن غابت الرابعة (فجوة في المصدر) — قيمتها الدائمة
     حجم ناقص ونطاق أضيق، لا تسرّب مستقبل لكنها شمعة «غير مُكوَّنة» تخالف أقرانها. فريم بلا مدة ثابتة (شهري) لا يُصفّى."""
     try:
-        n_full = int(pd.Timedelta(tf) // pd.Timedelta(base_tf))
+        n_full = int(pd.Timedelta(normalize_tf(tf)) // pd.Timedelta(normalize_tf(base_tf)))
     except (ValueError, TypeError):
         return frame
     if n_full <= 1:
         return frame
-    counts = pd.Series(1, index=base_index).resample(tf).sum().reindex(frame.index)   # base_index: شموع حقيقية فقط
+    counts = pd.Series(1, index=base_index).resample(normalize_tf(tf)).sum().reindex(frame.index)   # base_index: شموع حقيقية فقط
     return frame[(counts >= n_full).to_numpy()]
 
 
@@ -68,7 +70,7 @@ def window_end_indices(index: pd.DatetimeIndex, win: int, stride: int, tf: str,
 
     ts_ns = index.as_unit('ns').asi8          # UTC للفهرس الواعي بالمنطقة الزمنية
     try:
-        bar_ns = int(pd.Timedelta(tf) // pd.Timedelta(1, 'ns'))
+        bar_ns = int(pd.Timedelta(normalize_tf(tf)) // pd.Timedelta(1, 'ns'))
     except (ValueError, TypeError):
         # فريم بلا مدة ثابتة (شهري مثلاً): وسيط الفاصل الفعلي بين الشموع.
         bar_ns = int(np.median(np.diff(ts_ns))) if n > 1 else 1
@@ -214,7 +216,7 @@ def _align_closed_higher_tfs(dfs: Dict[str, pd.DataFrame], tf_order: List[str],
     for tf, df_tf in frames.items():
         win = window_sizes[tf]
         try:
-            dur = int(pd.Timedelta(tf) // pd.Timedelta(1, 'ns'))
+            dur = int(pd.Timedelta(normalize_tf(tf)) // pd.Timedelta(1, 'ns'))
         except (ValueError, TypeError) as exc:
             raise ValueError(f"higher_tf_mode='closed' يتطلّب فريماً بمدة ثابتة، لا {tf!r}") from exc
         idx_ns = df_tf.index.as_unit('ns').asi8

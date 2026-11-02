@@ -351,6 +351,7 @@
 - denormalize: core/price_norm
 - denormalize_price_targets: data/normalizers
 - dependencies: tools/check_deps
+- deprecation: core/timeframe
 - derived features: tools/gate_features
 - derivedmetrics: trainer/metrics
 - describe: data/runtime
@@ -967,6 +968,7 @@
 - normalize targets: core/price_norm
 - normalize_price_targets: data/normalizers
 - normalize_targets: data/normalizers
+- normalize_tf: core/timeframe
 - normalizer: data/normalizers
 - normalizer_for_data: data/normalizers
 - normalizer_for_mode: data/normalizers
@@ -1012,7 +1014,9 @@
 - package exports: cross_asset/__init__
 - padded bars: tools/trim_dead_tails
 - paired comparison: tools/paired_compare
+- pandas 4: core/timeframe
 - pandas-ta-classic: tools/indicator_reverse
+- pandas4warning: core/timeframe
 - pandas_ta: data/features
 - pandas_ta survey: discovery/__init__
 - pandas_ta_classic: discovery/survey
@@ -1194,6 +1198,7 @@
 - reproducibility: core/seeds
 - reproduction check: tools/colab_runner
 - require_phase2_data: data/phase2
+- resample: core/timeframe
 - resample_timeframes: data/sources
 - research data: tools/fetch_crypto_dataset
 - research protocol: tools/experiment_registry
@@ -1448,14 +1453,17 @@
 - test_step: trainer/trainer
 - tests: tests/run_fixture
 - tests/test_cross_asset: cross_asset/selftest
+- tf: core/timeframe
 - tf.data: workflow/batches
 - tf.keras.model subclass: trainer/trainer
 - threads: data/parallel
-- tier 0: core/__init__, core/registry, core/seeds
+- tier 0: core/__init__, core/registry, core/seeds, core/timeframe
 - time of day: strategy_discovery/seasonality15m
 - time seal: natr_range/run_natr_confirm_forward, tools/holdout_guard
 - time-series screen: edge_discovery/08_ts_screen
 - time_hour: data/custom
+- timedelta: core/timeframe
+- timeframe: core/timeframe
 - timeframe resample: indicator_strategy/engine, tools/trade_engine
 - timestamps: evaluation/latest_table
 - token: tools/colab_runner

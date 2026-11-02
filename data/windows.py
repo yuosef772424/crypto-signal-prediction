@@ -21,6 +21,7 @@ PITFALLS: LAST_COLUMNS, TS_COL, LAST_DTYPE and TARGET_COLUMNS are defined once i
 # مصدرها الوحيد core/schema.py؛ تُربط هنا بالاسم نفسه فيبقى نطاق خط الأنابيب (والدفاتر والاختبارات) يراها كما كانت.
 from core.schema import LAST_COLUMNS, LAST_DTYPE, TARGET_COLUMNS, TS_COL
 from core.registry import Contract as _Contract, Registry as _Registry
+from core.timeframe import normalize_tf
 
 
 def _check_sample_filter(name, fn, meta):
@@ -263,7 +264,7 @@ def prepare_single_asset(
     # ✅ الهدف يُبنى من الشموع التي تبدأ فعلاً عند ts + 1..h × مدة الفريم، لا من «الصف التالي»: بعد فجوة (ساعات ناقصة
     #    من المصدر، أو صفوف حذفها dropna في add_features) كان الصف التالي شمعةً أبعد بساعات، فيختلف أفق هذه العيّنة عن
     #    أقرانها في نفس الطابع بصمت. عيّنة كهذه تُحذف (keep=False) — لا تُصحَّح، فلا شمعة حقيقية لهدفها.
-    bar = pd.Timedelta(str(base_tf))
+    bar = pd.Timedelta(normalize_tf(str(base_tf)))
     base_index = price_df.index
     keep = np.ones(N, dtype=bool)
     end_idxs = np.zeros(N, dtype=np.int64)

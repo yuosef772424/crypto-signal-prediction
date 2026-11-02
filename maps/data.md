@@ -17,15 +17,16 @@
   - `def module_path(name: str) -> Path` L29
   - `def load_into(ns: dict, exclude=()) -> dict` L36
 
-### `data/align.py` (275 lines)
+### `data/align.py` (277 lines)
 - PURPOSE: Time-based multi-timeframe alignment: window end indices on a common grid, the single-TF fast path, and the 'closed' higher-TF mode (only bars closed at t).
 - TAGS: alignment, align_multi_timeframes_time_based, window_end_indices, higher_tf_mode, closed bars, 4h context, align_windows_to_grid, look-ahead
 - PITFALLS: A higher-TF window must end on a bar already closed at t (higher_tf_offset / 'closed' mode); any change here must pass tests/test_no_lookahead.py and tests/test_multi_tf.py. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: core
 - USES: runtime
 - USED BY: checkpoints, pipeline, presets, selftests, sources, windows
 - API:
-  - `def window_end_indices(index: pd.DatetimeIndex, win: int, stride: int, tf: str, config: Optional[dict]=None) -> np.ndarray` L43
-  - `def align_multi_timeframes_time_based(dfs: Dict[str, pd.DataFrame], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, stride: Optional[int]=None, config: Optional[dict]=None) -> Tuple[Dict[str, np.ndarray]…` L88
+  - `def window_end_indices(index: pd.DatetimeIndex, win: int, stride: int, tf: str, config: Optional[dict]=None) -> np.ndarray` L45
+  - `def align_multi_timeframes_time_based(dfs: Dict[str, pd.DataFrame], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, stride: Optional[int]=None, config: Optional[dict]=None) -> Tuple[Dict[str, np.ndarray]…` L90
 
 ### `data/binance_client.py` (473 lines)
 - PURPOSE: Binance client and live candle fetching (fetch_data, futures symbols, request rate limiter) plus funding-rate / open-interest fetch and their Drive archive.
@@ -88,15 +89,16 @@
   - `def cross_sectional_normalize(dataset: Dict, heads: Optional[List[str]]=None, method: Optional[str]=None, min_assets: Optional[int]=None, clip: Optional[float]=None, config: Optional[dict]=None, verbose: bool=True) -> Dict` L27
   - `def invert_cross_sectional(preds: np.ndarray, timestamps: np.ndarray, head: str, dataset: Dict) -> np.ndarray` L135
 
-### `data/custom.py` (1360 lines)
+### `data/custom.py` (1362 lines)
 - PURPOSE: Static scale-free custom features (log returns, relative ranges, candle structure, time features, fractals, volatility estimators, trend age, ...) and their column names.
 - TAGS: custom features, add_custom_features, custom_feature_names, default_custom_settings, returns, fractal, supertrend, psar, hurst, variance ratio, ath distance, time_hour
 - PITFALLS: Its _test_*() causality checks do not run at load: Loading only defines it; the checks run in `run_self_tests(globals())` (tools/run_self_tests.py). Every feature must be causal: row t may only use rows <= t (tests/test_no_lookahead.py). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: core
 - USES: runtime
 - USED BY: cross_sectional_norm, features, funding_oi, selftests, windows
 - API:
-  - `def add_custom_features(data: pd.DataFrame, settings: Optional[dict]=None, config: Optional[dict]=None) -> pd.DataFrame` L177
-  - `def custom_feature_names(settings: Optional[dict]=None, config: Optional[dict]=None) -> List[str]` L546
+  - `def add_custom_features(data: pd.DataFrame, settings: Optional[dict]=None, config: Optional[dict]=None) -> pd.DataFrame` L179
+  - `def custom_feature_names(settings: Optional[dict]=None, config: Optional[dict]=None) -> List[str]` L548
 
 ### `data/defaults.py` (584 lines)
 - PURPOSE: PIPELINE_DEFAULT_CONFIG (alias DEFAULT_CONFIG) — the single source of truth for every pipeline/model/training setting — plus COINS_BY_CATEGORY, STATIC_INDICATORS_FULL and DEFAULT_ENABLED_CATEGORIES.
@@ -190,16 +192,17 @@
   - `def validate_head_config(config: Optional[dict]=None, verbose: bool=True) -> List[str]` L154
   - `def head_loss_weights(config: Optional[dict]=None, as_outputs: bool=True) -> Dict[str, float]` L211
 
-### `data/live.py` (257 lines)
+### `data/live.py` (259 lines)
 - PURPOSE: Live dataset built with the very same prepare_single_asset (Binance instead of Drive): dummy tail padding, drop_tail_per_asset, extract_last_batch.
 - TAGS: live, build_dataset_live, extract_last_batch, drop_tail_per_asset, dummy tail, inference
 - PITFALLS: The last row per coin has real features but a dummy target; never evaluate on it. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: core
 - USES: binance_client, normalize, normalizers, pipeline, runtime, sources
 - USED BY: selftests
 - API:
-  - `def drop_tail_per_asset(dataset: Dict, n: int) -> Dict` L147
-  - `def extract_last_batch(dataset: Dict, n: int=1) -> Dict` L155
-  - `def build_dataset_live(symbols: List[str], limit: Optional[int]=None, max_workers: Optional[int]=None, config: Optional[dict]=None, price_norm_meta: Optional[dict]=None, **kwargs) -> Dict` L171
+  - `def drop_tail_per_asset(dataset: Dict, n: int) -> Dict` L149
+  - `def extract_last_batch(dataset: Dict, n: int=1) -> Dict` L157
+  - `def build_dataset_live(symbols: List[str], limit: Optional[int]=None, max_workers: Optional[int]=None, config: Optional[dict]=None, price_norm_meta: Optional[dict]=None, **kwargs) -> Dict` L173
 
 ### `data/market_context.py` (190 lines)
 - PURPOSE: Cross-asset market context: features of a reference coin (BTC by default) added as MKT_* columns to every other coin, time-aligned; zero for the reference itself.
@@ -307,48 +310,51 @@
   - `def imap_ordered(fn: Callable[[T], R], items: Iterable[T], max_workers: int=8, prefetch: Optional[int]=None) -> Iterator[R]` L61
   - `def load_assets(configs: List[Dict], load_asset_fn: Callable, max_workers: Optional[int]=None, prefetch: Optional[int]=None, tail: int=0, verbose: bool=True) -> Dict[str, pd.DataFrame]` L108
 
-### `data/phase2.py` (307 lines)
+### `data/phase2.py` (309 lines)
 - PURPOSE: Phase-2 glue: locates tools/intraday_features.py, resolves the phase2_data toggles, caches archive reads and adds the 15m intraday and futures-metrics features.
 - TAGS: phase 2, phase2_data, intraday_features, 15m, futures metrics, require_phase2_data, resolve_phase2_toggles, module_dirs
 - PITFALLS: tools/intraday_features.py is looked up under the repo root that holds data/ first (independent of cwd), then cwd, then phase2_data['module_dirs']. All arithmetic lives in tools/intraday_features.py (tested by tests/test_intraday_features.py); this module only finds paths, toggles, caches and fills neutrally. Executed into the one shared pipeline namespace by data/_loader.py (never imported on it…
+- DEPENDS: core
 - USES: drive, runtime
 - USED BY: checkpoints, features, funding_oi, pipeline, presets, selftests
 - API:
-  - `def resolve_phase2_toggles(config: Optional[dict]=None, verbose: bool=True) -> Dict[str, bool]` L99
-  - `def require_phase2_data(keys=_PHASE2_KEYS, config: Optional[dict]=None) -> Dict[str, bool]` L127
-  - `def load_intraday_daily_frame(symbol: str, config: Optional[dict]=None) -> Optional[pd.DataFrame]` L179
-  - `def intraday_15m_columns(config: Optional[dict]=None) -> List[str]` L218
-  - `def add_intraday_15m_features(dfs: Dict[str, pd.DataFrame], symbol: str, config: Optional[dict]=None) -> Dict[str, pd.DataFrame]` L227
-  - `def futures_metrics_columns(config: Optional[dict]=None) -> List[str]` L249
+  - `def resolve_phase2_toggles(config: Optional[dict]=None, verbose: bool=True) -> Dict[str, bool]` L101
+  - `def require_phase2_data(keys=_PHASE2_KEYS, config: Optional[dict]=None) -> Dict[str, bool]` L129
+  - `def load_intraday_daily_frame(symbol: str, config: Optional[dict]=None) -> Optional[pd.DataFrame]` L181
+  - `def intraday_15m_columns(config: Optional[dict]=None) -> List[str]` L220
+  - `def add_intraday_15m_features(dfs: Dict[str, pd.DataFrame], symbol: str, config: Optional[dict]=None) -> Dict[str, pd.DataFrame]` L229
+  - `def futures_metrics_columns(config: Optional[dict]=None) -> List[str]` L251
 
-### `data/pipeline.py` (593 lines)
+### `data/pipeline.py` (595 lines)
 - PURPOSE: Dataset assembly across all assets: build_dataset (loader or preloaded), exclusions, cross-asset first pass, accumulation; both sources delegate to prepare_single_asset.
 - TAGS: pipeline, build_dataset, build_dataset_from_loader, build_dataset_from_preloaded, accumulator, asset_bounds, skip_labels
 - PITFALLS: Golden digests (tests/test_multi_tf.py::test_old_presets_byte_identical) cover this path: any output change must be deliberate. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: core
 - USES: align, checkpoints, cross_sectional_features, disk_backed, features, funding_oi*, heads, market_context, normalize, normalizers, parallel, phase2*, runtime, sources, windows
 - USED BY: live, presets, selftests
 - API:
-  - `def build_dataset_from_loader(configs: List[Dict], load_asset_fn: Callable, resample_fn: Callable, tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_hori…` L313
-  - `def build_dataset_from_preloaded(configs: List[Dict], data: Dict[str, Dict[str, pd.DataFrame]], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_horizon: O…` L475
-  - `def build_dataset(configs: List[Dict], *, data: Optional[Dict]=None, load_asset_fn: Optional[Callable]=None, resample_fn: Optional[Callable]=None, **kwargs) -> Dict` L573
+  - `def build_dataset_from_loader(configs: List[Dict], load_asset_fn: Callable, resample_fn: Callable, tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_hori…` L315
+  - `def build_dataset_from_preloaded(configs: List[Dict], data: Dict[str, Dict[str, pd.DataFrame]], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_horizon: O…` L477
+  - `def build_dataset(configs: List[Dict], *, data: Optional[Dict]=None, load_asset_fn: Optional[Callable]=None, resample_fn: Optional[Callable]=None, **kwargs) -> Dict` L575
 
-### `data/presets.py` (440 lines)
+### `data/presets.py` (442 lines)
 - PURPOSE: Hourly presets: 20-b (1h w168 s32 h4, and 1h w32 s8 h1), 20-c (1h + 4h context, float16) with its contract self-test, 20-d (pct_change price normalisation) — overrides, names and one-call builders.
 - TAGS: presets, hourly, apply_hourly_preset, hourly_w32_s8_overrides, hourly_4h_overrides, pct_change_overrides, build_hourly_w32_s8_dataset, build_hourly_4h_dataset, build_hourly_pct_dataset, run_hourly_4h_selftests
 - PITFALLS: run_hourly_4h_selftests is only defined (no auto-run, no RUN_HOURLY_4H_SELFTESTS flag): tools/run_self_tests.run_self_tests(ns) runs it. Presets inherit HOURLY_W32_S8_OVERRIDES; changing it changes every preset (and the golden digests). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: core
 - USES: align, defaults, diagnostics, drive, normalize, phase2, pipeline, runtime, sources, split, storage, windows
 - API:
-  - `def apply_hourly_preset(overrides: Optional[dict]=None) -> Dict[str, Any]` L68
-  - `def hourly_coin_configs(registry: Optional[List[Dict]]=None, categories='all') -> List[Dict]` L78
-  - `def x_memory_gb(n_samples: int, windows: List[int], n_features: int, dtype: str='float32') -> float` L87
-  - `def estimate_hourly_feasibility(configs: List[Dict], load_asset_fn: Callable=None, window: Optional[int]=None, stride: Optional[int]=None, horizon: Optional[int]=None, warmup: int=50, config: Optional[dict]=None, verbose: bool=Tru…` L92
-  - `def label_balance_report(dataset: Dict, verbose: bool=True) -> pd.DataFrame` L185
-  - `def build_hourly_dataset(configs: List[Dict], save: bool=True, checkpoint_dir: Optional[str]=None, max_workers: Optional[int]=None, filename_base: Optional[str]=None) -> Dict` L205
-  - `def build_hourly_w32_s8_dataset(checkpoint_dir: Optional[str]=None, save: bool=True, max_workers: Optional[int]=None, estimate: bool=True, require_phase2: bool=True) -> Dict` L254
-  - `def build_hourly_4h_dataset(checkpoint_dir: Optional[str]=None, save: bool=True, max_workers: Optional[int]=None, estimate: bool=True, require_phase2: bool=True) -> Dict` L302
-  - `def run_hourly_4h_selftests(verbose: bool=True) -> bool` L326
-  - `def pct_decode_consistency(dataset: Dict, column: str='close') -> Dict[str, float]` L386
-  - `def build_hourly_pct_dataset(checkpoint_dir: Optional[str]=None, save: bool=True, max_workers: Optional[int]=None, estimate: bool=True, require_phase2: bool=True) -> Dict` L411
+  - `def apply_hourly_preset(overrides: Optional[dict]=None) -> Dict[str, Any]` L70
+  - `def hourly_coin_configs(registry: Optional[List[Dict]]=None, categories='all') -> List[Dict]` L80
+  - `def x_memory_gb(n_samples: int, windows: List[int], n_features: int, dtype: str='float32') -> float` L89
+  - `def estimate_hourly_feasibility(configs: List[Dict], load_asset_fn: Callable=None, window: Optional[int]=None, stride: Optional[int]=None, horizon: Optional[int]=None, warmup: int=50, config: Optional[dict]=None, verbose: bool=Tru…` L94
+  - `def label_balance_report(dataset: Dict, verbose: bool=True) -> pd.DataFrame` L187
+  - `def build_hourly_dataset(configs: List[Dict], save: bool=True, checkpoint_dir: Optional[str]=None, max_workers: Optional[int]=None, filename_base: Optional[str]=None) -> Dict` L207
+  - `def build_hourly_w32_s8_dataset(checkpoint_dir: Optional[str]=None, save: bool=True, max_workers: Optional[int]=None, estimate: bool=True, require_phase2: bool=True) -> Dict` L256
+  - `def build_hourly_4h_dataset(checkpoint_dir: Optional[str]=None, save: bool=True, max_workers: Optional[int]=None, estimate: bool=True, require_phase2: bool=True) -> Dict` L304
+  - `def run_hourly_4h_selftests(verbose: bool=True) -> bool` L328
+  - `def pct_decode_consistency(dataset: Dict, column: str='close') -> Dict[str, float]` L388
+  - `def build_hourly_pct_dataset(checkpoint_dir: Optional[str]=None, save: bool=True, max_workers: Optional[int]=None, estimate: bool=True, require_phase2: bool=True) -> Dict` L413
 
 ### `data/runtime.py` (180 lines)
 - PURPOSE: The live CONFIG dict and its helpers: update_config/reset_config (in place), save/load_config, refresh_features, feature_order, seq_len, describe.
@@ -376,44 +382,46 @@
 - API:
   - `def run_pipeline_selftests(verbose: bool=True) -> bool` L43
 
-### `data/sources.py` (306 lines)
+### `data/sources.py` (308 lines)
 - PURPOSE: Historical data sources (mounted Drive only): asset registry, coin selection by category, coin exclusion, load_asset and resampling (make_resample_fn).
 - TAGS: sources, load_asset, load_asset_registry, flatten_coins_by_category, filter_desired_coins, exclude_coins, resample_timeframes, make_resample_fn, all_global, drive_raw_dir
 - PITFALLS: No public links / gdown: every read goes through mount_drive(). flatten_coins_by_category() without arguments uses DEFAULT_ENABLED_CATEGORIES, not the whole registry. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: core
 - USES: align, defaults, drive, features, runtime
 - USED BY: live, pipeline, presets, selftests, windows
 - API:
-  - `def load_asset_registry(path: Optional[str]=None, config: Optional[dict]=None) -> List[Dict]` L36
-  - `def flatten_coins_by_category(category_dict: Optional[Dict[str, List[str]]]=None, categories: Optional[List[str]]=None) -> List[str]` L56
-  - `def filter_desired_coins(full_registry: List[Dict], desired_coins: Optional[List[str]]=None, verbose: bool=True) -> List[Dict]` L89
-  - `def split_excluded_coins(configs: Iterable[Any], excluded: Optional[Iterable[str]]=None, config: Optional[dict]=None) -> Tuple[List[Any], List[str], List[str]]` L131
-  - `def exclude_coins(configs: Iterable[Any], excluded: Optional[Iterable[str]]=None, config: Optional[dict]=None, verbose: bool=True) -> List[Any]` L175
-  - `def load_asset(file_id: Optional[str], name: str='', config: Optional[dict]=None) -> pd.DataFrame` L201
-  - `def resample_timeframes(df: pd.DataFrame, target_tfs: Optional[List[str]]=None, base_tf: Optional[str]=None, with_features: bool=True, config: Optional[dict]=None) -> Dict[str, pd.DataFrame]` L262
-  - `def make_resample_fn(config: Optional[dict]=None)` L298
+  - `def load_asset_registry(path: Optional[str]=None, config: Optional[dict]=None) -> List[Dict]` L38
+  - `def flatten_coins_by_category(category_dict: Optional[Dict[str, List[str]]]=None, categories: Optional[List[str]]=None) -> List[str]` L58
+  - `def filter_desired_coins(full_registry: List[Dict], desired_coins: Optional[List[str]]=None, verbose: bool=True) -> List[Dict]` L91
+  - `def split_excluded_coins(configs: Iterable[Any], excluded: Optional[Iterable[str]]=None, config: Optional[dict]=None) -> Tuple[List[Any], List[str], List[str]]` L133
+  - `def exclude_coins(configs: Iterable[Any], excluded: Optional[Iterable[str]]=None, config: Optional[dict]=None, verbose: bool=True) -> List[Any]` L177
+  - `def load_asset(file_id: Optional[str], name: str='', config: Optional[dict]=None) -> pd.DataFrame` L203
+  - `def resample_timeframes(df: pd.DataFrame, target_tfs: Optional[List[str]]=None, base_tf: Optional[str]=None, with_features: bool=True, config: Optional[dict]=None) -> Dict[str, pd.DataFrame]` L264
+  - `def make_resample_fn(config: Optional[dict]=None)` L300
 
-### `data/split.py` (904 lines)
+### `data/split.py` (906 lines)
 - PURPOSE: Time-based train/val/test split with an embargo gap: global_time (default) or per_asset, holdout, leak-free and rolling splits.
 - TAGS: split, split_data, embargo, holdout, split_dates, global_time, per_asset, rolling_splits, build_leak_free_split, compute_global_cutoff
 - PITFALLS: per_asset leaks when coins' histories differ in length; global_time is the default. The embargo is a time gap covering the largest window plus the horizon. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: core
 - USES: disk_backed, normalizers, runtime, windows
 - USED BY: presets, selftests, workflow/market_neutral
 - API:
-  - `def embargo_candles(data: Dict, config: Optional[dict]=None) -> int` L52
-  - `def embargo_size(data: Dict, config: Optional[dict]=None) -> int` L80
-  - `def embargo_duration(data: Dict, config: Optional[dict]=None) -> pd.Timedelta` L92
-  - `def resolve_holdout_start(config: Optional[dict]=None) -> Optional[pd.Timestamp]` L99
-  - `def sample_timestamps(split_or_data: Dict) -> pd.DatetimeIndex` L125
-  - `def add_y_prefix(split: dict) -> dict` L179
-  - `def strip_y_prefix(y: dict) -> dict` L190
-  - `def compute_global_cutoff(data: Dict, pct: float) -> pd.Timestamp` L330
-  - `def extract_test_dates(test: Dict) -> pd.DatetimeIndex` L368
-  - `def resolve_split_dates(data: Dict, train_pct: float, val_pct: float, config: Optional[dict]=None, cutoff_method: Optional[str]=None) -> Tuple[pd.Timestamp, pd.Timestamp]` L381
-  - `def split_data(data: Dict, train_pct: Optional[float]=None, val_pct: Optional[float]=None, keep_asset_test_separate: Optional[bool]=None, prefix_y: bool=True, mode: Optional[str]=None, config: Optional[dict]=None)…` L545
-  - `def split_holdout(data: Dict, keep_asset_test_separate: Optional[bool]=None, prefix_y: bool=True, config: Optional[dict]=None, price_norm_meta: Optional[dict]=None)` L669
-  - `def build_leak_free_split(data: Dict, train_pct: Optional[float]=None, val_pct: Optional[float]=None, keep_asset_test_separate: Optional[bool]=None, config: Optional[dict]=None) -> Tuple[dict, dict, dict]` L703
-  - `def rolling_split_schedule(data: Dict, test_span=None, val_span=None, train_span=_UNSET, initial_train_span=_UNSET, step=None, max_windows: Optional[int]=None, config: Optional[dict]=None) -> List[Dict[str, pd.Timestamp]]` L738
-  - `def rolling_splits(data: Dict, test_span=None, val_span=None, train_span=_UNSET, initial_train_span=_UNSET, step=None, max_windows: Optional[int]=None, keep_asset_test_separate: Optional[bool]=None, prefix_y: bool=Tru…` L831
+  - `def embargo_candles(data: Dict, config: Optional[dict]=None) -> int` L54
+  - `def embargo_size(data: Dict, config: Optional[dict]=None) -> int` L82
+  - `def embargo_duration(data: Dict, config: Optional[dict]=None) -> pd.Timedelta` L94
+  - `def resolve_holdout_start(config: Optional[dict]=None) -> Optional[pd.Timestamp]` L101
+  - `def sample_timestamps(split_or_data: Dict) -> pd.DatetimeIndex` L127
+  - `def add_y_prefix(split: dict) -> dict` L181
+  - `def strip_y_prefix(y: dict) -> dict` L192
+  - `def compute_global_cutoff(data: Dict, pct: float) -> pd.Timestamp` L332
+  - `def extract_test_dates(test: Dict) -> pd.DatetimeIndex` L370
+  - `def resolve_split_dates(data: Dict, train_pct: float, val_pct: float, config: Optional[dict]=None, cutoff_method: Optional[str]=None) -> Tuple[pd.Timestamp, pd.Timestamp]` L383
+  - `def split_data(data: Dict, train_pct: Optional[float]=None, val_pct: Optional[float]=None, keep_asset_test_separate: Optional[bool]=None, prefix_y: bool=True, mode: Optional[str]=None, config: Optional[dict]=None)…` L547
+  - `def split_holdout(data: Dict, keep_asset_test_separate: Optional[bool]=None, prefix_y: bool=True, config: Optional[dict]=None, price_norm_meta: Optional[dict]=None)` L671
+  - `def build_leak_free_split(data: Dict, train_pct: Optional[float]=None, val_pct: Optional[float]=None, keep_asset_test_separate: Optional[bool]=None, config: Optional[dict]=None) -> Tuple[dict, dict, dict]` L705
+  - `def rolling_split_schedule(data: Dict, test_span=None, val_span=None, train_span=_UNSET, initial_train_span=_UNSET, step=None, max_windows: Optional[int]=None, config: Optional[dict]=None) -> List[Dict[str, pd.Timestamp]]` L740
+  - `def rolling_splits(data: Dict, test_span=None, val_span=None, train_span=_UNSET, initial_train_span=_UNSET, step=None, max_windows: Optional[int]=None, keep_asset_test_separate: Optional[bool]=None, prefix_y: bool=Tru…` L833
 
 ### `data/storage.py` (326 lines)
 - PURPOSE: Save/load the prepared dataset to/from mounted Drive: pkl.gz or npy_dir (memmap) formats, latest + timestamped copies.
@@ -428,7 +436,7 @@
   - `def load_data_from_drive(project_name: Optional[str]=None, data_type: str='preprocessed_data', filename_base: str='preprocessing_output', filename: Optional[str]=None, config: Optional[dict]=None, fmt: str='auto', mmap: boo…` L239
   - `def load_preprocessed_data_from_drive(file_id: str, output_filename: str='preprocessing_output.pkl.gz', download_dir: str='.', quiet: bool=False, cleanup: bool=False) -> Any` L290
 
-### `data/windows.py` (526 lines)
+### `data/windows.py` (527 lines)
 - PURPOSE: Windows and targets for one asset (prepare_single_asset), LAST_COLUMNS/last_candles, sample filters, invert_reg_predictions and decode_price_window.
 - TAGS: windows, targets, prepare_single_asset, last_candles, last_columns, ts_col, sample_filters, register_sample_filter, invert_reg_predictions, decode_price_window, entry_feature_table, reg_target_mode
 - PITFALLS: LAST_COLUMNS, TS_COL, LAST_DTYPE and TARGET_COLUMNS are defined once in core/schema.py and only re-bound here. last_candles is float64 (ns timestamps lose ~12 s in float32). Sample filters must be causal. SAMPLE_FILTER_REGISTRY is a core.registry.Registry: a filter name is registered once (a duplicate raises; `SAMPLE_FILTER_REGISTRY.unregister(name)` before re-registering, e.g. when re-running a…
@@ -436,13 +444,13 @@
 - USES: align, custom, heads, normalize, normalizers, runtime, sources*
 - USED BY: checkpoints, cross_sectional_norm, pipeline, presets, selftests, split, discovery/evaluation, discovery/phase3_tools, workflow/capacity, workflow/chicks_bridge +4
 - API:
-  - `def register_sample_filter(name: str, fn: Callable[[pd.DataFrame], Any]) -> None` L55
-  - `def sample_filter_mask(df: pd.DataFrame, filters: Optional[List[dict]]=None, config: Optional[dict]=None) -> np.ndarray` L99
-  - `def stale_bars_min_run(config: Optional[dict]=None, base_tf: Optional[str]=None) -> Optional[int]` L133
-  - `def prepare_single_asset(dfs: Dict[str, pd.DataFrame], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_horizon: Optional[int]=None, stride: Option…` L175
-  - `def invert_reg_predictions(preds: np.ndarray, head: str, last_candles: Optional[np.ndarray]=None, bases: Optional[np.ndarray]=None, config: Optional[dict]=None, scale: Optional[float]=None, price_norm_meta: Optional[dict]=Non…` L418
-  - `def decode_price_window(data: Dict, column: str='close', tf: Optional[str]=None, anchor: Optional[np.ndarray]=None, feature_order: Optional[List[str]]=None, mode: Optional[str]=None) -> np.ndarray` L469
-  - `def entry_feature_table(data: Dict, columns: List[str], load_asset_fn: Optional[Callable]=None, config: Optional[dict]=None) -> pd.DataFrame` L500
+  - `def register_sample_filter(name: str, fn: Callable[[pd.DataFrame], Any]) -> None` L56
+  - `def sample_filter_mask(df: pd.DataFrame, filters: Optional[List[dict]]=None, config: Optional[dict]=None) -> np.ndarray` L100
+  - `def stale_bars_min_run(config: Optional[dict]=None, base_tf: Optional[str]=None) -> Optional[int]` L134
+  - `def prepare_single_asset(dfs: Dict[str, pd.DataFrame], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_horizon: Optional[int]=None, stride: Option…` L176
+  - `def invert_reg_predictions(preds: np.ndarray, head: str, last_candles: Optional[np.ndarray]=None, bases: Optional[np.ndarray]=None, config: Optional[dict]=None, scale: Optional[float]=None, price_norm_meta: Optional[dict]=Non…` L419
+  - `def decode_price_window(data: Dict, column: str='close', tf: Optional[str]=None, anchor: Optional[np.ndarray]=None, feature_order: Optional[List[str]]=None, mode: Optional[str]=None) -> np.ndarray` L470
+  - `def entry_feature_table(data: Dict, columns: List[str], load_asset_fn: Optional[Callable]=None, config: Optional[dict]=None) -> pd.DataFrame` L501
 
 Data / other files (counts only):
 - `crypto_data/`: csv×1 — 289 B
