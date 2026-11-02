@@ -1,6 +1,6 @@
 {
  "job_id": "profile-004",
- "repo_ref": "1c18900fab0a0d800d144e2d6f0364af53e2ed7d",
+ "repo_ref": "229fc5149ddce87fe6a97726c4d9c5c560ac7f8f",
  "entry": "tools/profile_run.py",
  "args": [],
  "config": {
@@ -30,7 +30,7 @@
   "profile.json",
   "profile.md"
  ],
- "note": "S03 run profiler on the T4 with the NEW default targets (high+low+close, TargetSettings.suspended_targets=()), batch 512. profile-003 measured the old high/low-only model. Installs tensorflow[and-cuda] first (gpu-diag-001). repo_ref moved to include the stdout_tail of failed reports (profile-003: market_neutral failed silently). repo_ref moved again: evaluation predicts in batches of 2048 (was 256).",
+ "note": "S03 run profiler on the T4 with the NEW default targets (high+low+close, TargetSettings.suspended_targets=()), batch 512. profile-003 measured the old high/low-only model. Installs tensorflow[and-cuda] first (gpu-diag-001). repo_ref moved to include the stdout_tail of failed reports (profile-003: market_neutral failed silently). repo_ref moved again: evaluation predicts in batches of 2048 (was 256). repo_ref moved again: the pattern-discovery RandomForest is capped (rf_max_samples 50000).",
  "rerun": false,
  "pip": []
 }
