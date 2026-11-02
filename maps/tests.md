@@ -201,7 +201,7 @@
   - `class WorkflowConfigRelationTests(unittest.TestCase)` L167
     - (2 methods)
 
-### `tests/test_config_strictness.py` (600 lines)
+### `tests/test_config_strictness.py` (603 lines)
 - PURPOSE: trainer.build_config is strict at construction (audit 2026-10-31, class C2, PR 3), and strictness changed nothing that already worked. (from docstring)
 - DEPENDS: docs
 - API:
@@ -214,9 +214,9 @@
   - `class ValidatorIsTheOnePlace(unittest.TestCase)` L347
     - (6 methods)
   - `def runsettings_user_configs(ns)` L411
-  - `class EquivalenceWithTheCodeBeforeValidation(unittest.TestCase)` L484
+  - `class EquivalenceWithTheCodeBeforeValidation(unittest.TestCase)` L487
     - (5 methods)
-  - `class DeadKeys(unittest.TestCase)` L574
+  - `class DeadKeys(unittest.TestCase)` L577
     - (2 methods)
 
 ### `tests/test_core.py` (90 lines)
@@ -492,7 +492,7 @@
   - `class MainNotebookRuns(unittest.TestCase)` L40
     - (1 methods)
 
-### `tests/test_model_config_overrides.py` (87 lines)
+### `tests/test_model_config_overrides.py` (88 lines)
 - PURPOSE: ModelSettings.config_overrides: default {} = the old plan and folder name; an override wins over ANTI_MEMORIZATION_CONFIG; (from docstring)
 - API:
   - `class ConfigOverrides(unittest.TestCase)` L16
