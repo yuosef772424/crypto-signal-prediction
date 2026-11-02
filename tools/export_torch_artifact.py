@@ -39,7 +39,9 @@ import pandas as pd
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tools"))
+sys.path.insert(0, ROOT)
 import holdout_guard as hg  # noqa: E402
+from core.timeframe import normalize_tf  # noqa: E402
 
 SCHEMA = "torch_artifact/1"
 LAST_TS_COL = 3                       # core.schema.TS_COL: last_candles column 3 = bar open time, ns since epoch (float64)
@@ -87,15 +89,14 @@ def read_npy_dir(path):
 
 
 def bar_delta(tf):
-    """Timedelta of a timeframe string ('15m', '1h', '1D'); anything pandas cannot read raises."""
-    for cand in (tf, str(tf).lower()):
-        try:
-            d = pd.Timedelta(cand)
-        except ValueError:
-            continue
-        if d > pd.Timedelta(0):
-            return d
-    raise ExportError(f"base_tf {tf!r} is not a timeframe this tool can convert to a duration")
+    """Timedelta of a timeframe string ('15m', '1h', '1d'); anything pandas cannot read as a positive duration raises."""
+    try:
+        d = pd.Timedelta(normalize_tf(tf))
+    except (ValueError, TypeError) as e:
+        raise ExportError(f"base_tf {tf!r} is not a timeframe this tool can convert to a duration") from e
+    if d <= pd.Timedelta(0):
+        raise ExportError(f"base_tf {tf!r} is not a positive duration")
+    return d
 
 
 def _iso(ns):

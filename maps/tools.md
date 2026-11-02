@@ -260,18 +260,19 @@
   - `def all_cards()` L166
   - `def main(argv=None)` L173
 
-### `tools/export_torch_artifact.py` (242 lines)
+### `tools/export_torch_artifact.py` (243 lines)
 - PURPOSE: Export the prepared dataset that main.ipynb trains on (an npy_dir `<name>_latest.dataset`) as a contract artifact for the PyTorch project nig-timenet-torch (docs/DATA_ARTIFACT_CONTRACT.md there): the same npy_dir layout, with every window…
 - TAGS: export, torch artifact, nig-timenet-torch, npy_dir, data contract, manifest, holdout_guard, sealed coins, time seal, source commit, t2, d1
 - PITFALLS: Fails closed: no/invalid lock, a dirty working tree, an unknown per-window key or an asset_bounds that does not tile the rows all raise. The sealed list is the whole lock (`export.sealed_excluded`), not only the coins found in the dataset (`export.sealed_found`), so the consumer can see that the list was applied in full. `max_bar_time` is the latest LABEL bar open time (last window bar + forecast…
+- DEPENDS: core
 - API:
-  - `class ExportError(Exception)` L50
-  - `def source_state(root=ROOT)` L62
-  - `def read_npy_dir(path)` L69
-  - `def bar_delta(tf)` L89
-  - `def plan_rows(arrays, meta, lock)` L105
-  - `def export(dataset_dir, out_dir, *, lock=None, source=None, now=None)` L155
-  - `def main(argv=None)` L225
+  - `class ExportError(Exception)` L52
+  - `def source_state(root=ROOT)` L64
+  - `def read_npy_dir(path)` L71
+  - `def bar_delta(tf)` L91
+  - `def plan_rows(arrays, meta, lock)` L106
+  - `def export(dataset_dir, out_dir, *, lock=None, source=None, now=None)` L156
+  - `def main(argv=None)` L226
 
 ### `tools/fetch_crypto_dataset.py` (95 lines)
 - PURPOSE: Download Binance spot OHLCV from the public GitHub dataset Speirsy11/crypto-dataset (monthly parquet per coin and interval, stored in Git LFS) and merge it into one parquet per coin: <out>/ohlc_<SYMBOL>_<interval>.parquet with a UTC Dateti…

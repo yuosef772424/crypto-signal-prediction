@@ -161,6 +161,17 @@ class TestRefusals(Base):
     def test_unreadable_base_tf_is_refused(self):
         with self.assertRaises(eta.ExportError):
             eta.bar_delta("weekly-ish")
+        with self.assertRaises(eta.ExportError):
+            eta.bar_delta(None)
+
+    def test_bar_delta_goes_through_normalize_tf(self):
+        import warnings
+        from pandas.errors import Pandas4Warning
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", Pandas4Warning)                 # lowercase '1d' would warn without normalize_tf
+            self.assertEqual(eta.bar_delta("1d"), pd.Timedelta(days=1))
+            self.assertEqual(eta.bar_delta("1h"), pd.Timedelta(hours=1))
+            self.assertEqual(eta.bar_delta("15min"), pd.Timedelta(minutes=15))
 
     def test_sealed_match_ignores_case_and_usdt_suffix(self):
         write_dataset(self.src, [("sealb", [SEAL_NS - 5 * H]), ("AAAUSDT", [SEAL_NS - 5 * H])])
