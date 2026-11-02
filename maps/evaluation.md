@@ -159,14 +159,14 @@
   - `def save_or_print(data: Union[pd.DataFrame, str], name: str, out_dir: str=DEFAULT_OUTPUT_DIR, max_rows: int=DEFAULT_MAX_ROWS, max_chars: int=DEFAULT_MAX_CHARS, verbose: bool=True, timestamp: bool=False) -> Optional[s…` L33
   - `def save_figure(fig, name: str, out_dir: str=DEFAULT_OUTPUT_DIR, dpi: int=130) -> str` L96
 
-### `evaluation/patterns.py` (272 lines)
+### `evaluation/patterns.py` (283 lines)
 - PURPOSE: Automatic pattern discovery: decision tree, random-forest importances, K-Means clusters, isolation-forest anomalies per head.
 - TAGS: detect_success_failure_patterns, decision tree, feature importance, kmeans, isolation forest, pattern discovery, per_head
 - PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
 - USES: outputs, plots*
 - USED BY: full_analysis
 - API:
-  - `def detect_success_failure_patterns(df: pd.DataFrame, feature_cols: Optional[List[str]]=None, max_tree_depth: int=4, n_clusters: int=4, top_n_assets_onehot: int=8, verbose: bool=True, per_head: bool=True, head_col: str='target') -> Di…` L208
+  - `def detect_success_failure_patterns(df: pd.DataFrame, feature_cols: Optional[List[str]]=None, max_tree_depth: int=4, n_clusters: int=4, top_n_assets_onehot: int=8, verbose: bool=True, per_head: bool=True, head_col: str='target', rf_ma…` L217
 
 ### `evaluation/plots.py` (250 lines)
 - PURPOSE: Visual reports: calibration curve, confidence vs error, error distribution, actual vs predicted, lag correlation, confusion matrix, importances, clusters, equity curve, batch performance.

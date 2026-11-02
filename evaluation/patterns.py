@@ -26,6 +26,12 @@ PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loade
 #   4) Isolation Forest → اكتشاف التوقعات الشاذة (Outliers) ومقارنة أدائها
 # ═══════════════════════════════════════════════════════════════════════════
 
+#: الحد الأقصى لعيّنة كل شجرة في غابة أهمية الخصائص (RandomForestClassifier(max_samples=...)). الغابة (200 شجرة) تُستخدم لترتيب الأهمية فقط؛ على 342 ألف صف
+#: كانت 106 ث للرأس الواحد على نواتين (Colab)، وبـ50000: x5 أسرع والفرق الأقصى في الأهمية 0.015 (قيس على 342 ألف صف اصطناعي، الأهمية مجموعها 1).
+#: جداول بحجم ≤ الحد (اختبارات، عملات قليلة) تُدرَّب كما كانت حرفياً؛ None = السلوك القديم دائماً (عيّنة بحجم الجدول كله).
+PATTERN_RF_MAX_SAMPLES = 50_000
+
+
 def _detect_patterns_single(
     df: pd.DataFrame,
     feature_cols: Optional[List[str]] = None,
@@ -34,6 +40,7 @@ def _detect_patterns_single(
     top_n_assets_onehot: int = 8,
     verbose: bool = True,
     head: Optional[str] = None,
+    rf_max_samples: Optional[int] = PATTERN_RF_MAX_SAMPLES,
 ) -> Dict:
     """
     نواة detect_success_failure_patterns: جدول واحد (رأس واحد أو مجمَّع). `head` يسمّي الرأس في العناوين
@@ -106,8 +113,10 @@ def _detect_patterns_single(
     results['tree_balanced_accuracy'] = float(balanced_accuracy_score(y, tree.predict(X)))
 
     # ── 2) أهمية الخصائص عبر Random Forest ─────────────────────────────────
+    # max_samples: عيّنة كل شجرة ≤ rf_max_samples (سقف الكلفة على الجداول الكبيرة)؛ جدول أصغر منه أو None = بلا max_samples = السلوك القديم حرفياً
+    rf_kw = {} if (rf_max_samples is None or len(X) <= rf_max_samples) else {'max_samples': int(rf_max_samples)}
     rf = RandomForestClassifier(n_estimators=200, max_depth=6, class_weight='balanced',
-                                 random_state=42, n_jobs=-1)
+                                 random_state=42, n_jobs=-1, **rf_kw)
     rf.fit(X, y)
     importance_df = pd.DataFrame({
         'الخاصية': X.columns,
@@ -214,6 +223,7 @@ def detect_success_failure_patterns(
     verbose: bool = True,
     per_head: bool = True,
     head_col: str = 'target',
+    rf_max_samples: Optional[int] = PATTERN_RF_MAX_SAMPLES,
 ) -> Dict:
     """
     اكتشاف أنماط النجاح/الفشل (شجرة قرار + أهمية الخصائص + عناقيد + شذوذ) — لكل رأس (`head_col`، أي high/low/close)
@@ -233,11 +243,12 @@ def detect_success_failure_patterns(
             وإن كان الجدول برأس واحد فقط أو بلا عمود `head_col` فحقول النواة نفسها (tree_rules/feature_importance/
             clusters/clustered_df/anomalies/tree_*) على المستوى الأعلى أيضاً — فيبقى التوافق مع من يقرأها مباشرة.
         per_head=False: حقول النواة على المستوى الأعلى، و'mode': 'pooled'، و'summary' بصف واحد 'all'.
+    rf_max_samples: سقف عيّنة كل شجرة في غابة الأهمية (PATTERN_RF_MAX_SAMPLES)؛ None = بلا سقف (السلوك القديم على الجداول الكبيرة أيضاً).
         حقول النواة: tree_rules, tree_accuracy, tree_naive_baseline_accuracy, tree_balanced_accuracy,
         feature_importance, clusters, clustered_df, anomalies (+ head, n, features).
     """
     kw = dict(feature_cols=feature_cols, max_tree_depth=max_tree_depth, n_clusters=n_clusters,
-              top_n_assets_onehot=top_n_assets_onehot, verbose=verbose)
+              top_n_assets_onehot=top_n_assets_onehot, verbose=verbose, rf_max_samples=rf_max_samples)
     heads = list(pd.unique(df[head_col].dropna())) if head_col in df.columns else []
 
     if not per_head or len(heads) <= 1:
