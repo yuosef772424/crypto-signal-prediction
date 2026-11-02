@@ -126,6 +126,18 @@ class Pure(unittest.TestCase):
             pr.ensure_gpu(True, "2.21.0", probe=probe, run=bad, smi=lambda: "T4", execv=lambda *a: None, environ={})
         self.assertIn("boom", str(cm.exception))
 
+    def test_tee_keeps_the_tail_and_the_markdown_cell_is_table_safe(self):
+        import io
+        sink = io.StringIO()
+        tee = pr.Tee(sink, keep=10)
+        tee.write("abcdefgh")
+        tee.write("ijklmnop\n")
+        self.assertEqual((tee.tail, sink.getvalue()), ("ghijklmnop\n"[-10:], "abcdefghijklmnop\n"))
+        c = pr._cell("a|b\nc" + "x" * 600)
+        self.assertNotIn("|", c)
+        self.assertNotIn("\n", c)
+        self.assertLessEqual(len(c), 403)
+
     def test_training_system_wrapper_appends_the_callback_without_touching_the_cached_list(self):
         prof = pr.Profiler(echo=lambda s: None)
         cached = ["a", "b"]
@@ -223,6 +235,19 @@ class ProfilesTheRealSteps(unittest.TestCase):
                                       echo=lambda s: None)
         self.assertEqual((profile["status"], profile["stopped_before"], profile["steps"], res),
                          ("partial", "apply_project_config", [], None))
+
+    def test_a_report_that_run_reports_swallows_leaves_its_output_tail_in_the_profile(self):
+        ns = rf.run_namespace()
+        def failing(settings, which, kit, **k):
+            print("# report title\n❌ report title: boom reason")
+            return {}
+        ns["run_reports"] = failing
+        st = ns["RunSettings"]().updated({"train": {"run_main_training": False}})
+        profile, _ = pr.profile_run(st, ns, dataset=_dataset(), reports=["gap"], input_batches=2, work_dir=tempfile.mkdtemp(), echo=lambda s: None)
+        rep = [s for s in profile["steps"] if s["name"] == "report:gap"][0]
+        self.assertFalse(rep["info"]["produced_output"])
+        self.assertIn("boom reason", rep["info"]["stdout_tail"])
+        self.assertIn("boom reason", pr.render_markdown(profile))
 
     def test_unknown_report_raises_before_anything_runs(self):
         ns = rf.run_namespace()

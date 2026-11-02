@@ -550,7 +550,7 @@
   - `def format_report(result)` L394
   - `def main(argv=None)` L407
 
-### `tools/profile_run.py` (489 lines)
+### `tools/profile_run.py` (514 lines)
 - PURPOSE: Run profiler of a main run (hardening S03): executes the workflow/run.py step functions in main.ipynb order on given RunSettings and records, per step, wall time, RSS (start / sampled peak / end), GPU peak memory when a GPU is visible, plu…
 - TAGS: profiler, profile, bottleneck, wall time, peak rss, memory, gpu memory, tf.data, input pipeline, steps per second, timing callback, workflow.run steps, run_main, colab job, run contract, s03
 - PITFALLS: `require_gpu` true makes the job exit before loading anything when TensorFlow sees no GPU (Colab's GPU runtime is not enough: requirements-ci.txt installs tensorflow-cpu, whose files win over a later tensorflow). `install_cuda_tensorflow` = V repairs that in the job (uninstall tensorflow + tensorflow-cpu, install tensorflow[and-cuda]==V, re-exec once; ~2 min; modifies the runtime's Python environ…
@@ -561,20 +561,24 @@
   - `class Profiler` L73
     - `.__init__(self, gpu=False, sample_seconds=SAMPLE_SECONDS, echo=None)` L77
     - `.step(self, name, kind='run')` L88
-  - `def make_timing_callback()` L124
-  - `def summarize_epoch(epoch, epoch_s, step_s, val_s)` L157
-  - `def timed_training_system(build, prof, timing)` L167
-  - `def input_probe(dataset, batches)` L177
-  - `def build_namespace(quiet=True)` L200
-  - `def profile_run(settings, ns, *, dataset=None, reports=(), input_batches=50, work_dir, deadline=None, echo=None)` L216
-  - `def environment(gpus)` L294
-  - `def build_profile(prof, timing, probes, settings, state, wall_s, result, gpus, reports, input_batches)` L308
-  - `def render_markdown(p)` L340
-  - `def write_outputs(profile, out_dir)` L369
-  - `def load_config(path)` L382
-  - `def ensure_gpu(required, fix_version, *, probe=None, run=None, smi=None, execv=os.execv, environ=os.environ)` L406
-  - `def check_gpu(required)` L436
-  - `def main(argv=None)` L451
+  - `class Tee` L124
+    - `.__init__(self, stream, keep=4000)` L128
+    - `.write(self, text)` L131
+    - `.flush(self)` L135
+  - `def make_timing_callback()` L139
+  - `def summarize_epoch(epoch, epoch_s, step_s, val_s)` L172
+  - `def timed_training_system(build, prof, timing)` L182
+  - `def input_probe(dataset, batches)` L192
+  - `def build_namespace(quiet=True)` L215
+  - `def profile_run(settings, ns, *, dataset=None, reports=(), input_batches=50, work_dir, deadline=None, echo=None)` L231
+  - `def environment(gpus)` L313
+  - `def build_profile(prof, timing, probes, settings, state, wall_s, result, gpus, reports, input_batches)` L327
+  - `def render_markdown(p)` L365
+  - `def write_outputs(profile, out_dir)` L394
+  - `def load_config(path)` L407
+  - `def ensure_gpu(required, fix_version, *, probe=None, run=None, smi=None, execv=os.execv, environ=os.environ)` L431
+  - `def check_gpu(required)` L461
+  - `def main(argv=None)` L476
 
 ### `tools/run_self_tests.py` (47 lines)
 - PURPOSE: The ONE entry point that runs the self-tests of the shared-namespace packages (data, model, trainer, evaluation) in a notebook namespace: `run_self_tests(globals())`. Loading a package (`<pkg>.load_into`) only defines; this runs the tests.

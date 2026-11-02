@@ -2,7 +2,7 @@
 """
 PURPOSE:  Run profiler of a main run (hardening S03): executes the workflow/run.py step functions in main.ipynb order on given RunSettings and records, per step, wall time, RSS (start / sampled peak / end), GPU peak memory when a GPU is visible, plus the training epochs (step time, steps/s, first-step latency, validation time, other time between steps) through a Keras timing callback, the input pipeline alone (first-batch latency, ms/batch) and one timing per evaluation report. Output: profile.json + profile.md (steps sorted by time). Also a Colab run-contract entry (job `profile-001`).
 TAGS:     profiler, profile, bottleneck, wall time, peak RSS, memory, GPU memory, tf.data, input pipeline, steps per second, timing callback, workflow.run steps, run_main, Colab job, run contract, S03
-PITFALLS: `require_gpu` true makes the job exit before loading anything when TensorFlow sees no GPU (Colab's GPU runtime is not enough: requirements-ci.txt installs tensorflow-cpu, whose files win over a later tensorflow). `install_cuda_tensorflow` = V repairs that in the job (uninstall tensorflow + tensorflow-cpu, install tensorflow[and-cuda]==V, re-exec once; ~2 min; modifies the runtime's Python environment, so only on a disposable runtime). The steps are the real workflow.run functions called in run_main's order with the same arguments (profile_run only wraps them), so the run is the same one; the only change is an extra last callback on trainer.fit (kit.build_training_system is wrapped) and train.run_dir, which is ALWAYS redirected to a temp dir (never resume or write the real training folder or Drive; checkpoints and report files live outside --out, which must stay <= 300 KB per file). The training callback times batch begin -> end, and Keras 3 pulls the batch INSIDE that call, so input wait cannot be separated by a callback (measured on a deliberately slow tf.data pipeline: wait ~ 0, compute = fetch + step); the input pipeline is therefore also run ALONE after training (`input_pipeline_only`, so it cannot move the seeded batch order of the real run; page cache is warm by then) and `input_bound_ratio` = its ms/batch over the steady step ms (near 1 = input-bound). RSS peak is sampled every 50 ms from /proc (a spike shorter than that is missed; `process_peak_mb` is the OS high-water mark of the whole process so far). Step kinds: `run` = part of a main run (counted in the total and the shares), `detail` = nested inside a run step (build_training_system), `probe` = extra work the profiler adds (input_pipeline_only, predict_val). The deadline (85% of --max-minutes) is checked BEFORE each step only; a long step overshoots and the runner kills the job at max_minutes + 2, so each finished step is also echoed to the log as one line. Status `partial` (deadline) still exits 0 but is written in profile.json / profile.md. input_fingerprint in the manifest is the hash of an empty input list: the dataset is described in profile.json (`run_facts`). On Colab the runner installs requirements-ci.txt (tensorflow-cpu): check `environment.tf_gpus` in profile.json before reading the numbers as GPU numbers. Linux/macOS only (resource, /proc).
+PITFALLS: `require_gpu` true makes the job exit before loading anything when TensorFlow sees no GPU (Colab's GPU runtime is not enough: requirements-ci.txt installs tensorflow-cpu, whose files win over a later tensorflow). `install_cuda_tensorflow` = V repairs that in the job (uninstall tensorflow + tensorflow-cpu, install tensorflow[and-cuda]==V, re-exec once; ~2 min; modifies the runtime's Python environment, so only on a disposable runtime). The steps are the real workflow.run functions called in run_main's order with the same arguments (profile_run only wraps them), so the run is the same one; the only change is an extra last callback on trainer.fit (kit.build_training_system is wrapped) and train.run_dir, which is ALWAYS redirected to a temp dir (never resume or write the real training folder or Drive; checkpoints and report files live outside --out, which must stay <= 300 KB per file). The training callback times batch begin -> end, and Keras 3 pulls the batch INSIDE that call, so input wait cannot be separated by a callback (measured on a deliberately slow tf.data pipeline: wait ~ 0, compute = fetch + step); the input pipeline is therefore also run ALONE after training (`input_pipeline_only`, so it cannot move the seeded batch order of the real run; page cache is warm by then) and `input_bound_ratio` = its ms/batch over the steady step ms (near 1 = input-bound). RSS peak is sampled every 50 ms from /proc (a spike shorter than that is missed; `process_peak_mb` is the OS high-water mark of the whole process so far). A report that fails (run_reports swallows it) is recorded with `produced_output` false and the tail of its output in `stdout_tail`. Step kinds: `run` = part of a main run (counted in the total and the shares), `detail` = nested inside a run step (build_training_system), `probe` = extra work the profiler adds (input_pipeline_only, predict_val). The deadline (85% of --max-minutes) is checked BEFORE each step only; a long step overshoots and the runner kills the job at max_minutes + 2, so each finished step is also echoed to the log as one line. Status `partial` (deadline) still exits 0 but is written in profile.json / profile.md. input_fingerprint in the manifest is the hash of an empty input list: the dataset is described in profile.json (`run_facts`). On Colab the runner installs requirements-ci.txt (tensorflow-cpu): check `environment.tf_gpus` in profile.json before reading the numbers as GPU numbers. Linux/macOS only (resource, /proc).
 
 Usage:  python tools/profile_run.py --config cfg.json --out DIR [--max-minutes N]
 cfg = {"settings": {"train": {"epochs": 2, "fit_verbose": 2}},   # RunSettings().updated(...); train.run_dir is forbidden (owned by the profiler)
@@ -119,6 +119,21 @@ class Profiler:
             self.steps.append(rec)
             self.echo(f"[profile] {name:<28} {kind:<6} {rec['seconds']:9.2f}s  rss {rec['rss_start_mb']:8.0f} -> peak {rec['rss_peak_mb']:8.0f} MB"
                       + (f"  ERROR {rec['error']}" if rec["error"] else ""))
+
+
+class Tee:
+    """Writes to ``stream`` and keeps the last ``keep`` characters: run_reports swallows a failing report's exception (it only prints it), and the
+    runner's log keeps just the last 200 KB, so the reason of a failed report would be lost; the profile stores this tail instead."""
+
+    def __init__(self, stream, keep=4000):
+        self.stream, self.keep, self.tail = stream, keep, ""
+
+    def write(self, text):
+        self.tail = (self.tail + text)[-self.keep:]
+        return self.stream.write(text)
+
+    def flush(self):
+        self.stream.flush()
 
 
 def make_timing_callback():
@@ -276,9 +291,13 @@ def profile_run(settings, ns, *, dataset=None, reports=(), input_batches=50, wor
             for key in [k for k in ns["REPORTS"] if k in reports]:
                 due(f"report:{key}")
                 with prof.step(f"report:{key}") as i:
-                    out = ns["run_reports"](settings, [key], kit, model=model, train=train, val=val, test=test, dataset=dataset,
-                                            info=info, plan=plan, chicks=chicks)
+                    tee = Tee(sys.stdout)
+                    with contextlib.redirect_stdout(tee):
+                        out = ns["run_reports"](settings, [key], kit, model=model, train=train, val=val, test=test, dataset=dataset,
+                                                info=info, plan=plan, chicks=chicks)
                     i["produced_output"] = key in out
+                    if key not in out:
+                        i["stdout_tail"] = tee.tail[-3000:]                       # why it failed (run_reports only prints it)
         finally:
             os.chdir(cwd)
     except _OutOfTime as ex:
@@ -337,6 +356,12 @@ def _f(x, nd=2):
     return "-" if x is None else f"{x:.{nd}f}"
 
 
+def _cell(v):
+    """A table-safe, short image of a note value (stdout tails have newlines and pipes)."""
+    t = str(v).replace("|", "/").replace("\n", " / ")
+    return t if len(t) <= 400 else "..." + t[-400:]
+
+
 def render_markdown(p):
     """Sorted markdown table of a profile dict (steps by seconds, descending) + the training epochs."""
     out = [f"# Run profile ({p['status']})", ""]
@@ -350,7 +375,7 @@ def render_markdown(p):
             "| step | kind | seconds | share of run | RSS start MB | RSS peak MB | RSS end MB | GPU peak MB | notes |",
             "|---|---|---:|---:|---:|---:|---:|---:|---|"]
     for s in sorted(p["steps"], key=lambda s: -s["seconds"]):
-        notes = "; ".join(f"{k}={_f(v, 3) if isinstance(v, float) else v}" for k, v in s["info"].items())
+        notes = "; ".join(f"{k}={_f(v, 3) if isinstance(v, float) else _cell(v)}" for k, v in s["info"].items())
         if s["error"]:
             notes = f"ERROR {s['error']}; {notes}"
         share = "-" if s["share_of_run"] is None else f"{100 * s['share_of_run']:.1f}%"
