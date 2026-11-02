@@ -2,7 +2,7 @@
 """
 PURPOSE:  Run profiler of a main run (hardening S03): executes the workflow/run.py step functions in main.ipynb order on given RunSettings and records, per step, wall time, RSS (start / sampled peak / end), GPU peak memory when a GPU is visible, plus the training epochs (step time, steps/s, first-step latency, validation time, other time between steps) through a Keras timing callback, the input pipeline alone (first-batch latency, ms/batch) and one timing per evaluation report. Output: profile.json + profile.md (steps sorted by time). Also a Colab run-contract entry (job `profile-001`).
 TAGS:     profiler, profile, bottleneck, wall time, peak RSS, memory, GPU memory, tf.data, input pipeline, steps per second, timing callback, workflow.run steps, run_main, Colab job, run contract, S03
-PITFALLS: `require_gpu` true makes the job exit before loading anything when TensorFlow sees no GPU (Colab's GPU runtime is not enough: requirements-ci.txt installs tensorflow-cpu, whose files win over a later tensorflow). `install_cuda_tensorflow` = V repairs that in the job (uninstall tensorflow + tensorflow-cpu, install tensorflow[and-cuda]==V, re-exec once; ~2 min; modifies the runtime's Python environment, so only on a disposable runtime). The steps are the real workflow.run functions called in run_main's order with the same arguments (profile_run only wraps them), so the run is the same one; the only change is an extra last callback on trainer.fit (kit.build_training_system is wrapped) and train.run_dir, which is ALWAYS redirected to a temp dir (never resume or write the real training folder or Drive; checkpoints and report files live outside --out, which must stay <= 300 KB per file). The training callback times batch begin -> end, and Keras 3 pulls the batch INSIDE that call, so input wait cannot be separated by a callback (measured on a deliberately slow tf.data pipeline: wait ~ 0, compute = fetch + step); the input pipeline is therefore also run ALONE after training (`input_pipeline_only`, so it cannot move the seeded batch order of the real run; page cache is warm by then) and `input_bound_ratio` = its ms/batch over the steady step ms (near 1 = input-bound). RSS peak is sampled every 50 ms from /proc (a spike shorter than that is missed; `process_peak_mb` is the OS high-water mark of the whole process so far). A report that fails (run_reports swallows it) is recorded with `produced_output` false and the tail of its output in `stdout_tail`. Step kinds: `run` = part of a main run (counted in the total and the shares), `detail` = nested inside a run step (build_training_system), `probe` = extra work the profiler adds (input_pipeline_only, predict_val). The deadline (85% of --max-minutes) is checked BEFORE each step only; a long step overshoots and the runner kills the job at max_minutes + 2, so each finished step is also echoed to the log as one line. Status `partial` (deadline) still exits 0 but is written in profile.json / profile.md. input_fingerprint in the manifest is the hash of an empty input list: the dataset is described in profile.json (`run_facts`). On Colab the runner installs requirements-ci.txt (tensorflow-cpu): check `environment.tf_gpus` in profile.json before reading the numbers as GPU numbers. Linux/macOS only (resource, /proc).
+PITFALLS: `require_gpu` true makes the job exit before loading anything when TensorFlow sees no GPU (Colab's GPU runtime is not enough: requirements-ci.txt installs tensorflow-cpu, whose files win over a later tensorflow). `install_cuda_tensorflow` = V repairs that in the job (uninstall tensorflow + tensorflow-cpu, install tensorflow[and-cuda]==V, re-exec once; ~2 min; modifies the runtime's Python environment, so only on a disposable runtime). The steps are the real workflow.run functions called in run_main's order with the same arguments (profile_run only wraps them), so the run is the same one; the only change is an extra last callback on trainer.fit (kit.build_training_system is wrapped) and train.run_dir, which is ALWAYS redirected to a temp dir (never resume or write the real training folder or Drive; checkpoints and report files live outside --out, which must stay <= 300 KB per file). The training callback times batch begin -> end, and Keras 3 pulls the batch INSIDE that call, so input wait cannot be separated by a callback (measured on a deliberately slow tf.data pipeline: wait ~ 0, compute = fetch + step); the input pipeline is therefore also run ALONE after training (`input_pipeline_only`, so it cannot move the seeded batch order of the real run; page cache is warm by then) and `input_bound_ratio` = its ms/batch over the steady step ms (near 1 = input-bound). RSS peak is sampled every 50 ms from /proc (a spike shorter than that is missed; `process_peak_mb` is the OS high-water mark of the whole process so far). With the `signals` report, `signal_diagnostics` (tools/signal_diagnostics.py) tests on the val and test tables whether confidence / uncertainty are informative about the error (within-asset Spearman vs a permutation null); it describes the profile model (2 epochs), not a fully trained one. A report that fails (run_reports swallows it) is recorded with `produced_output` false and the tail of its output in `stdout_tail`. Step kinds: `run` = part of a main run (counted in the total and the shares), `detail` = nested inside a run step (build_training_system), `probe` = extra work the profiler adds (input_pipeline_only, predict_val). The deadline (85% of --max-minutes) is checked BEFORE each step only; a long step overshoots and the runner kills the job at max_minutes + 2, so each finished step is also echoed to the log as one line. Status `partial` (deadline) still exits 0 but is written in profile.json / profile.md. input_fingerprint in the manifest is the hash of an empty input list: the dataset is described in profile.json (`run_facts`). On Colab the runner installs requirements-ci.txt (tensorflow-cpu): check `environment.tf_gpus` in profile.json before reading the numbers as GPU numbers. Linux/macOS only (resource, /proc).
 
 Usage:  python tools/profile_run.py --config cfg.json --out DIR [--max-minutes N]
 cfg = {"settings": {"train": {"epochs": 2, "fit_verbose": 2}},   # RunSettings().updated(...); train.run_dir is forbidden (owned by the profiler)
@@ -298,6 +298,17 @@ def profile_run(settings, ns, *, dataset=None, reports=(), input_batches=50, wor
                     i["produced_output"] = key in out
                     if key not in out:
                         i["stdout_tail"] = tee.tail[-3000:]                       # why it failed (run_reports only prints it)
+            if "signals" in reports:                                             # are confidence / uncertainty informative or noise?
+                due("signal_diagnostics")
+                with prof.step("signal_diagnostics", kind="probe") as i:
+                    import pandas as pd
+                    import signal_diagnostics
+                    probes["signal_diagnostics"] = {}
+                    for split in ("val", "test"):
+                        path = os.path.join(work_dir, "reports", f"signals_{split}.csv.gz")
+                        if os.path.exists(path):
+                            probes["signal_diagnostics"][split] = signal_diagnostics.check_all(pd.read_csv(path), n_perm=50)
+                    i["splits"] = ",".join(probes["signal_diagnostics"])
         finally:
             os.chdir(cwd)
     except _OutOfTime as ex:
@@ -348,7 +359,8 @@ def build_profile(prof, timing, probes, settings, state, wall_s, result, gpus, r
             "top_by_seconds": [s["name"] for s in sorted(runs, key=lambda s: -s["seconds"])[:3]],
             "top_by_rss_peak_mb": [s["name"] for s in sorted(runs, key=lambda s: -s["rss_peak_mb"])[:3]],
             "environment": environment(gpus), "settings": settings.to_dict(), "reports": reports, "input_batches": input_batches,
-            "run_facts": facts, "steps": steps, "training": training, "input_pipeline": inp}
+            "run_facts": facts, "steps": steps, "training": training, "input_pipeline": inp,
+            "signal_diagnostics": probes.get("signal_diagnostics")}
 
 
 # ---------------------------------------------------------------------------------------------------------------- output
@@ -386,6 +398,12 @@ def render_markdown(p):
     for e in t["epochs"]:
         out.append(f"| {e['epoch']} | {e['epoch_s']:.2f} | {e['steps']} | {_f(e['step_ms_mean'])} | {_f(e['steps_per_s'])} | {_f(e['first_step_s'], 3)} | "
                    f"{e['val_s']:.2f} | {e['other_s']:.2f} |")
+    diag = p.get("signal_diagnostics")
+    if diag:
+        import signal_diagnostics
+        out += ["", "## Confidence / uncertainty vs the error (within-asset Spearman, permutation null; see tools/signal_diagnostics.py)", ""]
+        for split, r in diag.items():
+            out += [f"- **{split}**"] + [f"  - {line}" for line in signal_diagnostics.verdict(r)]
     out += ["", f"steady step {_f(t['steady_step_ms'])} ms ({_f(t['steady_steps_per_s'])} steps/s); input pipeline alone {_f(t['input_ms_per_batch'])} ms/batch; "
             f"input_bound_ratio {_f(t['input_bound_ratio'], 3)} (near 1 = input-bound). `other s` = gaps between steps + epoch-end callbacks (checkpoint saves...).", ""]
     return "\n".join(out)

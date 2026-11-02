@@ -223,6 +223,9 @@ class ProfilesTheRealSteps(unittest.TestCase):
         self.assertEqual(profile["training"]["epochs"][0]["steps"], profile["steps"][names.index("make_datasets")]["info"]["train_rows"] // 32)
         self.assertIsNotNone(profile["input_pipeline"]["first_batch_s"])
         self.assertTrue(profile["steps"][names.index("report:signals")]["info"]["produced_output"])
+        self.assertIn("signal_diagnostics", names)
+        self.assertEqual(sorted(profile["signal_diagnostics"]), ["test", "val"])                   # per split: {head: {confidence/uncertainty: ...}}
+        self.assertIn("within-asset", pr.render_markdown(profile))
         self.assertEqual(profile["settings"]["train"]["run_dir"], os.path.join(work, "run"))      # never the Drive default
         self.assertTrue([d for d in os.listdir(work) if d.startswith("run")])                      # checkpoints went to the temp work dir
         self.assertTrue(os.path.exists(os.path.join(work, "reports", "signals_val.csv.gz")))        # report files stay out of the cwd

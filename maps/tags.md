@@ -175,7 +175,7 @@
 - bundle: tools/colab_runner
 - buy and hold: edge_discovery/14_holdout
 - buy and hold benchmark: edge_discovery/16_h07_oos
-- calibration: tools/natr_range
+- calibration: tools/natr_range, tools/signal_diagnostics
 - calibration report: natr_range/run_natr_range
 - calibration_report: evaluation/trust_calibration
 - callback: trainer/snapshot
@@ -252,7 +252,7 @@
 - compute_loss: trainer/trainer
 - compute_trading_performance_metrics: evaluation/tearsheet
 - concat_splits: signal_eval/integration
-- confidence: evaluation/trust_calibration, workflow/selective_eval
+- confidence: evaluation/trust_calibration, tools/signal_diagnostics, workflow/selective_eval
 - confidencehead: model/nig_layers
 - config: data/__init__, data/runtime
 - config default: tools/check_patterns
@@ -326,7 +326,7 @@
 - decile: signal_eval/core
 - decile correction: natr_range/run_natr_calibrate, natr_range/run_natr_rolling
 - decile long-short: edge_discovery/18_h13_pr7_signal
-- decile table: workflow/market_neutral
+- decile table: tools/signal_diagnostics, workflow/market_neutral
 - decile_spread: signal_eval/core
 - decision metric: strategy_discovery/forward
 - decision tree: evaluation/patterns
@@ -710,6 +710,7 @@
 - infer_feature_columns: data/features
 - inference: data/live, trainer/ensemble
 - information coefficient: signal_eval/core
+- informative signal: tools/signal_diagnostics
 - inject: tools/nb_cells
 - input fingerprint: tools/data_manifest
 - input normalisation: model/input_norm
@@ -1072,7 +1073,7 @@
 - per_window: signal_eval/windows
 - performance: evaluation/pooled, trainer/perf
 - permutation control: workflow/permutation_control
-- permutation test: evaluation/io_patterns, signal_eval/core
+- permutation test: evaluation/io_patterns, signal_eval/core, tools/signal_diagnostics
 - permutation_baseline: signal_eval/core
 - perturbation: tests/test_no_lookahead
 - phase 0: signal_eval/__init__
@@ -1284,7 +1285,7 @@
 - runresult: workflow/run
 - runsettings: tests/run_fixture, tools/evaluate_trained_model, workflow/settings
 - runsettings steps: workflow/run
-- s03: tools/gpu_diag, tools/profile_run
+- s03: tools/gpu_diag, tools/profile_run, tools/signal_diagnostics
 - safe load: discovery/axis_loader
 - salt: tools/build_lock
 - sample size guard: strategy_discovery/oos, strategy_discovery/survivor_checks
@@ -1346,6 +1347,7 @@
 - signal_eval package: signal_eval/_loader
 - signal_evaluation_axis: discovery/axis_loader
 - signal_significance_report: evaluation/tearsheet
+- signals csv: tools/signal_diagnostics
 - signals file: cross_asset/report
 - signatures: tools/build_map
 - significance: strategy_discovery/significance
@@ -1368,7 +1370,7 @@
 - softmax: evaluation/decode
 - source github/drive: tools/data_manifest_colab_cell, tools/fetch_history_colab_cell
 - sources: data/sources
-- spearman: signal_eval/core
+- spearman: signal_eval/core, tools/signal_diagnostics
 - speirsy11: tools/fetch_crypto_dataset
 - spill: data/disk_backed
 - split: data/split
@@ -1539,7 +1541,7 @@
 - two-level holdout: tools/build_lock
 - typevar: data/common
 - typing: data/common, signal_eval/common
-- uncertainty: evaluation/legacy_uncertainty
+- uncertainty: evaluation/legacy_uncertainty, tools/signal_diagnostics
 - uncertainty floor: core/constants
 - uncertaintyweightedloss: trainer/task_weighting
 - unified pipeline: evaluation/unified
@@ -1597,6 +1599,7 @@
 - windowscale: data/normalizers
 - wiring: workflow/wiring_selftest
 - with_sample_index: trainer/training_diagnostics
+- within-asset correlation: tools/signal_diagnostics
 - within_day: workflow/permutation_control
 - workflow: workflow/__init__
 - workflow package: workflow/_loader
