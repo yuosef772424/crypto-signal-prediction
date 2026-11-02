@@ -1,6 +1,6 @@
 {
  "job_id": "profile-004",
- "repo_ref": "1e9d7c69a21147768a63837b6c6b9b116ab18160",
+ "repo_ref": "d4cc437002547c2b6cf7ba5c1b37081370008c40",
  "entry": "tools/profile_run.py",
  "args": [],
  "config": {
@@ -30,7 +30,7 @@
   "profile.json",
   "profile.md"
  ],
- "note": "S03 run profiler on the T4 with the NEW default targets (high+low+close, TargetSettings.suspended_targets=()), batch 512. profile-003 measured the old high/low-only model. Installs tensorflow[and-cuda] first (gpu-diag-001).",
+ "note": "S03 run profiler on the T4 with the NEW default targets (high+low+close, TargetSettings.suspended_targets=()), batch 512. profile-003 measured the old high/low-only model. Installs tensorflow[and-cuda] first (gpu-diag-001). repo_ref moved to include the stdout_tail of failed reports (profile-003: market_neutral failed silently).",
  "rerun": false,
  "pip": []
 }
