@@ -78,14 +78,15 @@ class Pure(unittest.TestCase):
 
     def test_config_is_strict(self):
         def cfg(**over):
-            c = {"settings": {}, "reports": [], "input_batches": 5, "require_gpu": False}
+            c = {"settings": {}, "reports": [], "input_batches": 5, "require_gpu": False, "install_cuda_tensorflow": None}
             c.update(over)
             path = os.path.join(tempfile.mkdtemp(), "c.json")
             json.dump(c, open(path, "w"))
             return path
         self.assertEqual(pr.load_config(cfg())["input_batches"], 5)
         for bad in ({"extra": 1}, {"settings": {"train": {"run_dir": "/x"}}}, {"reports": "gap"}, {"input_batches": 1},
-                    {"input_batches": True}, {"settings": []}, {"require_gpu": "yes"}):
+                    {"input_batches": True}, {"settings": []}, {"require_gpu": "yes"}, {"install_cuda_tensorflow": "2.21.0"},
+                    {"require_gpu": True, "install_cuda_tensorflow": "latest"}):
             with self.assertRaises(SystemExit, msg=str(bad)):
                 pr.load_config(cfg(**bad))
         c = json.load(open(cfg()))
@@ -102,6 +103,28 @@ class Pure(unittest.TestCase):
         with self.assertRaises(SystemExit) as cm:
             pr.check_gpu(True)
         self.assertIn("no GPU", str(cm.exception))
+
+    def test_ensure_gpu_installs_the_cuda_build_once_and_re_execs(self):
+        calls, env = [], {}
+        def probe(label): return {"sees_gpu": False}
+        def run(cmd, timeout): calls.append(cmd[4:]); return {"cmd": " ".join(cmd), "exit": 0, "seconds": 1, "output": ""}
+        execs = []
+        pr.ensure_gpu(False, "2.21.0", probe=probe, run=run, smi=lambda: "T4", execv=lambda *a: execs.append(a), environ=env)
+        pr.ensure_gpu(True, None, probe=probe, run=run, smi=lambda: "T4", execv=lambda *a: execs.append(a), environ=env)
+        pr.ensure_gpu(True, "2.21.0", probe=lambda l: {"sees_gpu": True}, run=run, smi=lambda: "T4", execv=lambda *a: execs.append(a), environ=env)
+        self.assertEqual((calls, execs), ([], []))                                    # not required / no fix asked / already sees a GPU
+        with self.assertRaises(SystemExit):
+            pr.ensure_gpu(True, "2.21.0", probe=probe, run=run, smi=lambda: "none", execv=lambda *a: execs.append(a), environ=env)
+        pr.ensure_gpu(True, "2.21.0", probe=probe, run=run, smi=lambda: "Tesla T4", execv=lambda *a: execs.append(a), environ=env)
+        self.assertEqual(calls, [["uninstall", "-y", "tensorflow", "tensorflow-cpu"], ["install", "-q", "tensorflow[and-cuda]==2.21.0"]])
+        self.assertEqual(len(execs), 1)
+        self.assertEqual(env[pr.FIXED_ENV], "1")
+        pr.ensure_gpu(True, "2.21.0", probe=probe, run=run, smi=lambda: "Tesla T4", execv=lambda *a: execs.append(a), environ=env)
+        self.assertEqual((len(calls), len(execs)), (2, 1))                            # the re-executed process never fixes again
+        bad = lambda cmd, timeout: {"cmd": "pip", "exit": 1, "seconds": 0, "output": "boom"}
+        with self.assertRaises(SystemExit) as cm:
+            pr.ensure_gpu(True, "2.21.0", probe=probe, run=bad, smi=lambda: "T4", execv=lambda *a: None, environ={})
+        self.assertIn("boom", str(cm.exception))
 
     def test_training_system_wrapper_appends_the_callback_without_touching_the_cached_list(self):
         prof = pr.Profiler(echo=lambda s: None)
@@ -223,7 +246,7 @@ class ProfilesTheRealSteps(unittest.TestCase):
         with gzip.open(data, "wb") as f:
             pickle.dump(_dataset(), f)
         cfg = {"settings": {"data": {"path": data}, "train": {"epochs": 1, "fit_verbose": 0}}, "reports": ["signals"], "input_batches": 4,
-               "require_gpu": False}
+               "require_gpu": False, "install_cuda_tensorflow": None}
         cfg_path, out = os.path.join(work, "cfg.json"), os.path.join(work, "out")
         json.dump(cfg, open(cfg_path, "w"))
         r = subprocess.run([sys.executable, os.path.join(ROOT, "tools", "profile_run.py"), "--config", cfg_path, "--out", out,
