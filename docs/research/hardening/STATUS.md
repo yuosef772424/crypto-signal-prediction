@@ -8,12 +8,11 @@ strict `build_config`, persisted run identity + `TrainSettings.seed`.
 
 | Step | Title | State | PR / job | Note |
 |---|---|---|---|---|
-| M0 | GPU in the Colab runner | todo | | needs #62 merged |
-| M1 | Target report + baseline `health-001` | todo | | |
-| M2 | Direct input (no layers before the deep blocks) | todo | | needs M1 |
-| M3 | Trainer steers to the targets | todo | | needs M1 |
-| M4 | Meaningful confidence + sharp uncertainty | todo | | needs M1 |
-| M5 | Combine winners, full run | todo | | needs M2-M4 |
+| M0 | Colab runner: GPU + reliable publish (+ republish profile-005) | todo | | needs #62 merged |
+| M1a | Switches 1: target_report + direct_wide input + raw-input probe | todo | | |
+| M1b | Switches 2: selection metric, confidence target, NIG floor, interval scale | todo | | |
+| M2 | One Colab run: baseline vs all switches on (`model-all-001`) | todo | | needs M0, M1a, M1b |
+| M3 | Read M2, ablate or diagnose, fix | todo | | needs M2 |
 | S01 | Registry adoption (PR 5) | merged | #60 | 4 registries = `core.registry.Registry` (dict-style reads via `view`); fingerprint sha256 pinned in `tests/test_registry_adoption.py`; `TASK_REGISTRY.get(x)` now needs a default |
 | S02 | pandas 4 deprecation fix | PR open | #61 | `core/timeframe.normalize_tf` (`1d`->`1D`, `1w`->`1W`, else unchanged) is the one fixer; used by 5 `data/` modules; Binance `1d` interval untouched (other vocabulary); `1H`/compound `1d12h` not covered |
 | S03 | Run profiler + Colab `profile-001` | todo | | |
@@ -46,6 +45,6 @@ strict `build_config`, persisted run identity + `TrainSettings.seed`.
 | S25 | Friction review (repeat every ~5 steps) | todo | | |
 | S26 | Market-neutral portfolio: realistic test (E-mn-001) | deferred | | owner: only when asked; improve the model first |
 
-**Model track first (owner, 2026-11-02): M0 -> M1 -> M2 -> M3 -> M4 -> M5** (targets: meaningful confidence, uncertainty below the predicted range, no skill loss). S-steps wait unless an M-step needs them; S26 deferred.
+**Model track first (owner, 2026-11-02): M0 -> M1a -> M1b -> M2 -> M3**, all improvements as switches, one test run, then investigate (targets: meaningful confidence, uncertainty below the predicted range, no skill loss). S-steps wait unless an M-step needs them; S26 deferred.
 
 States: todo / in progress / PR open / merged / waiting Colab / closed (rejected) / skipped (reason).
