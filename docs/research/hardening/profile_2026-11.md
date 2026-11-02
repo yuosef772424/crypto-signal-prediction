@@ -69,4 +69,4 @@ T4, batch 512, 2 epochs, high+low+close (102 328 parameters). Run steps 2693 s (
 - `chicks` grew 446 -> 776 s with the third head: the pattern-discovery forest runs once per head (3 x ~110 s on 342 k rows), consistent with the
   fix above. `market_neutral` now produces its output (116 s): it scores with `p_up_close` / `y_close_class` (workflow/market_neutral.py:225), so it
   needs the close head; with close suspended (profile-003) it failed after 14.5 s. It also costs 116 s now: the pandas per-period loops (candidate 3).
-- `profile-005` (same config) runs the fixed code: prediction batch 2048, forest cap, output tails of failed reports; the before/after table goes here.
+- `profile-005` (same config; adds the confidence/uncertainty check, tools/signal_diagnostics.py) runs the fixed code: prediction batch 2048, forest cap, output tails of failed reports; the before/after table goes here.
