@@ -1,12 +1,13 @@
 {
- "job_id": "profile-001",
- "repo_ref": "0a11155587b9db2400def75794e7539ec529529d",
+ "job_id": "profile-002",
+ "repo_ref": "fb8f94b9f8c5f903ffc239e2129c22de0dd7b6db",
  "entry": "tools/profile_run.py",
  "args": [],
  "config": {
   "settings": {
    "train": {
     "epochs": 2,
+    "batch_size": 512,
     "fit_verbose": 2
    }
   },
@@ -18,7 +19,8 @@
    "signals",
    "chicks"
   ],
-  "input_batches": 200
+  "input_batches": 200,
+  "require_gpu": true
  },
  "max_minutes": 150,
  "needs_drive": true,
@@ -27,7 +29,9 @@
   "profile.json",
   "profile.md"
  ],
- "note": "S03 run profiler on the real Drive data with the default RunSettings, 2 epochs, all six reports. Training runs in a temp dir (train.run_dir is redirected: nothing is resumed or written to Drive). Check environment.tf_gpus in profile.json before reading the numbers as GPU numbers.",
+ "note": "S03 run profiler, batch_size 512 (profile-001 at 64 took ~30 min per epoch). require_gpu: exits at once if TensorFlow sees no GPU; pip tries the CUDA build of tensorflow over the tensorflow-cpu that requirements-ci.txt installs.",
  "rerun": false,
- "pip": []
+ "pip": [
+  "tensorflow[and-cuda]~=2.21.0"
+ ]
 }
