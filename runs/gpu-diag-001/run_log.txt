@@ -1,0 +1,6 @@
+# colab_runner log for gpu-diag-001 started 2026-11-02T17:53:49Z
+== checkout ok: d5b2e16496766db2ed1a7796848096ecf36c5b49
+== install -q --disable-pip-version-check -r requirements-ci.txt
+== install -q --disable-pip-version-check tensorflow[and-cuda]~=2.21.0
+== run: /usr/bin/python3 tools/gpu_diag.py --config /content/csp_runner/tmp/gpu-diag-001.config.json --out /content/csp_runner/out/gpu-diag-001 --max-minutes 40
+gpu diag: {'gpu_before': False, 'gpu_after_fix': True}

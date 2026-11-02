@@ -1,0 +1,70 @@
+{
+ "env": {
+  "CUDA_VERSION": "13.0.3",
+  "LD_LIBRARY_PATH": "/usr/lib64-nvidia",
+  "NVIDIA_DRIVER_CAPABILITIES": "compute,utility",
+  "NVIDIA_PRODUCT_NAME": "CUDA",
+  "NVIDIA_REQUIRE_CUDA": "cuda>=13.0 brand=unknown,driver>=535,driver<536 brand=grid,driver>=535,driver<536 brand=tesla,driver>=535,driver<536 brand=nvidia,driver>=535,driver<536 brand=quadro,driver>=535,driver<536 brand=quadrortx,driver>=535,driver<536 brand=nvidiartx,driver>=535,driver<536 brand=vapps,driver>=535,driver<536 brand=vpc,driver>=535,driver<536 brand=vcs,driver>=535,driver<536 brand=vws,driver>=535,driver<536 brand=cloudgaming,driver>=535,driver<536 brand=unknown,driver>=550,driver<551 brand=grid,driver>=550,driver<551 brand=tesla,driver>=550,driver<551 brand=nvidia,driver>=550,driver<551 brand=quadro,driver>=550,driver<551 brand=quadrortx,driver>=550,driver<551 brand=nvidiartx,driver>=550,driver<551 brand=vapps,driver>=550,driver<551 brand=vpc,driver>=550,driver<551 brand=vcs,driver>=550,driver<551 brand=vws,driver>=550,driver<551 brand=cloudgaming,driver>=550,driver<551 brand=unknown,driver>=565,driver<566 brand=grid,driver>=565,driver<566 brand=tesla,driver>=565,driver<566 brand=nvidia,driver>=565,driver<566 brand=quadro,driver>=565,driver<566 brand=quadrortx,driver>=565,driver<566 brand=nvidiartx,driver>=565,driver<566 brand=vapps,driver>=565,driver<566 brand=vpc,driver>=565,driver<566 brand=vcs,driver>=565,driver<566 brand=vws,driver>=565,driver<566 brand=cloudgaming,driver>=565,driver<566 brand=unknown,driver>=570,driver<571 brand=grid,driver>=570,driver<571 brand=tesla,driver>=570,driver<571 brand=nvidia,driver>=570,driver<571 brand=quadro,driver>=570,driver<571 brand=quadrortx,driver>=570,driver<571 brand=nvidiartx,driver>=570,driver<571 brand=vapps,driver>=570,driver<571 brand=vpc,driver>=570,driver<571 brand=vcs,driver>=570,driver<571 brand=vws,driver>=570,driver<571 brand=cloudgaming,driver>=570,driver<571 brand=unknown,driver>=575,driver<576 brand=grid,driver>=575,driver<576 brand=tesla,driver>=575,driver<576 brand=nvidia,driver>=575,driver<576 brand=quadro,driver>=575,driver<576 brand=quadrortx,driver>=575,driver<576 brand=nvidiartx,driver>=575,driver<576 brand=vapps,driver>=575,driver<576 brand=vpc,driver>=575,driver<576 brand=vcs,driver>=575,driver<576 brand=vws,driver>=575,driver<576 brand=cloudgaming,driver>=575,driver<576",
+  "NVIDIA_VISIBLE_DEVICES": "all",
+  "TF_FORCE_GPU_ALLOW_GROWTH": "true"
+ },
+ "fix": [
+  {
+   "cmd": "/usr/bin/python3 -m pip --disable-pip-version-check uninstall -y tensorflow tensorflow-cpu",
+   "exit": 0,
+   "output": "Found existing installation: tensorflow 2.21.0\nUninstalling tensorflow-2.21.0:\n  Successfully uninstalled tensorflow-2.21.0\nFound existing installation: tensorflow_cpu 2.21.0\nUninstalling tensorflow_cpu-2.21.0:\n  Successfully uninstalled tensorflow_cpu-2.21.0\n",
+   "seconds": 29.7
+  },
+  {
+   "cmd": "/usr/bin/python3 -m pip --disable-pip-version-check install -q tensorflow[and-cuda]==2.21.0",
+   "exit": 0,
+   "output": "",
+   "seconds": 73.2
+  }
+ ],
+ "nvidia_smi": {
+  "cmd": "nvidia-smi",
+  "exit": 0,
+  "output": "Mon Nov  2 17:54:12 2026       \n+-----------------------------------------------------------------------------------------+\n| NVIDIA-SMI 580.82.07              Driver Version: 580.82.07      CUDA Version: 13.0     |\n+-----------------------------------------+------------------------+----------------------+\n| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |\n| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |\n|                                         |                        |               MIG M. |\n|=========================================+========================+======================|\n|   0  Tesla T4                       Off |   00000000:00:04.0 Off |                    0 |\n| N/A   36C    P8              9W /   70W |       0MiB /  15360MiB |      0%      Default |\n|                                         |                        |                  N/A |\n+-----------------------------------------+------------------------+----------------------+\n\n+-----------------------------------------------------------------------------------------+\n| Processes:                                                                              |\n|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |\n|        ID   ID                                                               Usage      |\n|=========================================================================================|\n|  No running processes found                                                             |\n+-----------------------------------------------------------------------------------------+\n",
+  "seconds": 0.2
+ },
+ "pip_after": {
+  "cmd": "/usr/bin/python3 -m pip list --format=freeze --disable-pip-version-check",
+  "exit": 0,
+  "output": "jax==0.11.1\njax-cuda13-pjrt==0.11.1\njax-cuda13-plugin==0.11.1\njaxlib==0.11.1\nkeras==3.13.2\nkeras-hub==0.26.0\nkeras-nlp==0.26.0\nnvidia-cublas==13.1.0.3\nnvidia-cublas-cu12==12.9.2.10\nnvidia-cuda-cccl==13.0.85\nnvidia-cuda-crt==13.4.92\nnvidia-cuda-cupti==13.0.85\nnvidia-cuda-cupti-cu12==12.9.79\nnvidia-cuda-nvcc==13.0.88\nnvidia-cuda-nvcc-cu12==12.9.86\nnvidia-cuda-nvrtc==13.0.88\nnvidia-cuda-nvrtc-cu12==12.9.86\nnvidia-cuda-runtime==13.0.96\nnvidia-cuda-runtime-cu12==12.9.79\nnvidia-cudnn-cu12==9.27.0.42\nnvidia-cudnn-cu13==9.19.0.56\nnvidia-cufft==12.0.0.61\nnvidia-cufft-cu12==11.4.1.4\nnvidia-cufile==1.15.1.6\nnvidia-curand==10.4.0.35\nnvidia-curand-cu12==10.3.10.19\nnvidia-cusolver==12.0.4.66\nnvidia-cusolver-cu12==11.7.5.82\nnvidia-cusparse==12.6.3.3\nnvidia-cusparse-cu12==12.5.10.65\nnvidia-cusparselt-cu13==0.8.0\nnvidia-libnvcomp-cu13==5.2.0.13\nnvidia-ml-py==13.615.71\nnvidia-nccl-cu12==2.32.3\nnvidia-nccl-cu13==2.28.9\nnvidia-nvimgcodec-cu13==0.8.0.22\nnvidia-nvjitlink==13.0.88\nnvidia-nvjitlink-cu12==12.9.86\nnvidia-nvshmem-cu13==3.4.5\nnvidia-nvtx==13.0.85\nnvidia-nvvm==13.0.88\ntensorflow==2.21.0\ntensorflow-datasets==4.9.10\ntensorflow-hub==0.16.1\ntensorflow-metadata==1.21.0\ntensorflow-probability==0.25.0\ntensorflow-text==2.21.1\ntf-slim==1.1.0\ntorch==2.11.0+cu130\ntorchao==0.10.0\ntorchaudio==2.11.0+cu130\ntorchcodec==0.11.0+cu130\ntorchdata==0.11.0\ntorchsummary==1.5.1\ntorchtune==0.6.1\ntorchvision==0.26.0+cu130",
+  "seconds": 2.0
+ },
+ "pip_before": {
+  "cmd": "/usr/bin/python3 -m pip list --format=freeze --disable-pip-version-check",
+  "exit": 0,
+  "output": "jax==0.11.1\njax-cuda13-pjrt==0.11.1\njax-cuda13-plugin==0.11.1\njaxlib==0.11.1\nkeras==3.13.2\nkeras-hub==0.26.0\nkeras-nlp==0.26.0\nnvidia-cublas==13.1.0.3\nnvidia-cublas-cu12==12.9.2.10\nnvidia-cuda-cccl==13.0.85\nnvidia-cuda-crt==13.4.92\nnvidia-cuda-cupti==13.0.85\nnvidia-cuda-cupti-cu12==12.9.79\nnvidia-cuda-nvcc==13.0.88\nnvidia-cuda-nvcc-cu12==12.9.86\nnvidia-cuda-nvrtc==13.0.88\nnvidia-cuda-nvrtc-cu12==12.9.86\nnvidia-cuda-runtime==13.0.96\nnvidia-cuda-runtime-cu12==12.9.79\nnvidia-cudnn-cu12==9.27.0.42\nnvidia-cudnn-cu13==9.19.0.56\nnvidia-cufft==12.0.0.61\nnvidia-cufft-cu12==11.4.1.4\nnvidia-cufile==1.15.1.6\nnvidia-curand==10.4.0.35\nnvidia-curand-cu12==10.3.10.19\nnvidia-cusolver==12.0.4.66\nnvidia-cusolver-cu12==11.7.5.82\nnvidia-cusparse==12.6.3.3\nnvidia-cusparse-cu12==12.5.10.65\nnvidia-cusparselt-cu13==0.8.0\nnvidia-libnvcomp-cu13==5.2.0.13\nnvidia-ml-py==13.615.71\nnvidia-nccl-cu12==2.32.3\nnvidia-nccl-cu13==2.28.9\nnvidia-nvimgcodec-cu13==0.8.0.22\nnvidia-nvjitlink==13.0.88\nnvidia-nvjitlink-cu12==12.9.86\nnvidia-nvshmem-cu13==3.4.5\nnvidia-nvtx==13.0.85\nnvidia-nvvm==13.0.88\ntensorflow==2.21.0\ntensorflow_cpu==2.21.0\ntensorflow-datasets==4.9.10\ntensorflow-hub==0.16.1\ntensorflow-metadata==1.21.0\ntensorflow-probability==0.25.0\ntensorflow-text==2.21.1\ntf-slim==1.1.0\ntorch==2.11.0+cu130\ntorchao==0.10.0\ntorchaudio==2.11.0+cu130\ntorchcodec==0.11.0+cu130\ntorchdata==0.11.0\ntorchsummary==1.5.1\ntorchtune==0.6.1\ntorchvision==0.26.0+cu130",
+  "seconds": 1.9
+ },
+ "pip_show": {
+  "cmd": "/usr/bin/python3 -m pip show tensorflow tensorflow-cpu --disable-pip-version-check",
+  "exit": 0,
+  "output": "Name: tensorflow\nVersion: 2.21.0\nSummary: TensorFlow is an open source machine learning framework for everyone.\nHome-page: https://www.tensorflow.org/\nAuthor: Google Inc.\nAuthor-email: packages@tensorflow.org\nLicense: Apache 2.0\nLocation: /usr/local/lib/python3.13/dist-packages\nRequires: absl-py, astunparse, flatbuffers, gast, google_pasta, grpcio, h5py, keras, libclang, ml_dtypes, numpy, opt_einsum, packaging, protobuf, requests, setuptools, six, termcolor, typing_extensions, wrapt\nRequired-by: dopamine_rl, tensorflow-text, tf_keras, ydf_tf\n---\nName: tensorflow_cpu\nVersion: 2.21.0\nSummary: TensorFlow is an open source machine learning framework for everyone.\nHome-page: https://www.tensorflow.org/\nAuthor: Google Inc.\nAuthor-email: packages@tensorflow.org\nLicense: Apache 2.0\nLocation: /usr/local/lib/python3.13/dist-packages\nRequires: absl-py, astunparse, flatbuffers, gast, google_pasta, grpcio, h5py, keras, libclang, ml_dtypes, numpy, opt_einsum, packaging, protobuf, requests, setuptools, six, termcolor, typing_extensions, wrapt\nRequired-by: \n",
+  "seconds": 2.1
+ },
+ "probe_after": {
+  "cmd": "/usr/bin/python3 -c import tensorflow as tf; print('tf', tf.__version__); print('build', {k: v for k, v in tf.sysconfig.get_build_info().items() if 'cuda' in k or 'cudnn' in k}); print('GPUS', tf.config.list_physical_devices('GPU'))",
+  "exit": 0,
+  "label": "after clean tensorflow[and-cuda]",
+  "output": "tf 2.21.0\nbuild {'cuda_compute_capabilities': ['sm_60', 'sm_70', 'sm_80', 'sm_89', 'compute_90'], 'cuda_version': '12.5.1', 'cudnn_version': '9', 'is_cuda_build': True}\nGPUS [PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]\nWARNING: All log messages before absl::InitializeLog() is called are written to STDERR\nI0000 00:00:1793642175.199714   12893 cpu_feature_guard.cc:227] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.\nTo enable the following instructions: AVX2 AVX512F FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.\n",
+  "seconds": 16.1,
+  "sees_gpu": true
+ },
+ "probe_before": {
+  "cmd": "/usr/bin/python3 -c import tensorflow as tf; print('tf', tf.__version__); print('build', {k: v for k, v in tf.sysconfig.get_build_info().items() if 'cuda' in k or 'cudnn' in k}); print('GPUS', tf.config.list_physical_devices('GPU'))",
+  "exit": 0,
+  "label": "as installed by the job",
+  "output": "tf 2.21.0\nbuild {'is_cuda_build': False}\nGPUS []\nWARNING: All log messages before absl::InitializeLog() is called are written to STDERR\nI0000 00:00:1793642057.486733   12328 cpu_feature_guard.cc:227] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.\nTo enable the following instructions: AVX2 AVX512F FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.\n",
+  "seconds": 13.4,
+  "sees_gpu": false
+ },
+ "python": "3.13.16 (main, Oct  1 2026, 15:40:24) [GCC 13.3.0]",
+ "verdict": {
+  "gpu_after_fix": true,
+  "gpu_before": false
+ }
+}
