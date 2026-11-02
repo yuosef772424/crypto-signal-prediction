@@ -32,9 +32,13 @@ candle 10%, market_neutral 9% - so the 2048 batch helps gap/chicks/signals most 
    (`type_of_target`, `check_array`, `label_binarize`) per call. A rank-based AUC (`scipy.stats.rankdata`) gives the same value (*local*:
    |diff| <= 1.1e-16 with ties) at x15 (n=700) to x4 (n=20 000) the speed. Fix: one AUC function in the metrics component (S05 `stats/metrics.py`,
    audit class C7) and use it here; proof = the bootstrap output is allclose on the fixture. Expected: verification + candle 884 s -> roughly 250-400 s.
-2. **`report:chicks` (446 s)** - *local*: 56 model calls for 40 coins, half of the report in the model, plus joblib process-pool start/terminate
-   (`_terminate_and_reset` 4.7 s of 49 s in cProfile). Per-asset predict loops remain: pool the assets (the pooled path exists, `predict_pooled_raw`)
-   and reuse one joblib pool. Proof: tests/test_evaluation_predict_calls.py style (counts + allclose).
+2. **`report:chicks` (446 s): pattern discovery from the model outputs** (`evaluation/patterns.py`, owner pointed here). *Local*, 342 604 rows on 2 CPUs
+   (Colab): the 200-tree RandomForest used only to rank feature importance = 106 s per head (x2 heads = 212 s of the 446 s); decision tree 4 s,
+   K-Means (n_init 10) 2.3 s, IsolationForest 2.1 s, PCA scatter 5.5 s. **Fixed in this PR**: `rf_max_samples` (default `PATTERN_RF_MAX_SAMPLES` = 50 000;
+   `None` = old behaviour; tables up to the cap train the old forest exactly). *Local* at 342 k rows: x5 faster (11 s), max |d importance| 0.015, importances
+   sum to 1; test `tests/test_pattern_rf_cap.py` (60 k rows, cap 20 k: max |d| 0.0089, same top-3 informative features). The rest of chicks:
+   per-asset predict loops (*local*: 56 model calls for 40 coins) and a joblib pool started/stopped repeatedly (`_terminate_and_reset` 4.7 s of 49 s) - pool the
+   assets (`predict_pooled_raw` exists) and reuse one pool.
 3. **`_mn_period_returns` / `_mn_rank_weighted` (workflow/market_neutral.py)** - *local*: 24 of 32 s of the report in pandas per-period Series
    arithmetic (150 calls, 70 000 `DataFrame.__getitem__`). Vectorise by period. In `profile-003` this report ended after 14.5 s with
    `produced_output=False` (failed, reason lost from the 200 KB log tail): `profile-004` stores the output tail of a failed report in `profile.json`.
