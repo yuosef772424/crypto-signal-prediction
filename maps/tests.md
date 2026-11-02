@@ -36,7 +36,7 @@
   - `def model_fp(model)` L144
   - `def capture_state(*, config, model_tf, model_tfs, reg_target_scale, train, val, test, price_targets, suspended_targets, model_overrides, model_seq_len, model_n_features, model, main_config, val_batch, chicks_targets,…` L151
 
-### `tests/test_audit_round2.py` (286 lines)
+### `tests/test_audit_round2.py` (288 lines)
 - PURPOSE: إصلاحات تدقيق الجولة ٢ (docs/research/audit/r2_01..07) — كل اختبار يفشل على الكود قبل الإصلاح. (from docstring)
 - DEPENDS: docs
 - API:
