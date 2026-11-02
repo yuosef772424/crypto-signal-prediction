@@ -9,8 +9,8 @@ strict `build_config`, persisted run identity + `TrainSettings.seed`.
 | Step | Title | State | PR / job | Note |
 |---|---|---|---|---|
 | S01 | Registry adoption (PR 5) | merged | #60 | 4 registries = `core.registry.Registry` (dict-style reads via `view`); fingerprint sha256 pinned in `tests/test_registry_adoption.py`; `TASK_REGISTRY.get(x)` now needs a default |
-| S02 | pandas 4 deprecation fix | PR open | #61 | `core/timeframe.normalize_tf` (`1d`->`1D`, `1w`->`1W`, else unchanged) is the one fixer; used by 5 `data/` modules; Binance `1d` interval untouched (other vocabulary); `1H`/compound `1d12h` not covered |
-| S03 | Run profiler + Colab `profile-001` | todo | | |
+| S02 | pandas 4 deprecation fix | merged | #61 | `core/timeframe.normalize_tf` (`1d`->`1D`, `1w`->`1W`, else unchanged) is the one fixer; used by 5 `data/` modules; Binance `1d` interval untouched (other vocabulary); `1H`/compound `1d12h` not covered |
+| S03 | Run profiler + Colab `profile-001` | waiting Colab | #62 / `profile-001` | `tools/profile_run.py` (profile.json + profile.md); job queued @ `0a11155`, 2 epochs, 6 reports, default `RunSettings`; Keras 3 fetches the batch inside the step so input wait is measured by an input-only probe (`input_bound_ratio`), not by the callback; check `environment.tf_gpus` in the result (runner installs tensorflow-cpu); next: read `colab-results/runs/profile-001/` then S04 |
 | S04 | Bottleneck fixes | todo | | needs S03 results |
 | S03b | Development-friction audit | todo | | goal 8 (D-012) |
 | S05 | `stats/metrics.py` (PR 10) | todo | | |
