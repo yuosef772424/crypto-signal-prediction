@@ -329,7 +329,7 @@
   - `def git(cwd, *args)` L139
   - `def test_real_clone_of_a_local_repo_for_branch_tag_and_short_sha(tmp_path)` L143
 
-### `tests/test_entry_range.py` (674 lines)
+### `tests/test_entry_range.py` (675 lines)
 - PURPOSE: وضع الهدف entry_range (main القسم ٣-ب): الاتجاه في رؤوس التصنيف، والمقدار من سعر الدخول P = last_close في الانحدار. (from docstring)
 - DEPENDS: cross_asset, tools
 - API:
@@ -770,7 +770,7 @@
   - `def test_data_and_evaluation_loads_define_their_checks_without_running_them()` L93
   - `def test_main_notebook_has_the_single_explicit_cell_right_after_the_loading_cells()` L102
 
-### `tests/test_run_settings.py` (187 lines)
+### `tests/test_run_settings.py` (190 lines)
 - PURPOSE: RunSettings (workflow/settings.py): the one settings object of a main run. (from docstring)
 - DEPENDS: docs
 - API:
@@ -780,20 +780,20 @@
     - (5 methods)
   - `class RunDir(unittest.TestCase)` L145
     - (2 methods)
-  - `class PanelPreset(unittest.TestCase)` L172
+  - `class PanelPreset(unittest.TestCase)` L175
     - (1 methods)
 
-### `tests/test_run_steps.py` (271 lines)
+### `tests/test_run_steps.py` (275 lines)
 - PURPOSE: The workflow/run.py steps (RunSettings -> load, CONFIG, split, retarget, model plan, training config, datasets, training, chicks inputs) (from docstring)
 - DEPENDS: docs
 - API:
   - `def settings_for(ns, sc, run_dir)` L42
-  - `def capture(ns, res)` L60
-  - `class RunStepsMatchTheOldCells(unittest.TestCase)` L78
+  - `def capture(ns, res)` L62
+  - `class RunStepsMatchTheOldCells(unittest.TestCase)` L80
     - (6 methods)
-  - `class StepContracts(unittest.TestCase)` L120
+  - `class StepContracts(unittest.TestCase)` L122
     - (11 methods)
-  - `class WiringSelfTest(unittest.TestCase)` L260
+  - `class WiringSelfTest(unittest.TestCase)` L264
     - (1 methods)
 
 ### `tests/test_run_tool.py` (157 lines)
@@ -852,12 +852,12 @@
   - `class MinRunHoursJobTests(unittest.TestCase)` L283
     - (2 methods)
 
-### `tests/test_suspended_targets.py` (99 lines)
-- PURPOSE: TargetSettings.suspended_targets: None = the old rule (close suspended outside entry_range) and the old folder name; () trains close (from docstring)
+### `tests/test_suspended_targets.py` (111 lines)
+- PURPOSE: TargetSettings.suspended_targets: the DEFAULT is () (owner decision 2026-11-02): close is trained in every mode and reaches the model (from docstring)
 - DEPENDS: docs
 - API:
   - `class SuspendedTargets(unittest.TestCase)` L27
-    - (8 methods)
+    - (9 methods)
 
 ### `tests/test_three_tf.py` (39 lines)
 - PURPOSE: ثلاثة فريمات (1h أساسي + 4h + 1d) بالإعدادات وحدها: tf_order + window_sizes + higher_tf_mode='closed'، بلا كود خاص. (from docstring)

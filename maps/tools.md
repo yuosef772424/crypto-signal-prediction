@@ -233,17 +233,17 @@
   - `def sync(ref, dest, repo_url=REPO_URL, token=None, clone=None, dry_run=False, echo=print)` L158
   - `def main(argv=None)` L191
 
-### `tools/evaluate_trained_model.py` (255 lines)
+### `tools/evaluate_trained_model.py` (262 lines)
 - PURPOSE: Evaluates a model trained in main.ipynb without Drive or training: builds a RunSettings from the command line and calls the workflow/run.py steps (no notebook text is patched); also runs the panel model (--panel).
 - TAGS: evaluate trained model, eval cli, runsettings, workflow.run steps, weights, target-mode, split-dates, panel evaluation, gap report, market-neutral portfolio
-- PITFALLS: --target-mode must match the mode the weights were trained with (the training folder name carries it: ..._relative_am). The four runner notebooks (pipeline, model_v2, trainer, chicks) are executed like Colab's %run (Drive/%cd cells skipped), so a run pays their self-tests; main.ipynb itself is never read. Reports run in the current directory = --out.
+- PITFALLS: --target-mode must match the mode the weights were trained with (the training folder name carries it: ..._relative_am). The default targets are high+low+close (owner decision 2026-11-02); weights trained before it (high/low heads only) need --suspended-targets OLD. The four runner notebooks (pipeline, model_v2, trainer, chicks) are executed like Colab's %run (Drive/%cd cells skipped), so a run pa…
 - DEPENDS: core, workflow
 - API:
   - `def load_notebook(path, ns, quiet=True)` L62
   - `def run_cell(src, ns, name, quiet=False)` L74
   - `def build_parser()` L89
-  - `def build_settings(a, settings_cls, invoke_cwd=None)` L133
-  - `def main()` L199
+  - `def build_settings(a, settings_cls, invoke_cwd=None)` L137
+  - `def main()` L206
 
 ### `tools/experiment_registry.py` (214 lines)
 - PURPOSE: Failure registry and no-repeat check for every experiment in the project. A failed experiment is closed with its scope (mechanism, timeframe, target, model class...), the level/location where it failed, the verified cause and the explicit…
