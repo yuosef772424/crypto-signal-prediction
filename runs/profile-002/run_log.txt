@@ -1,0 +1,11 @@
+# colab_runner log for profile-002 started 2026-11-02T17:34:40Z
+== checkout ok: fb8f94b9f8c5f903ffc239e2129c22de0dd7b6db
+== install -q --disable-pip-version-check -r requirements-ci.txt
+== install -q --disable-pip-version-check tensorflow[and-cuda]~=2.21.0
+== run: /usr/bin/python3 tools/profile_run.py --config /content/csp_runner/tmp/profile-002.config.json --out /content/csp_runner/out/profile-002 --max-minutes 150
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+I0000 00:00:1793640896.242876    7268 cpu_feature_guard.cc:227] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+[profile] TensorFlow GPUs: none; nvidia-smi: Tesla T4, 15360 MiB
+require_gpu is true but TensorFlow sees no GPU (see the nvidia-smi line above: if it names a GPU, the installed tensorflow build has no CUDA support, e.g. tensorflow-cpu from requirements-ci.txt)
+== execute FAILED: exit code 1
