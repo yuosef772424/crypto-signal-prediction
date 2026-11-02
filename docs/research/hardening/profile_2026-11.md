@@ -1,0 +1,49 @@
+# Run profile 2026-11 (S03 evidence, S04 candidates)
+
+Source: Colab job `profile-003` (T4, 2 CPUs, 12.7 GB RAM, `RunSettings` default except `train.epochs=2`, `batch_size=512`, high/low targets only;
+`colab-results/runs/profile-003/`) and local measurements on synthetic data (4 CPUs). `profile-004` repeats it with the new defaults
+(close target, prediction batch 2048). Numbers below are `profile-003` unless marked *local*.
+
+## Where the time went (1886 s of run steps)
+| step | s | share | note |
+|---|---:|---:|---|
+| report:verification | 456 | 24% | |
+| report:chicks | 446 | 24% | |
+| report:candle | 428 | 23% | |
+| train_model (2 epochs) | 412 | 22% | 34 ms/step at batch 512 (29 steps/s); input pipeline 0.96 ms/batch (`input_bound_ratio` 0.028) |
+| report:signals | 72 | 4% | |
+| make_splits | 35.5 | 2% | RSS peak 9.4 GB of 12.7 GB |
+| everything else | < 40 | 2% | |
+
+The reports are 75% of a run; training is 22%.
+
+## Done in this PR
+- **Prediction batch 256 -> 2048** (`core.schema.PREDICT_BATCH_SIZE`, used by every `evaluation/` default and the candle baseline). *Local*:
+  7120 rows through `model_outputs_batched`: 256 -> 7.06 s, 512 -> 4.20 s, 2048 -> 1.81 s (x3.9), 4096 -> 1.24 s; outputs identical (max abs diff 0.0).
+  The training/validation batch (`TrainSettings.batch_size`) is untouched: `make_eval_dataset` uses `drop_remainder=True`, so changing it moves which
+  validation rows are dropped and with them the best-epoch selection.
+
+## Candidates for S04 (one PR each, with an equivalence proof)
+Ranked by evidence. Share of a report that is model prediction, *local*, 40 synthetic coins: gap 52%, chicks 51%, signals 50%, verification 17%,
+candle 10%, market_neutral 9% - so the 2048 batch helps gap/chicks/signals most and the three large reports (verification, candle, market_neutral) hardly.
+
+1. **`_day_bootstrap_auc_diff` (workflow/candle_baseline.py:37)** - used by `verification` and `candle` (together 47% of a run). 300 bootstrap draws x 2
+   `sklearn.roc_auc_score` calls per call, 4 calls per report; *local* cProfile: 18-20 s of a 23-26 s report, mostly sklearn input validation
+   (`type_of_target`, `check_array`, `label_binarize`) per call. A rank-based AUC (`scipy.stats.rankdata`) gives the same value (*local*:
+   |diff| <= 1.1e-16 with ties) at x15 (n=700) to x4 (n=20 000) the speed. Fix: one AUC function in the metrics component (S05 `stats/metrics.py`,
+   audit class C7) and use it here; proof = the bootstrap output is allclose on the fixture. Expected: verification + candle 884 s -> roughly 250-400 s.
+2. **`report:chicks` (446 s)** - *local*: 56 model calls for 40 coins, half of the report in the model, plus joblib process-pool start/terminate
+   (`_terminate_and_reset` 4.7 s of 49 s in cProfile). Per-asset predict loops remain: pool the assets (the pooled path exists, `predict_pooled_raw`)
+   and reuse one joblib pool. Proof: tests/test_evaluation_predict_calls.py style (counts + allclose).
+3. **`_mn_period_returns` / `_mn_rank_weighted` (workflow/market_neutral.py)** - *local*: 24 of 32 s of the report in pandas per-period Series
+   arithmetic (150 calls, 70 000 `DataFrame.__getitem__`). Vectorise by period. In `profile-003` this report ended after 14.5 s with
+   `produced_output=False` (failed, reason lost from the 200 KB log tail): `profile-004` stores the output tail of a failed report in `profile.json`.
+4. **Training step 34 ms is per-step overhead, not GPU or input** (same 31 ms on 4 CPUs at batch 64): the model has 93 586 parameters. Fewer, larger
+   steps are the lever (batch 1024-2048 with the learning rate scaled) - this changes training, so it needs an experiment card and
+   MODEL_DEV_PROTOCOL, not a refactor. Also: first step 9.2 s (tracing), epoch-2 "other" 11.2 s vs 0.8 s (epoch-end callbacks, probably the
+   checkpoint save to Drive), validation 8-9 s per epoch.
+5. **Memory: `make_splits` peaks at 9.4 GB (74% of RAM)** from 2.8 GB before it: transient copies of 2.74 M x 32 x 3 windows. Candidate for the
+   `rolling_splits` `_take` full-copy item of the plan; a memory-mapped or index-based split removes it. S18 (slot panel data) needs this number.
+6. **Environment**: the runner installs `tensorflow-cpu`, whose files win over the CUDA build (`gpu-diag-001`); `profile_run.install_cuda_tensorflow` fixes
+   it per job (~2 min). A runner-level `gpu` job key is the permanent fix.
+7. **`verification` printed "15 decode failures"** (profile-003 log): a correctness item, not speed; look at it before trusting the report.
