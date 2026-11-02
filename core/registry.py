@@ -1,7 +1,7 @@
 """
 PURPOSE:  The ONE generic registry primitive (tier 0, stdlib only): `Registry(kind, contract)` registers objects by name with a declared contract (name, version, kind-specific required metadata, optional validator run AT REGISTRATION), raises on a duplicate name, and raises on an unknown name with the list of known names and a did-you-mean hint.
 TAGS:     registry, Registry, Contract, register, contract check at registration, fail early, duplicate name, unknown name, did you mean, one component one interface, plugin, tier 0
-PITFALLS: Nothing in the repo uses it yet: the existing registries (TASK_REGISTRY, HEAD_REGISTRY, NORMALIZERS, sample filters, signal_eval hypotheses) migrate in a separate `refactor` PR that proves identical contents. There is NO overwrite flag: registering a name twice raises, so a module that registers at import time must not be re-executed in the same process (use `unregister` in tests, or build a fresh Registry). The validator runs once, at `register`; it must be cheap and must not import TensorFlow at module level (core stays stdlib-only), so a heavy probe (e.g. calling a loss on tiny tensors) is injected by the caller as the validator. A validator reports problems by RETURNING a list of strings (or raising); `check_all()` re-runs it over every entry for a "whole registry still honours its contract" test. `UnknownNameError` subclasses both KeyError and ValueError so a later migration keeps `except KeyError` / `except ValueError` callers working; its str() is the plain message (no KeyError quoting). Metadata is stored by reference, not copied deeply.
+PITFALLS: Used by TASK_REGISTRY (trainer/config.py), HEAD_REGISTRY (model/heads.py), NORMALIZERS and SAMPLE_FILTER_REGISTRY (data/); signal_eval hypotheses are not migrated yet. Dict-style READ API (`reg[name]`, `reg.get(name, default)`, `in`, `len`, iteration = names, `keys/values/items`) returns the entry's mapping VALUE = `view(entry)` (default: the registered object; a registry whose callers read a record passes `view`, e.g. `{"fn": obj, **meta}`); `get(name)` without a default still raises on an unknown name, `get(name, default)` is the dict-compatible form; `items()` is (name, value) pairs and `entries()` the Entry list; there is no item assignment or pop (register / unregister are the only writers). There is NO overwrite flag: registering a name twice raises, so a module that registers at import time must not be re-executed in the same process (use `unregister` in tests, or build a fresh Registry). The validator runs once, at `register`; it must be cheap and must not import TensorFlow at module level (core stays stdlib-only), so a heavy probe (e.g. calling a loss on tiny tensors) is injected by the caller as the validator. A validator reports problems by RETURNING a list of strings (or raising); `check_all()` re-runs it over every entry for a "whole registry still honours its contract" test. `UnknownNameError` subclasses both KeyError and ValueError so a later migration keeps `except KeyError` / `except ValueError` callers working; its str() is the plain message (no KeyError quoting). Metadata is stored by reference, not copied deeply.
 
 Usage:
     TASKS = Registry("task", Contract("task", required_meta=("stat_keys",), validator=check_task))
@@ -35,6 +35,8 @@ class UnknownNameError(RegistryError, KeyError, ValueError):
 class ContractError(RegistryError, ValueError):
     """The object or its metadata violates the registry's declared contract."""
 
+
+_MISSING = object()
 
 #: validator(name, obj, meta) -> None | iterable of problem strings (empty = fine); may also raise.
 Validator = Callable[[str, Any, Mapping[str, Any]], Optional[Iterable[str]]]
@@ -103,13 +105,15 @@ class Entry:
 class Registry:
     """Name -> object registry with a declared contract. Insertion order is kept (`names()`)."""
 
-    def __init__(self, kind: str, contract: Optional[Contract] = None):
+    def __init__(self, kind: str, contract: Optional[Contract] = None, *, view: Optional[Callable[["Entry"], Any]] = None):
+        """`view(entry) -> value` is what dict-style reads (`reg[name]`, `get`, `values`, `items`) return; default = the object."""
         if contract is None:
             contract = Contract(kind)
         elif contract.kind != kind:
             raise ContractError(f"Registry kind {kind!r} != its contract kind {contract.kind!r}")
         self.kind = kind
         self.contract = contract
+        self._view = view if view is not None else (lambda e: e.obj)
         self._entries: dict[str, Entry] = {}
 
     # ------------------------------------------------------------------ registration
@@ -148,9 +152,15 @@ class Registry:
         self._require(name)
         return self._entries[name]
 
-    def get(self, name: str) -> Any:
-        """The registered object; an unknown name raises UnknownNameError (known names + did-you-mean)."""
-        return self.entry(name).obj
+    def get(self, name: str, default: Any = _MISSING) -> Any:
+        """The entry's value (the registered object unless a `view` was given); an unknown name raises UnknownNameError
+        (known names + did-you-mean) unless a `default` is passed (dict-compatible form)."""
+        if default is not _MISSING and name not in self._entries:
+            return default
+        return self._view(self.entry(name))
+
+    def __getitem__(self, name: str) -> Any:
+        return self._view(self.entry(name))
 
     def names(self) -> Tuple[str, ...]:
         """Registered names in registration order."""
@@ -165,8 +175,19 @@ class Registry:
     def __iter__(self) -> Iterator[str]:
         return iter(self._entries)
 
-    def items(self) -> list[tuple[str, Entry]]:
-        return list(self._entries.items())
+    def keys(self) -> Tuple[str, ...]:
+        return tuple(self._entries)
+
+    def values(self) -> list[Any]:
+        return [self._view(e) for e in self._entries.values()]
+
+    def items(self) -> list[tuple[str, Any]]:
+        """(name, value) pairs, dict-style (value = `view(entry)`)."""
+        return [(n, self._view(e)) for n, e in self._entries.items()]
+
+    def entries(self) -> list[Entry]:
+        """The Entry records (name, version, obj, meta) in registration order."""
+        return list(self._entries.values())
 
     # ------------------------------------------------------------------ whole-registry views
     def describe(self) -> list[dict[str, Any]]:

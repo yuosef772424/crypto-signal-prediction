@@ -65,16 +65,17 @@
   - `def model_health_verdicts(rep, recorder_stats=None, thresholds=None)` L563
   - `def print_verdicts(v, title='🩺 تقرير صحّة النموذج')` L695
 
-### `model/heads.py` (72 lines)
+### `model/heads.py` (87 lines)
 - PURPOSE: HEAD_REGISTRY: pluggable output heads (register_head_type, build_head_outputs, binary/multiclass classification heads).
 - TAGS: head_registry, register_head_type, build_head_outputs, binary_classification, multiclass_classification, head types
-- PITFALLS: An unregistered head type raises (no silent default); this is the single place to add a new output type. Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from other modules resolve at call time.
+- PITFALLS: HEAD_REGISTRY is a core.registry.Registry (dict-style reads): an unregistered head type raises (no silent default), a head name is registered once (a duplicate raises) and the builder must accept (h, target, cfg) (checked at registration); this is the single place to add a new output type. Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from oth…
+- DEPENDS: core
 - USED BY: builder
 - API:
-  - `def register_head_type(name)` L26
-  - `def build_head_outputs(head_type, h, target, cfg)` L34
-  - `def build_binary_classification_head(h, target, cfg)` L46
-  - `def build_multiclass_classification_head(h, target, cfg)` L59
+  - `def register_head_type(name)` L44
+  - `def build_head_outputs(head_type, h, target, cfg)` L49
+  - `def build_binary_classification_head(h, target, cfg)` L61
+  - `def build_multiclass_classification_head(h, target, cfg)` L74
 
 ### `model/input_norm.py` (89 lines)
 - PURPOSE: InstanceNorm (RevIN-style per-window normalisation with stats path) and SymLog level passthrough.

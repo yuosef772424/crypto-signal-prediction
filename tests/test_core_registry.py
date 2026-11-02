@@ -164,6 +164,33 @@ class ContractTests(unittest.TestCase):
             Registry("a", Contract("b"))
 
 
+class DictReadApiTests(unittest.TestCase):
+    """The dict-style read API a migrated plain dict needs (S01): [], get(name, default), keys/values/items, view."""
+
+    def test_default_view_is_the_object(self):
+        r = Registry("head")
+        r.register("a", 10, version=1)
+        r.register("b", 20, version=1)
+        self.assertEqual((r["a"], r.get("b"), r.get("zz", None), r.get("zz", 0)), (10, 20, None, 0))
+        self.assertEqual((r.keys(), r.values(), r.items()), (("a", "b"), [10, 20], [("a", 10), ("b", 20)]))
+        self.assertEqual([e.name for e in r.entries()], ["a", "b"])
+        with self.assertRaises(UnknownNameError):
+            r["zz"]
+        with self.assertRaises(UnknownNameError):
+            r.get("zz")                                  # no default = raises, unlike dict.get
+        with self.assertRaises(KeyError):
+            r["zz"]
+
+    def test_view_projects_what_reads_return(self):
+        r = Registry("task", view=lambda e: {"fn": e.obj, **e.meta})
+        r.register("t", _loss, version=1, stat_keys=["mae"])
+        self.assertEqual(r["t"], {"fn": _loss, "stat_keys": ["mae"]})
+        self.assertEqual(r.get("t"), r["t"])
+        self.assertEqual(r.values(), [r["t"]])
+        self.assertIs(r.entry("t").obj, _loss)           # the Entry itself is not projected
+        self.assertEqual(r.describe(), [{"name": "t", "version": 1, "stat_keys": ["mae"]}])
+
+
 class TierZeroTests(unittest.TestCase):
     def test_registry_imports_only_stdlib(self):
         tree = ast.parse((ROOT / "core" / "registry.py").read_text(encoding="utf-8"))
