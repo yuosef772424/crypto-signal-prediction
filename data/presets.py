@@ -3,6 +3,8 @@ PURPOSE:  Hourly presets: 20-b (1h w168 s32 h4, and 1h w32 s8 h1), 20-c (1h + 4h
 TAGS:     presets, hourly, apply_hourly_preset, HOURLY_W32_S8_OVERRIDES, HOURLY_4H_OVERRIDES, PCT_CHANGE_OVERRIDES, build_hourly_w32_s8_dataset, build_hourly_4h_dataset, build_hourly_pct_dataset, run_hourly_4h_selftests
 PITFALLS: run_hourly_4h_selftests is only defined (no auto-run, no RUN_HOURLY_4H_SELFTESTS flag): tools/run_self_tests.run_self_tests(ns) runs it. Presets inherit HOURLY_W32_S8_OVERRIDES; changing it changes every preset (and the golden digests). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
 """
+
+from core.timeframe import normalize_tf
 # @title 20-ب) بيانات فريم الساعة: نافذة 168 شمعة، stride=32، أفق 4 ساعات — عملات COINS_BY_CATEGORY فقط
 # ═══════════════════════════════════════════════════════════════════════════
 # تعريفات فقط (لا تنفيذ تلقائي — آمن مع %run من main). الاستخدام في آخر الخلية.
@@ -398,7 +400,7 @@ def pct_decode_consistency(dataset: Dict, column: str = 'close') -> Dict[str, fl
     lc = np.asarray(dataset['last_candles'])
     ts = lc[:, TS_COL].astype('int64')
     last = lc[:, LAST_COLUMNS.index(f'last_{column}')].astype('float64')
-    step = s * int(pd.Timedelta(str(tf)).value)
+    step = s * int(pd.Timedelta(normalize_tf(str(tf))).value)
     errs = []
     for b in dataset['asset_bounds']:
         i = b['start'] + np.flatnonzero(np.diff(ts[b['start']:b['end']]) == step)

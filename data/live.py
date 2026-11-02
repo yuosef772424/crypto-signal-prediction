@@ -29,6 +29,8 @@ PITFALLS: The last row per coin has real features but a dummy target; never eval
 الحقيقية (بلا هدف صالح) الجاهزة للاستدلال الفعلي. `extract_last_batch`
 أدناه يستخلص هذا الصف الأخير لكل عملة من أي مجموعة بيانات مُجهَّزة.
 """
+
+from core.timeframe import normalize_tf
 # @title
 def _live_pad_length(tf_order: List[str], window_sizes: Dict[str, int],
                      forecast_horizon: int, download_interval: str) -> int:
@@ -56,7 +58,7 @@ def _pad_with_dummy_tail(df: pd.DataFrame, download_interval: str, n: int) -> pd
     if len(df) == 0 or n <= 0:
         return df
     last_close = float(df['close'].iloc[-1])
-    step = pd.Timedelta(download_interval if download_interval != "1D" else "1d")
+    step = pd.Timedelta(normalize_tf(download_interval))
     future_idx = df.index[-1] + step * np.arange(1, n + 1)
     dummy = pd.DataFrame(
         {'open': last_close, 'high': last_close, 'low': last_close,

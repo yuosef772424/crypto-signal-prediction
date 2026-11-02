@@ -42,6 +42,8 @@ PITFALLS: per_asset leaks when coins' histories differ in length; global_time is
 التاريخ ثابت لا «آخر N يوماً»: حدّ نسبي إلى نهاية البيانات ينزلق مع كل إعادة جلب، فتدخل أيام كانت مختومة في test.
 """
 
+from core.timeframe import normalize_tf
+
 #: بادئة مفاتيح الأهداف داخل أقسام التدريب — يتوقّعها Keras لمطابقة أسماء المخرجات.
 Y_PREFIX = 'y_'
 
@@ -86,7 +88,7 @@ def embargo_size(data: Dict, config: Optional[dict] = None) -> int:
 
 def _tf_to_timedelta(tf: str) -> pd.Timedelta:
     """``'4h'`` → ``Timedelta('4h')``. يقبل صيغ pandas المعتادة (``1D``, ``15T``...)."""
-    return pd.Timedelta(tf)
+    return pd.Timedelta(normalize_tf(tf))
 
 
 def embargo_duration(data: Dict, config: Optional[dict] = None) -> pd.Timedelta:
