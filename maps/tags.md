@@ -298,12 +298,14 @@
 - custom features: data/custom
 - custom_feature_names: data/custom
 - d-009: tools/build_lock
+- d1: tools/export_torch_artifact
 - daily: tools/h07_forward
 - daily breakout: indicator_strategy/variants
 - daily ic: cross_asset/report
 - daily panel: edge_discovery/tsbt
 - data bridge: tools/colab_bridge
 - data cleaning: tools/trim_dead_tails
+- data contract: tools/export_torch_artifact
 - data loader guard: tools/holdout_guard
 - data manifest: tools/data_manifest, tools/data_manifest_colab_cell
 - data pipeline: data/__init__
@@ -509,6 +511,7 @@
 - experiment registry: signal_eval/__init__, signal_eval/registry
 - exploration: natr_range/run_natr_calibrate, natr_range/run_natr_range, natr_range/run_natr_rolling
 - exploratory tier: indicator_strategy/variants
+- export: tools/export_torch_artifact
 - export_signals: cross_asset/train
 - extract: tools/nb_cells
 - extract_actuals: signal_eval/integration
@@ -674,6 +677,7 @@
 - holdout: data/split, edge_discovery/14_holdout, natr_range/run_natr_confirm, tools/holdout_guard
 - holdout flag: edge_discovery/13_listing_stops
 - holdout lock: tools/touched_ledger
+- holdout_guard: tools/export_torch_artifact
 - holdout_start: data/defaults
 - homoscedastic uncertainty: trainer/task_weighting
 - hour of day: edge_discovery/06_seasonality, strategy_discovery/seasonality15m
@@ -865,7 +869,7 @@
 - make_training_config: workflow/run
 - make_training_diagnostics: workflow/diagnostics
 - maker limit: edge_discovery/24_pullback_maker
-- manifest: tools/colab_runner, tools/colab_smoke
+- manifest: tools/colab_runner, tools/colab_smoke, tools/export_torch_artifact
 - manifest ingest: tools/build_lock
 - map: tools/build_map
 - mark-to-market drawdown: hedge_recovery/sim
@@ -957,6 +961,7 @@
 - nig: core/constants
 - nig mixture: trainer/ensemble
 - nig-timenet v2: model/__init__
+- nig-timenet-torch: tools/export_torch_artifact
 - nig_alpha_den_min: core/__init__, core/constants, model/nig_layers
 - nig_regularizer: trainer/tasks
 - nig_uncertainty_bounded: evaluation/targets
@@ -985,7 +990,7 @@
 - notebook definitions: discovery/axis_loader
 - notebook globals: tools/implicit_deps
 - notebooks: tools/build_map
-- npy_dir: data/storage
+- npy_dir: data/storage, tools/export_torch_artifact
 - nu: model/nig_layers
 - null distribution: signal_eval/core
 - num_kv_heads: model/transformer
@@ -1308,7 +1313,7 @@
 - schema: core/__init__, core/schema
 - scratch: data/disk_backed
 - screen_disc_mean.csv: edge_discovery/04_screen_mean
-- sealed coins: tools/holdout_guard, tools/touched_ledger
+- sealed coins: tools/export_torch_artifact, tools/holdout_guard, tools/touched_ledger
 - sealed holdout: tools/build_lock
 - seasonality: edge_discovery/06_seasonality, strategy_discovery/seasonality15m
 - section 7 reports: workflow/__init__
@@ -1368,6 +1373,7 @@
 - snapshot ensemble: trainer/snapshot
 - snapshotensemble: trainer/snapshot
 - softmax: evaluation/decode
+- source commit: tools/export_torch_artifact
 - source github/drive: tools/data_manifest_colab_cell, tools/fetch_history_colab_cell
 - sources: data/sources
 - spearman: signal_eval/core, tools/signal_diagnostics
@@ -1429,7 +1435,7 @@
 - sys.path: tools/check_deps
 - t-stat: edge_discovery/04_screen_mean, edge_discovery/lib
 - t-statistic: indicator_strategy/screen
-- t2: tools/paired_compare
+- t2: tools/export_torch_artifact, tools/paired_compare
 - t_concat_splits_*: signal_eval/selftests
 - t_decile_*: signal_eval/selftests
 - t_evaluate_windows_*: signal_eval/selftests
@@ -1476,7 +1482,7 @@
 - threads: data/parallel
 - tier 0: core/__init__, core/registry, core/seeds, core/timeframe
 - time of day: strategy_discovery/seasonality15m
-- time seal: natr_range/run_natr_confirm_forward, tools/holdout_guard
+- time seal: natr_range/run_natr_confirm_forward, tools/export_torch_artifact, tools/holdout_guard
 - time-series screen: edge_discovery/08_ts_screen
 - time_hour: data/custom
 - timedelta: core/timeframe
@@ -1493,6 +1499,7 @@
 - top traders: edge_discovery/19_hl_copy
 - top-50 big: edge_discovery/lib
 - torch: edge_discovery/25_image_cnn
+- torch artifact: tools/export_torch_artifact
 - touched data: tools/touched_ledger
 - touched ledger: tools/build_lock
 - tp sl: edge_discovery/29_path_envelope
