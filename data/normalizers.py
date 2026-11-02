@@ -1,7 +1,7 @@
 """
 PURPOSE:  ONE registered Normalizer interface behind every price normalization mode ('window_scale', 'logret_std', 'logret_sigma'; the legacy window-level 'pct_change' resolves to 'window_scale' via normalizer_for_mode): fit on train only -> a plain-dict state, transform the inputs, normalize the targets, and the single target inverse. Consumers (windows, pipeline, split, invert_reg_predictions, live) call get_normalizer / normalizer_for_mode and never branch on a mode name.
 TAGS:     Normalizer, NORMALIZERS, get_normalizer, normalizer_for_mode, normalizer_for_data, WindowScale, LogretStd, LogretSigma, fit, transform_inputs, normalize_targets, inverse_targets, state_from_config, price_norm_meta, fit_price_norm, denormalize_price_targets, normalize_price_targets, finish_price_norm, stamp_price_norm, trailing_close_sigma, price_norm_channels, normalization, تطبيع
-PITFALLS: Add a normalizer = write a Normalizer subclass and put it in NORMALIZERS (nothing else to edit; its name is the value of CONFIG['price_norm_mode'] once PRICE_NORM_MODES in normalize.py lists it). fit sees TRAIN only; its state is a JSON-safe dict stored on every split (split['price_norm_meta']) and is the only thing the inverse/live path needs. 'window_scale' stores no state in datasets (default outputs stay byte-identical). build_dataset_live(price_norm_meta=train['price_norm_meta']) applies the same state through Normalizer.prepare_live (logret_* raise without it). The target inverse lives in core/price_norm.py (shared with evaluation.decode): never re-derive it. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+PITFALLS: Add a normalizer = write a Normalizer subclass and register an instance in NORMALIZERS (a core.registry.Registry: the loop at the end of this file; a duplicate or a mismatching `.name` raises; nothing else to edit; its name is the value of CONFIG['price_norm_mode'] once PRICE_NORM_MODES in normalize.py lists it). fit sees TRAIN only; its state is a JSON-safe dict stored on every split (split['price_norm_meta']) and is the only thing the inverse/live path needs. 'window_scale' stores no state in datasets (default outputs stay byte-identical). build_dataset_live(price_norm_meta=train['price_norm_meta']) applies the same state through Normalizer.prepare_live (logret_* raise without it). The target inverse lives in core/price_norm.py (shared with evaluation.decode): never re-derive it. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
 """
 from typing import Dict, List, Optional, Tuple
 
@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 
 from core.price_norm import logret_forward, logret_inverse
+from core.registry import Contract as _Contract, Registry as _Registry
 from core.schema import (PRICE_NORM_CHANNELS, PRICE_NORM_CLIP, PRICE_NORM_LOGRET_SIGMA, PRICE_NORM_LOGRET_STD,
                          PRICE_NORM_SIGMA_FLOOR, PRICE_NORM_SIGMA_N, TARGET_COLUMNS)
 
@@ -420,8 +421,19 @@ class LogretSigma(_LogretBase):
         return dict(split, price_norm_meta=data['price_norm_meta'], price_norm_mode=self.name)
 
 
-#: السجلّ: اسم التطبيع ← كائنه. إضافة تطبيع = صنف جديد + سطر هنا.
-NORMALIZERS: Dict[str, Normalizer] = {n.name: n for n in (WindowScale(), LogretStd(), LogretSigma())}
+def _check_normalizer(name, nz, meta):
+    """عقد التطبيع عند التسجيل: ``Normalizer`` باسم يطابق اسم تسجيله (نقطة الحقيقة الواحدة للاسم)."""
+    if not isinstance(nz, Normalizer):
+        return [f"must be a Normalizer instance, got {type(nz).__name__}"]
+    return [] if nz.name == name else [f"registered as {name!r} but its .name is {nz.name!r}"]
+
+
+#: السجلّ: اسم التطبيع ← كائنه (قراءة بأسلوب القاموس) فوق core.registry.Registry. إضافة تطبيع = صنف جديد + سطر
+#: ``NORMALIZERS.register(nz.name, nz, version=1)`` هنا؛ اسم مكرَّر أو كائن بلا اسم مطابق يرفع عند التسجيل.
+NORMALIZERS = _Registry("normalizer", _Contract("normalizer", optional_meta=(), validator=_check_normalizer))
+for _nz in (WindowScale(), LogretStd(), LogretSigma()):
+    NORMALIZERS.register(_nz.name, _nz, version=1)
+del _nz
 
 
 def get_normalizer(name: str) -> Normalizer:

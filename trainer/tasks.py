@@ -2,7 +2,7 @@
 PURPOSE:  TASK_REGISTRY and the loss functions (evidential NIG, regression, classification, confidence calibration).
 TAGS:     TASK_REGISTRY, register_task_type, evidential_task_loss, regression_task_loss, classification_task_loss,
           nig_regularizer, loss
-PITFALLS: An unregistered task_type raises. NIG loss is numerically fragile (log/lgamma): losses cast to float32.
+PITFALLS: TASK_REGISTRY (trainer/config.py) is a core.registry.Registry: a task_type is registered once (a duplicate raises), its contract (callable, string stat/config keys, a `sample_weight` parameter when supports_sample_weight=True) is checked at registration, an unregistered task_type raises. NIG loss is numerically fragile (log/lgamma): losses cast to float32.
           Executed into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from
           other modules resolve at call time.
 
@@ -76,9 +76,8 @@ def register_task_type(name: str, fn: Callable, stat_keys: List[str], supports_s
     (وإلا فإعطاء sample_weight لهدف من هذا النوع يرفع خطأً صريحًا بدل أن يُتجاهل بصمت).
     config_keys: مفاتيح قاموس الهدف (غير المشتركة بين كل الأنواع) التي تقرؤها fn عبر target_cfg؛ build_config يرفض أي مفتاح
     هدف غير مُعلَن هنا ولا في المشترك (true_key, task_type, output_keys, loss_weight, flood_level) — مصدر واحد لا قائمة ثانية."""
-    TASK_REGISTRY[name] = {"fn": fn, "stat_keys": list(stat_keys),
-                           "supports_sample_weight": bool(supports_sample_weight),
-                           "config_keys": tuple(config_keys)}
+    TASK_REGISTRY.register(name, fn, version=1, stat_keys=list(stat_keys),
+                           supports_sample_weight=supports_sample_weight, config_keys=tuple(config_keys))
 
 
 # ───────────────────────────── مساعدات الأوزان ─────────────────────────────

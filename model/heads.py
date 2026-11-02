@@ -3,7 +3,7 @@ PURPOSE:  HEAD_REGISTRY: pluggable output heads (register_head_type, build_head_
           classification heads).
 TAGS:     HEAD_REGISTRY, register_head_type, build_head_outputs, binary_classification, multiclass_classification,
           head types
-PITFALLS: An unregistered head type raises (no silent default); this is the single place to add a new output type.
+PITFALLS: HEAD_REGISTRY is a core.registry.Registry (dict-style reads): an unregistered head type raises (no silent default), a head name is registered once (a duplicate raises) and the builder must accept (h, target, cfg) (checked at registration); this is the single place to add a new output type.
           Executed into the one shared model namespace by model/_loader.py (never imported on its own): names from
           other modules resolve at call time.
 
@@ -20,15 +20,30 @@ PITFALLS: An unregistered head type raises (no silent default); this is the sing
 (القسم ٨)، لكن اسم الرأس ما زال يُقرأ من `head_types` مثل أي رأس آخر،
 فحذفه من `head_types` يُعطِّله بلا تعديل كود.
 """
-HEAD_REGISTRY = {}
+import inspect as _inspect
+
+from core.registry import Contract as _Contract, Registry as _Registry
+
+
+def _check_head_builder(name, fn, meta):
+    """عقد الرأس عند التسجيل: دالة تقبل (h, target, cfg) — لا يُكتشف الخلل أثناء بناء النموذج."""
+    if not callable(fn):
+        return [f"builder must be callable, got {type(fn).__name__}"]
+    try:
+        _inspect.signature(fn).bind(None, None, None)
+    except TypeError as e:
+        return [f"builder must accept (h, target, cfg): {e}"]
+    return []
+
+
+#: اسم الرأس ← دالة بنائه (قراءة بأسلوب القاموس)، فوق core.registry.Registry: تسجيل اسم مكرَّر أو دالة بتوقيع خاطئ يرفع خطأً عند
+#: التسجيل، واسم غير مسجَّل يرفع UnknownNameError (يسرد المتاح). ``HEAD_REGISTRY.get(name)`` بلا قيمة افتراضية يرفع للاسم المجهول.
+HEAD_REGISTRY = _Registry("head", _Contract("head", optional_meta=(), validator=_check_head_builder))
 
 
 def register_head_type(name):
-    """مُزخرِف: يُسجِّل دالة بناء رأس تحت اسم يُستخدَم في MODEL_CONFIG['head_types']."""
-    def deco(fn):
-        HEAD_REGISTRY[name] = fn
-        return fn
-    return deco
+    """مُزخرِف: يُسجِّل دالة بناء رأس تحت اسم يُستخدَم في MODEL_CONFIG['head_types'] (الاسم يُسجَّل مرة واحدة)."""
+    return HEAD_REGISTRY.decorator(name, version=1)
 
 
 def build_head_outputs(head_type, h, target, cfg):

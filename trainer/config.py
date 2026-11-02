@@ -26,14 +26,48 @@ PITFALLS: build_config validates through validate_config (aggregated ValueError)
 """
 # @title 2) قاموس الإعدادات الافتراضي + دالة الدمج
 import difflib as _difflib
+import inspect as _inspect
 import math as _math
 import re as _re
 
+from core.registry import Contract as _Contract, Registry as _Registry
+
 VALID_TRAIN_MODES = ("auto", "new", "resume", "warm_start")
 
-#: name -> {"fn", "stat_keys", "supports_sample_weight"}: filled by register_task_type (trainer/tasks.py). Created here, in the module that loads
-#: before tasks.py, because build_config must know the registered task types (a forward reference to tasks.py would be an implicit dependency).
-TASK_REGISTRY: Dict[str, Dict[str, Any]] = {}
+def _check_task_entry(name, fn, meta):
+    """Contract of one task type, checked at registration (not hours into training): a callable loss, string stat/config keys that
+    do not collide with the common target keys, and a `sample_weight` parameter whenever supports_sample_weight is declared."""
+    problems = []
+    if not callable(fn):
+        return [f"fn must be callable, got {type(fn).__name__}"]
+    for key in ("stat_keys", "config_keys"):
+        vals = meta[key]
+        if not isinstance(vals, (list, tuple)) or not all(isinstance(v, str) and v for v in vals):
+            problems.append(f"{key} must be a list/tuple of non-empty strings, got {vals!r}")
+        elif len(set(vals)) != len(vals):
+            problems.append(f"{key} has duplicates: {list(vals)}")
+    if isinstance(meta["config_keys"], (list, tuple)):
+        clash = sorted(set(meta["config_keys"]) & set(_COMMON_TARGET_KEYS))
+        if clash:
+            problems.append(f"config_keys {clash} are common target keys (shared by every type); declare only type-specific keys")
+    if not isinstance(meta["supports_sample_weight"], bool):
+        problems.append(f"supports_sample_weight must be a bool, got {meta['supports_sample_weight']!r}")
+    elif meta["supports_sample_weight"]:
+        params = _inspect.signature(fn).parameters
+        if "sample_weight" not in params and not any(p.kind is p.VAR_KEYWORD for p in params.values()):
+            problems.append("supports_sample_weight=True but fn takes no `sample_weight` argument")
+    return problems
+
+
+#: name -> {"fn", "stat_keys", "supports_sample_weight", "config_keys"} (dict-style reads) over a core.registry.Registry; filled by
+#: register_task_type (trainer/tasks.py). Created here, in the module that loads before tasks.py, because build_config must know the
+#: registered task types (a forward reference to tasks.py would be an implicit dependency). Unlike a dict, `.get(x)` with no default
+#: raises on an unknown name: callers pass `.get(x, None)`.
+TASK_REGISTRY = _Registry(
+    "task",
+    _Contract("task", required_meta=("stat_keys", "supports_sample_weight", "config_keys"), optional_meta=(),
+              validator=_check_task_entry),
+    view=lambda e: {"fn": e.obj, **e.meta})
 
 TRAINER_DEFAULT_CONFIG: Dict[str, Any] = {
     # ─────────────────────────────────────────────────────────────
@@ -368,7 +402,7 @@ def _expected_metric_names(cfg):
         if not isinstance(tcfg, dict):
             continue                    # خطؤه مُبلَّغ في _check_targets
         names.add(f"loss_{t}")
-        entry = TASK_REGISTRY.get(tcfg.get("task_type"))
+        entry = TASK_REGISTRY.get(tcfg.get("task_type"), None)
         if entry:
             names.update(f"{t}_{k}" for k in entry["stat_keys"])
         if tcfg.get("task_type") == "classification":
@@ -391,7 +425,7 @@ def _check_targets(cfg, errs):
             errs.append(f"{p}: must be a dict, got {type(tcfg).__name__}")
             continue
         ttype = tcfg.get("task_type")
-        entry = TASK_REGISTRY.get(ttype) if isinstance(ttype, str) else None
+        entry = TASK_REGISTRY.get(ttype, None) if isinstance(ttype, str) else None
         if "task_type" in tcfg and entry is None:
             errs.append(f"{p}.task_type: unregistered task type {ttype!r}; registered: {sorted(TASK_REGISTRY)} "
                         f"(register it with register_task_type first)")

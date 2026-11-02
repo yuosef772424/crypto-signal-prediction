@@ -10,7 +10,7 @@ decode) call the registry and never branch on a mode name.
    `transform_inputs(X, state)`, `normalize_targets(y, state)`, `normalize_prices` / `inverse_targets(pred, state, last_close, head, output)`
    (keep the one inverse formula in `core/price_norm.py` if evaluation must share it), and the build/split/live hooks
    (`check_config`, `build_inputs`, `dataset_fields`, `fit_at_split`, `stamp_split`, `prepare_live`).
-3. Add an instance to `NORMALIZERS` and the name to `PRICE_NORM_MODES` (`data/normalize.py`). Nothing else to edit.
+3. Register an instance (`NORMALIZERS.register(nz.name, nz, version=1)` in the loop at the end of `data/normalizers.py`; `NORMALIZERS` is a `core.registry.Registry`: a duplicate name or a `.name` that differs from the registered name raises) and add the name to `PRICE_NORM_MODES` (`data/normalize.py`). Nothing else to edit.
 4. Extend `tests/test_normalizer.py` (registry set, train-only fit, dict round trip, fingerprints, round trip of targets).
 
 Rules: a new option's default must reproduce the old output byte-for-byte; unknown names and unsupported combinations raise.
