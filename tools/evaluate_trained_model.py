@@ -113,6 +113,9 @@ def build_parser():
                     help="فريمات مُدخل النموذج مفصولة بفواصل (مثلاً 1h,4h) = data.model_tfs في main: فرع مُرمِّز لكل فريم، والبيانات "
                          "يجب أن تحويها (build_hourly_4h_dataset). بلا الخيار = فريم واحد كما كان")
     ap.add_argument("--anti-memorization", default="true", choices=("true", "false"))
+    ap.add_argument("--preset", default=None, metavar="NAME",
+                    help="إعداد جاهز يوضع تحت ما يُمرَّر في سطر الأوامر (مثلاً recommended_2026_11: workflow/presets.py). يغيّر المعمارية "
+                         "(use_instance_norm=False) فلا تُحمَّل أوزان نموذج دُرِّب بغيره؛ مجلد --train يأخذ لاحقة اسم الإعداد")
     ap.add_argument("--reports", default=",".join(REPORTS), help=f"من {REPORTS}")
     ap.add_argument("--mn-quantiles", default="0.05,0.1,0.2,0.3,0.5",
                     help="أطراف المحفظة المحايدة (0.5 = الكون كله لأوزان الرتب)")
@@ -134,11 +137,12 @@ def build_parser():
     return ap
 
 
-def build_settings(a, settings_cls, invoke_cwd=None):
+def build_settings(a, settings_cls, invoke_cwd=None, ns=None):
     """RunSettings (``settings_cls`` = the workflow RunSettings class) of the parsed command line ``a``, as the old tool's text patches
     expressed them: returns ``(settings, panel_explicit)`` where ``panel_explicit`` are the panel fields given on the command line (they
     win over a panel preset, so the caller applies the preset first and these after). Paths are absolutised against the invoking cwd
-    (``--out`` is entered afterwards)."""
+    (``--out`` is entered afterwards). ``--preset NAME`` (needs ``ns``, the workflow namespace) builds the preset first and the flags above
+    are written over it; the training folder gets the preset name as a suffix."""
     invoke_cwd = invoke_cwd or INVOKE_CWD
     upd = {"target": {"target_mode": a.target_mode, "group_freq": a.group_freq},
            "model": {"anti_memorization": a.anti_memorization == "true"},
@@ -196,6 +200,11 @@ def build_settings(a, settings_cls, invoke_cwd=None):
         if a.panel_baseline:
             explicit["baseline"] = base
         upd["panel"] = panel
+    if getattr(a, "preset", None):
+        if ns is None:
+            raise ValueError("--preset needs the workflow namespace (ns=) to find settings_with_preset")
+        settings = ns["settings_with_preset"](a.preset, settings_cls()).updated(upd)
+        return settings.updated({"train": {"run_dir": ns["preset_run_dir"](settings.train.run_dir, a.preset)}}), explicit
     return settings_cls().updated(upd), explicit
 
 
@@ -228,12 +237,14 @@ def main():
     import workflow
     workflow.load_into(ns)
     _stage("الدفاتر الأربعة + workflow", t0)
-    settings, panel_explicit = build_settings(a, ns["RunSettings"])
+    settings, panel_explicit = build_settings(a, ns["RunSettings"], ns=ns)
     kit = ns["Toolkit"].from_namespace(ns)
 
     with gzip.open(data, "rb") as f:                          # بدل load_data_from_drive
         dataset = pickle.load(f)
     t0 = time.time()
+    for problem in ns["dataset_mismatches"](settings, dataset):         # خيارات بناء البيانات التي يذكرها الإعداد ولم يُبنَ بها الملف
+        print("⚠️", problem, flush=True)
     res = ns["run_main"](settings, kit, dataset=dataset, summary=False)
     model = res.model
     _stage("بيانات ← تقسيم ← أهداف ← نموذج ← إعداد التدريب ← chicks", t0)

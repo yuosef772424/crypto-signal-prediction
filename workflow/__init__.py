@@ -10,8 +10,9 @@ PITFALLS: The modules run in ONE shared namespace (see workflow/_loader.py), so 
           kept in sync); main.ipynb never uses it (it calls workflow.load_into(globals(), ...), whose modules read the CONFIG of the
           namespace they are loaded into, tests/test_config_collisions.py).
 
-Modules (load order) and the old main.ipynb cell each was extracted from (settings and run are new: no old cell):
+Modules (load order) and the old main.ipynb cell each was extracted from (settings, presets and run are new: no old cell):
   settings            RunSettings + its sections, run_dir_for (the ~57 notebook globals as one strict frozen object)
+  presets             named RunSettings presets (recommended_2026_11) with the evidence and source of each choice (new, no old cell)
   dataset_io          cell 7 (section 3)
   splits              cell 8 (section 3)
   retarget            cell 10 (section 3-b)

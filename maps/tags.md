@@ -34,6 +34,7 @@
 - a.2: edge_discovery/13_listing_stops
 - abstention: data/heads
 - accept rule: indicator_strategy/screen, indicator_strategy/test_final, strategy_discovery/oos
+- accepted values: tools/settings_catalog
 - access log: tools/holdout_guard
 - accumulator: data/pipeline
 - activations: model/diagnostics
@@ -259,6 +260,7 @@
 - config diff: trainer/identity
 - config keys: data/defaults
 - config_fingerprint: trainer/config
+- config_overrides: tools/settings_catalog
 - confirmation: tools/holdout_guard
 - conflict leg: hedge_recovery/sim2
 - consistency check: indicator_strategy/variants
@@ -298,6 +300,7 @@
 - custom features: data/custom
 - custom_feature_names: data/custom
 - d-009: tools/build_lock
+- d-013: workflow/presets
 - daily: tools/h07_forward
 - daily breakout: indicator_strategy/variants
 - daily ic: cross_asset/report
@@ -313,6 +316,7 @@
 - data.binance.vision: tools/fetch_history_vision_colab
 - dataprocess.ipynb: signal_eval/bootstrap
 - dataset file search: workflow/dataset_io
+- dataset_mismatches: workflow/presets
 - datasetinfo: workflow/run
 - datasettings: workflow/settings
 - day bootstrap: workflow/candle_baseline, workflow/verification
@@ -434,6 +438,8 @@
 - e-natr-003: natr_range/run_natr_calibrate
 - e-natr-004: natr_range/run_natr_rolling
 - e-natr-004-confirm: natr_range/run_natr_confirm_forward
+- e-norm-001: workflow/presets
+- e-norm-002: workflow/presets
 - e-normprobe-1: norm_probe/run_norm_probe
 - e-srch-002: strategy_discovery/intraday_macd
 - e-srch-003: strategy_discovery/seasonality15m
@@ -596,6 +602,7 @@
 - generalization_gap_report: workflow/generalization
 - generate_detailed_report: evaluation/legacy_assets
 - generate_trust_report: evaluation/trust_calibration
+- generated docs: tools/settings_catalog
 - generic trainer: trainer/__init__
 - generictrainer: trainer/__init__, trainer/trainer
 - get_hypothesis: signal_eval/registry
@@ -821,7 +828,7 @@
 - logret_forward: core/price_norm
 - logret_inverse: core/price_norm
 - logret_sigma: data/normalize
-- logret_std: data/normalize
+- logret_std: data/normalize, workflow/presets
 - logretsigma: data/normalizers
 - logretstd: data/normalizers
 - london breakout: edge_discovery/22_chart_rules
@@ -909,7 +916,7 @@
 - model outputs: evaluation/predict
 - model package: model/_loader
 - model_builder: workflow/model_build
-- model_config: model/__init__, model/config
+- model_config: model/__init__, model/config, tools/settings_catalog
 - model_health_report: workflow/__init__, workflow/diagnostics
 - model_health_verdicts: model/diagnostics
 - model_layer_report: workflow/diagnostics
@@ -981,6 +988,7 @@
 - normalizer_for_mode: data/normalizers
 - normalizers: data/normalizers
 - not_adx40: indicator_strategy/variants
+- not_enabled: workflow/presets
 - notebook: tools/nb_cells, tools/run_self_tests
 - notebook definitions: discovery/axis_loader
 - notebook globals: tools/implicit_deps
@@ -1121,13 +1129,16 @@
 - prepare_chicks: workflow/run
 - prepare_data: tools/colab_bridge
 - prepare_single_asset: data/windows
+- preset: workflow/presets
+- preset_conflicts: workflow/presets
+- preset_run_dir: workflow/presets
 - presets: data/presets
 - previous candle: edge_discovery/21_range_fade
 - price_indices: data/features
 - price_norm: core/price_norm
 - price_norm_channels: data/normalizers
 - price_norm_meta: data/normalizers
-- price_norm_mode: data/normalize
+- price_norm_mode: data/normalize, workflow/presets
 - print_latest_table: evaluation/latest_table
 - print_trade_selection: evaluation/trade_selection
 - print_verdicts: model/diagnostics
@@ -1175,6 +1186,10 @@
 - real_price_predictions: tests/test_real_price_modes, workflow/reports
 - realized variance: h07_volsizing/01_volsizing
 - rebound: edge_discovery/09_market_flush
+- recommended preset: tools/settings_catalog
+- recommended_2026_11: tools/settings_catalog, workflow/presets
+- recommended_choices: workflow/presets
+- recommended_settings: workflow/presets
 - recorder: workflow/diagnostics
 - recurrence plot: edge_discovery/27_repr_info
 - redundancy: edge_discovery/02_fmb
@@ -1192,6 +1207,7 @@
 - register_keras_serializable: model/common
 - register_sample_filter: data/windows
 - register_task_type: trainer/tasks
+- registries: tools/settings_catalog
 - registry: core/__init__, core/registry, discovery/batch_runner, tools/touched_ledger
 - registry selftests: signal_eval/registry_selftests
 - registry.json: signal_eval/registry
@@ -1283,7 +1299,7 @@
 - runner: tools/colab_runner, tools/colab_smoke
 - runner notebook: data/__init__, evaluation/__init__, model/__init__, signal_eval/__init__, trainer/__init__
 - runresult: workflow/run
-- runsettings: tests/run_fixture, tools/evaluate_trained_model, workflow/settings
+- runsettings: tests/run_fixture, tools/evaluate_trained_model, tools/settings_catalog, workflow/settings
 - runsettings steps: workflow/run
 - s03: tools/gpu_diag, tools/profile_run, tools/signal_diagnostics
 - safe load: discovery/axis_loader
@@ -1327,7 +1343,10 @@
 - selftests: signal_eval/selftests
 - set_random_seed: core/seeds
 - settings: data/defaults, workflow/settings
+- settings catalog: tools/settings_catalog, workflow/presets
 - settings interval start funding open_interest: tools/fetch_history_colab_cell
+- settings_presets: workflow/presets
+- settings_with_preset: workflow/presets
 - sha256: natr_range/freeze_rules, tools/colab_runner, tools/trim_dead_tails
 - shadowing: tools/implicit_deps
 - shap: discovery/phase3_tools
@@ -1388,7 +1407,7 @@
 - stage b: natr_range/run_natr_confirm_forward
 - stage-2 logistic: edge_discovery/30_envelope_direction
 - stale bars: natr_range/run_natr_calibrate, tools/stale_bars_audit, tools/stale_bars_colab_job, tools/trim_dead_tails
-- stale_bars: tools/stale_bars_audit
+- stale_bars: tools/stale_bars_audit, workflow/presets
 - stamp_price_norm: data/normalizers
 - standardization: norm_probe/run_norm_probe
 - state_entries: trainer/checkpoints
@@ -1415,6 +1434,7 @@
 - survivor checks: strategy_discovery/survivor_checks
 - survivor test: strategy_discovery/oos
 - survivorship: tools/stale_bars_audit, tools/trim_dead_tails
+- suspended_targets: workflow/presets
 - sweep: edge_discovery/22_chart_rules, edge_discovery/data_tools/sweep
 - swiglu: model/transformer
 - symbols.txt: tools/fetch_history_vision_colab
@@ -1529,6 +1549,7 @@
 - trim: tools/trim_dead_tails_colab_job
 - trim at source: tools/trim_dead_tails
 - trimmed mean: strategy_discovery/significance
+- trivial_baseline: workflow/presets
 - true_key: workflow/training_config
 - trunk_drop: cross_asset/model
 - ts_col: core/__init__, core/schema, data/windows
@@ -1544,6 +1565,7 @@
 - uncertainty: evaluation/legacy_uncertainty, tools/signal_diagnostics
 - uncertainty floor: core/constants
 - uncertaintyweightedloss: trainer/task_weighting
+- unchecked setting: tools/settings_catalog
 - unified pipeline: evaluation/unified
 - unit tests: cross_asset/selftest
 - universe: h07_combos/01_combos, tools/touched_ledger
@@ -1554,6 +1576,7 @@
 - up_share: cross_asset/report
 - update drive from github: tools/drive_sync
 - update_config: data/runtime
+- use_instance_norm: workflow/presets
 - use_mixed_precision: trainer/perf
 - used by: tools/implicit_deps
 - uses: tools/implicit_deps
@@ -1587,6 +1610,7 @@
 - warm_start: trainer/checkpoints, trainer/smoke_test
 - wavelet: edge_discovery/27_repr_info
 - weights: tools/evaluate_trained_model
+- where do i set x: tools/settings_catalog
 - wick capture: edge_discovery/31_wick_capture
 - williams: tools/indicator_reverse
 - wilson_ci: evaluation/targets

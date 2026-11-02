@@ -1,0 +1,2021 @@
+{
+ "preset": "recommended_2026_11",
+ "settings": [
+  {
+   "path": "project.config_overrides",
+   "section": "project",
+   "type": "dict",
+   "default": "{'project_name': 'crypto_model'}",
+   "accepted": "dict of data-pipeline CONFIG keys (table 'project.config_overrides'); an unknown key raises in update_config, values are not checked there",
+   "validated": true,
+   "recommended": "= default, except keys ['price_norm_mode', 'stale_bars']",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "data.filename_base",
+   "section": "data",
+   "type": "str",
+   "default": "'preprocessing_output'",
+   "accepted": "non-empty str",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "data.format",
+   "section": "data",
+   "type": "str",
+   "default": "'auto'",
+   "accepted": "one of ('auto', 'pkl.gz', 'npy_dir')",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "data.mmap",
+   "section": "data",
+   "type": "bool",
+   "default": "True",
+   "accepted": "bool",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "data.local_dir",
+   "section": "data",
+   "type": "Union[str, bool, NoneType]",
+   "default": "None",
+   "accepted": "None | False | path str",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "data.path",
+   "section": "data",
+   "type": "Optional[str]",
+   "default": "None",
+   "accepted": "None | str",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "data.model_tfs",
+   "section": "data",
+   "type": "Optional[tuple]",
+   "default": "None",
+   "accepted": "None | non-empty tuple of timeframe names (all must exist in the dataset; the first is the base timeframe)",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "data.split_dates",
+   "section": "data",
+   "type": "Optional[dict]",
+   "default": "None",
+   "accepted": "None | {'train_end': 'YYYY-MM-DD', 'val_end': 'YYYY-MM-DD'} (exactly these two keys)",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "target.target_mode",
+   "section": "target",
+   "type": "Optional[str]",
+   "default": "None",
+   "accepted": "None | '<base>' | '<base>+relative' | 'relative' with base in ['return', 'return_close', 'scaled', 'magnitude', 'volnorm', 'entry_range'] ('+relative' refused on the NO_RELATIVE bases)",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "target.entry_close_reg",
+   "section": "target",
+   "type": "str",
+   "default": "'abs_return'",
+   "accepted": "one of ['abs_return', 'range_pos']",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "target.group_freq",
+   "section": "target",
+   "type": "Optional[str]",
+   "default": "None",
+   "accepted": "None | duration str (e.g. '1D', '4h', '32h')",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "target.suspended_targets",
+   "section": "target",
+   "type": "Optional[tuple]",
+   "default": "()",
+   "accepted": "None (old rule: close suspended unless entry_range) | tuple of CONFIG['targets'] names ('()' = train all; suspending every target raises in plan_model)",
+   "validated": true,
+   "recommended": "()",
+   "evidence": "new",
+   "source": "docs/research/plan/decisions/D-013-default-changes-s03.md (owner): close is a trained target; step M3 compares high/low with and without it. () is also the RunSettings default since PR #62 (stated so the preset is complete). The training folder gets '_susp-none'. Tension with the closed finding that close DIRECTION carries no signal (F-0001, plan/STATUS.md T4): kept because market_neutral needs the close head and M3 measures its effect on high/low"
+  },
+  {
+   "path": "model.anti_memorization",
+   "section": "model",
+   "type": "bool",
+   "default": "True",
+   "accepted": "bool",
+   "validated": true,
+   "recommended": "True",
+   "evidence": "proven",
+   "source": "docs/research/anti_memorization_pr7.md section 8 (RL_gru measured); failure_registry F-0029, F-0030 (the old default encoder memorises). Same as the default: stated so the preset is complete"
+  },
+  {
+   "path": "model.class_only",
+   "section": "model",
+   "type": "bool",
+   "default": "False",
+   "accepted": "bool",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides",
+   "section": "model",
+   "type": "dict",
+   "default": "{}",
+   "accepted": "dict of MODEL_CONFIG / anti-memorization keys (table 'model.config_overrides'); unknown key raises in plan_model; price_targets, head_types, enforce_order refused",
+   "validated": true,
+   "recommended": "= default, except keys ['use_instance_norm']",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "train.run_main_training",
+   "section": "train",
+   "type": "bool",
+   "default": "True",
+   "accepted": "bool",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "train.run_dir",
+   "section": "train",
+   "type": "str",
+   "default": "'/content/drive/MyDrive/training_runs/crypto_model_v1'",
+   "accepted": "non-empty str",
+   "validated": true,
+   "recommended": "<run_dir>_recommended_2026_11",
+   "evidence": "derived",
+   "source": "workflow/presets.py preset_run_dir: the preset name is appended so a model of another setup is never resumed"
+  },
+  {
+   "path": "train.epochs",
+   "section": "train",
+   "type": "int",
+   "default": "60",
+   "accepted": "positive int",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "train.batch_size",
+   "section": "train",
+   "type": "int",
+   "default": "64",
+   "accepted": "positive int",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "train.train_mode",
+   "section": "train",
+   "type": "str",
+   "default": "'auto'",
+   "accepted": "str (not value-checked here; the trainer interprets it)",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "train.seed",
+   "section": "train",
+   "type": "Optional[int]",
+   "default": "None",
+   "accepted": "None (trainer default 42) | int in [0, 2**32)",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "train.early_stopping_patience",
+   "section": "train",
+   "type": "Optional[int]",
+   "default": "None",
+   "accepted": "None (trainer default) | positive int",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "train.fit_verbose",
+   "section": "train",
+   "type": "int",
+   "default": "1",
+   "accepted": "0 | 1 | 2",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "train.use_uncertainty_weighting",
+   "section": "train",
+   "type": "bool",
+   "default": "True",
+   "accepted": "bool",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "train.lambda_reg",
+   "section": "train",
+   "type": "dict",
+   "default": "{'start': 0.0, 'end': 0.05, 'warmup_epochs': 5, 'schedule': 'linear'}",
+   "accepted": "dict {'start','end','warmup_epochs','schedule'} (inner keys validated by the trainer config)",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "train.lambda_calib",
+   "section": "train",
+   "type": "dict",
+   "default": "{'start': 0.0, 'end': 0.1, 'warmup_epochs': 5, 'schedule': 'cosine'}",
+   "accepted": "dict {'start','end','warmup_epochs','schedule'} (inner keys validated by the trainer config)",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "train.early_stopping_monitor",
+   "section": "train",
+   "type": "str",
+   "default": "'val_raw_loss'",
+   "accepted": "str (a metric name of the trainer's history; not value-checked here)",
+   "validated": true,
+   "recommended": "'val_raw_loss'",
+   "evidence": "proven",
+   "source": "docs/research/anti_memorization_pr7.md 10-c (monitor the raw loss, not the Kendall-weighted one). hardening/bottlenecks.csv B-003 says the choice of the best epoch still needs a fixed quality metric (S06): not changed here. Same as the default"
+  },
+  {
+   "path": "train.early_stopping_mode",
+   "section": "train",
+   "type": "str",
+   "default": "'min'",
+   "accepted": "'min' | 'max'",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "train.anti_memorization_trainer",
+   "section": "train",
+   "type": "dict",
+   "default": "{'optimizer': {'lr_initial': 0.0003, 'weight_decay': 0.05, 'ema_warmup': True, 'ema_window_epochs': 1.0}, 'callbacks': {'early_stopping': {'weights_snapshot': 'ema_weights'}}}",
+   "accepted": "dict merged over the trainer settings (inner keys validated by build_config)",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "train.anti_memorization_label_smoothing",
+   "section": "train",
+   "type": "float",
+   "default": "0.1",
+   "accepted": "number in [0, 1)",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "evaluation.calibrate_confidence",
+   "section": "evaluation",
+   "type": "bool",
+   "default": "True",
+   "accepted": "bool",
+   "validated": true,
+   "recommended": "True",
+   "evidence": "proven",
+   "source": "evaluation/trust_calibration.py (calibrators fitted on val only, never test); the report prints ECE before/after. Calibration fixes bias, not discrimination (the report says so). Same as the default"
+  },
+  {
+   "path": "evaluation.calibration_method",
+   "section": "evaluation",
+   "type": "str",
+   "default": "'isotonic'",
+   "accepted": "one of ('isotonic', 'platt')",
+   "validated": true,
+   "recommended": "'isotonic'",
+   "evidence": "proven",
+   "source": "the method main.ipynb has always used (no recorded comparison with platt: kept, not claimed better). Same as the default"
+  },
+  {
+   "path": "evaluation.eval_all_rows",
+   "section": "evaluation",
+   "type": "bool",
+   "default": "True",
+   "accepted": "bool",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "evaluation.out_dir",
+   "section": "evaluation",
+   "type": "str",
+   "default": "'analysis_outputs'",
+   "accepted": "non-empty str",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "evaluation.mn_quantiles",
+   "section": "evaluation",
+   "type": "tuple",
+   "default": "(0.05, 0.1, 0.2, 0.3, 0.5)",
+   "accepted": "non-empty sequence of numbers in (0, 0.5]",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "evaluation.mn_universe",
+   "section": "evaluation",
+   "type": "Union[str, tuple, NoneType]",
+   "default": "None",
+   "accepted": "None (all coins) | 'categories' | sequence of symbols",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "evaluation.trivial_baseline",
+   "section": "evaluation",
+   "type": "bool",
+   "default": "False",
+   "accepted": "bool",
+   "validated": true,
+   "recommended": "True",
+   "evidence": "new",
+   "source": "PR #48 (opt-in column of the generalization report: AUC of the trivial rule 'close position in the last bar's range' and the model's uplift); F-0085 (high/low class AUC 0.74-0.78 is range mechanics, trivial rule 0.76-0.83). No result recorded yet"
+  },
+  {
+   "path": "panel.enabled",
+   "section": "panel",
+   "type": "bool",
+   "default": "False",
+   "accepted": "bool",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "panel.variants",
+   "section": "panel",
+   "type": "tuple",
+   "default": "('A_ic', 'B_ic')",
+   "accepted": "non-empty sequence of variant names ('A','A_ic','B','B_ic','A_ic_k'; names are checked by the panel code)",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "panel.seeds",
+   "section": "panel",
+   "type": "tuple",
+   "default": "(0,)",
+   "accepted": "non-empty sequence of ints",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "panel.epochs",
+   "section": "panel",
+   "type": "Optional[int]",
+   "default": "None",
+   "accepted": "None | positive int",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "panel.batch_samples",
+   "section": "panel",
+   "type": "int",
+   "default": "1024",
+   "accepted": "positive int",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "panel.max_days",
+   "section": "panel",
+   "type": "int",
+   "default": "16",
+   "accepted": "positive int",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "panel.baseline",
+   "section": "panel",
+   "type": "Optional[str]",
+   "default": "'auto'",
+   "accepted": "None | 'auto' | 'model' | path str",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "panel.first_touch",
+   "section": "panel",
+   "type": "Optional[str]",
+   "default": "None",
+   "accepted": "None | str (path of bracket_first_5.pkl)",
+   "validated": false,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "panel.subset",
+   "section": "panel",
+   "type": "Optional[dict]",
+   "default": "None",
+   "accepted": "None | {'last_days': int, 'coins': int}",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "panel.run_root",
+   "section": "panel",
+   "type": "Optional[str]",
+   "default": "None",
+   "accepted": "None | str",
+   "validated": false,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "panel.overrides",
+   "section": "panel",
+   "type": "dict",
+   "default": "{}",
+   "accepted": "dict with only the sections 'train' / 'model'",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "panel.patience",
+   "section": "panel",
+   "type": "Optional[int]",
+   "default": "None",
+   "accepted": "None | positive int",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "panel.monitor",
+   "section": "panel",
+   "type": "str",
+   "default": "'val_loss'",
+   "accepted": "non-empty str (val_loss | val_ic_asym | val_auc_low ...)",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "panel.group",
+   "section": "panel",
+   "type": "Optional[str]",
+   "default": "'auto'",
+   "accepted": "None | 'auto' | duration str",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "panel.allow_mixed_timestamps",
+   "section": "panel",
+   "type": "bool",
+   "default": "False",
+   "accepted": "bool",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "panel.min_coins",
+   "section": "panel",
+   "type": "Optional[int]",
+   "default": "None",
+   "accepted": "None | positive int",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "panel.max_coins",
+   "section": "panel",
+   "type": "Optional[int]",
+   "default": "None",
+   "accepted": "None | positive int",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "panel.k_eval",
+   "section": "panel",
+   "type": "Optional[tuple]",
+   "default": "None",
+   "accepted": "None | sequence of int / None",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "panel.k_draws",
+   "section": "panel",
+   "type": "int",
+   "default": "3",
+   "accepted": "positive int",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "panel.preset",
+   "section": "panel",
+   "type": "Optional[str]",
+   "default": "None",
+   "accepted": "None | one of ['1h_s8']",
+   "validated": true,
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  }
+ ],
+ "config_keys": [
+  {
+   "path": "project.config_overrides.tf_order",
+   "type": "list",
+   "default": "['1D']",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.base_tf",
+   "type": "str",
+   "default": "'1D'",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.window_sizes",
+   "type": "dict",
+   "default": "{'1D': 32}",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.stride",
+   "type": "int",
+   "default": "1",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.align_windows_to_grid",
+   "type": "bool",
+   "default": "True",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.window_grid_anchor",
+   "type": "str",
+   "default": "'1970-01-01'",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.higher_tf_offset",
+   "type": "int",
+   "default": "2",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.higher_tf_mode",
+   "type": "str",
+   "default": "'legacy'",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.x_storage_dtype",
+   "type": "NoneType",
+   "default": "None",
+   "accepted": "None | dtype name; refused by price_norm_mode='logret_std'",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.disk_backed",
+   "type": "bool",
+   "default": "False",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.scratch_dir",
+   "type": "NoneType",
+   "default": "None",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.scratch_cleanup_after_save",
+   "type": "bool",
+   "default": "False",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.save_format",
+   "type": "str",
+   "default": "'auto'",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.save_single_copy",
+   "type": "bool",
+   "default": "False",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.pkl_compresslevel",
+   "type": "int",
+   "default": "9",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.cross_asset_dtype",
+   "type": "str",
+   "default": "'float64'",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.targets",
+   "type": "list",
+   "default": "['high', 'low', 'close']",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.forecast_horizon",
+   "type": "int",
+   "default": "1",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.target_mode",
+   "type": "str",
+   "default": "'direction'",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.enabled_heads",
+   "type": "dict",
+   "default": "{'high_class': True, 'high_reg': True, 'low_class': True, 'low_reg': True, 'close_class': True, 'close_reg': True}",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.target_loss_weights",
+   "type": "dict",
+   "default": "{'high': 1.0, 'low': 1.0, 'close': 1.0}",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.abstention",
+   "type": "dict",
+   "default": "{'enabled': True, 'use_uncertainty_head': False, 'head_hidden_dim': 128, 'head_dropout': 0.15, 'signals': {'margin': True, 'uncertainty': True, 'head_agreement': True}, 'min_margin': 0.2, 'max_uncertainty_ratio': 1.0, 'require_head_agreement': True, 'min_coverage': 0.05, 'dynamic_by_volatility': False, 'volatility_sensitivity': 0.5, 'cost_per_trade_pct': 0.06, 'slippage_pct': 0.02, 'opportunity_cost_pct': 0.0, 'decision_head': 'close_class'}",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.scaler_type",
+   "type": "str",
+   "default": "'robust'",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.scaling_window",
+   "type": "int",
+   "default": "32",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.eps",
+   "type": "float",
+   "default": "1e-08",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.split_mode",
+   "type": "str",
+   "default": "'global_time'",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.split_dates",
+   "type": "NoneType",
+   "default": "None",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.holdout_start",
+   "type": "NoneType",
+   "default": "None",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.open_holdout",
+   "type": "bool",
+   "default": "False",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.train_pct",
+   "type": "float",
+   "default": "0.8",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.val_pct",
+   "type": "float",
+   "default": "0.1",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.keep_asset_test_separate",
+   "type": "bool",
+   "default": "True",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.embargo_candles",
+   "type": "NoneType",
+   "default": "None",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.min_split_samples",
+   "type": "int",
+   "default": "64",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.download_interval",
+   "type": "str",
+   "default": "'1h'",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.market_context",
+   "type": "dict",
+   "default": "{'enabled': True, 'reference_symbol': 'BTCUSDT', 'return_periods': [1], 'corr_windows': [20, 60], 'beta_windows': [20]}",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.momentum_rank",
+   "type": "dict",
+   "default": "{'enabled': False, 'horizons': [6, 24]}",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.market_breadth",
+   "type": "dict",
+   "default": "{'enabled': True, 'horizons': [24]}",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.momentum_orth_natr",
+   "type": "dict",
+   "default": "{'enabled': True, 'horizons': [1, 3, 6, 12, 24], 'natr_length': 14, 'min_assets': 5}",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.rolling_retrain",
+   "type": "dict",
+   "default": "{'test_span': None, 'val_span': None, 'train_span': None, 'initial_train_span': None, 'step': None}",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.funding_rate",
+   "type": "dict",
+   "default": "{'enabled': True, 'drive_dir': 'funding_rate', 'as_feature': True, 'zscore_window': 90}",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.open_interest",
+   "type": "dict",
+   "default": "{'enabled': True, 'drive_dir': 'open_interest', 'period': '1h', 'as_feature': True, 'change_period': 1}",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.intraday_efficiency",
+   "type": "dict",
+   "default": "{'enabled': False, 'as_feature': False, 'archive_dir': None, 'data': None}",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.intraday_vwap",
+   "type": "dict",
+   "default": "{'enabled': False, 'as_feature': False, 'archive_dir': None, 'data': None}",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.intraday_volume_concentration",
+   "type": "dict",
+   "default": "{'enabled': False, 'as_feature': False, 'archive_dir': None, 'data': None}",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.phase2_data",
+   "type": "dict",
+   "default": "{'use_intraday_15m': 'auto', 'use_futures_metrics': 'auto', 'data_root': None, 'intraday_dir': 'history_15m', 'intraday_pattern': '{name}.csv.gz', 'metrics_dir': 'futures_metrics', 'min_coverage': 0.75, 'trades_z_window': 30, 'topk_bars': 4, 'max_age': '1D', 'module_dirs': ['/content/crypto-signal-prediction', '/content/drive/MyDrive/crypto']}",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.split_cutoff_method",
+   "type": "str",
+   "default": "'kept_share'",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.exclude_from_features",
+   "type": "list",
+   "default": "['open', 'high', 'low', 'ADX_14', 'BBL_20_2.0', 'BBM_20_2.0', 'BBU_20_2.0', 'BBP_20_2.0', 'SUPERT_DIR_10', 'MKT_ret_1']",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.feature_order",
+   "type": "NoneType",
+   "default": "None",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.indicator_settings",
+   "type": "dict",
+   "default": "{'adx': [14], 'rsi': [14], 'natr': [14], 'bbands': [20], 'mfi': [14]}",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.static_indicators",
+   "type": "list",
+   "default": "[]",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.static_indicator_params",
+   "type": "dict",
+   "default": "{'log_return': {'length': 14}, 'percent_return': {'length': 14}}",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.use_custom_features",
+   "type": "bool",
+   "default": "True",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.custom_settings",
+   "type": "dict",
+   "default": "{'returns': [], 'range_windows': [50], 'vol_windows': [], 'volume_window': 20, 'candle_structure': False, 'time_features': False, 'supertrend_windows': [10], 'vol_term_structure_pairs': [(3, 30)]}",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.clip_abs",
+   "type": "float",
+   "default": "5.0",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.price_norm_mode",
+   "type": "str",
+   "default": "'window_scale'",
+   "accepted": "one of ['window_scale', 'pct_change', 'logret_std', 'logret_sigma']; 'logret_*' refuse: reg_target_scale != 1, x_storage_dtype, cross_sectional_normalize, target modes other than the default, several timeframes (logret_sigma), regression heads (logret_sigma). Acts when the dataset is BUILT: apply_dataset_config overwrites it with the loaded file's own value",
+   "recommended": "'logret_std'",
+   "evidence": "new",
+   "source": "card docs/research/cards/E-norm-001.md (pre-registered; one valid seed per arm so far: model metric 0.649 vs 0.61-0.63, plan/STATUS.md Model line). Needs >= 3 seeds on one commit before it counts. Acts when the dataset is built. Not combinable with: target modes other than the default, reg_target_scale != 1, x_storage_dtype, cs_norm, logret_sigma heads"
+  },
+  {
+   "path": "project.config_overrides.price_pct_clip",
+   "type": "float",
+   "default": "100.0",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.sample_filters",
+   "type": "list",
+   "default": "[]",
+   "accepted": "list of {'feature','op','value'} | {'expr'} | {'fn': <registered sample filter name>}; unregistered name raises",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.stale_bars",
+   "type": "NoneType",
+   "default": "None",
+   "accepted": "None | {'min_run': N >= 2} | {'min_run_hours': H > 0} (exactly one key). Acts when the dataset is built (stamped in the file)",
+   "recommended": "{'min_run_hours': 168}",
+   "evidence": "proven",
+   "source": "docs/research/plan/STATUS.md Known issues: stale-bars-002 adopted trimmed data + stale_bars={'min_run_hours': 168} (1h train zero-target share 2.48% -> 1.87%); never drop y_close_reg == 0 rows; research/stale_bars/README.md. Acts when the dataset is built (dataset_mismatches checks the loaded file)"
+  },
+  {
+   "path": "project.config_overrides.reg_target_mode",
+   "type": "str",
+   "default": "'return'",
+   "accepted": "'return' | 'window_scale' (see data/defaults.py comment)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.reg_target_clip",
+   "type": "NoneType",
+   "default": "None",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.reg_target_scale",
+   "type": "float",
+   "default": "1.0",
+   "accepted": "number; the dataset file's own value wins at run time (apply_dataset_config)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.cs_norm",
+   "type": "dict",
+   "default": "{'method': 'zscore', 'min_assets': 5, 'clip': 5.0}",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.asset_registry_file_id",
+   "type": "str",
+   "default": "'1Ozei2b9z8uyEszutke7LV_8Mpomi-W2X'",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.preprocessed_data_file_id",
+   "type": "str",
+   "default": "'1EWTFjth2swnnTbnJ4gV_doFDfsJ4iqzP'",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.drive_raw_dir",
+   "type": "str",
+   "default": "'history_1d'",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.drive_raw_pattern",
+   "type": "str",
+   "default": "'{name}.csv'",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.asset_registry_path",
+   "type": "str",
+   "default": "'crypto_data/asset_registry.csv'",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.drive_mount_point",
+   "type": "str",
+   "default": "'/content/drive'",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.excluded_coins",
+   "type": "list",
+   "default": "[]",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.live_max_requests_per_minute",
+   "type": "int",
+   "default": "2000",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.model_tf",
+   "type": "str",
+   "default": "'4h'",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.d_model",
+   "type": "int",
+   "default": "64",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.num_layers",
+   "type": "int",
+   "default": "3",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.num_heads",
+   "type": "int",
+   "default": "4",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.num_kv_heads",
+   "type": "int",
+   "default": "2",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.kv_latent",
+   "type": "NoneType",
+   "default": "None",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.expansion",
+   "type": "float",
+   "default": "2.6666666666666665",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.model_dropout",
+   "type": "float",
+   "default": "0.15",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.model_name",
+   "type": "str",
+   "default": "'ModernTST'",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.use_decomposition",
+   "type": "bool",
+   "default": "True",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.decomp_kernels",
+   "type": "NoneType",
+   "default": "None",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.moe_every",
+   "type": "int",
+   "default": "0",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.n_shared",
+   "type": "int",
+   "default": "2",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.n_routed",
+   "type": "int",
+   "default": "4",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.top_k",
+   "type": "int",
+   "default": "2",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.learning_rate",
+   "type": "float",
+   "default": "0.0005",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.gradient_clipnorm",
+   "type": "float",
+   "default": "1.0",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.epochs",
+   "type": "int",
+   "default": "100",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.batch_size",
+   "type": "int",
+   "default": "64",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.use_class_weights",
+   "type": "bool",
+   "default": "True",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.class_weight_smoothing",
+   "type": "float",
+   "default": "0.5",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.early_stopping_patience",
+   "type": "int",
+   "default": "30",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.reduce_lr_patience",
+   "type": "int",
+   "default": "10",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.reduce_lr_factor",
+   "type": "float",
+   "default": "0.5",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.eval_batch_size",
+   "type": "int",
+   "default": "256",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.eval_range_frac",
+   "type": "float",
+   "default": "0.2",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.eval_n_display",
+   "type": "int",
+   "default": "5",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.project_name",
+   "type": "str",
+   "default": "'crypto_model'",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.workspace_dir",
+   "type": "NoneType",
+   "default": "None",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "project.config_overrides.use_drive",
+   "type": "bool",
+   "default": "True",
+   "accepted": "not validated (any value is passed on as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  }
+ ],
+ "model_keys": [
+  {
+   "path": "model.config_overrides.alpha_min",
+   "type": "float",
+   "default": "2.0",
+   "default_with_anti_memorization": "2.0",
+   "accepted": "key must exist; the value is not checked here (the builder uses it as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.attn_dropout",
+   "type": "float",
+   "default": "0.0",
+   "default_with_anti_memorization": "0.0",
+   "accepted": "key must exist; the value is not checked here (the builder uses it as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.beta_min",
+   "type": "float",
+   "default": "0.01",
+   "default_with_anti_memorization": "0.01",
+   "accepted": "key must exist; the value is not checked here (the builder uses it as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.causal",
+   "type": "bool",
+   "default": "False",
+   "default_with_anti_memorization": "False",
+   "accepted": "key must exist; the value is not checked here (the builder uses it as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.class_head_hidden",
+   "type": "int",
+   "default": "64",
+   "default_with_anti_memorization": "32",
+   "accepted": "key must exist; the value is not checked here (the builder uses it as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.d_model",
+   "type": "int",
+   "default": "128",
+   "default_with_anti_memorization": "64",
+   "accepted": "key must exist; the value is not checked here (the builder uses it as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.dropout",
+   "type": "float",
+   "default": "0.1",
+   "default_with_anti_memorization": "0.25",
+   "accepted": "key must exist; the value is not checked here (the builder uses it as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.encoder",
+   "type": "str",
+   "default": "'(absent)'",
+   "default_with_anti_memorization": "'gru'",
+   "accepted": "key must exist; the value is not checked here (the builder uses it as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.enforce_order",
+   "type": "bool",
+   "default": "True",
+   "default_with_anti_memorization": "True",
+   "accepted": "refused: set by the run logic",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.feature_dropout",
+   "type": "float",
+   "default": "0.0",
+   "default_with_anti_memorization": "0.1",
+   "accepted": "key must exist; the value is not checked here (the builder uses it as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.head_hidden",
+   "type": "int",
+   "default": "128",
+   "default_with_anti_memorization": "64",
+   "accepted": "key must exist; the value is not checked here (the builder uses it as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.head_types",
+   "type": "dict",
+   "default": "{'high': ['nig_regression', 'binary_classification'], 'low': ['nig_regression', 'binary_classification'], 'close': ['nig_regression', 'binary_classification']}",
+   "default_with_anti_memorization": "{'high': ['nig_regression', 'binary_classification'], 'low': ['nig_regression', 'binary_classification'], 'close': ['nig_regression', 'binary_classification']}",
+   "accepted": "refused: set by the run logic",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.input_clip",
+   "type": "float",
+   "default": "None",
+   "default_with_anti_memorization": "4.0",
+   "accepted": "key must exist; the value is not checked here (the builder uses it as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.input_noise_std",
+   "type": "float",
+   "default": "0.0",
+   "default_with_anti_memorization": "0.1",
+   "accepted": "key must exist; the value is not checked here (the builder uses it as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.kernel_sizes",
+   "type": "tuple",
+   "default": "(3, 5, 9, 17)",
+   "default_with_anti_memorization": "(3, 5, 9, 17)",
+   "accepted": "key must exist; the value is not checked here (the builder uses it as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.level_norm",
+   "type": "str",
+   "default": "None",
+   "default_with_anti_memorization": "'batch'",
+   "accepted": "key must exist; the value is not checked here (the builder uses it as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.level_passthrough",
+   "type": "bool",
+   "default": "False",
+   "default_with_anti_memorization": "True",
+   "accepted": "key must exist; the value is not checked here (the builder uses it as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.linear_path_l2",
+   "type": "float",
+   "default": "0.0001",
+   "default_with_anti_memorization": "0.001",
+   "accepted": "key must exist; the value is not checked here (the builder uses it as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.max_rel_pos",
+   "type": "int",
+   "default": "16",
+   "default_with_anti_memorization": "16",
+   "accepted": "key must exist; the value is not checked here (the builder uses it as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.n_classes",
+   "type": "int",
+   "default": "3",
+   "default_with_anti_memorization": "3",
+   "accepted": "key must exist; the value is not checked here (the builder uses it as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.norm_eps",
+   "type": "float",
+   "default": "0.0001",
+   "default_with_anti_memorization": "0.0001",
+   "accepted": "key must exist; the value is not checked here (the builder uses it as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.nu_min",
+   "type": "float",
+   "default": "0.1",
+   "default_with_anti_memorization": "0.1",
+   "accepted": "key must exist; the value is not checked here (the builder uses it as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.num_heads",
+   "type": "int",
+   "default": "4",
+   "default_with_anti_memorization": "4",
+   "accepted": "key must exist; the value is not checked here (the builder uses it as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.num_kv_heads",
+   "type": "int",
+   "default": "2",
+   "default_with_anti_memorization": "2",
+   "accepted": "key must exist; the value is not checked here (the builder uses it as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.num_layers",
+   "type": "int",
+   "default": "4",
+   "default_with_anti_memorization": "2",
+   "accepted": "key must exist; the value is not checked here (the builder uses it as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.patch_len",
+   "type": "int",
+   "default": "4",
+   "default_with_anti_memorization": "4",
+   "accepted": "key must exist; the value is not checked here (the builder uses it as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.price_targets",
+   "type": "tuple",
+   "default": "('high', 'low', 'close')",
+   "default_with_anti_memorization": "('high', 'low', 'close')",
+   "accepted": "refused: set by the run logic",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.stats_mode",
+   "type": "str",
+   "default": "'full'",
+   "default_with_anti_memorization": "'symlog'",
+   "accepted": "key must exist; the value is not checked here (the builder uses it as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.stride",
+   "type": "int",
+   "default": "2",
+   "default_with_anti_memorization": "2",
+   "accepted": "key must exist; the value is not checked here (the builder uses it as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.unc_max",
+   "type": "float",
+   "default": "20.0",
+   "default_with_anti_memorization": "20.0",
+   "accepted": "key must exist; the value is not checked here (the builder uses it as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.use_decomposition",
+   "type": "bool",
+   "default": "True",
+   "default_with_anti_memorization": "True",
+   "accepted": "key must exist; the value is not checked here (the builder uses it as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.use_instance_norm",
+   "type": "bool",
+   "default": "True",
+   "default_with_anti_memorization": "True",
+   "accepted": "key must exist; the value is not checked here (the builder uses it as is)",
+   "recommended": "False",
+   "evidence": "new",
+   "source": "card docs/research/cards/E-norm-002.md (pre-registered, NOT run; its pre-run gate passed: shape_and_level probe high 0.235 < 0.40). Only meaningful together with price_norm_mode='logret_std' (the data side already standardises); wins over anti_memorization's use_instance_norm=True because config_overrides are applied after it"
+  },
+  {
+   "path": "model.config_overrides.use_linear_path",
+   "type": "bool",
+   "default": "True",
+   "default_with_anti_memorization": "True",
+   "accepted": "key must exist; the value is not checked here (the builder uses it as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  },
+  {
+   "path": "model.config_overrides.window",
+   "type": "NoneType",
+   "default": "None",
+   "default_with_anti_memorization": "None",
+   "accepted": "key must exist; the value is not checked here (the builder uses it as is)",
+   "recommended": "= default",
+   "evidence": "",
+   "source": ""
+  }
+ ],
+ "registries": {
+  "trainer.TASK_REGISTRY": {
+   "names": [
+    "classification",
+    "evidential",
+    "regression"
+   ],
+   "used_by": "trainer config tasks (regression / evidential / classification)"
+  },
+  "model.HEAD_REGISTRY": {
+   "names": [
+    "binary_classification",
+    "multiclass_classification"
+   ],
+   "used_by": "model.config_overrides.head_types entries registered here (nig_regression is built in)"
+  },
+  "data.NORMALIZERS": {
+   "names": [
+    "logret_sigma",
+    "logret_std",
+    "window_scale"
+   ],
+   "used_by": "project.config_overrides.price_norm_mode (plus the built-in 'pct_change')"
+  },
+  "data.SAMPLE_FILTER_REGISTRY": {
+   "names": [],
+   "used_by": "project.config_overrides.sample_filters {'fn': name} (none registered by default)"
+  },
+  "data.PRICE_NORM_MODES": {
+   "names": [
+    "window_scale",
+    "pct_change",
+    "logret_std",
+    "logret_sigma"
+   ],
+   "used_by": "project.config_overrides.price_norm_mode"
+  },
+  "core.schema.TARGET_MODES": {
+   "names": [
+    "return",
+    "return_close",
+    "scaled",
+    "magnitude",
+    "volnorm",
+    "entry_range"
+   ],
+   "used_by": "target.target_mode (optionally '+relative')"
+  },
+  "core.schema.ENTRY_CLOSE_REGS": {
+   "names": [
+    "abs_return",
+    "range_pos"
+   ],
+   "used_by": "target.entry_close_reg"
+  }
+ },
+ "not_enabled": [
+  {
+   "path": "target.target_mode",
+   "reason": "relative / cross-sectional targets closed at economics: F-0031, F-0033; E-rel-001 not run and waits for the owner's decision on absolute vs relative; logret_std refuses non-default target modes"
+  },
+  {
+   "path": "model.class_only",
+   "reason": "classification-only heads: the direction/classification heads failed (F-0001, F-0085); the confidence and NIG heads are what the recommended run measures"
+  },
+  {
+   "path": "project.config_overrides.sample_filters / features (rel_volume, zero_vol_share_w, min_liquidity_30d)",
+   "reason": "E-liq-001 is pre-registered but its components are not built yet; gate-style features closed (F-0080, F-0081)"
+  },
+  {
+   "path": "project.config_overrides.price_norm_mode='logret_sigma'",
+   "reason": "refuses regression heads (raises by design, E-norm-001)"
+  },
+  {
+   "path": "evaluation.mn_quantiles / mn_universe",
+   "reason": "no result favours other values; defaults kept"
+  },
+  {
+   "path": "train.batch_size / epochs / early_stopping_patience / lambda_reg / lambda_calib",
+   "reason": "changing step size or schedules is a training experiment that needs its own card (hardening/profile_2026-11.md item 4, MODEL_DEV_PROTOCOL); not part of this preset"
+  },
+  {
+   "path": "train.seed",
+   "reason": "a run parameter, not a recommendation: one run is one seed; the protocol needs >= 3 seeds per arm"
+  },
+  {
+   "path": "panel.*",
+   "reason": "the cross-asset panel model closed for 1d (F-0035); disabled by default and not part of this run"
+  },
+  {
+   "path": "data.* (filename_base, model_tfs, split_dates, path, ...)",
+   "reason": "which dataset to load is the owner's; the preset only checks the options the dataset must have been built with (dataset_mismatches)"
+  },
+  {
+   "path": "PREDICT_BATCH_SIZE (core.schema) and rf_max_samples (evaluation.patterns)",
+   "reason": "not RunSettings fields; D-013 (PR #62, merged) made 2048 and 50 000 the defaults, so nothing to set here"
+  },
+  {
+   "path": "research/natr_range E-natr-004 (rolling recalibration of the NATR range band)",
+   "reason": "a separate study with its own tool (tools/natr_range.py), not a RunSettings option; Stage B waits for forward data (not before 2027-01-01)"
+  }
+ ],
+ "conflicts": [
+  {
+   "between": [
+    "model.config_overrides.use_instance_norm=False (E-norm-002, new)",
+    "model.anti_memorization=True (proven; its config sets use_instance_norm=True)"
+   ],
+   "resolution": "both kept: anti_memorization is a bundle (small model, noise, EMA, level_passthrough) whose evidence is about the bundle on window_scale inputs; E-norm-002 changes the one key and its card names AM + logret_std as arm A. config_overrides win over AM by design (workflow.run.plan_model)"
+  },
+  {
+   "between": [
+    "target.suspended_targets=() (D-013, new)",
+    "closed finding: close direction has no signal (F-0001, T4)"
+   ],
+   "resolution": "kept by owner decision D-013 (market_neutral needs p_up_close; M3 measures high/low with and without close); the close head is trained, nothing is claimed about its direction"
+  },
+  {
+   "between": [
+    "price_norm_mode='logret_std' (new)",
+    "dataset already built with another mode"
+   ],
+   "resolution": "hazard, not a choice: the loaded file decides; dataset_mismatches(settings, dataset) lists it and the run folder suffix keeps models apart"
+  }
+ ],
+ "recommended_paths": [
+  "evaluation.calibrate_confidence",
+  "evaluation.calibration_method",
+  "evaluation.trivial_baseline",
+  "model.anti_memorization",
+  "model.config_overrides.use_instance_norm",
+  "project.config_overrides.price_norm_mode",
+  "project.config_overrides.stale_bars",
+  "target.suspended_targets",
+  "train.early_stopping_monitor"
+ ]
+}
