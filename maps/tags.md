@@ -232,7 +232,7 @@
 - coin categories: data/defaults
 - coinmetrics: edge_discovery/16_h07_oos, edge_discovery/20_onchain
 - coins_by_category: data/defaults
-- colab: data/drive, edge_discovery/25_image_cnn, tools/colab_bridge, tools/colab_runner, tools/colab_smoke, tools/data_manifest … (+2)
+- colab: data/drive, edge_discovery/25_image_cnn, tools/colab_bridge, tools/colab_runner, tools/colab_smoke, tools/data_manifest … (+3)
 - colab cell: tools/data_manifest_colab_cell, tools/fetch_history_colab_cell
 - colab disconnect: trainer/epoch_callbacks
 - colab job: natr_range/run_natr_calibrate, natr_range/run_natr_confirm, natr_range/run_natr_confirm_forward, natr_range/run_natr_rolling, tools/profile_run, tools/stale_bars_colab_job … (+1)
@@ -293,6 +293,7 @@
 - crossassetblock: cross_asset/model
 - crypto_data_pipeline_v6: data/__init__
 - csv: tools/fetch_history_csv_concurrent
+- cuda: tools/gpu_diag
 - cumulative r: indicator_strategy/charts
 - custom features: data/custom
 - custom_feature_names: data/custom
@@ -366,6 +367,7 @@
 - diagnose_data_vs_configs: data/diagnostics
 - diagnose_feature_availability: data/diagnostics
 - diagnose_model: model/diagnostics
+- diagnosis: tools/gpu_diag
 - diagnostic: edge_discovery/23_chart_rules_gross
 - diagnostics: data/diagnostics, workflow/diagnostics
 - diagnostics callback: trainer/training_diagnostics
@@ -608,7 +610,7 @@
 - global_time: data/split
 - golden: tests/run_fixture
 - google drive: data/drive
-- gpu: trainer/perf
+- gpu: tools/gpu_diag, trainer/perf
 - gpu memory: tools/profile_run
 - gqa: model/transformer
 - gradient boosting: h07_volsizing/01_volsizing
@@ -989,6 +991,7 @@
 - num_patches: model/patches
 - numba: edge_discovery/21_range_fade, edge_discovery/22_chart_rules
 - numpy: model/common
+- nvidia-smi: tools/gpu_diag
 - ohlc: tools/fetch_crypto_dataset
 - ohlcv: data/features
 - oi change: edge_discovery/features
@@ -1080,6 +1083,7 @@
 - pin bar: edge_discovery/22_chart_rules
 - pinball: natr_range/run_natr_range
 - pinball loss: tools/natr_range
+- pip: tools/gpu_diag
 - pipeline: data/pipeline
 - pipeline package: data/_loader
 - pipeline_default_config: data/defaults
@@ -1245,7 +1249,7 @@
 - rsi2 pullback: strategy_discovery/grid
 - rsi_zone: tools/gate_features
 - rule_cpos: workflow/candle_baseline
-- run contract: gate_features/run_gate001, natr_range/run_natr_confirm, natr_range/run_natr_range, tools/colab_runner, tools/colab_smoke, tools/profile_run … (+2)
+- run contract: gate_features/run_gate001, natr_range/run_natr_confirm, natr_range/run_natr_range, tools/colab_runner, tools/colab_smoke, tools/gpu_diag … (+3)
 - run fixture: tests/run_fixture
 - run identity: core/seeds, trainer/identity
 - run_batch_and_register: discovery/__init__, discovery/batch_runner
@@ -1280,7 +1284,7 @@
 - runresult: workflow/run
 - runsettings: tests/run_fixture, tools/evaluate_trained_model, workflow/settings
 - runsettings steps: workflow/run
-- s03: tools/profile_run
+- s03: tools/gpu_diag, tools/profile_run
 - safe load: discovery/axis_loader
 - salt: tools/build_lock
 - sample size guard: strategy_discovery/oos, strategy_discovery/survivor_checks
@@ -1454,6 +1458,8 @@
 - tempfile: signal_eval/registry_selftests
 - template: trainer/example
 - tensorflow: model/common
+- tensorflow-cpu: tools/gpu_diag
+- tensorflow[and-cuda]: tools/gpu_diag
 - test: indicator_strategy/test_final
 - test auc: edge_discovery/26_h19_generalization
 - test_all_assets: evaluation/all_assets
