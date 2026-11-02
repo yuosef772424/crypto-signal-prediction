@@ -51,3 +51,22 @@ candle 10%, market_neutral 9% - so the 2048 batch helps gap/chicks/signals most 
 6. **Environment**: the runner installs `tensorflow-cpu`, whose files win over the CUDA build (`gpu-diag-001`); `profile_run.install_cuda_tensorflow` fixes
    it per job (~2 min). A runner-level `gpu` job key is the permanent fix.
 7. **`verification` printed "15 decode failures"** (profile-003 log): a correctness item, not speed; look at it before trusting the report.
+
+## Baseline with the three targets: `profile-004` @ `d4cc437` (before the 2048 prediction batch and the forest cap)
+T4, batch 512, 2 epochs, high+low+close (102 328 parameters). Run steps 2693 s (profile-003, high/low only: 1886 s).
+| step | s | share |
+|---|---:|---:|
+| report:chicks | 776 | 28.8% |
+| train_model (2 epochs) | 611 | 22.7% |
+| report:verification | 544 | 20.2% |
+| report:candle | 484 | 18.0% |
+| report:market_neutral | 116 | 4.3% |
+| report:signals | 98 | 3.6% |
+| make_splits | 39 (RSS peak 9.4 GB) | 1.5% |
+| report:gap | 12 | 0.4% |
+- Training step 52.4 ms (19 steps/s) vs 34.3 ms with two targets: +53% for +9% parameters. The step is overhead-bound, so cost follows the number of
+  heads/ops (hypothesis; same T4 type, not re-measured on one machine). `input_bound_ratio` 0.024.
+- `chicks` grew 446 -> 776 s with the third head: the pattern-discovery forest runs once per head (3 x ~110 s on 342 k rows), consistent with the
+  fix above. `market_neutral` now produces its output (116 s): it scores with `p_up_close` / `y_close_class` (workflow/market_neutral.py:225), so it
+  needs the close head; with close suspended (profile-003) it failed after 14.5 s. It also costs 116 s now: the pandas per-period loops (candidate 3).
+- `profile-005` (same config) runs the fixed code: prediction batch 2048, forest cap, output tails of failed reports; the before/after table goes here.
