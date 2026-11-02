@@ -38,8 +38,8 @@ strict `build_config`, persisted run identity + `TrainSettings.seed`.
 | S24d | Namespace -> imports: evaluation/workflow/discovery | todo | | |
 | S24e | Namespace -> imports: data | todo | | |
 | S25 | Friction review (repeat every ~5 steps) | todo | | |
-| S26 | Market-neutral portfolio: realistic test (E-mn-001) | todo | | after S11r (owner priority) |
+| S26 | Market-neutral portfolio: realistic test (E-mn-001) | deferred | | owner: only when asked; improve the model first |
 
-Priority after S03: S04 -> S07 -> S08 -> S10 -> S11r -> S26 -> the rest (owner, 2026-11-02).
+Priority after S03: S04 -> S07 -> S08 -> S10 -> S11r -> model improvement steps -> the rest; S26 deferred (owner, 2026-11-02).
 
 States: todo / in progress / PR open / merged / waiting Colab / closed (rejected) / skipped (reason).
