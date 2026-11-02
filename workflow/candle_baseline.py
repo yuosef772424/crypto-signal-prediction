@@ -10,6 +10,8 @@ from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.metrics import roc_auc_score, balanced_accuracy_score
 
 
+from core.schema import PREDICT_BATCH_SIZE            # حجم دفعة التوقع (المصدر الوحيد: core/schema.py)
+
 def _candle_frame(split_or_dict, model_tf):
     split, assets = _concat_splits(split_or_dict, model_tf)
     lc = np.asarray(split["last_candles"], dtype="float64")
@@ -57,7 +59,7 @@ def _logit(p):
 
 def candle_baseline_report(model, train_split, val_split, test_split, model_tf=None,
                            targets=("high", "low"), max_train=300_000, n_boot=300, seed=0,
-                           batch_size=1024, min_auc_gain=0.005, verbose=True):
+                           batch_size=PREDICT_BATCH_SIZE, min_auc_gain=0.005, verbose=True):
     """يقارن رأسَي التصنيف high/low في النموذج بخطوط أساس من شكل الشمعة. يُرجع جدولاً وحكماً لكل هدف."""
     model_tf = _required(model_tf, "model_tf")
     base_tf = _tfs_of(model_tf)[0]        # خط أساس آخر خطوة (laststep_gbm) على الفريم الأساسي وحده

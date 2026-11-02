@@ -353,22 +353,23 @@
   - `class RunnerNotebookTests(unittest.TestCase)` L151
     - (3 methods)
 
-### `tests/test_evaluation_predict_calls.py` (389 lines)
+### `tests/test_evaluation_predict_calls.py` (390 lines)
 - PURPOSE: Evaluation asks the model ONCE for all coins (audit PR 2, class C5): the number of model calls does not grow with the number of (from docstring)
+- DEPENDS: core
 - API:
-  - `class CountingModel` L42
+  - `class CountingModel` L43
     - (1 methods)
-  - `class FakeModel` L58
-  - `def synthetic_test_dict(n_coins, seed=0, rows=(4, 9))` L68
-  - `def legacy_per_asset_results(ns, model, test_dict, tfs, specs, batch_size=256, range_frac=0.2)` L82
-  - `def legacy_latest_all_assets(ns, model, test_dict, tfs, specs, n_display, batch_size=256)` L94
-  - `def legacy_classification_report(model, test, price_targets, model_tf, ns)` L107
-  - `def assert_identical(tc, a, b, path='')` L123
-  - `def max_diffs(a, b)` L145
-  - `def assert_close_tree(tc, new, old, mode, tag, path='', rtol=DER_RTOL, atol=DER_ATOL)` L154
-  - `class ModelCallCountsAreIndependentOfCoinCount(unittest.TestCase)` L192
+  - `class FakeModel` L59
+  - `def synthetic_test_dict(n_coins, seed=0, rows=(4, 9))` L69
+  - `def legacy_per_asset_results(ns, model, test_dict, tfs, specs, batch_size=256, range_frac=0.2)` L83
+  - `def legacy_latest_all_assets(ns, model, test_dict, tfs, specs, n_display, batch_size=256)` L95
+  - `def legacy_classification_report(model, test, price_targets, model_tf, ns)` L108
+  - `def assert_identical(tc, a, b, path='')` L124
+  - `def max_diffs(a, b)` L146
+  - `def assert_close_tree(tc, new, old, mode, tag, path='', rtol=DER_RTOL, atol=DER_ATOL)` L155
+  - `class ModelCallCountsAreIndependentOfCoinCount(unittest.TestCase)` L193
     - (7 methods)
-  - `class PooledPathEqualsPerCoinPath(unittest.TestCase)` L263
+  - `class PooledPathEqualsPerCoinPath(unittest.TestCase)` L264
     - (10 methods)
 
 ### `tests/test_experiment_registry.py` (96 lines)

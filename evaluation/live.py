@@ -15,6 +15,8 @@ PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loade
 # • تعتمد ترتيب العينات زمنياً (الأقدم أولاً، والأحدث آخراً).
 # ═══════════════════════════════════════════════════════════════════════════
 
+from core.schema import PREDICT_BATCH_SIZE            # حجم دفعة التوقع (المصدر الوحيد: core/schema.py)
+
 def predict_latest_v4(
     model,
     X_inputs: Tuple[np.ndarray, ...],
@@ -25,7 +27,7 @@ def predict_latest_v4(
     timestamps=None,
     timestamp_col: Optional[int] = None,
     y_true: Optional[Dict[str, np.ndarray]] = None,
-    batch_size: int = 256,
+    batch_size: int = PREDICT_BATCH_SIZE,
     asset: Optional[str] = None,
     verbose: bool = True,
     legend: bool = True,
@@ -84,7 +86,7 @@ def predict_latest_all_assets(
     latest_only: bool = False,
     timestamp_col: Optional[int] = None,
     timestamp_key: Optional[str] = None,
-    batch_size: int = 256,
+    batch_size: int = PREDICT_BATCH_SIZE,
     verbose: bool = True,
 ) -> pd.DataFrame:
     """

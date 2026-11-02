@@ -24,6 +24,8 @@ PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loade
 # 🧬 بصمة المدخلات: تحويل نوافذ X الخام إلى جدول خصائص واحد (صف لكل عينة)
 # ═══════════════════════════════════════════════════════════════════════════
 
+from core.schema import PREDICT_BATCH_SIZE            # حجم دفعة التوقع (المصدر الوحيد: core/schema.py)
+
 def extract_input_snapshot_features(
     X_inputs: Tuple[np.ndarray, ...],
     timeframe_names: List[str],
@@ -382,7 +384,7 @@ def run_input_output_pattern_discovery(
     feature_names: Optional[List[Optional[List[str]]]] = None,
     agg: Tuple[str, ...] = ('last', 'mean', 'std'),
     validation_frac: float = 0.3,
-    batch_size: int = 256,
+    batch_size: int = PREDICT_BATCH_SIZE,
     timestamp_key: Optional[str] = None,
     timestamp_col: Optional[int] = None,
     verbose: bool = True,

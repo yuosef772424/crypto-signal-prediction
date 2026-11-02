@@ -18,19 +18,20 @@
   - `def exec_module(name: str, ns: dict) -> dict` L29
   - `def load_into(ns: dict, exclude=()) -> dict` L37
 
-### `evaluation/all_assets.py` (371 lines)
+### `evaluation/all_assets.py` (373 lines)
 - PURPOSE: test_all_assets_v4: test a model on every asset separately plus aggregated metrics and Wilson-CI tables.
 - TAGS: test_all_assets_v4, test_all_assets, per_asset_ci_table, summarize_verification, aggregated metrics, test_dict
 - PITFALLS: Tests exclude this module on the general load and exec it explicitly (load_into(ns, exclude=...)). Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: core
 - USES: latest_table, outputs, pooled, targets, unified
 - USED BY: full_analysis
 - API:
-  - `def summarize_verification(verification_df: pd.DataFrame) -> pd.DataFrame` L20
-  - `def print_verification_summary(verification_df: pd.DataFrame)` L62
-  - `def per_asset_ci_table(all_results: List[Dict], specs: List['TargetSpec']) -> pd.DataFrame` L110
-  - `def test_all_assets_v4(model, test_dict: Dict, timeframes: List[str], target_specs, verbose: bool=True, n_display: int=1, batch_size: int=256, range_frac: float=0.2, min_samples_per_asset: int=20, run_verification: bool=T…` L132
-  - `def calculate_aggregated_metrics_v4(results_df: pd.DataFrame, target_specs) -> Dict` L329
-  - `def test_all_assets(model, test_dict, timeframes, targets, verbose=True, n_display=1, batch_size=256, range_frac=0.2)` L364
+  - `def summarize_verification(verification_df: pd.DataFrame) -> pd.DataFrame` L22
+  - `def print_verification_summary(verification_df: pd.DataFrame)` L64
+  - `def per_asset_ci_table(all_results: List[Dict], specs: List['TargetSpec']) -> pd.DataFrame` L112
+  - `def test_all_assets_v4(model, test_dict: Dict, timeframes: List[str], target_specs, verbose: bool=True, n_display: int=1, batch_size: int=PREDICT_BATCH_SIZE, range_frac: float=0.2, min_samples_per_asset: int=20, run_verif…` L134
+  - `def calculate_aggregated_metrics_v4(results_df: pd.DataFrame, target_specs) -> Dict` L331
+  - `def test_all_assets(model, test_dict, timeframes, targets, verbose=True, n_display=1, batch_size=PREDICT_BATCH_SIZE, range_frac=0.2)` L366
 
 ### `evaluation/decode.py` (209 lines)
 - PURPOSE: Stage 2: flexible decoding of raw model outputs into real units (continuous + categorical), decode_predictions_v4.
@@ -52,14 +53,15 @@
 - API:
   - `def build_flat_dataframe(per_asset_results: pd.DataFrame, target_specs: List['TargetSpec'], continuous_only: bool=False) -> pd.DataFrame` L12
 
-### `evaluation/full_analysis.py` (283 lines)
+### `evaluation/full_analysis.py` (285 lines)
 - PURPOSE: run_full_analysis: the whole pipeline plus every report and plot in one call, big outputs saved to analysis_outputs/.
 - TAGS: run_full_analysis, full analysis, all reports
 - PITFALLS: Tests exclude this module on the general load and exec it explicitly (load_into(ns, exclude=...)). Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: core
 - USES: all_assets, flat, integrity, output_conditioned, outputs, patterns, plots, targets, tearsheet, trade_selection*, trust_calibration
 - USED BY: workflow/wiring_selftest
 - API:
-  - `def run_full_analysis(model, test_dict: Dict, timeframes: List[str], target_specs: List['TargetSpec'], batch_size: int=256, range_frac: float=0.2, batch_analysis_size: int=100, out_dir: str=DEFAULT_OUTPUT_DIR, make_plots…` L14
+  - `def run_full_analysis(model, test_dict: Dict, timeframes: List[str], target_specs: List['TargetSpec'], batch_size: int=PREDICT_BATCH_SIZE, range_frac: float=0.2, batch_analysis_size: int=100, out_dir: str=DEFAULT_OUTPUT_…` L16
 
 ### `evaluation/integrity.py` (179 lines)
 - PURPOSE: Model integrity diagnostics: naive baseline, lag scan (late copying), momentum baseline and directional bias.
@@ -74,16 +76,17 @@
   - `def directional_bias(y_actual: np.ndarray, y_pred: np.ndarray) -> Dict` L61
   - `def run_integrity_diagnostics(per_asset_results: pd.DataFrame, target_specs: List['TargetSpec'], max_lag: int=5, plot_worst_n: int=2, plot_best_n: int=1, out_dir: str=DEFAULT_OUTPUT_DIR, verbose: bool=True) -> pd.DataFrame` L72
 
-### `evaluation/io_patterns.py` (488 lines)
+### `evaluation/io_patterns.py` (490 lines)
 - PURPOSE: Validated input-output pattern discovery: raw X-window snapshot features vs prediction success with train/validation split, binomial and permutation tests.
 - TAGS: extract_input_snapshot_features, analyze_input_output_validated_patterns, run_input_output_pattern_discovery, plot_pattern_validation, input patterns, permutation test, binomial test
 - PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: core
 - USES: latest_table, outputs, targets, unified
 - API:
-  - `def extract_input_snapshot_features(X_inputs: Tuple[np.ndarray, ...], timeframe_names: List[str], feature_names: Optional[List[Optional[List[str]]]]=None, agg: Tuple[str, ...]=('last', 'mean', 'std'), max_features_per_tf: Optional[int…` L27
-  - `def analyze_input_output_validated_patterns(input_features: pd.DataFrame, outcome: Union[pd.Series, np.ndarray], timestamps: Optional[Union[pd.Series, np.ndarray]]=None, validation_frac: float=0.3, max_tree_depth: int=3, min_leaf_samples: int…` L109
-  - `def plot_pattern_validation(rules_df: pd.DataFrame, save_dir: str=DEFAULT_OUTPUT_DIR) -> Optional[str]` L339
-  - `def run_input_output_pattern_discovery(model, test_dict: Dict, asset: str, timeframes: List[str], target_specs, feature_names: Optional[List[Optional[List[str]]]]=None, agg: Tuple[str, ...]=('last', 'mean', 'std'), validation_frac: float…` L376
+  - `def extract_input_snapshot_features(X_inputs: Tuple[np.ndarray, ...], timeframe_names: List[str], feature_names: Optional[List[Optional[List[str]]]]=None, agg: Tuple[str, ...]=('last', 'mean', 'std'), max_features_per_tf: Optional[int…` L29
+  - `def analyze_input_output_validated_patterns(input_features: pd.DataFrame, outcome: Union[pd.Series, np.ndarray], timestamps: Optional[Union[pd.Series, np.ndarray]]=None, validation_frac: float=0.3, max_tree_depth: int=3, min_leaf_samples: int…` L111
+  - `def plot_pattern_validation(rules_df: pd.DataFrame, save_dir: str=DEFAULT_OUTPUT_DIR) -> Optional[str]` L341
+  - `def run_input_output_pattern_discovery(model, test_dict: Dict, asset: str, timeframes: List[str], target_specs, feature_names: Optional[List[Optional[List[str]]]]=None, agg: Tuple[str, ...]=('last', 'mean', 'std'), validation_frac: float…` L378
 
 ### `evaluation/latest_table.py` (237 lines)
 - PURPOSE: Latest-samples table (date, signal, confidence, uncertainty, expected move) that works without true targets.
@@ -114,15 +117,16 @@
 - API:
   - `def comprehensive_uncertainty_analysis(per_asset_results)` L15
 
-### `evaluation/live.py` (168 lines)
+### `evaluation/live.py` (170 lines)
 - PURPOSE: Live trading report of the last N samples: predict_latest_v4 / predict_latest_all_assets.
 - TAGS: predict_latest_v4, predict_latest_all_assets, live trading, latest_only, last n samples
 - PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: core
 - USES: latest_table, pooled, predict, targets
 - USED BY: workflow/reports, workflow/wiring_selftest
 - API:
-  - `def predict_latest_v4(model, X_inputs: Tuple[np.ndarray, ...], base_params: np.ndarray, last_candles: Optional[np.ndarray]=None, target_specs=None, n_display: int=5, timestamps=None, timestamp_col: Optional[int]=None, y_…` L18
-  - `def predict_latest_all_assets(model, test_dict: Dict, timeframes: List[str], target_specs=None, n_display: int=5, latest_only: bool=False, timestamp_col: Optional[int]=None, timestamp_key: Optional[str]=None, batch_size: int=256…` L78
+  - `def predict_latest_v4(model, X_inputs: Tuple[np.ndarray, ...], base_params: np.ndarray, last_candles: Optional[np.ndarray]=None, target_specs=None, n_display: int=5, timestamps=None, timestamp_col: Optional[int]=None, y_…` L20
+  - `def predict_latest_all_assets(model, test_dict: Dict, timeframes: List[str], target_specs=None, n_display: int=5, latest_only: bool=False, timestamp_col: Optional[int]=None, timestamp_key: Optional[str]=None, batch_size: int=PRE…` L80
 
 ### `evaluation/metrics.py` (176 lines)
 - PURPOSE: Stage 3: flexible evaluation metrics (continuous MAE/direction/tolerance, categorical accuracy), evaluate_predictions_v4.
@@ -182,30 +186,32 @@
   - `def plot_equity_curve(equity: np.ndarray, drawdown_pct: np.ndarray, title: str='Equity Curve', save_dir: str=DEFAULT_OUTPUT_DIR, filename: Optional[str]=None) -> str` L212
   - `def plot_batch_performance(batch_stats: pd.DataFrame, z_threshold: float=1.5, title: str='Performance Across Batches', save_dir: str=DEFAULT_OUTPUT_DIR) -> str` L233
 
-### `evaluation/pooled.py` (130 lines)
+### `evaluation/pooled.py` (132 lines)
 - PURPOSE: The ONE batched evaluation predict path (lifted from workflow/pooling.py): pool the windows of all assets (pool_x / pool_test_dict), call the model once in fixed-size batches (predict_pooled_raw), slice the raw outputs back per asset by as…
 - TAGS: pooling, predict_pooled_raw, pool_x, pool_test_dict, predict_pooled_batch_by_asset, _pool_by_asset, slice_by_asset, asset_bounds, latest_table_from_raw, one model call, batched evaluation, performance
 - PITFALLS: Every per-asset evaluation site (test_all_assets_v4, predict_latest_all_assets, predict_pooled_batch_by_asset, workflow's classification_accuracy_report) must go through this module instead of calling the model once per asset: 500 coins x one tiny predict call each was ~50x slower than one pooled call. The model is independent of batch composition (no BatchNorm in inference), so pooled raw output…
+- DEPENDS: core
 - USES: decode, latest_table, metrics, predict, targets
 - USED BY: all_assets, live
 - API:
-  - `def pool_x(test_dict, timeframes, names=None, n_per_asset=None)` L37
-  - `def pool_test_dict(test_dict, model_tf, n_per_asset=None, names=None, with_y=True)` L49
-  - `def predict_pooled_raw(model, pooled, timeframes, target_specs=None, batch_size: int=256, unc_max=None)` L76
-  - `def slice_by_asset(raw, asset_bounds)` L85
-  - `def latest_table_from_raw(raw, specs, base_params, last_candles, y_true, n_display, timestamps=None, asset=None)` L90
-  - `def predict_pooled_batch_by_asset(model, pooled, model_tf, target_specs=None, n_display=5, y_true_pooled=None, timestamp_col=None, verbose=True)` L98
+  - `def pool_x(test_dict, timeframes, names=None, n_per_asset=None)` L39
+  - `def pool_test_dict(test_dict, model_tf, n_per_asset=None, names=None, with_y=True)` L51
+  - `def predict_pooled_raw(model, pooled, timeframes, target_specs=None, batch_size: int=PREDICT_BATCH_SIZE, unc_max=None)` L78
+  - `def slice_by_asset(raw, asset_bounds)` L87
+  - `def latest_table_from_raw(raw, specs, base_params, last_candles, y_true, n_display, timestamps=None, asset=None)` L92
+  - `def predict_pooled_batch_by_asset(model, pooled, model_tf, target_specs=None, n_display=5, y_true_pooled=None, timestamp_col=None, verbose=True)` L100
 
-### `evaluation/predict.py` (124 lines)
+### `evaluation/predict.py` (126 lines)
 - PURPOSE: Stage 1: batched model prediction for any set of continuous/categorical targets (predict_batch_v4; predict_batch kept for compatibility).
 - TAGS: predict_batch_v4, predict_batch, batched predict, model outputs
 - PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: core
 - USES: targets
 - USED BY: live, pooled, unified
 - API:
-  - `def model_outputs_batched(model, X, batch_size: int=256) -> Dict[str, np.ndarray]` L20
-  - `def predict_batch_v4(model, X_inputs: Tuple[np.ndarray, ...], target_specs: List['TargetSpec'], batch_size: int=256, verbose: bool=False, unc_max: Optional[float]=None) -> Dict[str, np.ndarray]` L30
-  - `def predict_batch(model, X_inputs, batch_size: int=256, verbose: bool=False) -> Dict[str, np.ndarray]` L122
+  - `def model_outputs_batched(model, X, batch_size: int=PREDICT_BATCH_SIZE) -> Dict[str, np.ndarray]` L22
+  - `def predict_batch_v4(model, X_inputs: Tuple[np.ndarray, ...], target_specs: List['TargetSpec'], batch_size: int=PREDICT_BATCH_SIZE, verbose: bool=False, unc_max: Optional[float]=None) -> Dict[str, np.ndarray]` L32
+  - `def predict_batch(model, X_inputs, batch_size: int=PREDICT_BATCH_SIZE, verbose: bool=False) -> Dict[str, np.ndarray]` L124
 
 ### `evaluation/targets.py` (378 lines)
 - PURPOSE: Shared imports of the evaluation package plus TargetSpec/resolve_targets (which targets a model outputs: continuous or categorical), NIG uncertainty bounding and the Wilson CI.
@@ -258,15 +264,16 @@
   - `def calibration_report(cal_df: pd.DataFrame, n_bins: int=10, group_by: str='target', verbose: bool=True) -> pd.DataFrame` L349
   - `def print_calibration_report(res: pd.DataFrame)` L364
 
-### `evaluation/unified.py` (135 lines)
+### `evaluation/unified.py` (137 lines)
 - PURPOSE: Stage 4: predict_with_evaluation_v4 - prediction + decoding + verification + evaluation in one call (v3 kept for compatibility).
 - TAGS: predict_with_evaluation_v4, predict_with_evaluation_v3, unified pipeline, n_display
 - PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: core
 - USES: decode, latest_table, metrics, predict, targets, verify
 - USED BY: all_assets, io_patterns
 - API:
-  - `def predict_with_evaluation_v4(model, X_inputs: Tuple[np.ndarray, ...], target_specs, base_params: Optional[np.ndarray]=None, last_candles: Optional[np.ndarray]=None, y_true: Optional[Dict[str, np.ndarray]]=None, verbose: bool=Fa…` L12
-  - `def predict_with_evaluation_v3(model, X_inputs, base_params, last_candles=None, y_true=None, verbose=False, n_display=5, batch_size=256, direction_tolerance=0.2, price_tolerance=None, min_samples=1)` L127
+  - `def predict_with_evaluation_v4(model, X_inputs: Tuple[np.ndarray, ...], target_specs, base_params: Optional[np.ndarray]=None, last_candles: Optional[np.ndarray]=None, y_true: Optional[Dict[str, np.ndarray]]=None, verbose: bool=Fa…` L14
+  - `def predict_with_evaluation_v3(model, X_inputs, base_params, last_candles=None, y_true=None, verbose=False, n_display=5, batch_size=PREDICT_BATCH_SIZE, direction_tolerance=0.2, price_tolerance=None, min_samples=1)` L129
 
 ### `evaluation/verify.py` (200 lines)
 - PURPOSE: Stage 2.5: verify_decoding - checks decoding in the normalized and original space with a round-trip test.
