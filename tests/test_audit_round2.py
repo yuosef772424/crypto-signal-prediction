@@ -277,7 +277,9 @@ class DocsPanelDirTests(unittest.TestCase):
 
     def test_docs_zip_path_matches_notebook(self):
         ns = _nbload.workflow_package().load_into({"__name__": "t"}, only=("settings",))
-        panel_dir = ns["run_dir_for"](ns["RunSettings"](), 100.0, ("1h",)) + "_panel"      # الإعدادات الافتراضية على بيانات 1h_s8
+        # التشغيل الموثَّق في hourly_1h.md دُرِّب بالقاعدة القديمة (close معلّق): suspended_targets=None يعطي مجلده بلا لاحقة _susp-none
+        settings = ns["RunSettings"]().updated({"target": {"suspended_targets": None}})
+        panel_dir = ns["run_dir_for"](settings, 100.0, ("1h",)) + "_panel"      # الإعدادات الافتراضية على بيانات 1h_s8
         docs = _read("docs", "research", "hourly_1h.md")
         for d in re.findall(r"cd (/content/drive/MyDrive/training_runs/\S+?) &&", docs):
             self.assertEqual(d, panel_dir)

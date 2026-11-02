@@ -9,6 +9,8 @@ PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loade
 # المرحلة 4: الدالة الرئيسية المُوحّدة (v4) — تنبؤ + فك تشفير + تحقق + تقييم
 # ─────────────────────────────────────────────────────────────────────────────
 
+from core.schema import PREDICT_BATCH_SIZE            # حجم دفعة التوقع (المصدر الوحيد: core/schema.py)
+
 def predict_with_evaluation_v4(
     model,
     X_inputs: Tuple[np.ndarray, ...],
@@ -18,7 +20,7 @@ def predict_with_evaluation_v4(
     y_true: Optional[Dict[str, np.ndarray]] = None,
     verbose: bool = False,
     n_display: int = 5,
-    batch_size: int = 256,
+    batch_size: int = PREDICT_BATCH_SIZE,
     direction_tolerance: float = 0.2,
     price_tolerance: Optional[float] = None,
     min_samples: int = 1,
@@ -125,7 +127,7 @@ def _print_v4_report(results, target_specs, n_samples, n_display, has_truth,
 
 # دالة قديمة تبقى للتوافق الخلفي
 def predict_with_evaluation_v3(model, X_inputs, base_params, last_candles=None, y_true=None,
-                                verbose=False, n_display=5, batch_size=256,
+                                verbose=False, n_display=5, batch_size=PREDICT_BATCH_SIZE,
                                 direction_tolerance=0.2, price_tolerance=None, min_samples=1):
     """(نسخة سابقة - محفوظة للتوافق) تستخدم داخلياً محرك v4 بأهداف الأسعار الافتراضية."""
     return predict_with_evaluation_v4(

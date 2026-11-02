@@ -57,7 +57,7 @@ class MainNotebookRuns(unittest.TestCase):
                      "train_ds", "val_ds", "trainer", "history", "chicks", "full_results"):
             self.assertIn(name, ns, name)
         self.assertEqual((ns["info"].model_tf, ns["info"].reg_target_scale), ("1h", 100.0))
-        self.assertEqual(ns["plan"].price_targets, ("high", "low"))
+        self.assertEqual(ns["plan"].price_targets, ("high", "low", "close"))      # main.ipynb: suspended_targets=() since 2026-11-02
         self.assertTrue(ns["main_config"]["run"]["run_dir"].startswith(os.path.join(work, "run")))
         self.assertIsNotNone(ns["history"])
         self.assertIsNotNone(ns["full_results"])                       # section 6 ran on the trained model

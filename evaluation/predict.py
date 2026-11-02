@@ -9,7 +9,9 @@ PITFALLS: Executed into the one shared evaluation namespace by evaluation/_loade
 # المرحلة 1: التنبؤ على الدفعات (مرن لأي عدد/نوع أهداف)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _iter_model_batches(model, X, batch_size: int = 256):
+from core.schema import PREDICT_BATCH_SIZE            # حجم دفعة التوقع (المصدر الوحيد: core/schema.py)
+
+def _iter_model_batches(model, X, batch_size: int = PREDICT_BATCH_SIZE):
     """المكان الوحيد الذي يستدعي النموذج على دفعات ثابتة الحجم: يُنتج (دفعة_مدخلات، مخرجات_النموذج). كل مسار تقييم
     (predict_batch_v4 وmodel_outputs_batched) يمرّ منه، فعدد استدعاءات النموذج = ceil(N / batch_size) أينما كان."""
     ds = tf.data.Dataset.from_tensor_slices((X,)).batch(batch_size)
@@ -17,7 +19,7 @@ def _iter_model_batches(model, X, batch_size: int = 256):
         yield b_x, model(b_x, training=False)
 
 
-def model_outputs_batched(model, X, batch_size: int = 256) -> Dict[str, np.ndarray]:
+def model_outputs_batched(model, X, batch_size: int = PREDICT_BATCH_SIZE) -> Dict[str, np.ndarray]:
     """كل مخرجات النموذج (كل المفاتيح كما هي، بلا فك ولا اختيار أهداف) على دفعات ثابتة، مجمّعة في numpy.
     X: مصفوفة أو tuple أو dict كما يقبلها النموذج. لتقارير تحتاج مخرجاً غير رؤوس الأهداف (مثل logits التصنيف)."""
     parts: Dict[str, list] = {}
@@ -31,7 +33,7 @@ def predict_batch_v4(
     model,
     X_inputs: Tuple[np.ndarray, ...],
     target_specs: List['TargetSpec'],
-    batch_size: int = 256,
+    batch_size: int = PREDICT_BATCH_SIZE,
     verbose: bool = False,
     unc_max: Optional[float] = None,
 ) -> Dict[str, np.ndarray]:
@@ -119,6 +121,6 @@ def predict_batch_v4(
 
 
 # دالة قديمة تبقى للتوافق الخلفي (high/low/close مستمرة فقط)
-def predict_batch(model, X_inputs, batch_size: int = 256, verbose: bool = False) -> Dict[str, np.ndarray]:
+def predict_batch(model, X_inputs, batch_size: int = PREDICT_BATCH_SIZE, verbose: bool = False) -> Dict[str, np.ndarray]:
     """(نسخة سابقة - محفوظة للتوافق) تنبؤ للأهداف الثلاثة high/low/close فقط."""
     return predict_batch_v4(model, X_inputs, DEFAULT_PRICE_TARGETS, batch_size, verbose)
