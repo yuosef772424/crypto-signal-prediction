@@ -8,6 +8,12 @@ strict `build_config`, persisted run identity + `TrainSettings.seed`.
 
 | Step | Title | State | PR / job | Note |
 |---|---|---|---|---|
+| M0 | GPU in the Colab runner | todo | | needs #62 merged |
+| M1 | Target report + baseline `health-001` | todo | | |
+| M2 | Direct input (no layers before the deep blocks) | todo | | needs M1 |
+| M3 | Trainer steers to the targets | todo | | needs M1 |
+| M4 | Meaningful confidence + sharp uncertainty | todo | | needs M1 |
+| M5 | Combine winners, full run | todo | | needs M2-M4 |
 | S01 | Registry adoption (PR 5) | merged | #60 | 4 registries = `core.registry.Registry` (dict-style reads via `view`); fingerprint sha256 pinned in `tests/test_registry_adoption.py`; `TASK_REGISTRY.get(x)` now needs a default |
 | S02 | pandas 4 deprecation fix | PR open | #61 | `core/timeframe.normalize_tf` (`1d`->`1D`, `1w`->`1W`, else unchanged) is the one fixer; used by 5 `data/` modules; Binance `1d` interval untouched (other vocabulary); `1H`/compound `1d12h` not covered |
 | S03 | Run profiler + Colab `profile-001` | todo | | |
@@ -40,6 +46,6 @@ strict `build_config`, persisted run identity + `TrainSettings.seed`.
 | S25 | Friction review (repeat every ~5 steps) | todo | | |
 | S26 | Market-neutral portfolio: realistic test (E-mn-001) | deferred | | owner: only when asked; improve the model first |
 
-Priority after S03: S04 -> S07 -> S08 -> S10 -> S11r -> model improvement steps -> the rest; S26 deferred (owner, 2026-11-02).
+**Model track first (owner, 2026-11-02): M0 -> M1 -> M2 -> M3 -> M4 -> M5** (targets: meaningful confidence, uncertainty below the predicted range, no skill loss). S-steps wait unless an M-step needs them; S26 deferred.
 
 States: todo / in progress / PR open / merged / waiting Colab / closed (rejected) / skipped (reason).
