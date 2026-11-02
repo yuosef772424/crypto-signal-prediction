@@ -13,7 +13,7 @@ strict `build_config`, persisted run identity + `TrainSettings.seed`.
 | M1b | Switches 2: selection metric, confidence target, NIG floor, interval scale | todo | | |
 | M2 | One Colab run: baseline vs all switches on (`model-all-001`) | todo | | needs M0, M1a, M1b |
 | M3 | Read M2, ablate or diagnose, fix | todo | | needs M2 |
-| TF-final | settings catalog + recommended preset | PR open | | last TF task: `tools/settings_catalog.py` -> `docs/research/settings_catalog.md/.json` (generated); `workflow/presets.py` `recommended_settings()` = `recommended_2026_11` (RunSettings defaults unchanged); `main.ipynb` `USE_RECOMMENDED`, `evaluate_trained_model --preset`; the preset is 5 proven + 5 new (unmeasured) choices, so M2 measures the bundle; bottlenecks B-016..B-020 |
+| TF-final | settings catalog + recommended preset | PR open | #64 | last TF task: `tools/settings_catalog.py` -> `docs/research/settings_catalog.md/.json` (generated); `workflow/presets.py` `recommended_settings()` = `recommended_2026_11` (RunSettings defaults unchanged); `main.ipynb` `USE_RECOMMENDED`, `evaluate_trained_model --preset`; the preset is 5 proven + 5 new (unmeasured) choices, so M2 measures the bundle; bottlenecks B-016..B-020 |
 | S01 | Registry adoption (PR 5) | merged | #60 | 4 registries = `core.registry.Registry` (dict-style reads via `view`); fingerprint sha256 pinned in `tests/test_registry_adoption.py`; `TASK_REGISTRY.get(x)` now needs a default |
 | S02 | pandas 4 deprecation fix | PR open | #61 | `core/timeframe.normalize_tf` (`1d`->`1D`, `1w`->`1W`, else unchanged) is the one fixer; used by 5 `data/` modules; Binance `1d` interval untouched (other vocabulary); `1H`/compound `1d12h` not covered |
 | S03 | Run profiler + Colab `profile-001` | todo | | |
