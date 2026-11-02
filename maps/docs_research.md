@@ -219,7 +219,7 @@ Documents:
 - `E-rel-001.md` — Experiment card — E-rel-001: absolute vs within-timestamp relative target on the current 4h model l…
 
 ## `docs/research/hardening/`
-- hardening/: root-cause audits of the codebase before a new experiment round | 0 scripts, 7 md, 1 data files (2 KB)
+- hardening/: root-cause audits of the codebase before a new experiment round | 0 scripts, 7 md, 2 data files (2 KB)
 
 Documents:
 - `PLAN_2026-11.md` — Execution plan 2026-11 (owner request, 2026-11-02)
@@ -231,7 +231,7 @@ Documents:
 - `proposal_rolling_retrain.md` — Proposal: rolling-retrain study (does the market change enough to make the model random?)
 
 Data / other files (counts only):
-- `.`: txt×1 — 2 KB
+- `.`: csv×1, txt×1 — 2 KB
 
 ## `docs/research/notes/`
 - External research takeaways (2026-10-20) | 0 scripts, 3 md, 0 data files (0 B)
@@ -242,7 +242,7 @@ Documents:
 - `pr13_restructuring_history.md` — PR #13 restructuring: history facts (evil merges, move+modify commits, verbatim extraction)
 
 ## `docs/research/plan/`
-- Colab runner: one click per experiment | 0 scripts, 20 md, 6 data files (547 KB)
+- Colab runner: one click per experiment | 0 scripts, 21 md, 6 data files (547 KB)
 
 Documents:
 - `COLAB_RUNNER.md` — Colab runner: one click per experiment
@@ -263,6 +263,7 @@ Documents:
 - `decisions/D-009-two-level-holdout.md` — D-009: Two-level holdout (level A untouched, level B daily-only touched)
 - `decisions/D-010-dead-coins-amendment.md` — D-010: R0 lock amendment, dead coins in the sealed buckets
 - `decisions/D-011-screening-kernel-dormant.md` — D-011: screening kernel (`LAB_DESIGN.md` rev. 2), accepted in principle and DORMANT
+- `decisions/D-012-system-improves-over-time.md` — D-012: development friction is a bottleneck too; shared namespace goes gradually; models plug in by…
 - `decisions/README.md` — Owner decisions (ADR style)
 - `lock/README.md` — Lock: sealed-holdout specification (phase R0)
 
