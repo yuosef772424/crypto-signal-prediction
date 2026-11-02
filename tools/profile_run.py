@@ -2,12 +2,13 @@
 """
 PURPOSE:  Run profiler of a main run (hardening S03): executes the workflow/run.py step functions in main.ipynb order on given RunSettings and records, per step, wall time, RSS (start / sampled peak / end), GPU peak memory when a GPU is visible, plus the training epochs (step time, steps/s, first-step latency, validation time, other time between steps) through a Keras timing callback, the input pipeline alone (first-batch latency, ms/batch) and one timing per evaluation report. Output: profile.json + profile.md (steps sorted by time). Also a Colab run-contract entry (job `profile-001`).
 TAGS:     profiler, profile, bottleneck, wall time, peak RSS, memory, GPU memory, tf.data, input pipeline, steps per second, timing callback, workflow.run steps, run_main, Colab job, run contract, S03
-PITFALLS: The steps are the real workflow.run functions called in run_main's order with the same arguments (profile_run only wraps them), so the run is the same one; the only change is an extra last callback on trainer.fit (kit.build_training_system is wrapped) and train.run_dir, which is ALWAYS redirected to a temp dir (never resume or write the real training folder or Drive; checkpoints and report files live outside --out, which must stay <= 300 KB per file). The training callback times batch begin -> end, and Keras 3 pulls the batch INSIDE that call, so input wait cannot be separated by a callback (measured on a deliberately slow tf.data pipeline: wait ~ 0, compute = fetch + step); the input pipeline is therefore also run ALONE after training (`input_pipeline_only`, so it cannot move the seeded batch order of the real run; page cache is warm by then) and `input_bound_ratio` = its ms/batch over the steady step ms (near 1 = input-bound). RSS peak is sampled every 50 ms from /proc (a spike shorter than that is missed; `process_peak_mb` is the OS high-water mark of the whole process so far). Step kinds: `run` = part of a main run (counted in the total and the shares), `detail` = nested inside a run step (build_training_system), `probe` = extra work the profiler adds (input_pipeline_only, predict_val). The deadline (85% of --max-minutes) is checked BEFORE each step only; a long step overshoots and the runner kills the job at max_minutes + 2, so each finished step is also echoed to the log as one line. Status `partial` (deadline) still exits 0 but is written in profile.json / profile.md. input_fingerprint in the manifest is the hash of an empty input list: the dataset is described in profile.json (`run_facts`). On Colab the runner installs requirements-ci.txt (tensorflow-cpu): check `environment.tf_gpus` in profile.json before reading the numbers as GPU numbers. Linux/macOS only (resource, /proc).
+PITFALLS: `require_gpu` true makes the job exit before loading anything when TensorFlow sees no GPU (Colab's GPU runtime is not enough: requirements-ci.txt installs tensorflow-cpu). The steps are the real workflow.run functions called in run_main's order with the same arguments (profile_run only wraps them), so the run is the same one; the only change is an extra last callback on trainer.fit (kit.build_training_system is wrapped) and train.run_dir, which is ALWAYS redirected to a temp dir (never resume or write the real training folder or Drive; checkpoints and report files live outside --out, which must stay <= 300 KB per file). The training callback times batch begin -> end, and Keras 3 pulls the batch INSIDE that call, so input wait cannot be separated by a callback (measured on a deliberately slow tf.data pipeline: wait ~ 0, compute = fetch + step); the input pipeline is therefore also run ALONE after training (`input_pipeline_only`, so it cannot move the seeded batch order of the real run; page cache is warm by then) and `input_bound_ratio` = its ms/batch over the steady step ms (near 1 = input-bound). RSS peak is sampled every 50 ms from /proc (a spike shorter than that is missed; `process_peak_mb` is the OS high-water mark of the whole process so far). Step kinds: `run` = part of a main run (counted in the total and the shares), `detail` = nested inside a run step (build_training_system), `probe` = extra work the profiler adds (input_pipeline_only, predict_val). The deadline (85% of --max-minutes) is checked BEFORE each step only; a long step overshoots and the runner kills the job at max_minutes + 2, so each finished step is also echoed to the log as one line. Status `partial` (deadline) still exits 0 but is written in profile.json / profile.md. input_fingerprint in the manifest is the hash of an empty input list: the dataset is described in profile.json (`run_facts`). On Colab the runner installs requirements-ci.txt (tensorflow-cpu): check `environment.tf_gpus` in profile.json before reading the numbers as GPU numbers. Linux/macOS only (resource, /proc).
 
 Usage:  python tools/profile_run.py --config cfg.json --out DIR [--max-minutes N]
 cfg = {"settings": {"train": {"epochs": 2, "fit_verbose": 2}},   # RunSettings().updated(...); train.run_dir is forbidden (owned by the profiler)
        "reports": ["gap", "market_neutral"],                        # subset of workflow.run.REPORTS, [] = none
-       "input_batches": 50}                                         # batches of the input-pipeline-only probe
+       "input_batches": 50,                                         # batches of the input-pipeline-only probe
+       "require_gpu": true}                                          # true = exit at once (before loading data) when TensorFlow sees no GPU
 """
 import argparse
 import contextlib
@@ -30,7 +31,7 @@ for _p in (TOOLS_DIR, ROOT):
         sys.path.insert(0, _p)
 
 SCHEMA = 1
-CONFIG_KEYS = ("settings", "reports", "input_batches")
+CONFIG_KEYS = ("settings", "reports", "input_batches", "require_gpu")
 MAX_BYTES = 300 * 1024
 SAMPLE_SECONDS = 0.05
 #: no new step starts after this share of --max-minutes (the runner kills the job at max_minutes + 2 and a kill loses every output)
@@ -388,7 +389,24 @@ def load_config(path):
         raise SystemExit("config 'reports' must be a list of report names ([] = none)")
     if not isinstance(cfg["input_batches"], int) or isinstance(cfg["input_batches"], bool) or cfg["input_batches"] < 2:
         raise SystemExit("config 'input_batches' must be an integer >= 2")
+    if not isinstance(cfg["require_gpu"], bool):
+        raise SystemExit("config 'require_gpu' must be true or false")
     return cfg
+
+
+def check_gpu(required):
+    """Print what TensorFlow sees; with ``required`` exit at once when it sees no GPU (a CPU-only run of a long job is wasted time)."""
+    gpus = gpu_devices()
+    print(f"[profile] TensorFlow GPUs: {gpus or 'none'}; nvidia-smi: {_nvidia_smi()}", flush=True)
+    if required and not gpus:
+        raise SystemExit("require_gpu is true but TensorFlow sees no GPU (see the nvidia-smi line above: if it names a GPU, the installed "
+                         "tensorflow build has no CUDA support, e.g. tensorflow-cpu from requirements-ci.txt)")
+    return gpus
+
+
+def _nvidia_smi():
+    import colab_runner
+    return colab_runner.gpu_info()
 
 
 def main(argv=None):
@@ -398,6 +416,7 @@ def main(argv=None):
     ap.add_argument("--max-minutes", type=float, default=50)
     ns_args = ap.parse_args(argv)
     cfg = load_config(ns_args.config)
+    check_gpu(cfg["require_gpu"])
     out_dir = os.path.abspath(ns_args.out)
     t0 = time.time()
     import matplotlib

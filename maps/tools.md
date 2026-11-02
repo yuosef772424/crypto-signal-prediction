@@ -539,29 +539,30 @@
   - `def format_report(result)` L394
   - `def main(argv=None)` L407
 
-### `tools/profile_run.py` (430 lines)
+### `tools/profile_run.py` (449 lines)
 - PURPOSE: Run profiler of a main run (hardening S03): executes the workflow/run.py step functions in main.ipynb order on given RunSettings and records, per step, wall time, RSS (start / sampled peak / end), GPU peak memory when a GPU is visible, plu…
 - TAGS: profiler, profile, bottleneck, wall time, peak rss, memory, gpu memory, tf.data, input pipeline, steps per second, timing callback, workflow.run steps, run_main, colab job, run contract, s03
-- PITFALLS: The steps are the real workflow.run functions called in run_main's order with the same arguments (profile_run only wraps them), so the run is the same one; the only change is an extra last callback on trainer.fit (kit.build_training_system is wrapped) and train.run_dir, which is ALWAYS redirected to a temp dir (never resume or write the real training folder or Drive; checkpoints and report files…
+- PITFALLS: `require_gpu` true makes the job exit before loading anything when TensorFlow sees no GPU (Colab's GPU runtime is not enough: requirements-ci.txt installs tensorflow-cpu). The steps are the real workflow.run functions called in run_main's order with the same arguments (profile_run only wraps them), so the run is the same one; the only change is an extra last callback on trainer.fit (kit.build_tra…
 - API:
-  - `def rss_mb()` L43
-  - `def peak_rss_mb()` L52
-  - `def gpu_devices()` L59
-  - `class Profiler` L68
-    - `.__init__(self, gpu=False, sample_seconds=SAMPLE_SECONDS, echo=None)` L72
-    - `.step(self, name, kind='run')` L83
-  - `def make_timing_callback()` L119
-  - `def summarize_epoch(epoch, epoch_s, step_s, val_s)` L152
-  - `def timed_training_system(build, prof, timing)` L162
-  - `def input_probe(dataset, batches)` L172
-  - `def build_namespace(quiet=True)` L195
-  - `def profile_run(settings, ns, *, dataset=None, reports=(), input_batches=50, work_dir, deadline=None, echo=None)` L211
-  - `def environment(gpus)` L289
-  - `def build_profile(prof, timing, probes, settings, state, wall_s, result, gpus, reports, input_batches)` L303
-  - `def render_markdown(p)` L335
-  - `def write_outputs(profile, out_dir)` L364
-  - `def load_config(path)` L377
-  - `def main(argv=None)` L394
+  - `def rss_mb()` L44
+  - `def peak_rss_mb()` L53
+  - `def gpu_devices()` L60
+  - `class Profiler` L69
+    - `.__init__(self, gpu=False, sample_seconds=SAMPLE_SECONDS, echo=None)` L73
+    - `.step(self, name, kind='run')` L84
+  - `def make_timing_callback()` L120
+  - `def summarize_epoch(epoch, epoch_s, step_s, val_s)` L153
+  - `def timed_training_system(build, prof, timing)` L163
+  - `def input_probe(dataset, batches)` L173
+  - `def build_namespace(quiet=True)` L196
+  - `def profile_run(settings, ns, *, dataset=None, reports=(), input_batches=50, work_dir, deadline=None, echo=None)` L212
+  - `def environment(gpus)` L290
+  - `def build_profile(prof, timing, probes, settings, state, wall_s, result, gpus, reports, input_batches)` L304
+  - `def render_markdown(p)` L336
+  - `def write_outputs(profile, out_dir)` L365
+  - `def load_config(path)` L378
+  - `def check_gpu(required)` L397
+  - `def main(argv=None)` L412
 
 ### `tools/run_self_tests.py` (47 lines)
 - PURPOSE: The ONE entry point that runs the self-tests of the shared-namespace packages (data, model, trainer, evaluation) in a notebook namespace: `run_self_tests(globals())`. Loading a package (`<pkg>.load_into`) only defines; this runs the tests.

@@ -705,13 +705,13 @@
   - `class EvaluationWiringTests(unittest.TestCase)` L364
     - (5 methods)
 
-### `tests/test_profile_run.py` (235 lines)
+### `tests/test_profile_run.py` (244 lines)
 - PURPOSE: tools/profile_run.py (hardening S03): the run profiler measures the real workflow.run steps without changing what they compute. (from docstring)
 - DEPENDS: tools
 - API:
   - `class Pure(unittest.TestCase)` L35
-    - (7 methods)
-  - `class ProfilesTheRealSteps(unittest.TestCase)` L150
+    - (8 methods)
+  - `class ProfilesTheRealSteps(unittest.TestCase)` L158
     - (5 methods)
 
 ### `tests/test_real_price_modes.py` (72 lines)

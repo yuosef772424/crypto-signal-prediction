@@ -78,14 +78,14 @@ class Pure(unittest.TestCase):
 
     def test_config_is_strict(self):
         def cfg(**over):
-            c = {"settings": {}, "reports": [], "input_batches": 5}
+            c = {"settings": {}, "reports": [], "input_batches": 5, "require_gpu": False}
             c.update(over)
             path = os.path.join(tempfile.mkdtemp(), "c.json")
             json.dump(c, open(path, "w"))
             return path
         self.assertEqual(pr.load_config(cfg())["input_batches"], 5)
         for bad in ({"extra": 1}, {"settings": {"train": {"run_dir": "/x"}}}, {"reports": "gap"}, {"input_batches": 1},
-                    {"input_batches": True}, {"settings": []}):
+                    {"input_batches": True}, {"settings": []}, {"require_gpu": "yes"}):
             with self.assertRaises(SystemExit, msg=str(bad)):
                 pr.load_config(cfg(**bad))
         c = json.load(open(cfg()))
@@ -94,6 +94,14 @@ class Pure(unittest.TestCase):
         json.dump(c, open(p, "w"))
         with self.assertRaises(SystemExit):
             pr.load_config(p)
+
+    def test_require_gpu_exits_before_loading_when_tensorflow_sees_none(self):
+        if pr.gpu_devices():
+            self.skipTest("a GPU is visible here")
+        self.assertEqual(pr.check_gpu(False), [])
+        with self.assertRaises(SystemExit) as cm:
+            pr.check_gpu(True)
+        self.assertIn("no GPU", str(cm.exception))
 
     def test_training_system_wrapper_appends_the_callback_without_touching_the_cached_list(self):
         prof = pr.Profiler(echo=lambda s: None)
@@ -214,7 +222,8 @@ class ProfilesTheRealSteps(unittest.TestCase):
         data = os.path.join(work, "fixture.pkl.gz")
         with gzip.open(data, "wb") as f:
             pickle.dump(_dataset(), f)
-        cfg = {"settings": {"data": {"path": data}, "train": {"epochs": 1, "fit_verbose": 0}}, "reports": ["signals"], "input_batches": 4}
+        cfg = {"settings": {"data": {"path": data}, "train": {"epochs": 1, "fit_verbose": 0}}, "reports": ["signals"], "input_batches": 4,
+               "require_gpu": False}
         cfg_path, out = os.path.join(work, "cfg.json"), os.path.join(work, "out")
         json.dump(cfg, open(cfg_path, "w"))
         r = subprocess.run([sys.executable, os.path.join(ROOT, "tools", "profile_run.py"), "--config", cfg_path, "--out", out,
