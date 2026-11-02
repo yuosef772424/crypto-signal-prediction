@@ -37,10 +37,11 @@ def ohlcv(days, seed, start):
                          "volume": rng.random(n) * 1000 + 50}, index=idx)
 
 
-def build_dataset(ns, two_tf=False, coins=6, days=70, holdout=None):
+def build_dataset(ns, two_tf=False, coins=6, days=70, holdout=None, config_overrides=None):
     """A real pipeline dataset on synthetic candles (~1,200 windows, 6 coins, split dates inside the data range). ``ns`` is a pipeline
     namespace (``_nbload.load_pipeline()``); its CONFIG is reset to the pipeline defaults afterwards. ``holdout``: the sealed
-    holdout_start the dataset carries (None = a dataset file without the key, like the old files)."""
+    holdout_start the dataset carries (None = a dataset file without the key, like the old files). ``config_overrides``: extra CONFIG
+    keys applied before the build (e.g. price_norm_mode / stale_bars of a preset); None = exactly the dataset of the golden scenarios."""
     ns["reset_config"]()
     over = ns["HOURLY_4H_OVERRIDES"] if two_tf else ns["HOURLY_W32_S8_OVERRIDES"]
     _quiet(ns["apply_hourly_preset"], over)
@@ -49,6 +50,8 @@ def build_dataset(ns, two_tf=False, coins=6, days=70, holdout=None):
     ns["update_config"]({"tf_order": tf_order, "window_sizes": windows,
                          "phase2_data": {"use_intraday_15m": False, "use_futures_metrics": False},
                          "funding_rate": {"enabled": False}, "open_interest": {"enabled": False}})
+    if config_overrides:
+        ns["update_config"](dict(config_overrides))
     _quiet(ns["refresh_features"])
     starts = ["2025-01-01", "2025-01-01 03:00", "2025-01-01 05:00", "2025-01-01 11:00", "2025-01-02", "2025-01-01"]
 

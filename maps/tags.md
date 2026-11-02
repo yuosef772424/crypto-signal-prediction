@@ -296,6 +296,7 @@
 - custom features: data/custom
 - custom_feature_names: data/custom
 - d-009: tools/build_lock
+- d-013: workflow/presets
 - daily: tools/h07_forward
 - daily breakout: indicator_strategy/variants
 - daily ic: cross_asset/report
@@ -311,6 +312,7 @@
 - data.binance.vision: tools/fetch_history_vision_colab
 - dataprocess.ipynb: signal_eval/bootstrap
 - dataset file search: workflow/dataset_io
+- dataset_mismatches: workflow/presets
 - datasetinfo: workflow/run
 - datasettings: workflow/settings
 - day bootstrap: workflow/candle_baseline, workflow/verification
@@ -431,6 +433,8 @@
 - e-natr-003: natr_range/run_natr_calibrate
 - e-natr-004: natr_range/run_natr_rolling
 - e-natr-004-confirm: natr_range/run_natr_confirm_forward
+- e-norm-001: workflow/presets
+- e-norm-002: workflow/presets
 - e-normprobe-1: norm_probe/run_norm_probe
 - e-srch-002: strategy_discovery/intraday_macd
 - e-srch-003: strategy_discovery/seasonality15m
@@ -815,7 +819,7 @@
 - logret_forward: core/price_norm
 - logret_inverse: core/price_norm
 - logret_sigma: data/normalize
-- logret_std: data/normalize
+- logret_std: data/normalize, workflow/presets
 - logretsigma: data/normalizers
 - logretstd: data/normalizers
 - london breakout: edge_discovery/22_chart_rules
@@ -974,6 +978,7 @@
 - normalizer_for_mode: data/normalizers
 - normalizers: data/normalizers
 - not_adx40: indicator_strategy/variants
+- not_enabled: workflow/presets
 - notebook: tools/nb_cells, tools/run_self_tests
 - notebook definitions: discovery/axis_loader
 - notebook globals: tools/implicit_deps
@@ -1111,13 +1116,16 @@
 - prepare_chicks: workflow/run
 - prepare_data: tools/colab_bridge
 - prepare_single_asset: data/windows
+- preset: workflow/presets
+- preset_conflicts: workflow/presets
+- preset_run_dir: workflow/presets
 - presets: data/presets
 - previous candle: edge_discovery/21_range_fade
 - price_indices: data/features
 - price_norm: core/price_norm
 - price_norm_channels: data/normalizers
 - price_norm_meta: data/normalizers
-- price_norm_mode: data/normalize
+- price_norm_mode: data/normalize, workflow/presets
 - print_latest_table: evaluation/latest_table
 - print_trade_selection: evaluation/trade_selection
 - print_verdicts: model/diagnostics
@@ -1163,6 +1171,9 @@
 - real_price_predictions: tests/test_real_price_modes, workflow/reports
 - realized variance: h07_volsizing/01_volsizing
 - rebound: edge_discovery/09_market_flush
+- recommended_2026_11: workflow/presets
+- recommended_choices: workflow/presets
+- recommended_settings: workflow/presets
 - recorder: workflow/diagnostics
 - recurrence plot: edge_discovery/27_repr_info
 - redundancy: edge_discovery/02_fmb
@@ -1314,7 +1325,10 @@
 - selftests: signal_eval/selftests
 - set_random_seed: core/seeds
 - settings: data/defaults, workflow/settings
+- settings catalog: workflow/presets
 - settings interval start funding open_interest: tools/fetch_history_colab_cell
+- settings_presets: workflow/presets
+- settings_with_preset: workflow/presets
 - sha256: natr_range/freeze_rules, tools/colab_runner, tools/trim_dead_tails
 - shadowing: tools/implicit_deps
 - shap: discovery/phase3_tools
@@ -1374,7 +1388,7 @@
 - stage b: natr_range/run_natr_confirm_forward
 - stage-2 logistic: edge_discovery/30_envelope_direction
 - stale bars: natr_range/run_natr_calibrate, tools/stale_bars_audit, tools/stale_bars_colab_job, tools/trim_dead_tails
-- stale_bars: tools/stale_bars_audit
+- stale_bars: tools/stale_bars_audit, workflow/presets
 - stamp_price_norm: data/normalizers
 - standardization: norm_probe/run_norm_probe
 - state_entries: trainer/checkpoints
@@ -1400,6 +1414,7 @@
 - survivor checks: strategy_discovery/survivor_checks
 - survivor test: strategy_discovery/oos
 - survivorship: tools/stale_bars_audit, tools/trim_dead_tails
+- suspended_targets: workflow/presets
 - sweep: edge_discovery/22_chart_rules, edge_discovery/data_tools/sweep
 - swiglu: model/transformer
 - symbols.txt: tools/fetch_history_vision_colab
@@ -1511,6 +1526,7 @@
 - trim: tools/trim_dead_tails_colab_job
 - trim at source: tools/trim_dead_tails
 - trimmed mean: strategy_discovery/significance
+- trivial_baseline: workflow/presets
 - true_key: workflow/training_config
 - trunk_drop: cross_asset/model
 - ts_col: core/__init__, core/schema, data/windows
@@ -1536,6 +1552,7 @@
 - up_share: cross_asset/report
 - update drive from github: tools/drive_sync
 - update_config: data/runtime
+- use_instance_norm: workflow/presets
 - use_mixed_precision: trainer/perf
 - used by: tools/implicit_deps
 - uses: tools/implicit_deps

@@ -27,7 +27,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `trainer/` — Package holding the generic training framework (formerly the cells of trainer_framework_v2.ipynb): `import trainer` gives the whole framework (trainer.build_training_system, trainer.build_config, trainer.GenericTrainer, ...) in this packag… | 21 modules, 0 data files (0 B) → maps/trainer.md
 - `evaluation/` — Package holding ALL model-evaluation code of the project (formerly the cells of chicks_v4_5_input_output_patterns.ipynb): `import evaluation` gives predict_with_evaluation_v4, test_all_assets_v4, run_full_analysis, ... in this package's na… | 25 modules, 0 data files (0 B) → maps/evaluation.md
 - `signal_eval/` — Package holding ALL code of the signal evaluation axis, phase 0 of the signal-discovery project (formerly the cells of "signal_evaluation_axis (3).ipynb"): `import signal_eval` gives compute_ic, decile_spread, permutation_baseline, evaluat… | 10 modules, 0 data files (0 B) → maps/signal_eval.md
-- `workflow/` — Package holding the project-assembly code of main.ipynb: RunSettings (every run setting in one strict object) and the run steps that turn settings into splits, model, training and evaluation inputs (workflow/run.py), plus target-mode switc… | 22 modules, 0 data files (0 B) → maps/workflow.md
+- `workflow/` — Package holding the project-assembly code of main.ipynb: RunSettings (every run setting in one strict object) and the run steps that turn settings into splits, model, training and evaluation inputs (workflow/run.py), plus target-mode switc… | 23 modules, 0 data files (0 B) → maps/workflow.md
 - `discovery/` — Package holding the code of the signal discovery lab (candidate predictors, evaluation core, scanner, batch runner, phase-3 tools, self-test) and of the pandas_ta full survey; the notebooks stay the runners of the lab steps. | 11 modules, 0 data files (0 B) → maps/discovery.md
 
 ## Research studies (research/)
@@ -48,7 +48,7 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `docs/research/` — المشروع البحثي — فهرس التوثيق | 0 scripts, 45 md, 1 data files (107 KB) → maps/docs_research.md
 - `docs/research/audit/` — Audit / Improvement Protocol (Auditor ↔ Builder) | 26 scripts, 5 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/cards/` — Experiment card — E-liq-001: does telling the model how liquid the coin is (A) or removing illiquid… | 0 scripts, 4 md, 0 data files (0 B) → maps/docs_research.md
-- `docs/research/hardening/` — hardening/: root-cause audits of the codebase before a new experiment round | 0 scripts, 7 md, 3 data files (6 KB) → maps/docs_research.md
+- `docs/research/hardening/` — hardening/: root-cause audits of the codebase before a new experiment round | 0 scripts, 7 md, 3 data files (11 KB) → maps/docs_research.md
 - `docs/research/notes/` — External research takeaways (2026-10-20) | 0 scripts, 3 md, 0 data files (0 B) → maps/docs_research.md
 - `docs/research/plan/` — Colab runner: one click per experiment | 0 scripts, 21 md, 6 data files (547 KB) → maps/docs_research.md
 - `docs/research/results/` — نتائج خطّة `capacity` على بيانات Drive (Colab T4، 2026-09-27) | 0 scripts, 6 md, 0 data files (0 B) → maps/docs_research.md
@@ -58,6 +58,6 @@ Refresh: `python tools/build_map.py`; verify: `python tools/build_map.py --check
 - `docs/research/templates/` — Experiment card — <id>: <one-line title> | 0 scripts, 1 md, 0 data files (0 B) → maps/docs_research.md
 
 ## Tests
-- `tests/` — run_fixture, test_audit_round2, test_bracket_eval, test_build_lock, test_check_patterns, test_colab… | 71 modules, 3 data files (274 KB) → maps/tests.md
+- `tests/` — run_fixture, test_audit_round2, test_bracket_eval, test_build_lock, test_check_patterns, test_colab… | 72 modules, 3 data files (274 KB) → maps/tests.md
 
 ## Where do I edit X? → `maps/tags.md` (TAGS → modules index)
