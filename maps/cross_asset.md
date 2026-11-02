@@ -8,33 +8,33 @@
 - TAGS: panel model, cross-asset attention, package exports, phase 1, anti-memorization, panelsplit, run_panel_experiment
 - PITFALLS: Kept free of TensorFlow at import time (model/train import it) so data/report stay usable in light CPU analysis scripts; do not add a top-level TF import here.
 
-### `cross_asset/data.py` (457 lines)
+### `cross_asset/data.py` (458 lines)
 - PURPOSE: Data layer of the panel model: groups split_data samples by UTC day (index lists only) and builds multi-day flat batches (x, day, pos).
 - TAGS: panel data, panelsplit, panel_split_from, day grouping, batching, batch shape, mixed timestamps, target scale, entry_range_to_prices, integrity checks
 - PITFALLS: Groups mixing different timestamps let cross-asset attention read peers' future candles (look-ahead): see mixed_timestamp_groups / check(allow_mixed_timestamps) - leave it False except in an experiment that measures the leak.
 - DEPENDS: core
 - API:
-  - `class PanelSplit` L33
-    - `.__init__(self, X, y, last_candles, assets=None, name='', targets=TARGETS, day_ns=DAY_NS, target_scale=1.0, target_mode=None, entry_close_reg=None)` L51
-    - `.content_hash(self, max_rows=4096)` L94
-    - `.gather_x(self, idx)` L114
-    - `.take(self, idx, name=None)` L120
-    - `.subset(self, last_days=None, coins=None, seed=0)` L133
-    - `.n_days(self)` L156
-    - `.day_indices(self, d)` L159
-    - `.batch_plan(self, batch_samples=1024, max_days=16, shuffle=False, seed=0, epoch=0)` L164
-    - `.make_batch(self, day_list, max_coins=None, rng=None, min_coins=None)` L182
-    - `.assemble(self, idx_lists, scored=None)` L206
-    - `.iter_batches(self, batch_samples=1024, max_days=16, shuffle=False, seed=0, epoch=0, max_coins=None, min_coins=None)` L226
-    - `.chunk_groups(self, k=None, seed=0)` L234
-    - `.iter_group_batches(self, groups, batch_samples=1024, max_days=16, scored=None)` L257
-    - `.mixed_timestamp_groups(self)` L273
-    - `.check(self, min_group=5, allow_mixed_timestamps=False)` L282
-  - `def implied_target_scale(y, last_candles, targets=TARGETS, min_rows=10, agree=0.9, rtol=0.001)` L337
-  - `def panel_split_from(split_or_dict, model_tf, asset_names=None, name='', targets=TARGETS, day_ns=DAY_NS, target_scale=None)` L390
-  - `def entry_range_to_prices(entry, high=None, low=None, close=None, close_reg='abs_return', p_close_up=None)` L419
-  - `def group_ns_for(base_tf, stride)` L447
-  - `def format_checks(checks)` L454
+  - `class PanelSplit` L34
+    - `.__init__(self, X, y, last_candles, assets=None, name='', targets=TARGETS, day_ns=DAY_NS, target_scale=1.0, target_mode=None, entry_close_reg=None)` L52
+    - `.content_hash(self, max_rows=4096)` L95
+    - `.gather_x(self, idx)` L115
+    - `.take(self, idx, name=None)` L121
+    - `.subset(self, last_days=None, coins=None, seed=0)` L134
+    - `.n_days(self)` L157
+    - `.day_indices(self, d)` L160
+    - `.batch_plan(self, batch_samples=1024, max_days=16, shuffle=False, seed=0, epoch=0)` L165
+    - `.make_batch(self, day_list, max_coins=None, rng=None, min_coins=None)` L183
+    - `.assemble(self, idx_lists, scored=None)` L207
+    - `.iter_batches(self, batch_samples=1024, max_days=16, shuffle=False, seed=0, epoch=0, max_coins=None, min_coins=None)` L227
+    - `.chunk_groups(self, k=None, seed=0)` L235
+    - `.iter_group_batches(self, groups, batch_samples=1024, max_days=16, scored=None)` L258
+    - `.mixed_timestamp_groups(self)` L274
+    - `.check(self, min_group=5, allow_mixed_timestamps=False)` L283
+  - `def implied_target_scale(y, last_candles, targets=TARGETS, min_rows=10, agree=0.9, rtol=0.001)` L338
+  - `def panel_split_from(split_or_dict, model_tf, asset_names=None, name='', targets=TARGETS, day_ns=DAY_NS, target_scale=None)` L391
+  - `def entry_range_to_prices(entry, high=None, low=None, close=None, close_reg='abs_return', p_close_up=None)` L420
+  - `def group_ns_for(base_tf, stride)` L448
+  - `def format_checks(checks)` L455
 
 ### `cross_asset/experiment.py` (263 lines)
 - PURPOSE: Runs a full panel experiment from main-notebook variables: train each variant/seed, predict, export signals, compare to the current model.

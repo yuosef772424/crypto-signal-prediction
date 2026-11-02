@@ -783,13 +783,13 @@ def rolling_split_schedule(data: Dict, test_span=None, val_span=None,
     if test_span is None or val_span is None:
         raise ValueError(
             "حدّد test_span وval_span، أو اضبطهما في CONFIG['rolling_retrain'].")
-    test_span = pd.Timedelta(test_span)
-    val_span = pd.Timedelta(val_span)
-    step = pd.Timedelta(step) if step is not None else test_span
+    test_span = pd.Timedelta(normalize_tf(test_span) if isinstance(test_span, str) else test_span)
+    val_span = pd.Timedelta(normalize_tf(val_span) if isinstance(val_span, str) else val_span)
+    step = pd.Timedelta(normalize_tf(step) if isinstance(step, str) else step) if step is not None else test_span
 
     sliding = train_span is not None
     if sliding:
-        train_span = pd.Timedelta(train_span)
+        train_span = pd.Timedelta(normalize_tf(train_span) if isinstance(train_span, str) else train_span)
         first_train_len = train_span
     else:
         if initial_train_span is None:
@@ -797,7 +797,7 @@ def rolling_split_schedule(data: Dict, test_span=None, val_span=None,
                 "نافذة تدريب متمدّدة (train_span=None) تتطلّب initial_train_span "
                 "صراحةً — حجم أول نافذة تدريب قبل أن تبدأ بالتمدّد؛ لا قيمة "
                 "افتراضية صحيحة عالمياً. حدّدها أو اضبطها في CONFIG['rolling_retrain'].")
-        initial_train_span = pd.Timedelta(initial_train_span)
+        initial_train_span = pd.Timedelta(normalize_tf(initial_train_span) if isinstance(initial_train_span, str) else initial_train_span)
         first_train_len = initial_train_span
 
     gap = embargo_duration(data, config)

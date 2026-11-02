@@ -7,6 +7,7 @@ import json
 import os
 import numpy as np
 import pandas as pd
+from core.timeframe import normalize_tf
 
 
 def _day_bootstrap_mean(values, days, n_boot=500, seed=0):
@@ -80,9 +81,9 @@ def run_full_verification(model, train_split, val_split, test_split, model_tf=No
         add("أ) البيانات", f"الأهداف تطابق الأسعار الخام ({name})", round(worst, 4),
             "✅" if worst >= 0.99 else "❌", json.dumps({k: round(v, 4) for k, v in chk.items()}))
     ts = {n: _split_ts(sp) for n, sp in (("train", train_split), ("val", val_split), ("test", test_split))}
-    step = pd.Timedelta(base_tf).value
+    step = pd.Timedelta(normalize_tf(base_tf)).value
     # أوسع نافذة بشموع الفريم الأساسي (4h × 32 = 128 شمعة 1h): مُدخل val/test بأي فريم لا يجوز أن يرى هدفاً من القسم السابق
-    window = max(int(train_split[f"X_{tf}"].shape[1]) * int(pd.Timedelta(tf) // pd.Timedelta(base_tf)) for tf in tfs)
+    window = max(int(train_split[f"X_{tf}"].shape[1]) * int(pd.Timedelta(normalize_tf(tf)) // pd.Timedelta(normalize_tf(base_tf))) for tf in tfs)
     horizon = int(CONFIG.get("forecast_horizon", 1))
     for a, b in (("train", "val"), ("val", "test")):
         gap = (ts[b].min() - ts[a].max()) / step

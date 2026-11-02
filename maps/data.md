@@ -89,15 +89,16 @@
   - `def cross_sectional_normalize(dataset: Dict, heads: Optional[List[str]]=None, method: Optional[str]=None, min_assets: Optional[int]=None, clip: Optional[float]=None, config: Optional[dict]=None, verbose: bool=True) -> Dict` L27
   - `def invert_cross_sectional(preds: np.ndarray, timestamps: np.ndarray, head: str, dataset: Dict) -> np.ndarray` L135
 
-### `data/custom.py` (1360 lines)
+### `data/custom.py` (1362 lines)
 - PURPOSE: Static scale-free custom features (log returns, relative ranges, candle structure, time features, fractals, volatility estimators, trend age, ...) and their column names.
 - TAGS: custom features, add_custom_features, custom_feature_names, default_custom_settings, returns, fractal, supertrend, psar, hurst, variance ratio, ath distance, time_hour
 - PITFALLS: Its _test_*() causality checks do not run at load: Loading only defines it; the checks run in `run_self_tests(globals())` (tools/run_self_tests.py). Every feature must be causal: row t may only use rows <= t (tests/test_no_lookahead.py). Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: core
 - USES: runtime
 - USED BY: cross_sectional_norm, features, funding_oi, selftests, windows
 - API:
-  - `def add_custom_features(data: pd.DataFrame, settings: Optional[dict]=None, config: Optional[dict]=None) -> pd.DataFrame` L177
-  - `def custom_feature_names(settings: Optional[dict]=None, config: Optional[dict]=None) -> List[str]` L546
+  - `def add_custom_features(data: pd.DataFrame, settings: Optional[dict]=None, config: Optional[dict]=None) -> pd.DataFrame` L179
+  - `def custom_feature_names(settings: Optional[dict]=None, config: Optional[dict]=None) -> List[str]` L548
 
 ### `data/defaults.py` (584 lines)
 - PURPOSE: PIPELINE_DEFAULT_CONFIG (alias DEFAULT_CONFIG) — the single source of truth for every pipeline/model/training setting — plus COINS_BY_CATEGORY, STATIC_INDICATORS_FULL and DEFAULT_ENABLED_CATEGORIES.
@@ -309,30 +310,32 @@
   - `def imap_ordered(fn: Callable[[T], R], items: Iterable[T], max_workers: int=8, prefetch: Optional[int]=None) -> Iterator[R]` L61
   - `def load_assets(configs: List[Dict], load_asset_fn: Callable, max_workers: Optional[int]=None, prefetch: Optional[int]=None, tail: int=0, verbose: bool=True) -> Dict[str, pd.DataFrame]` L108
 
-### `data/phase2.py` (307 lines)
+### `data/phase2.py` (309 lines)
 - PURPOSE: Phase-2 glue: locates tools/intraday_features.py, resolves the phase2_data toggles, caches archive reads and adds the 15m intraday and futures-metrics features.
 - TAGS: phase 2, phase2_data, intraday_features, 15m, futures metrics, require_phase2_data, resolve_phase2_toggles, module_dirs
 - PITFALLS: tools/intraday_features.py is looked up under the repo root that holds data/ first (independent of cwd), then cwd, then phase2_data['module_dirs']. All arithmetic lives in tools/intraday_features.py (tested by tests/test_intraday_features.py); this module only finds paths, toggles, caches and fills neutrally. Executed into the one shared pipeline namespace by data/_loader.py (never imported on it…
+- DEPENDS: core
 - USES: drive, runtime
 - USED BY: checkpoints, features, funding_oi, pipeline, presets, selftests
 - API:
-  - `def resolve_phase2_toggles(config: Optional[dict]=None, verbose: bool=True) -> Dict[str, bool]` L99
-  - `def require_phase2_data(keys=_PHASE2_KEYS, config: Optional[dict]=None) -> Dict[str, bool]` L127
-  - `def load_intraday_daily_frame(symbol: str, config: Optional[dict]=None) -> Optional[pd.DataFrame]` L179
-  - `def intraday_15m_columns(config: Optional[dict]=None) -> List[str]` L218
-  - `def add_intraday_15m_features(dfs: Dict[str, pd.DataFrame], symbol: str, config: Optional[dict]=None) -> Dict[str, pd.DataFrame]` L227
-  - `def futures_metrics_columns(config: Optional[dict]=None) -> List[str]` L249
+  - `def resolve_phase2_toggles(config: Optional[dict]=None, verbose: bool=True) -> Dict[str, bool]` L101
+  - `def require_phase2_data(keys=_PHASE2_KEYS, config: Optional[dict]=None) -> Dict[str, bool]` L129
+  - `def load_intraday_daily_frame(symbol: str, config: Optional[dict]=None) -> Optional[pd.DataFrame]` L181
+  - `def intraday_15m_columns(config: Optional[dict]=None) -> List[str]` L220
+  - `def add_intraday_15m_features(dfs: Dict[str, pd.DataFrame], symbol: str, config: Optional[dict]=None) -> Dict[str, pd.DataFrame]` L229
+  - `def futures_metrics_columns(config: Optional[dict]=None) -> List[str]` L251
 
-### `data/pipeline.py` (593 lines)
+### `data/pipeline.py` (595 lines)
 - PURPOSE: Dataset assembly across all assets: build_dataset (loader or preloaded), exclusions, cross-asset first pass, accumulation; both sources delegate to prepare_single_asset.
 - TAGS: pipeline, build_dataset, build_dataset_from_loader, build_dataset_from_preloaded, accumulator, asset_bounds, skip_labels
 - PITFALLS: Golden digests (tests/test_multi_tf.py::test_old_presets_byte_identical) cover this path: any output change must be deliberate. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: core
 - USES: align, checkpoints, cross_sectional_features, disk_backed, features, funding_oi*, heads, market_context, normalize, normalizers, parallel, phase2*, runtime, sources, windows
 - USED BY: live, presets, selftests
 - API:
-  - `def build_dataset_from_loader(configs: List[Dict], load_asset_fn: Callable, resample_fn: Callable, tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_hori…` L313
-  - `def build_dataset_from_preloaded(configs: List[Dict], data: Dict[str, Dict[str, pd.DataFrame]], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_horizon: O…` L475
-  - `def build_dataset(configs: List[Dict], *, data: Optional[Dict]=None, load_asset_fn: Optional[Callable]=None, resample_fn: Optional[Callable]=None, **kwargs) -> Dict` L573
+  - `def build_dataset_from_loader(configs: List[Dict], load_asset_fn: Callable, resample_fn: Callable, tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_hori…` L315
+  - `def build_dataset_from_preloaded(configs: List[Dict], data: Dict[str, Dict[str, pd.DataFrame]], tf_order: Optional[List[str]]=None, window_sizes: Optional[Dict[str, int]]=None, targets: Optional[List[str]]=None, forecast_horizon: O…` L477
+  - `def build_dataset(configs: List[Dict], *, data: Optional[Dict]=None, load_asset_fn: Optional[Callable]=None, resample_fn: Optional[Callable]=None, **kwargs) -> Dict` L575
 
 ### `data/presets.py` (442 lines)
 - PURPOSE: Hourly presets: 20-b (1h w168 s32 h4, and 1h w32 s8 h1), 20-c (1h + 4h context, float16) with its contract self-test, 20-d (pct_change price normalisation) — overrides, names and one-call builders.
@@ -379,21 +382,22 @@
 - API:
   - `def run_pipeline_selftests(verbose: bool=True) -> bool` L43
 
-### `data/sources.py` (306 lines)
+### `data/sources.py` (308 lines)
 - PURPOSE: Historical data sources (mounted Drive only): asset registry, coin selection by category, coin exclusion, load_asset and resampling (make_resample_fn).
 - TAGS: sources, load_asset, load_asset_registry, flatten_coins_by_category, filter_desired_coins, exclude_coins, resample_timeframes, make_resample_fn, all_global, drive_raw_dir
 - PITFALLS: No public links / gdown: every read goes through mount_drive(). flatten_coins_by_category() without arguments uses DEFAULT_ENABLED_CATEGORIES, not the whole registry. Executed into the one shared pipeline namespace by data/_loader.py (never imported on its own): names from other modules resolve at call time.
+- DEPENDS: core
 - USES: align, defaults, drive, features, runtime
 - USED BY: live, pipeline, presets, selftests, windows
 - API:
-  - `def load_asset_registry(path: Optional[str]=None, config: Optional[dict]=None) -> List[Dict]` L36
-  - `def flatten_coins_by_category(category_dict: Optional[Dict[str, List[str]]]=None, categories: Optional[List[str]]=None) -> List[str]` L56
-  - `def filter_desired_coins(full_registry: List[Dict], desired_coins: Optional[List[str]]=None, verbose: bool=True) -> List[Dict]` L89
-  - `def split_excluded_coins(configs: Iterable[Any], excluded: Optional[Iterable[str]]=None, config: Optional[dict]=None) -> Tuple[List[Any], List[str], List[str]]` L131
-  - `def exclude_coins(configs: Iterable[Any], excluded: Optional[Iterable[str]]=None, config: Optional[dict]=None, verbose: bool=True) -> List[Any]` L175
-  - `def load_asset(file_id: Optional[str], name: str='', config: Optional[dict]=None) -> pd.DataFrame` L201
-  - `def resample_timeframes(df: pd.DataFrame, target_tfs: Optional[List[str]]=None, base_tf: Optional[str]=None, with_features: bool=True, config: Optional[dict]=None) -> Dict[str, pd.DataFrame]` L262
-  - `def make_resample_fn(config: Optional[dict]=None)` L298
+  - `def load_asset_registry(path: Optional[str]=None, config: Optional[dict]=None) -> List[Dict]` L38
+  - `def flatten_coins_by_category(category_dict: Optional[Dict[str, List[str]]]=None, categories: Optional[List[str]]=None) -> List[str]` L58
+  - `def filter_desired_coins(full_registry: List[Dict], desired_coins: Optional[List[str]]=None, verbose: bool=True) -> List[Dict]` L91
+  - `def split_excluded_coins(configs: Iterable[Any], excluded: Optional[Iterable[str]]=None, config: Optional[dict]=None) -> Tuple[List[Any], List[str], List[str]]` L133
+  - `def exclude_coins(configs: Iterable[Any], excluded: Optional[Iterable[str]]=None, config: Optional[dict]=None, verbose: bool=True) -> List[Any]` L177
+  - `def load_asset(file_id: Optional[str], name: str='', config: Optional[dict]=None) -> pd.DataFrame` L203
+  - `def resample_timeframes(df: pd.DataFrame, target_tfs: Optional[List[str]]=None, base_tf: Optional[str]=None, with_features: bool=True, config: Optional[dict]=None) -> Dict[str, pd.DataFrame]` L264
+  - `def make_resample_fn(config: Optional[dict]=None)` L300
 
 ### `data/split.py` (906 lines)
 - PURPOSE: Time-based train/val/test split with an embargo gap: global_time (default) or per_asset, holdout, leak-free and rolling splits.

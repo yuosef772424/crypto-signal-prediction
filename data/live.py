@@ -42,7 +42,7 @@ def _live_pad_length(tf_order: List[str], window_sizes: Dict[str, int],
     tf_order[0]) وهامش تلوّث أكبر فريم كلاهما لوحدة ``download_interval``
     قبل جمعهما، لا افتراض أنهما نفس الوحدة كما كان سابقاً.
     """
-    ratios = [max(1, int(np.ceil(pd.Timedelta(tf) / pd.Timedelta(download_interval))))
+    ratios = [max(1, int(np.ceil(pd.Timedelta(normalize_tf(tf)) / pd.Timedelta(normalize_tf(download_interval)))))
              for tf in tf_order]
     base_ratio = ratios[0]      # عدد شموع download_interval في شمعة واحدة من tf_order[0]
     return forecast_horizon * base_ratio + max(ratios)
@@ -80,7 +80,7 @@ def _auto_live_limit(tf_order: List[str], window_sizes: Dict[str, int],
     بسهولة). القصّ الوحيد المتبقي الآن هو التاريخ الفعلي المتاح للعملة نفسها
     (تتولّاه fetch_data بإرجاع ما توفّر لا خطأ).
     """
-    ratios = {tf: max(1, int(np.ceil(pd.Timedelta(tf) / pd.Timedelta(download_interval))))
+    ratios = {tf: max(1, int(np.ceil(pd.Timedelta(normalize_tf(tf)) / pd.Timedelta(normalize_tf(download_interval)))))
              for tf in tf_order}
     biggest_span = max(
         (window_sizes[tf] + LIVE_FEATURE_WARMUP) * ratios[tf] for tf in tf_order
@@ -95,7 +95,7 @@ def _live_contamination_len(tf_order: List[str]) -> int:
     ``download_interval``: فريم الجلب لا يُغيّر عدد نوافذ *النموذج* المتضرّرة،
     فقط عدد شموع *التحميل* الصورية اللازمة لتوليدها (انظر _live_pad_length).
     """
-    ratios = [max(1, int(np.ceil(pd.Timedelta(tf) / pd.Timedelta(tf_order[0]))))
+    ratios = [max(1, int(np.ceil(pd.Timedelta(normalize_tf(tf)) / pd.Timedelta(normalize_tf(tf_order[0])))))
              for tf in tf_order]
     return max(ratios)
 

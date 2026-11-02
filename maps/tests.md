@@ -849,7 +849,7 @@
   - `class ThreeTFTests(unittest.TestCase)` L12
     - (3 methods)
 
-### `tests/test_timeframe_normalize.py` (51 lines)
+### `tests/test_timeframe_normalize.py` (122 lines)
 - PURPOSE: S02 (pandas 4): ``core.timeframe.normalize_tf`` is the ONE place that fixes lowercase day/week timeframe strings; the data (from docstring)
 - DEPENDS: core, docs
 - API:
@@ -858,6 +858,8 @@
   - `def test_normalized_tf_builds_timedelta_and_resample_without_warning(tf)` L32
   - `def test_lowercase_day_unit_is_what_pandas_warns_about()` L40
   - `def test_data_package_tf_helpers_accept_lowercase_day_without_warning()` L46
+  - `def test_guard_detects_unnormalised_and_accepts_normalised()` L106
+  - `def test_every_timeframe_reaching_pandas_goes_through_normalize_tf()` L115
 
 ### `tests/test_tools_reuse.py` (72 lines)
 - PURPOSE: tools/nb_cells.py (تحرير خلايا الدفاتر بلا إعادة تنسيق) وtools/fetch_crypto_dataset.py (دمج الملفات الشهرية) — بلا شبكة. (from docstring)

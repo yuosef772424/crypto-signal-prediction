@@ -5,6 +5,8 @@ PITFALLS: Golden digests (tests/test_multi_tf.py::test_old_presets_byte_identica
 
 ## 15) خط أنابيب تجميع البيانات عبر كل الأصول (`pipeline.py` سابقاً)
 """
+
+from core.timeframe import normalize_tf
 # @title
 """
 خط أنابيب تجميع البيانات عبر كل الأصول.
@@ -279,7 +281,7 @@ def _load_cross_asset_frames(configs: List[Dict], load_asset_fn: Callable,
             return name, None
         hlc = df[['high', 'low', 'close']].astype(hlc_dtype).sort_index()
         del df
-        frames = {tf: hlc.resample(tf).agg(_HLC_AGG).dropna(how='all') for tf in tf_order}
+        frames = {tf: hlc.resample(normalize_tf(tf)).agg(_HLC_AGG).dropna(how='all') for tf in tf_order}
         if closed:
             frames = {tf: (fr if tf == tf_order[0] else _keep_full_bars(fr, hlc.index[hlc['close'].notna()], tf, tf_order[0]))
                       for tf, fr in frames.items()}

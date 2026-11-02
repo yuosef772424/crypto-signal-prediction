@@ -37,19 +37,20 @@
 - API:
   - `def candle_baseline_report(model, train_split, val_split, test_split, model_tf=None, targets=('high', 'low'), max_train=300000, n_boot=300, seed=0, batch_size=1024, min_auc_gain=0.005, verbose=True)` L58
 
-### `workflow/capacity.py` (366 lines)
+### `workflow/capacity.py` (367 lines)
 - PURPOSE: Section 7-j: capacity vs effective sample size: effective_sample_size, simple_baseline, feature_count_sweep, learning_curve, capacity_verdict, capacity_report.
 - TAGS: effective_sample_size, feature_count_sweep, learning_curve, capacity_verdict, capacity_report, capacity_thresholds, capacity, ridge baseline
 - PITFALLS: RESEARCH_RULES section 2.1: a setup failure (capacity) is different from no signal; sweeps/curves train models. Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 42 (section 7-j).
+- DEPENDS: core
 - USES: batches, data/windows, diagnostics, generalization, model/diagnostics, retarget, splits, trainer/checkpoints, trainer/config, trainer/system
 - USED BY: diagnostics
 - API:
-  - `def effective_sample_size(split, window=None, stride=None, horizon=1, target=None, n_features=None, n_params=None, model=None, max_assets=80, seed=0, model_tf=None)` L19
-  - `def simple_baseline(train_split, val_split, model_tf=None, max_train=20000, max_val=20000, ridge=10.0, seed=0)` L115
-  - `def feature_count_sweep(build_fn, train_split, val_split, feature_names, ks=(1, 3, 5, 10), rank_by='train', epochs=6, seed=0, max_train=4096, max_val=4096, config=None, model_tf=None, ridge=10.0, with_null=True, verbose=Tr…` L183
-  - `def learning_curve(build_fn, train_split, val_split, fractions=(0.25, 0.5, 1.0), anchor='recent', epochs=6, seed=0, max_train=4096, max_val=4096, config=None, model_tf=None, verbose=True)` L232
-  - `def capacity_verdict(ess=None, baseline=None, sweep=None, curve=None, model_skill=None, model_metric='auc', thresholds=None)` L275
-  - `def capacity_report(build_fn, train_split, val_split, feature_names=None, ks=(1, 3, 5, 10), fractions=(0.25, 0.5, 1.0), window=None, model=None, rank_by='train', epochs=6, seed=0, config=None, model_tf=None, verbose=Tr…` L340
+  - `def effective_sample_size(split, window=None, stride=None, horizon=1, target=None, n_features=None, n_params=None, model=None, max_assets=80, seed=0, model_tf=None)` L20
+  - `def simple_baseline(train_split, val_split, model_tf=None, max_train=20000, max_val=20000, ridge=10.0, seed=0)` L116
+  - `def feature_count_sweep(build_fn, train_split, val_split, feature_names, ks=(1, 3, 5, 10), rank_by='train', epochs=6, seed=0, max_train=4096, max_val=4096, config=None, model_tf=None, ridge=10.0, with_null=True, verbose=Tr…` L184
+  - `def learning_curve(build_fn, train_split, val_split, fractions=(0.25, 0.5, 1.0), anchor='recent', epochs=6, seed=0, max_train=4096, max_val=4096, config=None, model_tf=None, verbose=True)` L233
+  - `def capacity_verdict(ess=None, baseline=None, sweep=None, curve=None, model_skill=None, model_metric='auc', thresholds=None)` L276
+  - `def capacity_report(build_fn, train_split, val_split, feature_names=None, ks=(1, 3, 5, 10), fractions=(0.25, 0.5, 1.0), window=None, model=None, rank_by='train', epochs=6, seed=0, config=None, model_tf=None, verbose=Tr…` L341
 
 ### `workflow/chicks_bridge.py` (70 lines)
 - PURPOSE: Converts the pipeline's test split into the shape chicks expects (build_chicks_test_dict) and defines which target modes chicks supports.
@@ -91,15 +92,16 @@
   - `def trivial_range_baseline(last_candles, y_class, target, sign=None)` L164
   - `def generalization_gap_report(model, train_split, val_split, test_split, model_tf=None, max_n=20000, auc_gap_max=0.03, linear_reference=True, verbose=True, price_targets=None, trivial_baseline=False)` L215
 
-### `workflow/market_neutral.py` (321 lines)
+### `workflow/market_neutral.py` (322 lines)
 - PURPOSE: Section 7-f: market-neutral portfolio report (long_short, short_only, long_only, rank_weighted, rank_weighted_vol) with net-of-cost bootstrap and a last-step GBM baseline.
 - TAGS: market_neutral_report, split_asset_names, rank ic, decile table, rank_weighted, long_short, portfolio
 - PITFALLS: (side, q) are picked on val only; the full test grid is shown for transparency, not for selection. split_asset_names is also used by workflow/run.py (run_reports). Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 34 (section 7-f).
+- DEPENDS: core
 - USES: data/runtime, data/split, selective_eval, splits
 - USED BY: panel_bridge, run, wiring_selftest
 - API:
-  - `def split_asset_names(dataset, split='val', config=None)` L29
-  - `def market_neutral_report(model, train_split, val_split, test_split, model_tf=None, score='p_up_close', quantiles=(0.05, 0.1, 0.2, 0.3), sides=_MN_SIDES, cost_pct=0.08, universe=None, min_assets=20, min_per_leg=5, cost_model…` L233
+  - `def split_asset_names(dataset, split='val', config=None)` L30
+  - `def market_neutral_report(model, train_split, val_split, test_split, model_tf=None, score='p_up_close', quantiles=(0.05, 0.1, 0.2, 0.3), sides=_MN_SIDES, cost_pct=0.08, universe=None, min_assets=20, min_per_leg=5, cost_model…` L234
 
 ### `workflow/model_build.py` (12 lines)
 - PURPOSE: make_model_builder: the zero-argument model_builder required by build_training_system (same architecture every call, needed to resume saved state).
@@ -149,34 +151,34 @@
   - `def retarget_splits(train_split, val_split, test_split, mode='return', targets=None, clip=None, center='median', group_freq=None, min_group=5, drop_small_groups=False, close_reg='abs_return', verbose=True, reg_target_s…` L146
   - `def entry_range_to_prices(last_close, high=None, low=None, close=None, close_reg='abs_return', p_close_up=None)` L234
 
-### `workflow/run.py` (570 lines)
+### `workflow/run.py` (571 lines)
 - PURPOSE: The steps of a main run as functions of (RunSettings, explicit inputs) -> outputs: load data, adapt CONFIG, split, retarget, plan and build the model, training config and datasets, train, prepare the chicks evaluation, run it, panel model,…
 - TAGS: run_main, load_dataset, apply_dataset_config, make_splits, retarget, plan_model, build_model, make_training_config, make_datasets, train_model, prepare_chicks, run_chicks, run_panel, run_reports, toolkit, datasetinfo, modelplan, chicksinputs, runresult, runsettings steps
 - PITFALLS: Steps read no notebook global: settings come as the first argument and everything else (the pipeline/model/trainer/chicks entry points = Toolkit.from_namespace(globals()), the loaded data, the splits, the derived facts DatasetInfo / ModelPlan / ChicksInputs) as explicit arguments. They still call the other workflow modules and the pipeline's own CONFIG-reading helpers late-bound in the shared nam…
 - DEPENDS: core, cross_asset
 - USES: batches, candle_baseline, chicks_bridge, dataset_io, generalization, market_neutral, model_build, panel_bridge, retarget, selective_eval, settings, splits, training_config, verification
 - API:
-  - `class Toolkit` L23
-    - `.from_namespace(cls, ns)` L51
-  - `class DatasetInfo` L60
-  - `class ModelPlan` L68
-  - `class ChicksInputs` L80
-  - `class RunResult` L89
-  - `def apply_project_config(settings, kit)` L111
-  - `def load_dataset(settings, kit)` L117
-  - `def apply_dataset_config(settings, dataset, kit)` L144
-  - `def make_splits(settings, dataset, info, kit)` L194
-  - `def retarget(settings, train, val, test, info)` L213
-  - `def plan_model(settings, dataset, info, kit)` L230
-  - `def build_model(plan, kit, summary=True)` L285
-  - `def make_training_config(settings, plan, info, val, kit)` L297
-  - `def make_datasets(main_config, train, val, info)` L348
-  - `def train_model(settings, kit, *, model, model_builder, main_config, train_ds, val_ds, sample_batch)` L360
-  - `def prepare_chicks(settings, plan, info, test, kit)` L377
-  - `def run_chicks(settings, kit, *, model, val, chicks, info)` L422
-  - `def run_panel(settings, kit, *, dataset, train, val, test, info, plan, model, model_builder, main_config, apply_preset=True)` L453
-  - `def run_reports(settings, which, kit, *, model, train, val, test, dataset, info, plan, chicks)` L495
-  - `def run_main(settings, kit, dataset=None, summary=True)` L552
+  - `class Toolkit` L24
+    - `.from_namespace(cls, ns)` L52
+  - `class DatasetInfo` L61
+  - `class ModelPlan` L69
+  - `class ChicksInputs` L81
+  - `class RunResult` L90
+  - `def apply_project_config(settings, kit)` L112
+  - `def load_dataset(settings, kit)` L118
+  - `def apply_dataset_config(settings, dataset, kit)` L145
+  - `def make_splits(settings, dataset, info, kit)` L195
+  - `def retarget(settings, train, val, test, info)` L214
+  - `def plan_model(settings, dataset, info, kit)` L231
+  - `def build_model(plan, kit, summary=True)` L286
+  - `def make_training_config(settings, plan, info, val, kit)` L298
+  - `def make_datasets(main_config, train, val, info)` L349
+  - `def train_model(settings, kit, *, model, model_builder, main_config, train_ds, val_ds, sample_batch)` L361
+  - `def prepare_chicks(settings, plan, info, test, kit)` L378
+  - `def run_chicks(settings, kit, *, model, val, chicks, info)` L423
+  - `def run_panel(settings, kit, *, dataset, train, val, test, info, plan, model, model_builder, main_config, apply_preset=True)` L454
+  - `def run_reports(settings, which, kit, *, model, train, val, test, dataset, info, plan, chicks)` L496
+  - `def run_main(settings, kit, dataset=None, summary=True)` L553
 
 ### `workflow/selective_eval.py` (299 lines)
 - PURPOSE: Section 7-b: selective evaluation (accuracy at confident slices, 2:1 trades): collect_signals, thresholds picked on val only, Wilson intervals, rr_trading_report.
@@ -236,14 +238,15 @@
 - API:
   - `def build_target_configs(price_targets, label_smoothing=0.0)` L6
 
-### `workflow/verification.py` (177 lines)
+### `workflow/verification.py` (178 lines)
 - PURPOSE: Section 7-d: one-call integrated verification (data integrity, naive baselines, confidence/trading, candle shape) with a single verdict table.
 - TAGS: run_full_verification, verification table, label checks, finite checks, split order, day bootstrap
 - PITFALLS: All thresholds chosen on val/train only; verdict from test. Executed into the notebook's shared namespace by workflow/_loader.py (never imported on its own): names from other modules and the %run notebooks resolve at call time. Extracted verbatim from main.ipynb cell 30 (section 7-d).
+- DEPENDS: core
 - USES: candle_baseline, data/runtime, selective_eval, splits
 - USED BY: permutation_control, run, wiring_selftest
 - API:
-  - `def run_full_verification(model, train_split, val_split, test_split, model_tf=None, target_acc=0.65, rr=2.0, stop_mode='nig', n_boot=500, out_dir=None, run_candle=True, verbose=True, price_targets=None)` L54
+  - `def run_full_verification(model, train_split, val_split, test_split, model_tf=None, target_acc=0.65, rr=2.0, stop_mode='nig', n_boot=500, out_dir=None, run_candle=True, verbose=True, price_targets=None)` L55
 
 ### `workflow/wiring_selftest.py` (215 lines)
 - PURPOSE: Section 8: self-test of the wiring between the notebooks on synthetic data (no Drive, no real training).

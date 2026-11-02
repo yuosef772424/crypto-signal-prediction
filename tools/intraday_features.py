@@ -42,6 +42,12 @@ from typing import Dict, Iterable, List, Optional, Sequence, Union
 
 import numpy as np
 import pandas as pd
+import sys
+
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)   # core/ sits next to tools/ (the script is imported with only tools/ on the path)
+from core.timeframe import normalize_tf  # noqa: E402
 
 DAY = pd.Timedelta("1D")
 KLINE_COLS = ["open", "high", "low", "close", "volume", "quote_volume", "trades",
@@ -115,11 +121,11 @@ def _ns(index) -> np.ndarray:
 
 
 def tf_to_timedelta(tf: str) -> pd.Timedelta:
-    """'1D' / '4h' / '15min' / '1h' ← Timedelta."""
+    """'1D' / '4h' / '15min' / '1h' ← Timedelta (a ``pd.Timedelta`` passes through; ``'1d'`` is read as ``'1D'``)."""
     try:
-        return pd.Timedelta(tf)
+        return pd.Timedelta(normalize_tf(tf) if isinstance(tf, str) else tf)
     except (ValueError, TypeError):
-        return pd.Timedelta(pd.tseries.frequencies.to_offset(tf).nanos, unit="ns")
+        return pd.Timedelta(pd.tseries.frequencies.to_offset(normalize_tf(tf)).nanos, unit="ns")
 
 
 # ═══════════════ الملفات ═══════════════
@@ -233,7 +239,7 @@ def window_agg(avail_ns: np.ndarray, values: np.ndarray, bar_close_ns: np.ndarra
 
 def bar_closes(bar_index, bar_len: Union[str, pd.Timedelta]) -> np.ndarray:
     """أوقات إغلاق الشموع (ns) = فتح + طول الفريم (فهرس الدفتر = وقت الفتح)."""
-    bl = tf_to_timedelta(bar_len) if isinstance(bar_len, str) else pd.Timedelta(bar_len)
+    bl = tf_to_timedelta(bar_len)
     return _ns(bar_index) + bl.value
 
 

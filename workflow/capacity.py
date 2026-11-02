@@ -6,6 +6,7 @@ PITFALLS: RESEARCH_RULES section 2.1: a setup failure (capacity) is different fr
 import copy
 import shutil
 import tempfile
+from core.timeframe import normalize_tf
 
 
 def _split_asset_ids(split):
@@ -35,7 +36,7 @@ def effective_sample_size(split, window=None, stride=None, horizon=1, target=Non
         n_params = int(_unwrap_model(model).count_params())
     uts = np.unique(ts)
     bar_tf = _tfs_of(model_tf)[0]                      # فريم X المستعمل: النافذة والأفق مقيسان بشمعاته
-    bar = float(pd.Timedelta(bar_tf).value)           # طوابع last_candles int64 بالنانوثانية (core/schema.py TS_COL؛ data/presets.py)
+    bar = float(pd.Timedelta(normalize_tf(bar_tf)).value)           # طوابع last_candles int64 بالنانوثانية (core/schema.py TS_COL؛ data/presets.py)
     span_bars = (uts[-1] - uts[0]) / bar + 1.0        # المدى بالشموع لا بمسافة العيّنات (نوافذ مُحاذاة للشبكة بـ stride>1 تُعدّ مرّتين)
     n_time_indep = float(min(len(uts), span_bars / max(window, int(horizon))))
     key = target or next((k for k in split["y"] if k.endswith("_reg")), next(iter(split["y"])))

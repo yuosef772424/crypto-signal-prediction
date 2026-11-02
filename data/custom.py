@@ -8,6 +8,8 @@ PITFALLS: Its _test_*() causality checks do not run at load: Loading only define
 ميزات خالية من المقياس بالبناء (عوائد لوغاريتمية، مدى نسبي، بنية الشمعة...)
 تُعمِّم عبر كل الأصول بغضّ النظر عن مستوى سعرها.
 """
+
+from core.timeframe import normalize_tf
 """
 ميزات مخصّصة للعملات الرقمية — ساكنة (stationary) وخالية من المقياس.
 
@@ -168,7 +170,7 @@ def _hour_features_meaningful(config: Optional[dict] = None) -> bool:
     config = CONFIG if config is None else config
     tfs = [tf for tf in (config.get("tf_order") or [config.get("base_tf")]) if tf]
     try:
-        smallest = min(pd.Timedelta(tf) for tf in tfs)
+        smallest = min(pd.Timedelta(normalize_tf(tf)) for tf in tfs)
     except (ValueError, TypeError):
         return True        # فريم لم نفهمه: لا نحذف ميزة بصمت
     return smallest < pd.Timedelta(days=1)

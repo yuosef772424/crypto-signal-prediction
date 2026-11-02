@@ -23,6 +23,7 @@ import numpy as np
 import pandas as pd
 
 from core.schema import LAST_COLUMN_INDEX, TARGET_COLUMNS
+from core.timeframe import normalize_tf
 
 TARGETS = TARGET_COLUMNS
 DAY_NS = 86_400 * 10**9
@@ -448,7 +449,7 @@ def group_ns_for(base_tf, stride):
     """عرض المجموعة المقطعية لبيانات محاذاة على الشبكة (align_windows_to_grid في خط الأنابيب): stride × مدة الفريم.
     اليومي بـ stride=1 ← DAY_NS (السلوك الافتراضي نفسه)؛ 1h بـ stride=8 ← 8 ساعات = الطابع الدقيق، فكل مجموعة
     تجمع العملات التي تنتهي نوافذها في اللحظة نفسها تماماً."""
-    return int(max(int(stride), 1) * pd.Timedelta(str(base_tf).replace("D", "d")).value)
+    return int(max(int(stride), 1) * pd.Timedelta(normalize_tf(str(base_tf))).value)
 
 
 def format_checks(checks):
