@@ -16,3 +16,4 @@ Do not re-argue an accepted decision; supersede it with a new file.
 | [D-009](D-009-two-level-holdout.md) | Two-level holdout (A untouched, B daily-only touched) | Accepted |
 | [D-010](D-010-dead-coins-amendment.md) | R0 lock amendment: dead coins in the sealed buckets (trim-tails-001) | Accepted |
 | [D-011](D-011-screening-kernel-dormant.md) | Screening kernel (`LAB_DESIGN.md`): accepted in principle, dormant until a project plan exists | Accepted (dormant) |
+| [D-013](D-013-default-changes-s03.md) | S03 default changes: close is a default target, prediction batch 2048, pattern-forest cap 50 000 | Accepted |

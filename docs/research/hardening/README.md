@@ -10,6 +10,8 @@ coming back, and the PR sequence that fixes them. Nothing here changes code. A r
 | `STATUS.md` | Progress table of the 2026-11 execution plan (read first in every step session) |
 | `PLAN_2026-11.md` | Execution plan 2026-11: steps S01-S22 (rolling study, slot panel, input skip, trainer audit, uncertainty, bottlenecks, remaining audit PRs) |
 | `friction_log.csv` | One row per real obstacle an agent met while changing the repo (D-012); input of S03b / S25 |
+| `bottlenecks.csv` | Runtime / development / model-quality bottlenecks found by the profiling (B-nnn): where in the code, evidence, difficulty |
+| `profile_2026-11.md` | S03 run-profile evidence (profile-003/-004) and ranked S04 candidates |
 | `proposal_cascaded_stages.md` | PROPOSED (not adopted) owner idea: cascaded / stacked training stages, and the seams it needs |
 
 Rules: recorded audits are not edited (add a dated successor). Proposals stay `PROPOSED` until the owner records a decision
