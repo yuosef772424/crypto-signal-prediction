@@ -1,13 +1,18 @@
 # STATUS: hardening + execution plan 2026-11
 
 > Read this first in every step session, then ONLY your step in `PLAN_2026-11.md`. Update your row in the same PR.
-> Keep it under 60 lines. Append real obstacles to `friction_log.csv` (D-012). No subagents (owner, 2026-11-02).
+> Keep it under 60 lines. Append real obstacles to `friction_log.csv` (D-012) and update `bottlenecks.csv` (model-quality / runtime / development). No subagents (owner, 2026-11-02).
 
 Done before this plan: audit PRs 0-4 (#57): `core/registry.py` + `tools/check_patterns.py`, batched evaluation predict,
 strict `build_config`, persisted run identity + `TrainSettings.seed`.
 
 | Step | Title | State | PR / job | Note |
 |---|---|---|---|---|
+| M0 | Colab runner: GPU + reliable publish (+ republish profile-005) | todo | | needs #62 merged |
+| M1a | Switches 1: target_report + direct_wide input + raw-input probe | todo | | |
+| M1b | Switches 2: selection metric, confidence target, NIG floor, interval scale | todo | | |
+| M2 | One Colab run: baseline vs all switches on (`model-all-001`) | todo | | needs M0, M1a, M1b |
+| M3 | Read M2, ablate or diagnose, fix | todo | | needs M2 |
 | S01 | Registry adoption (PR 5) | merged | #60 | 4 registries = `core.registry.Registry` (dict-style reads via `view`); fingerprint sha256 pinned in `tests/test_registry_adoption.py`; `TASK_REGISTRY.get(x)` now needs a default |
 | S02 | pandas 4 deprecation fix | merged | #61 | `core/timeframe.normalize_tf` (`1d`->`1D`, `1w`->`1W`, else unchanged) is the one fixer; used by 5 `data/` modules; Binance `1d` interval untouched (other vocabulary); `1H`/compound `1d12h` not covered |
 | S03 | Run profiler + Colab `profile-001` | PR open | #62 | `tools/profile_run.py`; baseline read: `profile-004` @ `d4cc437` (3 targets, batch 512, T4: 2693 s; chicks 776, train 611, verification 544, candle 484); fixes since (prediction batch 2048, pattern-forest cap `rf_max_samples`, failed-report output tails) are measured by `profile-005` (same config); numbers + ranked S04 candidates in `profile_2026-11.md`; defaults changed by owner: D-013; bottlenecks B-007..B-015 in `bottlenecks.csv`; `profile-005` result is on Drive only (the push failed: askpass.sh vanished from /tmp), republished by the `colab_runner` fix in M0; then S04 (one PR per bottleneck) |
@@ -38,5 +43,8 @@ strict `build_config`, persisted run identity + `TrainSettings.seed`.
 | S24d | Namespace -> imports: evaluation/workflow/discovery | todo | | |
 | S24e | Namespace -> imports: data | todo | | |
 | S25 | Friction review (repeat every ~5 steps) | todo | | |
+| S26 | Market-neutral portfolio: realistic test (E-mn-001) | deferred | | owner: only when asked; improve the model first |
+
+**Model track first (owner, 2026-11-02): M0 -> M1a -> M1b -> M2 -> M3**, all improvements as switches, one test run, then investigate (targets: meaningful confidence, uncertainty below the predicted range, no skill loss). S-steps wait unless an M-step needs them; S26 deferred.
 
 States: todo / in progress / PR open / merged / waiting Colab / closed (rejected) / skipped (reason).
