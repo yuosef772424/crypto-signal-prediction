@@ -219,7 +219,7 @@ Documents:
 - `E-rel-001.md` — Experiment card — E-rel-001: absolute vs within-timestamp relative target on the current 4h model l…
 
 ## `docs/research/hardening/`
-- hardening/: root-cause audits of the codebase before a new experiment round | 0 scripts, 7 md, 2 data files (4 KB)
+- hardening/: root-cause audits of the codebase before a new experiment round | 0 scripts, 7 md, 3 data files (6 KB)
 
 Documents:
 - `PLAN_2026-11.md` — Execution plan 2026-11 (owner request, 2026-11-02)
@@ -231,7 +231,7 @@ Documents:
 - `proposal_rolling_retrain.md` — Proposal: rolling-retrain study (does the market change enough to make the model random?)
 
 Data / other files (counts only):
-- `.`: csv×1, txt×1 — 4 KB
+- `.`: csv×2, txt×1 — 6 KB
 
 ## `docs/research/notes/`
 - External research takeaways (2026-10-20) | 0 scripts, 3 md, 0 data files (0 B)

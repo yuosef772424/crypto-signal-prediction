@@ -1,7 +1,7 @@
 # STATUS: hardening + execution plan 2026-11
 
 > Read this first in every step session, then ONLY your step in `PLAN_2026-11.md`. Update your row in the same PR.
-> Keep it under 60 lines. Append real obstacles to `friction_log.csv` (D-012). No subagents (owner, 2026-11-02).
+> Keep it under 60 lines. Append real obstacles to `friction_log.csv` (D-012) and update `bottlenecks.csv` (model-quality / runtime / development). No subagents (owner, 2026-11-02).
 
 Done before this plan: audit PRs 0-4 (#57): `core/registry.py` + `tools/check_patterns.py`, batched evaluation predict,
 strict `build_config`, persisted run identity + `TrainSettings.seed`.
