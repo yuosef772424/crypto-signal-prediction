@@ -30,7 +30,7 @@
   "profile.json",
   "profile.md"
  ],
- "note": "S03 run profiler AFTER the fixes (profile-004 was the baseline @ d4cc437): prediction batch 2048, pattern-discovery forest capped (rf_max_samples 50000), output tails of failed reports. Same config as profile-004: high+low+close, training batch 512, 2 epochs, T4 via install_cuda_tensorflow.",
+ "note": "S03 run profiler AFTER the fixes (profile-004 was the baseline @ d4cc437): prediction batch 2048, pattern-discovery forest capped (rf_max_samples 50000), output tails of failed reports. Same config as profile-004: high+low+close, training batch 512, 2 epochs, T4 via install_cuda_tensorflow. repo_ref moved: adds signal_diagnostics (confidence/uncertainty vs error, within-asset permutation test) to profile.json.",
  "rerun": false,
  "pip": []
 }
