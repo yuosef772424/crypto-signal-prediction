@@ -126,12 +126,12 @@
    "path": "target.suspended_targets",
    "section": "target",
    "type": "Optional[tuple]",
-   "default": "None",
+   "default": "()",
    "accepted": "None (old rule: close suspended unless entry_range) | tuple of CONFIG['targets'] names ('()' = train all; suspending every target raises in plan_model)",
    "validated": true,
    "recommended": "()",
    "evidence": "new",
-   "source": "docs/research/plan/decisions/D-013-default-changes-s03.md (owner): close is a trained target; step M3 compares high/low with and without it. TargetSettings.suspended_targets exists on master (#43); the new default () arrives with PR #62. The training folder gets '_susp-none'. Tension with the closed finding that close DIRECTION carries no signal (F-0001, plan/STATUS.md T4): kept because market_neutral needs the close head and M3 measures its effect on high/low"
+   "source": "docs/research/plan/decisions/D-013-default-changes-s03.md (owner): close is a trained target; step M3 compares high/low with and without it. () is also the RunSettings default since PR #62 (stated so the preset is complete). The training folder gets '_susp-none'. Tension with the closed finding that close DIRECTION carries no signal (F-0001, plan/STATUS.md T4): kept because market_neutral needs the close head and M3 measures its effect on high/low"
   },
   {
    "path": "model.anti_memorization",
@@ -1977,7 +1977,7 @@
   },
   {
    "path": "PREDICT_BATCH_SIZE (core.schema) and rf_max_samples (evaluation.patterns)",
-   "reason": "not RunSettings fields; D-013 makes 2048 and 50 000 the defaults when PR #62 is merged, so nothing to set here"
+   "reason": "not RunSettings fields; D-013 (PR #62, merged) made 2048 and 50 000 the defaults, so nothing to set here"
   },
   {
    "path": "research/natr_range E-natr-004 (rolling recalibration of the NATR range band)",

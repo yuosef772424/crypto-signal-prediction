@@ -55,7 +55,7 @@ class PresetTable(unittest.TestCase):
         d = self.ns["RunSettings"]()
         self.assertEqual(d.project.config_overrides, {"project_name": "crypto_model"})
         self.assertEqual(d.model.config_overrides, {})
-        self.assertIsNone(d.target.suspended_targets)       # D-013's () arrives with PR #62; this PR does not touch the default
+        self.assertEqual(d.target.suspended_targets, ())      # D-013 (PR #62) default; the preset states it explicitly, no other default moves
         self.assertFalse(d.evaluation.trivial_baseline)
         self.assertEqual(self.ns["recommended_settings"]().to_dict() == d.to_dict(), False)
         self.assertEqual(self.ns["RunSettings"]().to_dict(), d.to_dict())

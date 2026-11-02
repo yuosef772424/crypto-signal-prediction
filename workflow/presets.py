@@ -26,7 +26,7 @@ RECOMMENDED_CHOICES = (
     {"path": "model.config_overrides.use_instance_norm", "value": False, "evidence": "new",
      "source": "card docs/research/cards/E-norm-002.md (pre-registered, NOT run; its pre-run gate passed: shape_and_level probe high 0.235 < 0.40). Only meaningful together with price_norm_mode='logret_std' (the data side already standardises); wins over anti_memorization's use_instance_norm=True because config_overrides are applied after it"},
     {"path": "target.suspended_targets", "value": (), "evidence": "new",
-     "source": "docs/research/plan/decisions/D-013-default-changes-s03.md (owner): close is a trained target; step M3 compares high/low with and without it. TargetSettings.suspended_targets exists on master (#43); the new default () arrives with PR #62. The training folder gets '_susp-none'. Tension with the closed finding that close DIRECTION carries no signal (F-0001, plan/STATUS.md T4): kept because market_neutral needs the close head and M3 measures its effect on high/low"},
+     "source": "docs/research/plan/decisions/D-013-default-changes-s03.md (owner): close is a trained target; step M3 compares high/low with and without it. () is also the RunSettings default since PR #62 (stated so the preset is complete). The training folder gets '_susp-none'. Tension with the closed finding that close DIRECTION carries no signal (F-0001, plan/STATUS.md T4): kept because market_neutral needs the close head and M3 measures its effect on high/low"},
     {"path": "evaluation.trivial_baseline", "value": True, "evidence": "new",
      "source": "PR #48 (opt-in column of the generalization report: AUC of the trivial rule 'close position in the last bar's range' and the model's uplift); F-0085 (high/low class AUC 0.74-0.78 is range mechanics, trivial rule 0.76-0.83). No result recorded yet"},
 )
@@ -42,7 +42,7 @@ NOT_ENABLED = (
     {"path": "train.seed", "reason": "a run parameter, not a recommendation: one run is one seed; the protocol needs >= 3 seeds per arm"},
     {"path": "panel.*", "reason": "the cross-asset panel model closed for 1d (F-0035); disabled by default and not part of this run"},
     {"path": "data.* (filename_base, model_tfs, split_dates, path, ...)", "reason": "which dataset to load is the owner's; the preset only checks the options the dataset must have been built with (dataset_mismatches)"},
-    {"path": "PREDICT_BATCH_SIZE (core.schema) and rf_max_samples (evaluation.patterns)", "reason": "not RunSettings fields; D-013 makes 2048 and 50 000 the defaults when PR #62 is merged, so nothing to set here"},
+    {"path": "PREDICT_BATCH_SIZE (core.schema) and rf_max_samples (evaluation.patterns)", "reason": "not RunSettings fields; D-013 (PR #62, merged) made 2048 and 50 000 the defaults, so nothing to set here"},
     {"path": "research/natr_range E-natr-004 (rolling recalibration of the NATR range band)", "reason": "a separate study with its own tool (tools/natr_range.py), not a RunSettings option; Stage B waits for forward data (not before 2027-01-01)"},
 )
 

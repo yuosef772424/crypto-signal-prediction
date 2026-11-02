@@ -30,7 +30,7 @@ Every setting a main run takes, read from the live code. Preset **recommended_20
 | `target.target_mode` | Optional[str] | None \| '<base>' \| '<base>+relative' \| 'relative' with base in ['return', 'return_close', 'scaled', 'magnitude', 'volnorm', 'entry_range'] ('+relative' refused on the NO_RELATIVE bases) | `None` | = default |  |  | yes |
 | `target.entry_close_reg` | str | one of ['abs_return', 'range_pos'] | `'abs_return'` | = default |  |  | yes |
 | `target.group_freq` | Optional[str] | None \| duration str (e.g. '1D', '4h', '32h') | `None` | = default |  |  | yes |
-| `target.suspended_targets` | Optional[tuple] | None (old rule: close suspended unless entry_range) \| tuple of CONFIG['targets'] names ('()' = train all; suspending every target raises in plan_model) | `None` | `()` | new | docs/research/plan/decisions/D-013-default-changes-s03.md (owner): close is a trained target; step M3 compares high/low with and without it. TargetSettings.suspended_targets exists on master (#43); the new default () arrives with PR #62. The training folder gets '_susp-none'. Tension with the closed finding that close DIRECTION carries no signal (F-0001, plan/STATUS.md T4): kept because market_neutral needs the close head and M3 measures its effect on high/low | yes |
+| `target.suspended_targets` | Optional[tuple] | None (old rule: close suspended unless entry_range) \| tuple of CONFIG['targets'] names ('()' = train all; suspending every target raises in plan_model) | `()` | `()` | new | docs/research/plan/decisions/D-013-default-changes-s03.md (owner): close is a trained target; step M3 compares high/low with and without it. () is also the RunSettings default since PR #62 (stated so the preset is complete). The training folder gets '_susp-none'. Tension with the closed finding that close DIRECTION carries no signal (F-0001, plan/STATUS.md T4): kept because market_neutral needs the close head and M3 measures its effect on high/low | yes |
 
 ### model
 
@@ -278,7 +278,7 @@ Fields whose `__post_init__` never mentions them: any value is accepted at const
 | train.seed | a run parameter, not a recommendation: one run is one seed; the protocol needs >= 3 seeds per arm |
 | panel.* | the cross-asset panel model closed for 1d (F-0035); disabled by default and not part of this run |
 | data.* (filename_base, model_tfs, split_dates, path, ...) | which dataset to load is the owner's; the preset only checks the options the dataset must have been built with (dataset_mismatches) |
-| PREDICT_BATCH_SIZE (core.schema) and rf_max_samples (evaluation.patterns) | not RunSettings fields; D-013 makes 2048 and 50 000 the defaults when PR #62 is merged, so nothing to set here |
+| PREDICT_BATCH_SIZE (core.schema) and rf_max_samples (evaluation.patterns) | not RunSettings fields; D-013 (PR #62, merged) made 2048 and 50 000 the defaults, so nothing to set here |
 | research/natr_range E-natr-004 (rolling recalibration of the NATR range band) | a separate study with its own tool (tools/natr_range.py), not a RunSettings option; Stage B waits for forward data (not before 2027-01-01) |
 
 ## Conflicts between choices
