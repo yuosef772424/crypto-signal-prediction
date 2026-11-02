@@ -1,6 +1,6 @@
 {
- "job_id": "profile-003",
- "repo_ref": "18ca6e3fc58105fb251b556740288460133ffc56",
+ "job_id": "profile-004",
+ "repo_ref": "1e9d7c69a21147768a63837b6c6b9b116ab18160",
  "entry": "tools/profile_run.py",
  "args": [],
  "config": {
@@ -30,7 +30,7 @@
   "profile.json",
   "profile.md"
  ],
- "note": "S03 run profiler, batch 512, on the T4: the entry replaces tensorflow + tensorflow-cpu by tensorflow[and-cuda]==2.21.0 first (gpu-diag-001 showed the CPU build wins otherwise; ~2 min) and re-execs. Modifies this runtime's Python environment.",
+ "note": "S03 run profiler on the T4 with the NEW default targets (high+low+close, TargetSettings.suspended_targets=()), batch 512. profile-003 measured the old high/low-only model. Installs tensorflow[and-cuda] first (gpu-diag-001).",
  "rerun": false,
  "pip": []
 }
