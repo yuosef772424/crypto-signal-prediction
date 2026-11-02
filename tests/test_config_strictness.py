@@ -324,7 +324,7 @@ class MutationTable(unittest.TestCase):
                 self.build(copy.deepcopy(user))
             self.assertIn("did you mean 'quantiles'", str(cm.exception))
         finally:
-            reg.pop("quantile_x", None)
+            reg.unregister("quantile_x")
         user = good_config()
         user["targets"]["q"] = {"true_key": "y_q", "task_type": "quantile_x", "output_keys": {"q": "y_q"}}
         with self.assertRaises(ValueError) as cm:

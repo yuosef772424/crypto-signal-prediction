@@ -8,7 +8,7 @@ strict `build_config`, persisted run identity + `TrainSettings.seed`.
 
 | Step | Title | State | PR / job | Note |
 |---|---|---|---|---|
-| S01 | Registry adoption (PR 5) | todo | | |
+| S01 | Registry adoption (PR 5) | PR open | #60 | 4 registries = `core.registry.Registry` (dict-style reads via `view`); fingerprint sha256 pinned in `tests/test_registry_adoption.py`; `TASK_REGISTRY.get(x)` now needs a default |
 | S02 | pandas 4 deprecation fix | todo | | |
 | S03 | Run profiler + Colab `profile-001` | todo | | |
 | S04 | Bottleneck fixes | todo | | needs S03 results |

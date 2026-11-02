@@ -49,18 +49,19 @@
   - `def build_trainer_variables(trainer: 'GenericTrainer', sample_batch: Tuple[Any, ...])` L127
   - `def stage_warm_start_weights(config: dict) -> Tuple[str, int, int]` L139
 
-### `trainer/config.py` (578 lines)
+### `trainer/config.py` (612 lines)
 - PURPOSE: TRAINER_DEFAULT_CONFIG (alias DEFAULT_CONFIG; the trainer's single source of truth), deep_update, build_config (merge + validate_config, the ONE place that validates), config_fingerprint, model_signature.
 - TAGS: trainer_default_config, default_config, build_config, validate_config, _config_schema, strict config, deep_update, config_fingerprint, model_signature, valid_train_modes, trainer config
 - PITFALLS: build_config validates through validate_config (aggregated ValueError): an unknown key at any level (with a did-you-mean), a non-finite / negative / non-number loss_weight, an unregistered task_type, a key of another task type, a schedule name (lambda_*_var, constraint weight_var) not defined in loss.schedules, an early-stopping monitor the trainer never logs, a knob that would be silently ignore…
+- DEPENDS: core
 - USED BY: example, identity, smoke_test, system, tasks, trainer, workflow/capacity, workflow/permutation_control, workflow/wiring_selftest
 - API:
-  - `def deep_update(base: dict, override: dict) -> dict` L191
-  - `def build_config(user_config: dict) -> dict` L202
-  - `def validate_config(cfg: dict) -> dict` L504
-  - `def fingerprint_payload(cfg: dict, extra_ignored_run_keys: tuple=()) -> dict` L558
-  - `def config_fingerprint(cfg: dict, extra_ignored_run_keys: tuple=()) -> str` L567
-  - `def model_signature(model: tf.keras.Model) -> list` L571
+  - `def deep_update(base: dict, override: dict) -> dict` L225
+  - `def build_config(user_config: dict) -> dict` L236
+  - `def validate_config(cfg: dict) -> dict` L538
+  - `def fingerprint_payload(cfg: dict, extra_ignored_run_keys: tuple=()) -> dict` L592
+  - `def config_fingerprint(cfg: dict, extra_ignored_run_keys: tuple=()) -> str` L601
+  - `def model_signature(model: tf.keras.Model) -> list` L605
 
 ### `trainer/ensemble.py` (66 lines)
 - PURPOSE: Optional ensemble inference for evidential targets: ensemble_predict_evidential(_meinert).
@@ -220,21 +221,21 @@
     - `.get_task_variances(self) -> Dict[str, float]` L56
     - `.get_effective_weights(self) -> Dict[str, float]` L59
 
-### `trainer/tasks.py` (317 lines)
+### `trainer/tasks.py` (316 lines)
 - PURPOSE: TASK_REGISTRY and the loss functions (evidential NIG, regression, classification, confidence calibration).
 - TAGS: task_registry, register_task_type, evidential_task_loss, regression_task_loss, classification_task_loss, nig_regularizer, loss
-- PITFALLS: An unregistered task_type raises. NIG loss is numerically fragile (log/lgamma): losses cast to float32. Executed into the one shared trainer namespace by trainer/_loader.py (never imported on its own): names from other modules resolve at call time.
+- PITFALLS: TASK_REGISTRY (trainer/config.py) is a core.registry.Registry: a task_type is registered once (a duplicate raises), its contract (callable, string stat/config keys, a `sample_weight` parameter when supports_sample_weight=True) is checked at registration, an unregistered task_type raises. NIG loss is numerically fragile (log/lgamma): losses cast to float32. Executed into the one shared trainer nam…
 - USES: config
 - USED BY: ensemble
 - API:
   - `def register_task_type(name: str, fn: Callable, stat_keys: List[str], supports_sample_weight: bool=False, config_keys: Tuple[str, ...]=())` L71
-  - `def compute_confidence_calibration_loss(y_true, y_pred, confidence, sample_weight=None)` L109
-  - `def nig_w_st(nu, alpha, beta)` L136
-  - `def nig_regularizer(error, nu, alpha, beta, normalize=False, stop_grad=True)` L141
-  - `def nig_uncertainties_meinert(nu, alpha, beta) -> Dict[str, tf.Tensor]` L156
-  - `def evidential_task_loss(y_true, outputs, target_cfg, scheduled_vars, sample_weight=None)` L175
-  - `def regression_task_loss(y_true, outputs, target_cfg, scheduled_vars, sample_weight=None)` L261
-  - `def classification_task_loss(y_true, outputs, target_cfg, scheduled_vars, sample_weight=None)` L288
+  - `def compute_confidence_calibration_loss(y_true, y_pred, confidence, sample_weight=None)` L108
+  - `def nig_w_st(nu, alpha, beta)` L135
+  - `def nig_regularizer(error, nu, alpha, beta, normalize=False, stop_grad=True)` L140
+  - `def nig_uncertainties_meinert(nu, alpha, beta) -> Dict[str, tf.Tensor]` L155
+  - `def evidential_task_loss(y_true, outputs, target_cfg, scheduled_vars, sample_weight=None)` L174
+  - `def regression_task_loss(y_true, outputs, target_cfg, scheduled_vars, sample_weight=None)` L260
+  - `def classification_task_loss(y_true, outputs, target_cfg, scheduled_vars, sample_weight=None)` L287
 
 ### `trainer/trainer.py` (199 lines)
 - PURPOSE: GenericTrainer: the training-step core (any number of targets, evidential/regression/classification).
