@@ -34,6 +34,7 @@
 - a.2: edge_discovery/13_listing_stops
 - abstention: data/heads
 - accept rule: indicator_strategy/screen, indicator_strategy/test_final, strategy_discovery/oos
+- accepted values: tools/settings_catalog
 - access log: tools/holdout_guard
 - accumulator: data/pipeline
 - activations: model/diagnostics
@@ -258,6 +259,7 @@
 - config diff: trainer/identity
 - config keys: data/defaults
 - config_fingerprint: trainer/config
+- config_overrides: tools/settings_catalog
 - confirmation: tools/holdout_guard
 - conflict leg: hedge_recovery/sim2
 - consistency check: indicator_strategy/variants
@@ -597,6 +599,7 @@
 - generalization_gap_report: workflow/generalization
 - generate_detailed_report: evaluation/legacy_assets
 - generate_trust_report: evaluation/trust_calibration
+- generated docs: tools/settings_catalog
 - generic trainer: trainer/__init__
 - generictrainer: trainer/__init__, trainer/trainer
 - get_hypothesis: signal_eval/registry
@@ -906,7 +909,7 @@
 - model outputs: evaluation/predict
 - model package: model/_loader
 - model_builder: workflow/model_build
-- model_config: model/__init__, model/config
+- model_config: model/__init__, model/config, tools/settings_catalog
 - model_health_report: workflow/__init__, workflow/diagnostics
 - model_health_verdicts: model/diagnostics
 - model_layer_report: workflow/diagnostics
@@ -1171,7 +1174,8 @@
 - real_price_predictions: tests/test_real_price_modes, workflow/reports
 - realized variance: h07_volsizing/01_volsizing
 - rebound: edge_discovery/09_market_flush
-- recommended_2026_11: workflow/presets
+- recommended preset: tools/settings_catalog
+- recommended_2026_11: tools/settings_catalog, workflow/presets
 - recommended_choices: workflow/presets
 - recommended_settings: workflow/presets
 - recorder: workflow/diagnostics
@@ -1191,6 +1195,7 @@
 - register_keras_serializable: model/common
 - register_sample_filter: data/windows
 - register_task_type: trainer/tasks
+- registries: tools/settings_catalog
 - registry: core/__init__, core/registry, discovery/batch_runner, tools/touched_ledger
 - registry selftests: signal_eval/registry_selftests
 - registry.json: signal_eval/registry
@@ -1282,7 +1287,7 @@
 - runner: tools/colab_runner, tools/colab_smoke
 - runner notebook: data/__init__, evaluation/__init__, model/__init__, signal_eval/__init__, trainer/__init__
 - runresult: workflow/run
-- runsettings: tests/run_fixture, tools/evaluate_trained_model, workflow/settings
+- runsettings: tests/run_fixture, tools/evaluate_trained_model, tools/settings_catalog, workflow/settings
 - runsettings steps: workflow/run
 - safe load: discovery/axis_loader
 - salt: tools/build_lock
@@ -1325,7 +1330,7 @@
 - selftests: signal_eval/selftests
 - set_random_seed: core/seeds
 - settings: data/defaults, workflow/settings
-- settings catalog: workflow/presets
+- settings catalog: tools/settings_catalog, workflow/presets
 - settings interval start funding open_interest: tools/fetch_history_colab_cell
 - settings_presets: workflow/presets
 - settings_with_preset: workflow/presets
@@ -1542,6 +1547,7 @@
 - uncertainty: evaluation/legacy_uncertainty
 - uncertainty floor: core/constants
 - uncertaintyweightedloss: trainer/task_weighting
+- unchecked setting: tools/settings_catalog
 - unified pipeline: evaluation/unified
 - unit tests: cross_asset/selftest
 - universe: h07_combos/01_combos, tools/touched_ledger
@@ -1585,6 +1591,7 @@
 - warm_start: trainer/checkpoints, trainer/smoke_test
 - wavelet: edge_discovery/27_repr_info
 - weights: tools/evaluate_trained_model
+- where do i set x: tools/settings_catalog
 - wick capture: edge_discovery/31_wick_capture
 - williams: tools/indicator_reverse
 - wilson_ci: evaluation/targets
