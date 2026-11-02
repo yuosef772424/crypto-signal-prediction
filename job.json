@@ -1,35 +1,19 @@
 {
- "job_id": "profile-002",
- "repo_ref": "fb8f94b9f8c5f903ffc239e2129c22de0dd7b6db",
- "entry": "tools/profile_run.py",
+ "job_id": "gpu-diag-001",
+ "repo_ref": "d5b2e16496766db2ed1a7796848096ecf36c5b49",
+ "entry": "tools/gpu_diag.py",
  "args": [],
  "config": {
-  "settings": {
-   "train": {
-    "epochs": 2,
-    "batch_size": 512,
-    "fit_verbose": 2
-   }
-  },
-  "reports": [
-   "gap",
-   "verification",
-   "market_neutral",
-   "candle",
-   "signals",
-   "chicks"
-  ],
-  "input_batches": 200,
-  "require_gpu": true
+  "try_fix": true,
+  "tf_version": "2.21.0"
  },
- "max_minutes": 150,
- "needs_drive": true,
+ "max_minutes": 40,
+ "needs_drive": false,
  "expected_outputs": [
   "manifest.json",
-  "profile.json",
-  "profile.md"
+  "gpu_diag.json"
  ],
- "note": "S03 run profiler, batch_size 512 (profile-001 at 64 took ~30 min per epoch). require_gpu: exits at once if TensorFlow sees no GPU; pip tries the CUDA build of tensorflow over the tensorflow-cpu that requirements-ci.txt installs.",
+ "note": "Why does TensorFlow see no GPU on a T4 runtime (profile-002)? Same pip list as profile-002, then a clean tensorflow[and-cuda] reinstall. Modifies this disposable runtime's Python environment.",
  "rerun": false,
  "pip": [
   "tensorflow[and-cuda]~=2.21.0"
