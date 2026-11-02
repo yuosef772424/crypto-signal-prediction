@@ -1,0 +1,42 @@
+# STATUS: hardening + execution plan 2026-11
+
+> Read this first in every step session, then ONLY your step in `PLAN_2026-11.md`. Update your row in the same PR.
+> Keep it under 60 lines. Append real obstacles to `friction_log.csv` (D-012). No subagents (owner, 2026-11-02).
+
+Done before this plan: audit PRs 0-4 (#57): `core/registry.py` + `tools/check_patterns.py`, batched evaluation predict,
+strict `build_config`, persisted run identity + `TrainSettings.seed`.
+
+| Step | Title | State | PR / job | Note |
+|---|---|---|---|---|
+| S01 | Registry adoption (PR 5) | todo | | |
+| S02 | pandas 4 deprecation fix | todo | | |
+| S03 | Run profiler + Colab `profile-001` | todo | | |
+| S04 | Bottleneck fixes | todo | | needs S03 results |
+| S03b | Development-friction audit | todo | | goal 8 (D-012) |
+| S05 | `stats/metrics.py` (PR 10) | todo | | |
+| S06 | SelectionMetric + trainer audit | todo | | needs S05 |
+| S07 | Health-audit Colab job `health-001` | todo | | |
+| S08 | Health-audit analysis + cards | todo | | needs S07 results |
+| S09 | PredictionTable (PR 11) | todo | | |
+| S10 | Data roles + Calibrator (PR 6) | todo | | needs S01 |
+| S11r | Uncertainty fix arms (T3) | todo | | needs S08, S10 |
+| S12 | SplitPlan + label_end (PR 12) | todo | | |
+| S13 | Rolling driver + staleness | todo | | needs S09, S12 |
+| S14r | Rolling study run | todo | | needs S13 |
+| S15 | Raw-feature injection seam | todo | | only if S08 supports it |
+| S16r | E-arch-001 run | todo | | needs S15 |
+| S17 | Slot panel design + card | todo | | |
+| S18 | Slot panel data | todo | | needs S17 |
+| S19 | Slot panel model | todo | | needs S18 |
+| S20r | E-slot-001 run | todo | | needs S19 |
+| S21 | HeadSpec (PR 7-8) | todo | | after T3/T5 |
+| S22 | TargetCodec (PR 13) | todo | | needs S21, S09 |
+| S23 | Model contract + plug-in architectures | todo | | needs S01 |
+| S24a | Namespace -> imports: trainer | todo | | after S03b |
+| S24b | Namespace -> imports: signal_eval | todo | | |
+| S24c | Namespace -> imports: model | todo | | |
+| S24d | Namespace -> imports: evaluation/workflow/discovery | todo | | |
+| S24e | Namespace -> imports: data | todo | | |
+| S25 | Friction review (repeat every ~5 steps) | todo | | |
+
+States: todo / in progress / PR open / merged / waiting Colab / closed (rejected) / skipped (reason).
