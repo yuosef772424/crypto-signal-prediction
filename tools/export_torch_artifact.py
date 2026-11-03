@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-PURPOSE:  Export the prepared dataset that main.ipynb trains on (an npy_dir `<name>_latest.dataset`) as a contract artifact for
+PURPOSE:  Export the prepared dataset that main.ipynb trains on (`<name>_latest.pkl.gz` or an npy_dir `<name>_latest.dataset`) as a contract artifact for
           the PyTorch project nig-timenet-torch (docs/DATA_ARTIFACT_CONTRACT.md there): the same npy_dir layout, with every
           window of a SEALED coin (tools/holdout_guard.py lock) and every window whose label bar is at or after the time seal
           (2026-10-01) removed, and an `export` block added to manifest.json that records the source commit, the coin list, the
@@ -17,14 +17,19 @@ PITFALLS: Fails closed: no/invalid lock, a dirty working tree, an unknown per-wi
           know). Output is written to `<out>.tmp` and renamed; manifest.json is written last (completion marker, like
           data/storage.py::save_dataset_dir, which this tool cannot import: the data package lives in a shared namespace).
           The manifest keeps the npy_dir keys unchanged (format/version/id/created/key_order/arrays), so the old reader still
-          opens the directory; `export.schema` is "torch_artifact/1".
+          opens the directory; `export.schema` is "torch_artifact/1". A `--dataset` ending `.pkl.gz` is read the way
+          data/storage.py::load_data_from_drive reads the old format (gzip + pickle, the whole dict in RAM) and split the way
+          data/storage.py::save_dataset_dir splits it (numpy arrays without object dtype -> <key>.npy, everything else -> meta.pkl,
+          key_order = the dict's key order), so the same content gives the same file hashes from either format; the manifest
+          records `export.source_format` ("pkl.gz" | "npy_dir"). Any other file is refused.
 
 Usage:
-    python tools/export_torch_artifact.py --dataset /content/drive/MyDrive/crypto_model/preprocessed_data/preprocessing_output_latest.dataset \\
+    python tools/export_torch_artifact.py --dataset /content/drive/MyDrive/crypto_model/preprocessed_data/preprocessing_output_latest.pkl.gz \\
         --out /content/drive/MyDrive/crypto_model/torch_artifacts/preprocessing_output_1
 """
 import argparse
 import datetime as _dt
+import gzip
 import hashlib
 import json
 import os
@@ -86,6 +91,29 @@ def read_npy_dir(path):
             raise ExportError(f"{path}: {k}.npy is {a.dtype}{list(a.shape)}, manifest says {spec['dtype']}{spec['shape']}")
         arrays[k] = a
     return man, arrays, meta
+
+
+def read_pkl_gz(path):
+    """-> (npy_dir-style manifest, arrays {key: ndarray}, meta). The old `.pkl.gz` format of data/storage.py::load_data_from_drive,
+    split as save_dataset_dir would split it. Everything is loaded into RAM (what the old reader does)."""
+    with gzip.open(path, "rb") as f:
+        data = pickle.load(f)               # our own pipeline's output (same trust as data/storage.py)
+    if not isinstance(data, dict):
+        raise ExportError(f"{path}: the pickle holds a {type(data).__name__}, not a dataset dict")
+    arrays = {k: v for k, v in data.items() if isinstance(v, np.ndarray) and not v.dtype.hasobject}
+    meta = {k: v for k, v in data.items() if k not in arrays}
+    man = {"format": "pkl.gz", "version": 1, "id": None, "created": None, "key_order": list(data),
+           "arrays": {k: {"shape": list(v.shape), "dtype": str(v.dtype)} for k, v in arrays.items()}}
+    return man, arrays, meta
+
+
+def read_dataset(path):
+    """Dispatch on what ``path`` is: a directory -> npy_dir, a file ending .pkl.gz -> the old format, else refused."""
+    if os.path.isdir(path):
+        return read_npy_dir(path)
+    if os.path.isfile(path) and str(path).endswith(".pkl.gz"):
+        return read_pkl_gz(path)
+    raise ExportError(f"{path}: not an npy_dir directory and not a .pkl.gz file (or it does not exist)")
 
 
 def bar_delta(tf):
@@ -159,7 +187,7 @@ def export(dataset_dir, out_dir, *, lock=None, source=None, now=None):
     sha, dirty = source if source is not None else source_state()
     if dirty:
         raise ExportError("the working tree has uncommitted changes to tracked files: commit first, the manifest records a commit")
-    man, arrays, meta = read_npy_dir(dataset_dir)
+    man, arrays, meta = read_dataset(dataset_dir)
     plan = plan_rows(arrays, meta, lock)
     keep = plan["keep"]
     if len(keep) == 0:
@@ -203,6 +231,7 @@ def export(dataset_dir, out_dir, *, lock=None, source=None, now=None):
                    "schema": SCHEMA,
                    "source_commit": sha,
                    "source_repo": "yuosef772424/crypto-signal-prediction",
+                   "source_format": man["format"],
                    "source_dataset_id": man.get("id"),
                    "source_dataset_created": man.get("created"),
                    "coins": [b["name"] for b in new_bounds],
@@ -225,7 +254,7 @@ def export(dataset_dir, out_dir, *, lock=None, source=None, now=None):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Export the training dataset as a nig-timenet-torch contract artifact.")
-    ap.add_argument("--dataset", required=True, help="npy_dir directory, e.g. preprocessing_output_latest.dataset")
+    ap.add_argument("--dataset", required=True, help="preprocessing_output_latest.pkl.gz (what main.ipynb trains on) or an npy_dir directory (.dataset)")
     ap.add_argument("--out", required=True, help="output directory (replaced if it exists)")
     args = ap.parse_args(argv)
     try:
