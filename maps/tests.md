@@ -379,18 +379,22 @@
   - `class RegistryTests(unittest.TestCase)` L37
     - (8 methods)
 
-### `tests/test_export_torch_artifact.py` (187 lines)
+### `tests/test_export_torch_artifact.py` (264 lines)
 - PURPOSE: tools/export_torch_artifact.py: sealed coins and windows whose label bar reaches the time seal are removed, the manifest records (from docstring)
 - DEPENDS: tools
 - API:
-  - `def write_dataset(path, per_asset, *, extra_meta=None, bounds_override=None)` L29
-  - `class Base(unittest.TestCase)` L57
+  - `def build_data(per_asset, *, extra_meta=None, bounds_override=None)` L33
+  - `def write_dataset(path, per_asset, *, extra_meta=None, bounds_override=None)` L51
+  - `def write_pkl_gz(path, per_asset, **kw)` L67
+  - `class Base(unittest.TestCase)` L76
     - (3 methods)
-  - `class TestExport(Base)` L73
+  - `class TestExport(Base)` L92
     - (7 methods)
-  - `class TestRefusals(Base)` L129
+  - `class TestRefusals(Base)` L148
     - (9 methods)
-  - `class TestCli(Base)` L181
+  - `class TestPklGz(Base)` L200
+    - (8 methods)
+  - `class TestCli(Base)` L258
     - (1 methods)
 
 ### `tests/test_gate001_run.py` (44 lines)

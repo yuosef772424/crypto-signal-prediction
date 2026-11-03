@@ -3,6 +3,7 @@ the contract fields (source commit, coins, sealed list, max bar time, file hashe
 non-tiling asset_bounds are refused. Small fixtures in a temporary folder (no Drive, no network).
     python -m unittest tests.test_export_torch_artifact -v
 """
+import gzip
 import json
 import os
 import pickle
@@ -26,8 +27,11 @@ H = 3600 * 10**9                                           # one 1h bar in ns
 SEAL_NS = int(pd.Timestamp("2026-10-01", tz="UTC").value)
 
 
-def write_dataset(path, per_asset, *, extra_meta=None, bounds_override=None):
-    """per_asset = [(name, [last-bar timestamp ns, ...]), ...]; 1h base, horizon 1."""
+KEY_ORDER = ["last_candles", "asset_bounds", "base_tf", "forecast_horizon", "timeframes", "X_1h", "y_high_reg"]
+
+
+def build_data(per_asset, *, extra_meta=None, bounds_override=None):
+    """-> (arrays, meta). per_asset = [(name, [last-bar timestamp ns, ...]), ...]; 1h base, horizon 1."""
     rows = [(name, t) for name, ts in per_asset for t in ts]
     n = len(rows)
     lc = np.zeros((n, 7), dtype="float64")
@@ -41,16 +45,31 @@ def write_dataset(path, per_asset, *, extra_meta=None, bounds_override=None):
               "y_high_reg": np.arange(n, dtype="float32")}
     meta = {"asset_bounds": bounds_override or bounds, "base_tf": "1h", "forecast_horizon": 1, "timeframes": ["1h"]}
     meta.update(extra_meta or {})
+    return arrays, meta
+
+
+def write_dataset(path, per_asset, *, extra_meta=None, bounds_override=None):
+    """npy_dir source (what data/storage.py::save_dataset_dir writes)."""
+    arrays, meta = build_data(per_asset, extra_meta=extra_meta, bounds_override=bounds_override)
     os.makedirs(path)
     for k, a in arrays.items():
         np.save(os.path.join(path, f"{k}.npy"), a)
     with open(os.path.join(path, "meta.pkl"), "wb") as f:
         pickle.dump(meta, f)
     man = {"format": "npy_dir", "version": 1, "id": "srcid", "created": "2026-10-20T00:00:00",
-           "key_order": ["last_candles", "asset_bounds", "base_tf", "forecast_horizon", "timeframes", "X_1h", "y_high_reg"],
+           "key_order": KEY_ORDER,
            "arrays": {k: {"shape": list(v.shape), "dtype": str(v.dtype)} for k, v in arrays.items()}}
     with open(os.path.join(path, "manifest.json"), "w") as f:
         json.dump(man, f)
+    return arrays
+
+
+def write_pkl_gz(path, per_asset, **kw):
+    """old-format source (what data/storage.py::save_data_to_drive writes): one gzip'd pickle of the whole dict."""
+    arrays, meta = build_data(per_asset, **kw)
+    data = {k: arrays[k] if k in arrays else meta[k] for k in KEY_ORDER}
+    with gzip.open(path, "wb") as f:
+        pickle.dump(data, f, protocol=pickle.HIGHEST_PROTOCOL)
     return arrays
 
 
@@ -176,6 +195,64 @@ class TestRefusals(Base):
     def test_sealed_match_ignores_case_and_usdt_suffix(self):
         write_dataset(self.src, [("sealb", [SEAL_NS - 5 * H]), ("AAAUSDT", [SEAL_NS - 5 * H])])
         self.assertEqual(self.run_export()["export"]["coins"], ["AAAUSDT"])
+
+
+class TestPklGz(Base):
+    """A `.pkl.gz` source gives the same artifact as the npy_dir with the same content."""
+
+    def setUp(self):
+        super().setUp()
+        t0 = SEAL_NS - 10 * H
+        self.per_asset = [("AAAUSDT", [t0, t0 + H, t0 + 2 * H]), ("SEALAUSDT", [t0, t0 + H]),
+                          ("BBBUSDT", [t0 + 5 * H, SEAL_NS - 2 * H, SEAL_NS - H, SEAL_NS])]
+        self.pkl = os.path.join(self.tmp, "preprocessing_output_latest.pkl.gz")
+        self.out_pkl = os.path.join(self.tmp, "out_pkl.dataset")
+        write_dataset(self.src, self.per_asset)
+        write_pkl_gz(self.pkl, self.per_asset)
+
+    def export_pkl(self):
+        return eta.export(self.pkl, self.out_pkl, lock=self.lock, source=(SHA, False))
+
+    def test_pkl_gz_gives_the_same_file_fingerprints_as_npy_dir(self):
+        a, b = self.run_export()["export"], self.export_pkl()["export"]
+        self.assertEqual(a["files"], b["files"])
+        self.assertEqual(a["data_sha256"], b["data_sha256"])
+        for k in ("coins", "sealed_found", "sealed_excluded", "max_bar_time", "max_window_time", "rows", "rows_source",
+                  "dropped_sealed_rows", "dropped_time_rows", "lock_sha256", "time_seal", "source_commit"):
+            self.assertEqual(a[k], b[k], k)
+        self.assertEqual((a["source_format"], b["source_format"]), ("npy_dir", "pkl.gz"))
+
+    def test_pkl_gz_output_is_a_valid_npy_dir_with_the_same_manifest_body(self):
+        a = self.run_export()
+        b = self.export_pkl()
+        got, arr, meta = eta.read_npy_dir(self.out_pkl)
+        self.assertEqual((got["format"], got["key_order"], got["arrays"]), ("npy_dir", a["key_order"], a["arrays"]))
+        self.assertEqual(b["arrays"], a["arrays"])
+        np.testing.assert_array_equal(arr["X_1h"], eta.read_npy_dir(self.out)[1]["X_1h"])
+        self.assertEqual(meta["asset_bounds"], eta.read_npy_dir(self.out)[2]["asset_bounds"])
+
+    def test_read_pkl_gz_splits_like_save_dataset_dir(self):
+        man, arr, meta = eta.read_pkl_gz(self.pkl)
+        self.assertEqual(sorted(arr), ["X_1h", "last_candles", "y_high_reg"])
+        self.assertEqual(sorted(meta), ["asset_bounds", "base_tf", "forecast_horizon", "timeframes"])
+        self.assertEqual(man["key_order"], KEY_ORDER)
+
+    def test_non_dict_pickle_is_refused(self):
+        with gzip.open(self.pkl, "wb") as f:
+            pickle.dump([1, 2, 3], f)
+        with self.assertRaisesRegex(eta.ExportError, "not a dataset dict"):
+            self.export_pkl()
+
+    def test_other_file_types_and_missing_paths_are_refused(self):
+        other = os.path.join(self.tmp, "data.pkl")
+        shutil.copy(self.pkl, other)
+        for path in (other, os.path.join(self.tmp, "nothing.pkl.gz")):
+            with self.assertRaisesRegex(eta.ExportError, r"not an npy_dir directory and not a \.pkl\.gz file"):
+                eta.export(path, self.out_pkl, lock=self.lock, source=(SHA, False))
+
+    def test_cli_accepts_pkl_gz(self):
+        # the CLI path with the real lock needs the repo's lock and a clean tree; here only the refusal path is exercised
+        self.assertEqual(eta.main(["--dataset", os.path.join(self.tmp, "nothing.pkl.gz"), "--out", self.out_pkl]), 1)
 
 
 class TestCli(Base):
